@@ -61,7 +61,7 @@ function IconForm({
         type="submit"
         title={title}
         disabled={disabled}
-        className="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:pointer-events-none disabled:opacity-30"
+        className="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:pointer-events-none disabled:opacity-30"
       >
         {label}
       </button>
@@ -120,7 +120,7 @@ export function MenuBlockEditor({
           <h3 className="text-sm font-bold text-slate-900">{block.name}</h3>
           {block.note && <p className="mt-0.5 text-xs text-slate-500">{block.note}</p>}
         </div>
-        <div className="flex items-center gap-0.5 no-print">
+        <div className="flex items-center gap-1 no-print">
           <IconForm
             action={moveBlockAction}
             fields={{ menuId, blockId: block.id, direction: "up" }}
@@ -211,7 +211,7 @@ export function MenuBlockEditor({
                   )}
                 </div>
 
-                <div className="flex shrink-0 items-center gap-0.5 no-print">
+                <div className="flex shrink-0 items-center gap-1 no-print">
                   <IconForm
                     action={moveMenuItemAction}
                     fields={{ menuId, itemId: item.id, direction: "up" }}
@@ -232,7 +232,7 @@ export function MenuBlockEditor({
                       setEditingId(item.id);
                       setAdding(false);
                     }}
-                    className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    className="grid h-8 w-8 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                     title="編集"
                   >
                     ✎

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CURRENT_DRAFT_SCHEMA_VERSION,
   exerciseDraftPayloadSchema,
   parseDraftPayload,
 } from "@/domain/ai/draft-schema";
@@ -79,6 +80,36 @@ describe("exerciseDraftPayloadSchema: unknown/invalid model output never throws"
   });
 });
 
+/**
+ * schemaVersion は「将来 Prompt / モデルを変えても、
+ * どの世代の下書きかを後から判別できるように」という要求への対応。
+ * 過去に保存された（version フィールドを持たない）下書きも
+ * 引き続き読めることが前提になる。
+ */
+describe("exerciseDraftPayloadSchema: schemaVersion (Phase 2 audit item: prompt/model provenance)", () => {
+  it("defaults to the current version when omitted (reading a pre-versioning draft)", () => {
+    const result = exerciseDraftPayloadSchema.parse({ name: "旧データ" });
+    expect(result.schemaVersion).toBe(CURRENT_DRAFT_SCHEMA_VERSION);
+  });
+
+  it("preserves an explicit version so old drafts stay distinguishable from new ones", () => {
+    const result = exerciseDraftPayloadSchema.parse({ schemaVersion: 1 });
+    expect(result.schemaVersion).toBe(1);
+  });
+
+  it("falls back to the current version for a garbage value instead of throwing", () => {
+    expect(exerciseDraftPayloadSchema.parse({ schemaVersion: "not-a-number" }).schemaVersion).toBe(
+      CURRENT_DRAFT_SCHEMA_VERSION,
+    );
+    expect(exerciseDraftPayloadSchema.parse({ schemaVersion: -1 }).schemaVersion).toBe(
+      CURRENT_DRAFT_SCHEMA_VERSION,
+    );
+    expect(exerciseDraftPayloadSchema.parse({ schemaVersion: null }).schemaVersion).toBe(
+      CURRENT_DRAFT_SCHEMA_VERSION,
+    );
+  });
+});
+
 describe("parseDraftPayload: never throws on malformed stored JSON", () => {
   it("parses a well-formed payload", () => {
     const payload = parseDraftPayload(JSON.stringify({ name: "テスト", category: "DRILL" }));
@@ -86,14 +117,17 @@ describe("parseDraftPayload: never throws on malformed stored JSON", () => {
     expect(payload.category).toBe("DRILL");
   });
 
-  it("returns an empty object for invalid JSON instead of throwing", () => {
-    expect(parseDraftPayload("{not valid json")).toEqual({});
-    expect(parseDraftPayload("")).toEqual({});
+  it("returns an (almost) empty payload for invalid JSON instead of throwing", () => {
+    // schemaVersion だけは常に埋まる（型上 required なので、既定値として current を使う）
+    const empty = { schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION };
+    expect(parseDraftPayload("{not valid json")).toEqual(empty);
+    expect(parseDraftPayload("")).toEqual(empty);
   });
 
-  it("returns an empty object when the JSON is valid but not an object (e.g. an array)", () => {
-    expect(parseDraftPayload("[1,2,3]")).toEqual({});
-    expect(parseDraftPayload('"just a string"')).toEqual({});
-    expect(parseDraftPayload("42")).toEqual({});
+  it("returns an (almost) empty payload when the JSON is valid but not an object (e.g. an array)", () => {
+    const empty = { schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION };
+    expect(parseDraftPayload("[1,2,3]")).toEqual(empty);
+    expect(parseDraftPayload('"just a string"')).toEqual(empty);
+    expect(parseDraftPayload("42")).toEqual(empty);
   });
 });

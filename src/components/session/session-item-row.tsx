@@ -65,14 +65,16 @@ export function SessionItemRow({
       )}
     >
       <div className="flex items-start gap-2.5">
-        <form action={toggleSessionItemAction} className="pt-0.5 no-print">
+        <form action={toggleSessionItemAction} className="no-print">
           <input type="hidden" name="sessionId" value={sessionId} />
           <input type="hidden" name="itemId" value={item.id} />
           <button
             type="submit"
             title={item.done ? "未実施に戻す" : "実施済みにする"}
             className={cn(
-              "grid h-5 w-5 place-items-center rounded border text-xs transition-colors",
+              // 練習中もっとも繰り返しタップされる操作のため、他の補助ボタンより
+              // 一回り大きくしてある（元は h-5 w-5 = 20px で、指では狙いにくかった）。
+              "grid h-7 w-7 place-items-center rounded border text-sm transition-colors",
               item.done
                 ? "border-emerald-500 bg-emerald-500 text-white"
                 : "border-slate-300 bg-white text-transparent hover:border-emerald-400",
@@ -126,7 +128,7 @@ export function SessionItemRow({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-0.5 no-print">
+        <div className="flex shrink-0 items-center gap-1 no-print">
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}

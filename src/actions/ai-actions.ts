@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/infra/db/prisma";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
-import type { ExerciseDraftPayload } from "@/domain/ai/draft-schema";
+import { CURRENT_DRAFT_SCHEMA_VERSION, type ExerciseDraftPayload } from "@/domain/ai/draft-schema";
 
 /**
  * 動作確認用のサンプル下書きを 1 件作る。
@@ -15,6 +15,7 @@ import type { ExerciseDraftPayload } from "@/domain/ai/draft-schema";
  */
 export async function createSampleDraftAction(): Promise<void> {
   const payload: ExerciseDraftPayload = {
+    schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
     name: "ミニハードル・クイックステップ",
     nameKana: "みにはーどるくいっくすてっぷ",
     description:
