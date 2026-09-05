@@ -29,6 +29,8 @@ npm run dev       # http://localhost:3000
 | `npm run build` / `npm start` | 本番ビルド / 起動 |
 | `npm run typecheck` | 型チェック |
 | `npm run lint` | ESLint |
+| `npm test` | Vitest（Domain / Repository / Server Action の自動テスト） |
+| `npm run verify` | typecheck → lint → test → verify-snapshot をまとめて実行 |
 | `npm run db:migrate` | スキーマ変更をマイグレーション |
 | `npm run db:seed` | 初期データ投入（既存データは消えます） |
 | `npm run db:studio` | Prisma Studio で DB を直接見る |
@@ -73,7 +75,11 @@ src/
   components/            UI コンポーネント
   lib/                   フォーム変換・日付整形
 scripts/
-  verify-snapshot.ts     設計上の不変条件を実データで検証するスクリプト
+  verify-snapshot.ts     設計上の不変条件を実データで検証するスクリプト（手動実行用）
+tests/
+  domain/                Prescription・Zod ヘルパ・検索条件・AI下書きスキーマの単体テスト
+  repository/            Exercise/Menu CRUD・検索・★スナップショット不変条件の自動テスト
+  actions/               Server Action（AI下書きの紐付け、チェックボックス解析など）
 ```
 
 ---
@@ -153,4 +159,6 @@ Phase 2 で必要なのは、アナライザの実装と `getVideoAnalyzer()` �
 - 認証・マルチユーザー（`ownerId` 列だけ用意し、既定値 1 つで運用）
 - 動画のアップロードと解析の実行（`VideoAsset` テーブルはあるが UI 未実装）
 - 選手個人の記録管理（`groupName` の自由記述のみ）
-- 自動テスト（`scripts/verify-snapshot.ts` による不変条件チェックのみ）
+
+自動テストは `npm test`（Vitest、100 件超）と `scripts/verify-snapshot.ts`
+（手動実行の不変条件チェック）を用意済み。E2E テストは未整備。

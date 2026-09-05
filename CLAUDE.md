@@ -63,11 +63,40 @@ PostgreSQL へ移行するときは、この 3 点を戻すだけで済むよう
 `src/domain/ai/ports.ts` の `VideoAnalyzer` が唯一の差し替え口。
 追加手順は `docs/phase2-ai.md`。ここ以外に解析ロジックを書かない。
 
+## 自動テスト（Vitest）
+
+`tests/` に Domain / Repository / Server Action の単体テストがある
+（`npm test` で 100 件超。テスト用 DB は `prisma/test.db` を使い、
+`prisma/dev.db` には触らない）。
+
+データモデルや Server Action に触ったら、既存のテストが通るか必ず確認する。
+特に `tests/repository/snapshot-integrity.test.ts` は上のスナップショット不変条件の
+自動版なので、`Exercise` / `MenuItem` / `SessionItem` 周りを触ったら最優先で流す。
+
+新しいテストを足すときの注意:
+- Server Action（`"use server"`）は `next/cache` の `revalidatePath` と
+  `next/navigation` の `redirect` を `vi.mock()` する
+  （`redirect` は実際の Next.js と同様、呼ばれたら例外を投げるモックにする。
+  `tests/actions/*.test.ts` を参照）
+- テストファイルをまたぐ並列実行は無効（`vitest.config.ts` の `fileParallelism: false`）。
+  同じ SQLite ファイルを共有しているため、有効にすると "database is locked" が起こる
+
+## タップ領域の最低ライン
+
+一覧・記録画面のアイコンだけの操作ボタン（並べ替え・編集・削除）は
+最低でも `h-8 w-8`（32px）、隣接ボタンとの間は `gap-1`（4px）以上を保つ。
+特にチェックボックスなど「繰り返し何度もタップされる」操作は、
+他の補助ボタンより一回り大きくする（`session-item-row.tsx` の実施済みトグルが例）。
+`h-5 w-5` 以下のアイコンボタンを新しく追加しないこと。
+
 ## 確認コマンド
 
 ```bash
 npm run typecheck
 npm run lint
+npm test
 npx tsx scripts/verify-snapshot.ts
 npm run build
 ```
+
+まとめて実行する場合は `npm run verify`。
