@@ -1,0 +1,396 @@
+// ============================================================================
+// SACHIZU メニュー作成 — Prisma Schema (Phase 1)
+//
+// 設計の中核となる 3 つの責務分離:
+//
+//   1. Exercise      … 「種目そのもの」= 再利用される知識。
+//                       誰が・いつ・どれだけやるかとは無関係。
+//   2. MenuItem      … 「このメニューでの処方」= 計画。
+//                       同じ Aスキップでも メニューA では 2set×30m、
+//                       メニューB では 3set×20m になりうる。
+//   3. SessionItem   … 「実際にやった事実」= 記録。
+//                       生成時点で名前・処方をスナップショットするため、
+//                       後から Exercise / MenuTemplate を編集しても
+//                       過去のセッション記録は一切変化しない。
+//
+// SQLite 制約への対応:
+//   - Prisma の SQLite provider は enum / スカラー配列を持てないため、
+//     enum 相当は String + src/domain/**/constants.ts の const union で表現し、
+//     配列相当は中間テーブルで正規化している。
+//     PostgreSQL へ移行する際は String → enum に置換するだけで済む形にしてある。
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// カタログ層: 種目 / ドリル
+// ----------------------------------------------------------------------------
+
+/// 種目・ドリル 1 件。練習メニューから何度でも再利用される「知識」。
+model Exercise {
+  id   String @id @default(cuid())
+  /// 将来のマルチコーチ対応に備えた所有者。Phase 1 では既定値のみ使用。
+  ownerId String @default("default-coach")
+
+  name        String
+  /// 五十音での並び替え・検索用。任意。
+  nameKana    String?
+  /// 種目の説明・実施手順。
+  description String?
+  /// コーチングポイント（選手に伝える意識点）。
+  coachingPoint String?
+  /// ありがちな失敗・注意点。
+  commonMistake String?
+
+  /// ExerciseCategory (src/domain/exercise/constants.ts)
+  category   String
+  /// MetricType — この種目の負荷を何で測るか。入力 UI の出し分けに使う。
+  metricType String @default("REPS")
+  /// 1(易) 〜 5(難)
+  difficulty Int    @default(3)
+
+  // --- 推奨負荷（あくまで既定値。メニューに追加する際の初期値として使われる）---
+  defaultSets            Int?
+  defaultReps            Int?
+  defaultDistanceMeters  Float?
+  defaultDurationSeconds Int?
+  defaultRestSeconds     Int?
+
+  /// 外部動画 URL（YouTube 等）。アップロード動画は VideoAsset を使う。
+  videoUrl String?
+
+  /// ContentSource — MANUAL / AI_DRAFT / IMPORTED。AI 由来かを区別する。
+  source String @default("MANUAL")
+  /// ReviewStatus — DRAFT / REVIEWED / ARCHIVED。
+  /// AI 下書きから作られた種目は DRAFT で入り、コーチ確認後 REVIEWED になる。
+  status String @default("REVIEWED")
+
+  targets   ExerciseTarget[]
+  tags      ExerciseTag[]
+  menuItems MenuItem[]
+  sessionItems SessionItem[]
+  videoAssets  VideoAsset[]
+  /// この種目として確定した AI 下書き（あれば）
+  appliedFromDrafts ExerciseDraft[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, category])
+  @@index([ownerId, status])
+  @@index([name])
+}
+
+/// 種目が狙う能力（スピード / 持久力 / 技術 …）。複数持てるので中間テーブル。
+model ExerciseTarget {
+  exerciseId String
+  /// TrainingTarget (src/domain/exercise/constants.ts)
+  target     String
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@id([exerciseId, target])
+  @@index([target])
+}
+
+/// タグ。kind によって「自由タグ / 使用器具 / 部位」を 1 つの仕組みで扱う。
+model Tag {
+  id   String @id @default(cuid())
+  name String
+  /// TagKind — GENERAL / EQUIPMENT / BODY_PART
+  kind String @default("GENERAL")
+
+  exercises ExerciseTag[]
+  menus     MenuTag[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([kind, name])
+  @@index([kind])
+}
+
+model ExerciseTag {
+  exerciseId String
+  tagId      String
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([exerciseId, tagId])
+  @@index([tagId])
+}
+
+// ----------------------------------------------------------------------------
+// 計画層: 練習メニュー（テンプレート）
+// ----------------------------------------------------------------------------
+
+/// 練習メニューの雛形。ブロック > アイテム の 2 階層で構成する。
+model MenuTemplate {
+  id      String @id @default(cuid())
+  ownerId String @default("default-coach")
+
+  name        String
+  description String?
+  /// このメニューの狙い。
+  purpose     String?
+  /// TrainingPhase — 期分け（準備期 / 試合期 など）。
+  phase       String?
+  /// 想定所要時間（分）。null の場合は blocks から概算する。
+  estimatedMinutes Int?
+
+  /// ReviewStatus — DRAFT / REVIEWED / ARCHIVED
+  status String @default("DRAFT")
+
+  blocks   MenuBlock[]
+  tags     MenuTag[]
+  /// このテンプレートから作られたセッション（参照のみ。実体は各 Session が保持）
+  sessions TrainingSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, status])
+  @@index([name])
+}
+
+model MenuTag {
+  menuTemplateId String
+  tagId          String
+
+  menuTemplate MenuTemplate @relation(fields: [menuTemplateId], references: [id], onDelete: Cascade)
+  tag          Tag          @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([menuTemplateId, tagId])
+  @@index([tagId])
+}
+
+/// メニュー内の構成単位（ウォームアップ / ドリル / 主運動 / 補強 / クールダウン）。
+model MenuBlock {
+  id             String @id @default(cuid())
+  menuTemplateId String
+
+  name      String
+  note      String?
+  sortOrder Int    @default(0)
+
+  menuTemplate MenuTemplate @relation(fields: [menuTemplateId], references: [id], onDelete: Cascade)
+  items        MenuItem[]
+
+  @@index([menuTemplateId, sortOrder])
+}
+
+/// メニュー内の 1 種目 = 「この種目を、このメニューでは どう やるか」という処方。
+/// Exercise（何をやるか）と MenuItem（どうやるか）を分離しているのが要点。
+model MenuItem {
+  id          String @id @default(cuid())
+  menuBlockId String
+  /// 参照する種目。種目が削除された場合に備え名前をスナップショットしておく。
+  exerciseId  String?
+
+  /// 参照切れ・自由記述項目（「3km ジョグ」など種目化しないもの）用の表示名。
+  displayName String?
+
+  sortOrder Int @default(0)
+
+  // --- 処方（このメニュー固有の負荷設定）---
+  sets            Int?
+  reps            Int?
+  distanceMeters  Float?
+  durationSeconds Int?
+  restSeconds     Int?
+  /// 強度（%）。スプリントの 90% 走など。
+  intensityPercent Int?
+  /// 重量（kg）。ウエイト種目用。
+  loadKg          Float?
+  /// この項目だけの指示・補足。
+  note            String?
+
+  menuBlock MenuBlock @relation(fields: [menuBlockId], references: [id], onDelete: Cascade)
+  exercise  Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  @@index([menuBlockId, sortOrder])
+  @@index([exerciseId])
+}
+
+// ----------------------------------------------------------------------------
+// 実施層: トレーニングセッション
+// ----------------------------------------------------------------------------
+
+/// 実際に行った（行う）練習 1 回分。
+/// メニューテンプレートから生成するが、生成後はテンプレートから独立する。
+model TrainingSession {
+  id      String @id @default(cuid())
+  ownerId String @default("default-coach")
+
+  title String
+  /// 実施日。
+  date  DateTime
+
+  /// 由来のテンプレート。表示・追跡のための参照のみで、内容は同期しない。
+  sourceMenuTemplateId String?
+  /// 生成時点のテンプレート名（テンプレートが消えても由来が分かるように）。
+  sourceMenuNameSnapshot String?
+
+  /// 対象グループ・選手（Phase 1 では自由記述）。
+  groupName String?
+  location  String?
+  weather   String?
+  /// 気温など、コンディションの自由記述。
+  condition String?
+
+  /// SessionStatus — PLANNED / IN_PROGRESS / COMPLETED / CANCELLED
+  status String @default("PLANNED")
+
+  /// 実施後のコーチ所感。
+  coachNote String?
+
+  sourceMenuTemplate MenuTemplate? @relation(fields: [sourceMenuTemplateId], references: [id], onDelete: SetNull)
+  items              SessionItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, date])
+  @@index([ownerId, status])
+}
+
+/// セッション内の 1 項目。
+/// planned* はテンプレートからコピーされた計画値、actual* は実施結果。
+/// 名前とブロック名もスナップショットするため、後から元データが変わっても不変。
+model SessionItem {
+  id                String @id @default(cuid())
+  trainingSessionId String
+  /// 参照は残すが、記録の正しさはこの参照に依存しない。
+  exerciseId        String?
+
+  /// スナップショット: 生成時点の表示名とブロック名。
+  exerciseNameSnapshot String
+  blockNameSnapshot    String
+  sortOrder            Int    @default(0)
+
+  // --- 計画値（テンプレートの MenuItem からコピー）---
+  plannedSets            Int?
+  plannedReps            Int?
+  plannedDistanceMeters  Float?
+  plannedDurationSeconds Int?
+  plannedRestSeconds     Int?
+  plannedIntensityPercent Int?
+  plannedLoadKg          Float?
+  plannedNote            String?
+
+  // --- 実績値 ---
+  actualSets            Int?
+  actualReps            Int?
+  actualDistanceMeters  Float?
+  actualDurationSeconds Int?
+  actualLoadKg          Float?
+  /// 実施したか。
+  done                  Boolean @default(false)
+  /// 実施時のメモ（フォーム、選手の反応など）。
+  actualNote            String?
+
+  trainingSession TrainingSession @relation(fields: [trainingSessionId], references: [id], onDelete: Cascade)
+  exercise        Exercise?       @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  @@index([trainingSessionId, sortOrder])
+  @@index([exerciseId])
+}
+
+// ----------------------------------------------------------------------------
+// AI 拡張ポイント (Phase 2: Qwen 等による動画解析)
+//
+// Phase 1 では解析そのものは実装しないが、
+//   動画 → 解析ジョブ → AI 下書き → コーチ修正 → Exercise 登録
+// という導線を後から差し込めるよう、テーブルと状態遷移だけ確定させている。
+// 実装の差し替え口は src/domain/ai/ports.ts の VideoAnalyzer。
+// ----------------------------------------------------------------------------
+
+/// アップロードされた動画ファイル。Phase 1 では登録・参照のみ。
+model VideoAsset {
+  id      String @id @default(cuid())
+  ownerId String @default("default-coach")
+
+  /// 保存先キー。Phase 1 はローカル public/uploads 配下、
+  /// Phase 2 で S3 互換ストレージのキーに差し替え可能。
+  storageKey String
+  filename   String
+  mimeType   String  @default("video/mp4")
+  sizeBytes  Int?
+  durationSeconds Int?
+  thumbnailKey    String?
+
+  /// 解析結果として紐付いた種目（未解析の間は null）。
+  exerciseId String?
+  exercise   Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  analysisJobs AnalysisJob[]
+  drafts       ExerciseDraft[]
+
+  createdAt DateTime @default(now())
+
+  @@index([ownerId, createdAt])
+}
+
+/// 動画解析ジョブ 1 件。Phase 2 で VideoAnalyzer 実装が状態を進める。
+model AnalysisJob {
+  id           String @id @default(cuid())
+  videoAssetId String
+
+  /// AnalysisJobStatus — PENDING / RUNNING / SUCCEEDED / FAILED
+  status   String @default("PENDING")
+  /// 使用したモデル（例: "qwen2.5-vl-72b"）。実装非依存に保つため文字列。
+  provider String?
+  model    String?
+
+  /// モデルの生出力（JSON 文字列）。再解析・監査用に必ず残す。
+  rawOutput    String?
+  errorMessage String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  videoAsset VideoAsset      @relation(fields: [videoAssetId], references: [id], onDelete: Cascade)
+  drafts     ExerciseDraft[]
+
+  @@index([videoAssetId])
+  @@index([status])
+}
+
+/// AI が生成した「種目の下書き」。コーチが修正して Exercise として確定する。
+/// 下書きと確定データを分けることで、AI 出力が直接カタログを汚さない。
+model ExerciseDraft {
+  id            String  @id @default(cuid())
+  ownerId       String  @default("default-coach")
+  analysisJobId String?
+  videoAssetId  String?
+
+  /// Exercise 相当の候補フィールドを JSON 文字列で保持。
+  /// スキーマは src/domain/ai/draft-schema.ts の exerciseDraftPayloadSchema で検証する。
+  payload String
+
+  /// 0.0 〜 1.0。モデルが返さない場合は null。
+  confidence Float?
+
+  /// DraftStatus — PENDING_REVIEW / APPLIED / REJECTED
+  status String @default("PENDING_REVIEW")
+
+  /// 確定して作られた Exercise。
+  appliedExerciseId String?
+  appliedExercise   Exercise? @relation(fields: [appliedExerciseId], references: [id], onDelete: SetNull)
+
+  analysisJob AnalysisJob? @relation(fields: [analysisJobId], references: [id], onDelete: SetNull)
+  videoAsset  VideoAsset?  @relation(fields: [videoAssetId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, status])
+}
