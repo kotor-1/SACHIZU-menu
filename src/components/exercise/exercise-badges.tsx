@@ -3,8 +3,12 @@ import {
   DIFFICULTY_LABEL,
   EXERCISE_CATEGORY_COLOR,
   EXERCISE_CATEGORY_LABEL,
+  EXERCISE_PURPOSE_LABEL,
+  TRACK_FIELD_EVENT_LABEL,
   TRAINING_TARGET_LABEL,
   type ExerciseCategory,
+  type ExercisePurposeValue,
+  type TrackFieldEvent,
   type TrainingTarget,
 } from "@/domain/exercise/constants";
 import { REVIEW_STATUS_LABEL, type ReviewStatus } from "@/domain/shared/constants";
@@ -22,6 +26,22 @@ export function TargetBadge({ target }: { target: string }) {
   return (
     <Badge className="border-slate-200 bg-white text-slate-600">
       {TRAINING_TARGET_LABEL[target as TrainingTarget] ?? target}
+    </Badge>
+  );
+}
+
+export function PurposeBadge({ purpose }: { purpose: string }) {
+  return (
+    <Badge className="border-teal-200 bg-teal-50 text-teal-700">
+      {EXERCISE_PURPOSE_LABEL[purpose as ExercisePurposeValue] ?? purpose}
+    </Badge>
+  );
+}
+
+export function EventBadge({ event }: { event: string }) {
+  return (
+    <Badge className="border-purple-200 bg-purple-50 text-purple-700">
+      {TRACK_FIELD_EVENT_LABEL[event as TrackFieldEvent] ?? event}
     </Badge>
   );
 }

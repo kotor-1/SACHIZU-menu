@@ -34,6 +34,17 @@ Phase 2 で Qwen 等による動画解析（種目の AI 下書き）を足す�
 不変条件は `npx tsx scripts/verify-snapshot.ts` で検証できる。
 データモデルに触ったら必ず実行する。
 
+**`Exercise` へ分類軸を足すこと自体は問題ない。** Phase 1.2 で
+`Exercise.purposes` / `Exercise.events` / `Exercise.isFavorite` を
+`ExerciseTarget` と同型の中間テーブル（1 Exercise : N）で追加したが、
+これは「Exercise（知識）に付く属性を増やした」だけで 3 層構造そのものは
+変えていない。**`SessionItem` へはコピーしていない** —
+Purpose/Event/Favorite は種目カタログの分類・検索のための情報であり、
+「その回の練習で何をどれだけやったか」という実施記録には意味を持たないため。
+新しい分類軸を Exercise に足すときは、まず「これは SessionItem の
+スナップショットに含める必要があるか」を自問し、不要ならこれまで通り
+Exercise 側だけに留めること。
+
 ## 層の約束
 
 - `src/domain/` … DB にも React にも依存しない。列挙値・値オブジェクト・Zod スキーマだけ

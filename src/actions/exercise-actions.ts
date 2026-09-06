@@ -10,6 +10,8 @@ import {
   archiveExercise,
   createExercise,
   deleteExercise,
+  duplicateExercise,
+  toggleExerciseFavorite,
   updateExercise,
 } from "@/infra/repositories/exercise-repository";
 import { pruneOrphanTags } from "@/infra/repositories/tag-repository";
@@ -24,7 +26,14 @@ function expandTagInputs(formData: FormData): void {
   }
 }
 
-const ARRAY_KEYS = ["targets", "generalTags", "equipmentTags", "bodyPartTags"];
+const ARRAY_KEYS = [
+  "targets",
+  "purposes",
+  "events",
+  "generalTags",
+  "equipmentTags",
+  "bodyPartTags",
+];
 
 export async function createExerciseAction(
   _prev: ActionResult<{ id: string }> | null,
@@ -110,6 +119,24 @@ export async function restoreExerciseAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await prisma.exercise.update({ where: { id }, data: { status: "REVIEWED" } });
+  revalidatePath("/exercises");
+  revalidatePath(`/exercises/${id}`);
+}
+
+/** 似た種目を作るための複製。複製後は編集画面へ送る（内容を見直してから確定させるため）。 */
+export async function duplicateExerciseAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const copy = await duplicateExercise(id);
+  revalidatePath("/exercises");
+  redirect(`/exercises/${copy.id}/edit`);
+}
+
+/** 一覧・詳細どちらからも呼べる、お気に入りの ON/OFF トグル。 */
+export async function toggleExerciseFavoriteAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await toggleExerciseFavorite(id);
   revalidatePath("/exercises");
   revalidatePath(`/exercises/${id}`);
 }

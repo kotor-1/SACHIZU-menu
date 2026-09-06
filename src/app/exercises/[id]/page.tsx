@@ -13,12 +13,16 @@ import { SubmitButton } from "@/components/submit-button";
 import {
   CategoryBadge,
   DifficultyBadge,
+  EventBadge,
+  PurposeBadge,
   StatusBadge,
   TargetBadge,
 } from "@/components/exercise/exercise-badges";
+import { FavoriteToggleButton } from "@/components/exercise/favorite-toggle-button";
 import {
   archiveExerciseAction,
   deleteExerciseAction,
+  duplicateExerciseAction,
   restoreExerciseAction,
 } from "@/actions/exercise-actions";
 import { findExercise } from "@/infra/repositories/exercise-repository";
@@ -63,6 +67,11 @@ export default async function ExerciseDetailPage({
       <PageHeader
         title={
           <span className="flex flex-wrap items-center gap-2">
+            <FavoriteToggleButton
+              exerciseId={exercise.id}
+              isFavorite={exercise.isFavorite}
+              className="-ml-1"
+            />
             {exercise.name}
             <StatusBadge status={exercise.status} />
           </span>
@@ -81,6 +90,10 @@ export default async function ExerciseDetailPage({
             <LinkButton href={`/exercises/${exercise.id}/edit`} variant="secondary">
               編集
             </LinkButton>
+            <form action={duplicateExerciseAction}>
+              <input type="hidden" name="id" value={exercise.id} />
+              <SubmitButton variant="secondary">複製</SubmitButton>
+            </form>
             {exercise.status === "ARCHIVED" ? (
               <form action={restoreExerciseAction}>
                 <input type="hidden" name="id" value={exercise.id} />
@@ -212,6 +225,30 @@ export default async function ExerciseDetailPage({
                     exercise.targets.map((t) => (
                       <TargetBadge key={t.target} target={t.target} />
                     ))
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1 text-xs text-slate-400">練習目的</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {exercise.purposes.length === 0 ? (
+                    <span className="text-sm text-slate-400">未設定</span>
+                  ) : (
+                    exercise.purposes.map((p) => (
+                      <PurposeBadge key={p.purpose} purpose={p.purpose} />
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1 text-xs text-slate-400">対象競技</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {exercise.events.length === 0 ? (
+                    <span className="text-sm text-slate-400">未設定</span>
+                  ) : (
+                    exercise.events.map((e) => <EventBadge key={e.event} event={e.event} />)
                   )}
                 </div>
               </div>

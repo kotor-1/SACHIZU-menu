@@ -23,6 +23,28 @@ describe("parseSearchParams: never throws on invalid query strings", () => {
     expect(search.page).toBe(1);
   });
 
+  it("falls back to defaults for an unknown purpose / event / favorite value", () => {
+    const search = parseSearchParams(
+      exerciseSearchSchema,
+      { purpose: "NOT_A_PURPOSE", event: "NOT_AN_EVENT", favorite: "yes-please" },
+      ["tag"],
+    );
+    expect(search.purpose).toBe("");
+    expect(search.event).toBe("");
+    expect(search.favorite).toBe("");
+  });
+
+  it("accepts a valid purpose / event / favorite combination", () => {
+    const search = parseSearchParams(
+      exerciseSearchSchema,
+      { purpose: "GROUND_CONTACT", event: "HURDLE", favorite: "1" },
+      ["tag"],
+    );
+    expect(search.purpose).toBe("GROUND_CONTACT");
+    expect(search.event).toBe("HURDLE");
+    expect(search.favorite).toBe("1");
+  });
+
   it("accepts a valid exercise category and a real difficulty", () => {
     const search = parseSearchParams(
       exerciseSearchSchema,

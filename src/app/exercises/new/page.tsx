@@ -52,6 +52,8 @@ export default async function NewExercisePage({
       defaultRestSeconds:
         payload.defaultRestSeconds != null ? String(payload.defaultRestSeconds) : "",
       targets: payload.targets ?? [],
+      purposes: payload.purpose ?? [],
+      events: payload.events ?? [],
       generalTags: (payload.generalTags ?? []).join(", "),
       equipmentTags: (payload.equipmentTags ?? []).join(", "),
       bodyPartTags: (payload.bodyPartTags ?? []).join(", "),

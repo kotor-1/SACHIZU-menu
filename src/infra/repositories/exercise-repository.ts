@@ -10,6 +10,8 @@ import { upsertTags } from "./tag-repository";
 
 const withRelations = {
   targets: true,
+  purposes: true,
+  events: true,
   tags: { include: { tag: true } },
 } satisfies Prisma.ExerciseInclude;
 
@@ -43,6 +45,9 @@ function buildWhere(search: ExerciseSearch): Prisma.ExerciseWhereInput {
     and.push({ difficulty: search.difficulty });
   }
   if (search.target) and.push({ targets: { some: { target: search.target } } });
+  if (search.purpose) and.push({ purposes: { some: { purpose: search.purpose } } });
+  if (search.event) and.push({ events: { some: { event: search.event } } });
+  if (search.favorite === "1") and.push({ isFavorite: true });
 
   // タグは AND 条件（「ハードル」かつ「初心者向け」で絞りたいため）
   for (const tagId of search.tag) {
@@ -133,16 +138,20 @@ export type ExercisePickerItem = Awaited<
   ReturnType<typeof listExercisesForPicker>
 >[number];
 
-/** 入力から、タグ / 対象能力を除いたスカラー部分だけ取り出す。 */
+/** 入力から、タグ / 対象能力 / 目的 / 対象競技を除いたスカラー部分だけ取り出す。 */
 function scalarFields(input: ExerciseInput) {
   const {
     targets: _t,
+    purposes: _p,
+    events: _ev,
     generalTags: _g,
     equipmentTags: _e,
     bodyPartTags: _b,
     ...scalar
   } = input;
   void _t;
+  void _p;
+  void _ev;
   void _g;
   void _e;
   void _b;
@@ -166,6 +175,8 @@ export async function createExercise(input: ExerciseInput) {
       ...scalarFields(input),
       ownerId: DEFAULT_OWNER_ID,
       targets: { create: input.targets.map((target) => ({ target })) },
+      purposes: { create: input.purposes.map((purpose) => ({ purpose })) },
+      events: { create: input.events.map((event) => ({ event })) },
       tags: { create: tagIds.map((tagId) => ({ tagId })) },
     },
     include: withRelations,
@@ -178,12 +189,16 @@ export async function updateExercise(id: string, input: ExerciseInput) {
   // 中間テーブルは総入れ替えする（差分計算するほどの件数ではない）
   return prisma.$transaction(async (tx) => {
     await tx.exerciseTarget.deleteMany({ where: { exerciseId: id } });
+    await tx.exercisePurpose.deleteMany({ where: { exerciseId: id } });
+    await tx.exerciseEvent.deleteMany({ where: { exerciseId: id } });
     await tx.exerciseTag.deleteMany({ where: { exerciseId: id } });
     return tx.exercise.update({
       where: { id },
       data: {
         ...scalarFields(input),
         targets: { create: input.targets.map((target) => ({ target })) },
+        purposes: { create: input.purposes.map((purpose) => ({ purpose })) },
+        events: { create: input.events.map((event) => ({ event })) },
         tags: { create: tagIds.map((tagId) => ({ tagId })) },
       },
       include: withRelations,
@@ -198,6 +213,61 @@ export async function deleteExercise(id: string) {
 /** 種目を消さずに一覧から隠す。過去のメニュー・記録を壊さない安全な引退方法。 */
 export async function archiveExercise(id: string) {
   return prisma.exercise.update({ where: { id }, data: { status: "ARCHIVED" } });
+}
+
+/**
+ * 似た種目を素早く登録するための複製。
+ *
+ * 「Aスキップ」→「Aスキップ・ミニハードル」のように、既存種目をベースに
+ * 少しだけ違う種目を作る入力負担を減らすためのもの。
+ * 新しい id で完全に独立した行を作り、複製元との参照は持たない
+ * （複製元を後から編集しても複製先には一切波及しない）。
+ * お気に入り・状態はリセットする（コーチが内容を見直してから確定する前提）。
+ */
+export async function duplicateExercise(id: string) {
+  const source = await prisma.exercise.findUnique({ where: { id }, include: withRelations });
+  if (!source) throw new Error("複製元の種目が見つかりません");
+
+  return prisma.exercise.create({
+    data: {
+      ownerId: source.ownerId,
+      name: `${source.name} のコピー`,
+      nameKana: source.nameKana,
+      description: source.description,
+      coachingPoint: source.coachingPoint,
+      commonMistake: source.commonMistake,
+      category: source.category,
+      metricType: source.metricType,
+      difficulty: source.difficulty,
+      defaultSets: source.defaultSets,
+      defaultReps: source.defaultReps,
+      defaultDistanceMeters: source.defaultDistanceMeters,
+      defaultDurationSeconds: source.defaultDurationSeconds,
+      defaultRestSeconds: source.defaultRestSeconds,
+      // 動画は元の収録に紐づくものなので複製しない。
+      videoUrl: null,
+      source: "MANUAL",
+      status: "DRAFT",
+      isFavorite: false,
+      targets: { create: source.targets.map((t) => ({ target: t.target })) },
+      purposes: { create: source.purposes.map((p) => ({ purpose: p.purpose })) },
+      events: { create: source.events.map((e) => ({ event: e.event })) },
+      tags: { create: source.tags.map((t) => ({ tagId: t.tagId })) },
+    },
+    include: withRelations,
+  });
+}
+
+/** お気に入りの ON/OFF を切り替える。一覧・詳細どちらからも呼べる。 */
+export async function toggleExerciseFavorite(id: string) {
+  const current = await prisma.exercise.findUniqueOrThrow({
+    where: { id },
+    select: { isFavorite: true },
+  });
+  return prisma.exercise.update({
+    where: { id },
+    data: { isFavorite: !current.isFavorite },
+  });
 }
 
 /** 一覧ヘッダに出すカテゴリ別件数。 */

@@ -40,6 +40,8 @@ export default async function EditExercisePage({
     source: exercise.source,
     status: exercise.status,
     targets: exercise.targets.map((t) => t.target),
+    purposes: exercise.purposes.map((p) => p.purpose),
+    events: exercise.events.map((e) => e.event),
     generalTags: tagsOf("GENERAL"),
     equipmentTags: tagsOf("EQUIPMENT"),
     bodyPartTags: tagsOf("BODY_PART"),

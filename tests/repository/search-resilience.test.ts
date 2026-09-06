@@ -13,18 +13,20 @@ import { resetDb } from "../helpers";
  * まで通しで確認する。schema レベルの防御は tests/domain/search-params.test.ts で
  * 確認済みなので、ここでは repository まで到達させて例外が飛ばないことを見る。
  *
- * 現行の Phase 1 には「Event（種目区分）」「Favorite（お気に入り）」という
- * フィルタは存在しない（対象能力=target、カテゴリ、タグ、状態のみ）。
- * そのため Category / Tag / Status（Phase 1 にある軸）を確認し、
- * 存在しない軸はテストしない。
+ * Phase 1.2 で Purpose（練習目的）/ Event（対象競技）/ Favorite（お気に入り）
+ * フィルタを追加したため、これらも Category / Target / Tag / Status と
+ * 同様に不正値耐性を確認する。
  */
 describe("search: malformed queries never throw all the way to the database", () => {
   beforeEach(resetDb);
 
-  it("exercises: garbage category/target/status/difficulty/page resolve to an empty, non-throwing result", async () => {
+  it("exercises: garbage category/target/purpose/event/favorite/status/difficulty/page resolve to an empty, non-throwing result", async () => {
     const raw = {
       category: "NOT_A_CATEGORY",
       target: "NOT_A_TARGET",
+      purpose: "NOT_A_PURPOSE",
+      event: "NOT_AN_EVENT",
+      favorite: "yes-please",
       status: "NOT_A_STATUS",
       difficulty: "999",
       page: "-1",

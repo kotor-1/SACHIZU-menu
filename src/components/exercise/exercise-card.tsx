@@ -3,6 +3,7 @@ import { Card } from "@/components/ui";
 import { formatPrescription } from "@/domain/shared/prescription";
 import type { ExerciseWithRelations } from "@/infra/repositories/exercise-repository";
 import { CategoryBadge, DifficultyBadge, StatusBadge, TargetBadge } from "./exercise-badges";
+import { FavoriteToggleButton } from "./favorite-toggle-button";
 
 export function ExerciseCard({ exercise }: { exercise: ExerciseWithRelations }) {
   const prescription = formatPrescription({
@@ -14,9 +15,16 @@ export function ExerciseCard({ exercise }: { exercise: ExerciseWithRelations }) 
   });
 
   return (
-    <Card className="flex h-full flex-col transition-shadow hover:shadow-md">
+    <Card className="relative flex h-full flex-col transition-shadow hover:shadow-md">
+      {/* Link の中に button を入れないよう、兄弟要素として右上に重ねる */}
+      <FavoriteToggleButton
+        exerciseId={exercise.id}
+        isFavorite={exercise.isFavorite}
+        className="absolute top-2 right-2 z-10"
+      />
+
       <Link href={`/exercises/${exercise.id}`} className="flex flex-1 flex-col p-4">
-        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 pr-10">
           <CategoryBadge category={exercise.category} />
           <StatusBadge status={exercise.status} />
         </div>

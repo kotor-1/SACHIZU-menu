@@ -160,8 +160,8 @@ export class QwenVideoAnalyzer implements VideoAnalyzer {
 ```
 
 プロンプトは `exerciseDraftPayloadSchema` のフィールド名に合わせて JSON を返させます。
-`category` / `metricType` / `targets` は既知の値以外を自動で捨てるようになっているので、
-モデルが日本語のカテゴリ名を返しても壊れません。
+`category` / `metricType` / `targets` / `purpose` / `events` は既知の値以外を
+自動で捨てるようになっているので、モデルが日本語のカテゴリ名を返しても壊れません。
 
 ### ステップ 2：差し替える
 
@@ -242,6 +242,12 @@ AI が増やした種目が実運用のメニュー作成を邪魔しません�
 実体は `src/domain/ai/draft-schema.ts` の `exerciseDraftPayloadSchema`
 （Zod）。ここでは形と、依頼された例からどう変えたかを記録する。
 
+> **Phase 1.2 での更新**: Phase 1.1 時点ではドメインに存在しないという理由で
+> `purpose` / `events` を「採用しない」としていたが、Phase 1.2 で
+> `Exercise.purposes` / `Exercise.events`（1 Exercise : N の中間テーブル、
+> `ExerciseTarget` と同型）を正式にドメインへ追加したため、
+> 本スキーマにも `purpose` / `events` を追加した。5-B の対応表はこの版で更新済み。
+
 ### 5-A. 現在の形
 
 ```ts
@@ -259,6 +265,8 @@ AI が増やした種目が実運用のメニュー作成を邪魔しません�
   difficulty: 2,              // 1〜5。範囲外は 3 に丸める
 
   targets: ["COORDINATION", "TECHNIQUE"],   // TRAINING_TARGETS。未知の値は捨てる
+  purpose: ["GROUND_CONTACT", "RHYTHM"],    // EXERCISE_PURPOSES。未知の値は捨てる
+  events: ["HURDLE"],                       // TRACK_FIELD_EVENTS。未知の値は捨てる
   generalTags: ["スプリントドリル"],
   equipmentTags: ["ミニハードル"],
   bodyPartTags: [],
@@ -276,12 +284,18 @@ AI が増やした種目が実運用のメニュー作成を邪魔しません�
 全フィールドが任意（`schemaVersion` を除く）。モデルが一部しか埋められなくても
 下書きとして成立し、残りはコーチが手で埋める前提。
 
+`purpose` / `events` は `targets` と全く同じ丸め方をする
+（配列でなければ空に、未知の値は個別に捨てる、大文字小文字は無視）。
+下書きを登録フォームへ流し込む側（`src/app/exercises/new/page.tsx`）は
+`payload.purpose ?? []` / `payload.events ?? []` で読む。
+これは `payload.targets ?? []` と同じ書き方で、キーが存在しない旧形式の
+下書きでも空配列として自然に扱える。
+
 ### 5-B. 依頼時に示された例との対応
 
 依頼時の例（`purpose` / `instructions` / `commonErrors` / `events` などを持つ形）は
-汎用的なテンプレートであり、Phase 1 で確定した `Exercise` のドメインモデルとは
-1 対 1 では対応しない。そのまま採用せず、次の対応表の通り
-**既存のドメインに合わせて読み替えた**。
+汎用的なテンプレートであり、Phase 1.2 で拡張した `Exercise` のドメインモデルとも
+完全に 1 対 1 では対応しない。次の対応表の通り、**既存のドメインに合わせて読み替えた**。
 
 | 依頼時の例 | 本スキーマ | 理由 |
 | --- | --- | --- |
@@ -289,22 +303,25 @@ AI が増やした種目が実運用のメニュー作成を邪魔しません�
 | `category` | `category` | そのまま（`EXERCISE_CATEGORIES` に限定） |
 | `description` | `description` | そのまま |
 | `instructions` | `description` に統合 | `Exercise` に実施手順専用の別フィールドがないため |
-| `purpose` (配列) | 採用しない | `purpose` は `MenuTemplate`（メニューの狙い）の概念であり、個々の `Exercise` には持たせていない |
+| `purpose` (配列) | `purpose` (配列) | Phase 1.2 で `Exercise.purposes` を追加したためキー名・形とも依頼通り採用 |
 | `coachingPoints` (配列) | `coachingPoint` (単一文字列) | `Exercise.coachingPoint` が単一の `String?` のため。配列で返ってきた場合は実装側で改行結合すればよい |
 | `commonErrors` (配列) | `commonMistake` (単一文字列) | 同上（`Exercise.commonMistake` に合わせる） |
-| `events` (配列) | 採用しない | Phase 1 のドメインに「対象種目（100m・ハードル等の競技種目）」という概念がない。近いものは `category` と `tags` |
+| `events` (配列) | `events` (配列) | Phase 1.2 で `Exercise.events`（対象競技）を追加したため依頼通り採用 |
 | `tags` (フラット配列) | `generalTags` / `equipmentTags` / `bodyPartTags` (種別ごと) | `Tag.kind` による分類が Phase 1 の設計の要（検索フィルタの軸）のため、フラット 1 本にしない |
 | `difficulty` | `difficulty` | そのまま |
 | `defaultSets` / `defaultReps` / `defaultDurationSeconds` / `defaultDistanceMeters` / `defaultRestSeconds` | 同名でそのまま | 完全一致 |
 | （なし） | `schemaVersion` | 依頼された「versionを持たせる」対応として追加（5-C） |
 | （なし） | `observation` | 動画から読み取った所見の自由記述。監査・再解析の判断材料として追加 |
 
-`purpose` や `events` のような、Phase 1 のドメインに存在しない概念を
-先回りしてスキーマに追加しなかったのは、それをやると
-`Exercise` テーブル自体にカラムを足す必要が生まれ、Phase 1 の
-Architecture（3 層の責務分離）に手を入れることになるため。
-Phase 2 で実際にモデルの出力を見て、本当に必要になった時点で
-`Exercise` のドメイン拡張とあわせて検討するのが正しい順序と判断した。
+`purpose` / `events` を Phase 1.1 では見送り、Phase 1.2 で正式採用した理由：
+Phase 1.1 時点ではこの 2 軸が `Exercise` のドメインに存在せず、
+先回りしてスキーマだけ追加すると DB に対応するカラムがないまま
+コーチが確認できない項目を下書きに持たせることになるため見送った。
+Phase 1.2 でコーチ向けの要件として `Exercise.purposes` / `Exercise.events`
+（検索フィルタも含む）が正式に実装されたことで、AI 下書き側にも
+対応する置き場ができたため、このタイミングで追加した。
+これは「ドメインが先、AI 出力の型は後からドメインに追従する」という
+一貫した順序であり、AI 側の都合でドメインを先に広げたわけではない。
 
 ### 5-C. バージョニング
 

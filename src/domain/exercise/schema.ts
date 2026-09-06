@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
   EXERCISE_CATEGORIES,
+  EXERCISE_PURPOSES,
   METRIC_TYPES,
+  TRACK_FIELD_EVENTS,
   TRAINING_TARGETS,
 } from "./constants";
 import { CONTENT_SOURCES, REVIEW_STATUSES } from "@/domain/shared/constants";
@@ -38,6 +40,10 @@ export const exerciseInputSchema = z.object({
   status: z.enum(REVIEW_STATUSES).default("REVIEWED"),
 
   targets: z.array(z.enum(TRAINING_TARGETS)).default([]),
+  /** 練習目的（加速・接地・姿勢…）。対象能力（targets）とは別軸。 */
+  purposes: z.array(z.enum(EXERCISE_PURPOSES)).default([]),
+  /** 対象競技種目（短距離・ハードル…）。 */
+  events: z.array(z.enum(TRACK_FIELD_EVENTS)).default([]),
   /** タグ名の配列（kind 別）。存在しなければ作成する。 */
   generalTags: z.array(z.string().min(1).max(40)).default([]),
   equipmentTags: z.array(z.string().min(1).max(40)).default([]),
@@ -58,8 +64,18 @@ export const exerciseSearchSchema = z.object({
     .union([z.enum(TRAINING_TARGETS), z.literal("")])
     .optional()
     .default(""),
+  purpose: z
+    .union([z.enum(EXERCISE_PURPOSES), z.literal("")])
+    .optional()
+    .default(""),
+  event: z
+    .union([z.enum(TRACK_FIELD_EVENTS), z.literal("")])
+    .optional()
+    .default(""),
   /** タグ ID。複数指定は AND 条件。 */
   tag: z.array(z.string()).optional().default([]),
+  /** "1" ならお気に入りのみ。チェックボックス 1 個の単純な絞り込みなので専用の型は持たない。 */
+  favorite: z.union([z.literal("1"), z.literal("")]).optional().default(""),
   status: z
     .union([z.enum(REVIEW_STATUSES), z.literal("")])
     .optional()

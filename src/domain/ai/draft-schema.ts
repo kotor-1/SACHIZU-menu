@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
   EXERCISE_CATEGORIES,
+  EXERCISE_PURPOSES,
   METRIC_TYPES,
+  TRACK_FIELD_EVENTS,
   TRAINING_TARGETS,
 } from "@/domain/exercise/constants";
 
@@ -67,6 +69,31 @@ export const exerciseDraftPayloadSchema = z.object({
     .transform((arr) =>
       arr.filter((v): v is (typeof TRAINING_TARGETS)[number] =>
         (TRAINING_TARGETS as readonly string[]).includes(v),
+      ),
+    )
+    .catch([])
+    .optional(),
+
+  /**
+   * 練習目的（加速・接地・姿勢…）。キー名は依頼された Schema 例に合わせて
+   * 単数形 "purpose" だが、値は targets と同じく配列（複数選択）。
+   */
+  purpose: z
+    .array(z.string().transform((v) => v.toUpperCase()))
+    .transform((arr) =>
+      arr.filter((v): v is (typeof EXERCISE_PURPOSES)[number] =>
+        (EXERCISE_PURPOSES as readonly string[]).includes(v),
+      ),
+    )
+    .catch([])
+    .optional(),
+
+  /** 対象競技種目（短距離・ハードル…）。 */
+  events: z
+    .array(z.string().transform((v) => v.toUpperCase()))
+    .transform((arr) =>
+      arr.filter((v): v is (typeof TRACK_FIELD_EVENTS)[number] =>
+        (TRACK_FIELD_EVENTS as readonly string[]).includes(v),
       ),
     )
     .catch([])

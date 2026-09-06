@@ -76,6 +76,68 @@ export const TRAINING_TARGET_LABEL: Record<TrainingTarget, string> = {
   RECOVERY: "回復",
 };
 
+// --- 練習目的（対象能力=targets とは別軸。より具体的な着目点）-------------
+// TRAINING_TARGETS が「鍛えられる能力」なのに対し、こちらは
+// 「この種目で選手のどこに意識を向けさせるか」という、より細かいコーチング上の着眼点。
+export const EXERCISE_PURPOSES = [
+  "ACCELERATION",
+  "MAX_VELOCITY",
+  "RHYTHM",
+  "GROUND_CONTACT",
+  "POSTURE",
+  "HIP_JOINT",
+  "ANKLE_JOINT",
+  "ARM_SWING",
+  "BALANCE",
+  "MOBILITY",
+  "STRENGTH",
+  "POWER",
+  "TECHNIQUE",
+  "RECOVERY",
+] as const;
+export type ExercisePurposeValue = (typeof EXERCISE_PURPOSES)[number];
+
+export const EXERCISE_PURPOSE_LABEL: Record<ExercisePurposeValue, string> = {
+  ACCELERATION: "加速",
+  MAX_VELOCITY: "最高速度",
+  RHYTHM: "リズム",
+  GROUND_CONTACT: "接地",
+  POSTURE: "姿勢",
+  HIP_JOINT: "股関節",
+  ANKLE_JOINT: "足関節",
+  ARM_SWING: "腕振り",
+  BALANCE: "バランス",
+  MOBILITY: "可動域",
+  STRENGTH: "筋力",
+  POWER: "パワー",
+  TECHNIQUE: "技術",
+  RECOVERY: "疲労回復",
+};
+
+// --- 対象競技種目（この種目がどの種目の選手向けか）-------------------------
+export const TRACK_FIELD_EVENTS = [
+  "SPRINT",
+  "HURDLE",
+  "LONG_JUMP",
+  "HIGH_JUMP",
+  "TRIPLE_JUMP",
+  "THROW",
+  "MIDDLE_DISTANCE",
+  "COMMON",
+] as const;
+export type TrackFieldEvent = (typeof TRACK_FIELD_EVENTS)[number];
+
+export const TRACK_FIELD_EVENT_LABEL: Record<TrackFieldEvent, string> = {
+  SPRINT: "短距離",
+  HURDLE: "ハードル",
+  LONG_JUMP: "走幅跳",
+  HIGH_JUMP: "走高跳",
+  TRIPLE_JUMP: "三段跳",
+  THROW: "投擲",
+  MIDDLE_DISTANCE: "中長距離",
+  COMMON: "共通",
+};
+
 // --- 負荷の測り方（入力 UI の出し分けに使う）-------------------------------
 export const METRIC_TYPES = ["REPS", "DISTANCE", "TIME"] as const;
 export type MetricType = (typeof METRIC_TYPES)[number];

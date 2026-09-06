@@ -6,7 +6,11 @@ import {
   DIFFICULTY_LEVELS,
   EXERCISE_CATEGORIES,
   EXERCISE_CATEGORY_LABEL,
+  EXERCISE_PURPOSES,
+  EXERCISE_PURPOSE_LABEL,
   TAG_KIND_LABEL,
+  TRACK_FIELD_EVENTS,
+  TRACK_FIELD_EVENT_LABEL,
   TRAINING_TARGETS,
   TRAINING_TARGET_LABEL,
   type TagKind,
@@ -34,7 +38,10 @@ export function ExerciseFilters({
     Boolean(search.q) ||
     Boolean(search.category) ||
     Boolean(search.target) ||
+    Boolean(search.purpose) ||
+    Boolean(search.event) ||
     Boolean(search.status) ||
+    Boolean(search.favorite) ||
     search.difficulty !== "" ||
     search.tag.length > 0;
 
@@ -84,6 +91,24 @@ export function ExerciseFilters({
           ))}
         </select>
 
+        <select name="purpose" defaultValue={search.purpose} className={selectClass} aria-label="練習目的">
+          <option value="">練習目的：すべて</option>
+          {EXERCISE_PURPOSES.map((p) => (
+            <option key={p} value={p}>
+              {EXERCISE_PURPOSE_LABEL[p]}
+            </option>
+          ))}
+        </select>
+
+        <select name="event" defaultValue={search.event} className={selectClass} aria-label="対象競技">
+          <option value="">対象競技：すべて</option>
+          {TRACK_FIELD_EVENTS.map((ev) => (
+            <option key={ev} value={ev}>
+              {TRACK_FIELD_EVENT_LABEL[ev]}
+            </option>
+          ))}
+        </select>
+
         <select
           name="difficulty"
           defaultValue={String(search.difficulty)}
@@ -115,6 +140,24 @@ export function ExerciseFilters({
           ))}
         </select>
       </div>
+
+      <label
+        className={cn(
+          "inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
+          search.favorite === "1"
+            ? "border-amber-400 bg-amber-50 text-amber-800"
+            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+        )}
+      >
+        <input
+          type="checkbox"
+          name="favorite"
+          value="1"
+          defaultChecked={search.favorite === "1"}
+          className="sr-only"
+        />
+        ★ お気に入りのみ
+      </label>
 
       {Object.keys(tagsByKind).length > 0 && (
         <div className="space-y-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5">

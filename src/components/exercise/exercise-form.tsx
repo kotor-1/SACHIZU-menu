@@ -9,8 +9,12 @@ import {
   DIFFICULTY_LEVELS,
   EXERCISE_CATEGORIES,
   EXERCISE_CATEGORY_LABEL,
+  EXERCISE_PURPOSES,
+  EXERCISE_PURPOSE_LABEL,
   METRIC_TYPES,
   METRIC_TYPE_LABEL,
+  TRACK_FIELD_EVENTS,
+  TRACK_FIELD_EVENT_LABEL,
   TRAINING_TARGETS,
   TRAINING_TARGET_LABEL,
   type MetricType,
@@ -37,6 +41,8 @@ export type ExerciseFormValues = {
   source: string;
   status: string;
   targets: string[];
+  purposes: string[];
+  events: string[];
   generalTags: string;
   equipmentTags: string;
   bodyPartTags: string;
@@ -60,6 +66,8 @@ export const EMPTY_EXERCISE_FORM: ExerciseFormValues = {
   source: "MANUAL",
   status: "REVIEWED",
   targets: [],
+  purposes: [],
+  events: [],
   generalTags: "",
   equipmentTags: "",
   bodyPartTags: "",
@@ -233,6 +241,53 @@ export function ExerciseForm({
                     className="sr-only"
                   />
                   {TRAINING_TARGET_LABEL[t]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="mb-1.5 text-sm font-medium text-slate-700">
+              練習目的
+              <span className="ml-1 text-xs font-normal text-slate-400">
+                この種目で意識させたい点
+              </span>
+            </legend>
+            <div className="flex flex-wrap gap-1.5">
+              {EXERCISE_PURPOSES.map((p) => (
+                <label
+                  key={p}
+                  className="cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600 transition-colors has-checked:border-indigo-600 has-checked:bg-indigo-600 has-checked:text-white hover:bg-slate-100"
+                >
+                  <input
+                    type="checkbox"
+                    name="purposes"
+                    value={p}
+                    defaultChecked={initial.purposes.includes(p)}
+                    className="sr-only"
+                  />
+                  {EXERCISE_PURPOSE_LABEL[p]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="mb-1.5 text-sm font-medium text-slate-700">対象競技</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {TRACK_FIELD_EVENTS.map((ev) => (
+                <label
+                  key={ev}
+                  className="cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600 transition-colors has-checked:border-indigo-600 has-checked:bg-indigo-600 has-checked:text-white hover:bg-slate-100"
+                >
+                  <input
+                    type="checkbox"
+                    name="events"
+                    value={ev}
+                    defaultChecked={initial.events.includes(ev)}
+                    className="sr-only"
+                  />
+                  {TRACK_FIELD_EVENT_LABEL[ev]}
                 </label>
               ))}
             </div>

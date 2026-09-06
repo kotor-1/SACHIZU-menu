@@ -20,9 +20,8 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-const { createExerciseAction, deleteExerciseAction } = await import(
-  "@/actions/exercise-actions"
-);
+const { createExerciseAction, deleteExerciseAction, duplicateExerciseAction, toggleExerciseFavoriteAction } =
+  await import("@/actions/exercise-actions");
 
 function exerciseFormData(overrides: Record<string, string> = {}) {
   const fd = new FormData();
@@ -150,5 +149,51 @@ describe("deleteExerciseAction: usage guard", () => {
     // メニュー側の項目もそのまま残る
     const menuItem = await prisma.menuItem.findFirst({ where: { menuBlock: { menuTemplateId: menu.id } } });
     expect(menuItem?.exerciseId).toBe(exercise.id);
+  });
+});
+
+describe("duplicateExerciseAction", () => {
+  beforeEach(resetDb);
+
+  it("creates a copy and redirects to its edit page (so the coach reviews it before it's final)", async () => {
+    const source = await prisma.exercise.create({
+      data: { name: "Aスキップ", category: "DRILL", isFavorite: true, status: "REVIEWED" },
+    });
+
+    const fd = new FormData();
+    fd.set("id", source.id);
+
+    await expect(duplicateExerciseAction(fd)).rejects.toThrow(/^NEXT_REDIRECT:/);
+
+    expect(await prisma.exercise.count()).toBe(2);
+    const copy = await prisma.exercise.findFirstOrThrow({ where: { id: { not: source.id } } });
+    expect(copy.name).toBe("Aスキップ のコピー");
+    expect(copy.isFavorite).toBe(false);
+    expect(copy.status).toBe("DRAFT");
+  });
+
+  it("does nothing when id is missing", async () => {
+    await duplicateExerciseAction(new FormData());
+    expect(await prisma.exercise.count()).toBe(0);
+  });
+});
+
+describe("toggleExerciseFavoriteAction", () => {
+  beforeEach(resetDb);
+
+  it("toggles isFavorite without redirecting (used inline on cards and the detail page)", async () => {
+    const exercise = await prisma.exercise.create({ data: { name: "種目", category: "DRILL" } });
+    const fd = new FormData();
+    fd.set("id", exercise.id);
+
+    await toggleExerciseFavoriteAction(fd);
+    expect((await prisma.exercise.findUniqueOrThrow({ where: { id: exercise.id } })).isFavorite).toBe(
+      true,
+    );
+
+    await toggleExerciseFavoriteAction(fd);
+    expect((await prisma.exercise.findUniqueOrThrow({ where: { id: exercise.id } })).isFavorite).toBe(
+      false,
+    );
   });
 });

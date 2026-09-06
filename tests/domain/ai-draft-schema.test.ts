@@ -81,6 +81,60 @@ describe("exerciseDraftPayloadSchema: unknown/invalid model output never throws"
 });
 
 /**
+ * purpose / events は Phase 1.2 で正式追加したフィールド。
+ * キー名は依頼された Schema 例（"purpose": [], "events": []）にそのまま合わせてある。
+ * targets とまったく同じ丸め方（未知の値は捨てる／配列でなければ空配列）をする。
+ */
+describe("exerciseDraftPayloadSchema: purpose / events", () => {
+  it("accepts valid purpose and events values", () => {
+    const result = exerciseDraftPayloadSchema.parse({
+      purpose: ["GROUND_CONTACT", "RHYTHM"],
+      events: ["HURDLE", "SPRINT"],
+    });
+    expect(result.purpose).toEqual(["GROUND_CONTACT", "RHYTHM"]);
+    expect(result.events).toEqual(["HURDLE", "SPRINT"]);
+  });
+
+  it("is case-insensitive, matching the same convention as targets", () => {
+    const result = exerciseDraftPayloadSchema.parse({
+      purpose: ["ground_contact"],
+      events: ["hurdle"],
+    });
+    expect(result.purpose).toEqual(["GROUND_CONTACT"]);
+    expect(result.events).toEqual(["HURDLE"]);
+  });
+
+  it("filters out unknown purpose/event values instead of rejecting the whole draft", () => {
+    const result = exerciseDraftPayloadSchema.parse({
+      purpose: ["GROUND_CONTACT", "made-up-purpose"],
+      events: ["HURDLE", "made-up-event"],
+    });
+    expect(result.purpose).toEqual(["GROUND_CONTACT"]);
+    expect(result.events).toEqual(["HURDLE"]);
+  });
+
+  it("falls back a non-array purpose/events value to an empty array", () => {
+    const result = exerciseDraftPayloadSchema.parse({ purpose: "GROUND_CONTACT", events: "HURDLE" });
+    expect(result.purpose).toEqual([]);
+    expect(result.events).toEqual([]);
+  });
+
+  it("is backward compatible: an old draft with no purpose/events keys at all parses fine", () => {
+    // 旧形式の下書き（purpose/events が存在しない）。undefined のままでよく、
+    // 呼び出し側は既存の targets と同じ流儀で `payload.purpose ?? []` と読む。
+    const result = exerciseDraftPayloadSchema.parse({
+      schemaVersion: 1,
+      name: "旧形式の下書き",
+      category: "DRILL",
+    });
+    expect(result.purpose).toBeUndefined();
+    expect(result.events).toBeUndefined();
+    expect(result.purpose ?? []).toEqual([]);
+    expect(result.events ?? []).toEqual([]);
+  });
+});
+
+/**
  * schemaVersion は「将来 Prompt / モデルを変えても、
  * どの世代の下書きかを後から判別できるように」という要求への対応。
  * 過去に保存された（version フィールドを持たない）下書きも

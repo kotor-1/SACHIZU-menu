@@ -35,15 +35,15 @@ datasource db {
 
 /// 種目・ドリル 1 件。練習メニューから何度でも再利用される「知識」。
 model Exercise {
-  id   String @id @default(cuid())
+  id      String @id @default(cuid())
   /// 将来のマルチコーチ対応に備えた所有者。Phase 1 では既定値のみ使用。
   ownerId String @default("default-coach")
 
-  name        String
+  name          String
   /// 五十音での並び替え・検索用。任意。
-  nameKana    String?
+  nameKana      String?
   /// 種目の説明・実施手順。
-  description String?
+  description   String?
   /// コーチングポイント（選手に伝える意識点）。
   coachingPoint String?
   /// ありがちな失敗・注意点。
@@ -72,11 +72,18 @@ model Exercise {
   /// AI 下書きから作られた種目は DRAFT で入り、コーチ確認後 REVIEWED になる。
   status String @default("REVIEWED")
 
-  targets   ExerciseTarget[]
-  tags      ExerciseTag[]
-  menuItems MenuItem[]
-  sessionItems SessionItem[]
-  videoAssets  VideoAsset[]
+  /// 頻繁に使う種目をすぐ見つけるための目印。一覧・詳細から ON/OFF する。
+  isFavorite Boolean @default(false)
+
+  targets           ExerciseTarget[]
+  /// この種目の練習目的（加速・接地・姿勢…）。対象能力（targets）とは別軸。
+  purposes          ExercisePurpose[]
+  /// この種目が主に対象とする競技種目（短距離・ハードル…）。
+  events            ExerciseEvent[]
+  tags              ExerciseTag[]
+  menuItems         MenuItem[]
+  sessionItems      SessionItem[]
+  videoAssets       VideoAsset[]
   /// この種目として確定した AI 下書き（あれば）
   appliedFromDrafts ExerciseDraft[]
 
@@ -85,6 +92,7 @@ model Exercise {
 
   @@index([ownerId, category])
   @@index([ownerId, status])
+  @@index([ownerId, isFavorite])
   @@index([name])
 }
 
@@ -98,6 +106,33 @@ model ExerciseTarget {
 
   @@id([exerciseId, target])
   @@index([target])
+}
+
+/// 種目の練習目的（加速・接地・姿勢…）。ExerciseTarget と同型の中間テーブルで
+/// 1 Exercise : N Purpose を表現する。将来 Purpose の種類が増えても
+/// テーブル構造は変わらない（src/domain/exercise/constants.ts に値を足すだけ）。
+model ExercisePurpose {
+  exerciseId String
+  /// ExercisePurposeValue (src/domain/exercise/constants.ts)
+  purpose    String
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@id([exerciseId, purpose])
+  @@index([purpose])
+}
+
+/// 種目が対象とする競技種目（短距離・ハードル…）。ExerciseTarget と同型。
+/// 1 Exercise : N Event。
+model ExerciseEvent {
+  exerciseId String
+  /// TrackFieldEvent (src/domain/exercise/constants.ts)
+  event      String
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@id([exerciseId, event])
+  @@index([event])
 }
 
 /// タグ。kind によって「自由タグ / 使用器具 / 部位」を 1 つの仕組みで扱う。
@@ -136,12 +171,12 @@ model MenuTemplate {
   id      String @id @default(cuid())
   ownerId String @default("default-coach")
 
-  name        String
-  description String?
+  name             String
+  description      String?
   /// このメニューの狙い。
-  purpose     String?
+  purpose          String?
   /// TrainingPhase — 期分け（準備期 / 試合期 など）。
-  phase       String?
+  phase            String?
   /// 想定所要時間（分）。null の場合は blocks から概算する。
   estimatedMinutes Int?
 
@@ -178,7 +213,7 @@ model MenuBlock {
 
   name      String
   note      String?
-  sortOrder Int    @default(0)
+  sortOrder Int     @default(0)
 
   menuTemplate MenuTemplate @relation(fields: [menuTemplateId], references: [id], onDelete: Cascade)
   items        MenuItem[]
@@ -189,7 +224,7 @@ model MenuBlock {
 /// メニュー内の 1 種目 = 「この種目を、このメニューでは どう やるか」という処方。
 /// Exercise（何をやるか）と MenuItem（どうやるか）を分離しているのが要点。
 model MenuItem {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   menuBlockId String
   /// 参照する種目。種目が削除された場合に備え名前をスナップショットしておく。
   exerciseId  String?
@@ -200,17 +235,17 @@ model MenuItem {
   sortOrder Int @default(0)
 
   // --- 処方（このメニュー固有の負荷設定）---
-  sets            Int?
-  reps            Int?
-  distanceMeters  Float?
-  durationSeconds Int?
-  restSeconds     Int?
+  sets             Int?
+  reps             Int?
+  distanceMeters   Float?
+  durationSeconds  Int?
+  restSeconds      Int?
   /// 強度（%）。スプリントの 90% 走など。
   intensityPercent Int?
   /// 重量（kg）。ウエイト種目用。
-  loadKg          Float?
+  loadKg           Float?
   /// この項目だけの指示・補足。
-  note            String?
+  note             String?
 
   menuBlock MenuBlock @relation(fields: [menuBlockId], references: [id], onDelete: Cascade)
   exercise  Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
@@ -234,7 +269,7 @@ model TrainingSession {
   date  DateTime
 
   /// 由来のテンプレート。表示・追跡のための参照のみで、内容は同期しない。
-  sourceMenuTemplateId String?
+  sourceMenuTemplateId   String?
   /// 生成時点のテンプレート名（テンプレートが消えても由来が分かるように）。
   sourceMenuNameSnapshot String?
 
@@ -265,7 +300,7 @@ model TrainingSession {
 /// planned* はテンプレートからコピーされた計画値、actual* は実施結果。
 /// 名前とブロック名もスナップショットするため、後から元データが変わっても不変。
 model SessionItem {
-  id                String @id @default(cuid())
+  id                String  @id @default(cuid())
   trainingSessionId String
   /// 参照は残すが、記録の正しさはこの参照に依存しない。
   exerciseId        String?
@@ -276,14 +311,14 @@ model SessionItem {
   sortOrder            Int    @default(0)
 
   // --- 計画値（テンプレートの MenuItem からコピー）---
-  plannedSets            Int?
-  plannedReps            Int?
-  plannedDistanceMeters  Float?
-  plannedDurationSeconds Int?
-  plannedRestSeconds     Int?
+  plannedSets             Int?
+  plannedReps             Int?
+  plannedDistanceMeters   Float?
+  plannedDurationSeconds  Int?
+  plannedRestSeconds      Int?
   plannedIntensityPercent Int?
-  plannedLoadKg          Float?
-  plannedNote            String?
+  plannedLoadKg           Float?
+  plannedNote             String?
 
   // --- 実績値 ---
   actualSets            Int?
@@ -319,10 +354,10 @@ model VideoAsset {
 
   /// 保存先キー。Phase 1 はローカル public/uploads 配下、
   /// Phase 2 で S3 互換ストレージのキーに差し替え可能。
-  storageKey String
-  filename   String
-  mimeType   String  @default("video/mp4")
-  sizeBytes  Int?
+  storageKey      String
+  filename        String
+  mimeType        String  @default("video/mp4")
+  sizeBytes       Int?
   durationSeconds Int?
   thumbnailKey    String?
 
@@ -344,7 +379,7 @@ model AnalysisJob {
   videoAssetId String
 
   /// AnalysisJobStatus — PENDING / RUNNING / SUCCEEDED / FAILED
-  status   String @default("PENDING")
+  status   String  @default("PENDING")
   /// 使用したモデル（例: "qwen2.5-vl-72b"）。実装非依存に保つため文字列。
   provider String?
   model    String?
