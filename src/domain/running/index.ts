@@ -206,3 +206,10 @@ export {
 } from "./rules/schema";
 
 export { getRuleSet, getActiveRuleSet, type ActiveRuleSetResult } from "./rules/loader";
+
+// --- Athlete context（R3） -----------------------------------------------------
+// §1.5 の R3 公開 API は `resolveSubjectProfile` だけ。eligibility 解決・LONG/ASSISTED
+// 候補判定・ageBand/maturity/trainingAge/constraints/performance の各 helper は
+// R4 内部ロジック用であり root からは export しない（必要なら
+// `src/domain/running/context/*` を直接 import する）。
+export { resolveSubjectProfile, type ResolveSubjectProfileInput, type SubjectProfile } from "./context/subject";

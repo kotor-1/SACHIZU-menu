@@ -4,7 +4,9 @@
   "validFrom": "2020-01-01",
   "supersedes": null,
   "engineSchemaVersion": 1,
-  "changelog": ["rs-test-a: minimal fixture for loader/versioning/hash tests. Not a real ruleset."],
+  "changelog": [
+    "rs-test-a: minimal fixture for loader/versioning/hash tests. Not a real ruleset."
+  ],
   "evidence": [
     {
       "id": "EV_TEST_POLICY",
@@ -17,12 +19,19 @@
         "performanceLevels": "ANY",
         "sport": "GENERAL"
       },
-      "reference": { "citation": "test fixture", "year": null, "doi": null, "url": null },
+      "reference": {
+        "citation": "test fixture",
+        "year": null,
+        "doi": null,
+        "url": null
+      },
       "evidenceLevel": 5,
       "applicabilityNotes": "test fixture only",
       "usage": "PRESCRIPTION",
       "verification": "SECONDARY_REPORT_ONLY",
-      "reportedBy": ["HUMAN"],
+      "reportedBy": [
+        "HUMAN"
+      ],
       "provisional": true
     }
   ],
@@ -32,13 +41,17 @@
       "loadClass": "LOW",
       "weeklyLoadCategory": "RUNNING_LOW_INTENSITY",
       "primaryDoseUnit": "DISTANCE",
-      "allowedIntensityReferences": ["RELAXED_SUBMAX"],
+      "allowedIntensityReferences": [
+        "RELAXED_SUBMAX"
+      ],
       "intensityFallback": null,
       "highSpeedExposureModel": "NONE",
       "requiresRecoveryStructure": false,
       "enabledByDefault": true,
       "advancedOnly": false,
-      "stopPolicyIds": ["SP_TEST_STRIDE"]
+      "stopPolicyIds": [
+        "SP_TEST_STRIDE"
+      ]
     }
   ],
   "templates": [
@@ -49,21 +62,34 @@
       "coachingAliases": [],
       "recoveryStructure": null,
       "enabledByDefault": true,
-      "advancedOnly": false
+      "advancedOnly": false,
+      "complexity": "LOW"
     }
   ],
   "envelopes": [
     {
       "method": "STRIDE",
       "tier": "DEVELOPMENTAL",
-      "templateIds": ["ST_WARMUP"],
+      "templateIds": [
+        "ST_WARMUP"
+      ],
       "recoveryStructure": null,
       "fields": {
         "repDistanceM": {
-          "recommended": { "min": 80, "max": 100, "unit": "m" },
-          "coachEditable": { "min": 50, "max": 150, "unit": "m" },
+          "recommended": {
+            "min": 80,
+            "max": 100,
+            "unit": "m"
+          },
+          "coachEditable": {
+            "min": 50,
+            "max": 150,
+            "unit": "m"
+          },
           "hardSafety": null,
-          "evidenceIds": ["EV_TEST_POLICY"],
+          "evidenceIds": [
+            "EV_TEST_POLICY"
+          ],
           "judgement": "ENGINE_POLICY"
         }
       }

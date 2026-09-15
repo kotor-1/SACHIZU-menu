@@ -121,6 +121,21 @@ export const sessionTemplateStartTypeSchema = z.enum(SESSION_TEMPLATE_START_TYPE
 const sessionTemplateIdSchema = z.enum(ALL_TEMPLATE_IDS as unknown as [string, ...string[]]);
 const raceEventForTemplateSchema = z.enum(["100m", "200m", "400m", "400mH"]);
 
+/**
+ * §7.5 の complexity（LOW < MEDIUM < HIGH）。
+ *
+ * [R3 gap-fill] R2 実装時に `ruleSetSessionTemplateSchema` へ `complexity`
+ * フィールドを追加し忘れており、§7.5 の分類表が JSON 化されていなかった
+ * （R2 の他のセクション — methods/envelopes/evidence/timing/stopPolicies/
+ * plausibility の実数値・実データ — はこの変更で一切変えていない）。
+ * R3 の Constraint 層（§7.5「maturity ∈ {PRE, EFFECTIVE_UNKNOWN, CIRCA} または
+ * trainingAge=BEGINNER のとき自動生成は complexity ≤ MEDIUM」）がこの値を
+ * 必要とするため、ここで追加し §7.5 の分類表をそのまま38 template全件へ書き込む。
+ */
+export const COMPLEXITIES = ["LOW", "MEDIUM", "HIGH"] as const;
+export const complexitySchema = z.enum(COMPLEXITIES);
+export type Complexity = z.infer<typeof complexitySchema>;
+
 export const ruleSetSessionTemplateSchema = z.object({
   id: sessionTemplateIdSchema,
   method: runningTrainingMethodSchema,
@@ -132,6 +147,7 @@ export const ruleSetSessionTemplateSchema = z.object({
   enabledByDefault: z.boolean(),
   advancedOnly: z.boolean(),
   primaryEvents: z.array(raceEventForTemplateSchema).optional(),
+  complexity: complexitySchema,
 });
 export type RuleSetSessionTemplate = z.infer<typeof ruleSetSessionTemplateSchema>;
 
@@ -251,6 +267,17 @@ export const eligibilityRuleSchema = z
     requiresReview: z.boolean(),
     overrideAllowed: z.boolean().nullable(),
     conditionNote: z.string().nullable(),
+    /**
+     * [R3 addition] outcome="AUTO" の行のうち、実際には §4.5 の
+     * competition-phase 依存条件（例: SES の "phase≠TRANSITION"）を含む
+     * ものだけ true にする。R3 は phase（R7）を実装しないため、
+     * このフラグが true の行を「evaluator が無条件で AUTO と信じてよい」
+     * 対象から明示的に除外できるようにする（conditionNote の自由文を
+     * テキスト解析して判定するような脆い実装を避けるための構造化）。
+     * 既存64行のうち outcome/requiresReview/overrideAllowed/conditionNote
+     * の値・意味は一切変更していない。
+     */
+    requiresPhaseEvaluation: z.boolean(),
   })
   .superRefine((rule, ctx) => {
     if (rule.outcome === "INELIGIBLE" && rule.overrideAllowed === null) {
@@ -265,6 +292,13 @@ export const eligibilityRuleSchema = z
         code: z.ZodIssueCode.custom,
         message: "outcome≠INELIGIBLE のとき overrideAllowed は null である必要があります（override は ineligible な選択肢にのみ意味を持つ）",
         path: ["overrideAllowed"],
+      });
+    }
+    if (rule.requiresPhaseEvaluation && rule.outcome !== "AUTO") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "requiresPhaseEvaluation は outcome=AUTO の行にのみ意味があります",
+        path: ["requiresPhaseEvaluation"],
       });
     }
   });
@@ -362,6 +396,68 @@ export const stopPolicySchema = z.object({
 export type StopPolicy = z.infer<typeof stopPolicySchema>;
 
 // ---------------------------------------------------------------------------
+// ConstraintRule（§8.2, §7.5。R3で正式化。R2では z.array(z.never()) で空配列固定していた）
+// ---------------------------------------------------------------------------
+
+/**
+ * [DEVIATION] 正式仕様は §8.2（ageBand 制約）・§7.5（maturity/trainingAge に
+ * よる complexity 上限）を表形式でのみ提示しており、`ConstraintRule` 自体の
+ * TS 型は定義していない。§4.4 の `EligibilityRule`（Method×Template×maturity
+ * カテゴリの許可/不許可）とは別概念 —— こちらは「年齢帯・成熟度・trainingAge」
+ * という**属性ディメンション**に対して「この Method/Template は使えない」
+ * 「自動生成の complexity 上限はここまで」を宣言する、より横断的な制約。
+ * 汎用 DSL にはせず、R3 に必要な3ディメンション（AGE_BAND / MATURITY_CATEGORY /
+ * TRAINING_AGE_TIER）だけを表現する最小構造にした。数値倍率フィールドは
+ * 意図的に持たせない（許可集合の制約であり、量への係数ではない）。
+ */
+export const CONSTRAINT_DIMENSIONS = ["AGE_BAND", "MATURITY_CATEGORY", "TRAINING_AGE_TIER"] as const;
+export const constraintDimensionSchema = z.enum(CONSTRAINT_DIMENSIONS);
+
+export const TRAINING_AGE_TIERS_FOR_CONSTRAINT = ["BEGINNER", "DEVELOPING", "TRAINED", "ADVANCED"] as const;
+
+const constraintMatchSchema = z.discriminatedUnion("dimension", [
+  z.object({ dimension: z.literal("AGE_BAND"), ageBands: z.array(z.enum(["U12", "U15", "U18", "ADULT"])).min(1) }),
+  z.object({ dimension: z.literal("MATURITY_CATEGORY"), categories: z.array(maturityCategorySchema).min(1) }),
+  z.object({
+    dimension: z.literal("TRAINING_AGE_TIER"),
+    tiers: z.array(z.enum(TRAINING_AGE_TIERS_FOR_CONSTRAINT)).min(1),
+  }),
+]);
+export type ConstraintMatch = z.infer<typeof constraintMatchSchema>;
+
+export const constraintRuleSchema = z
+  .object({
+    id: z.string().min(1),
+    match: constraintMatchSchema,
+    disallowedMethods: z.array(runningTrainingMethodSchema),
+    disallowedTemplateIds: z.array(sessionTemplateIdSchema),
+    /** null = complexity 上限なし（このディメンションでは制約しない）。 */
+    maxAutoComplexity: complexitySchema.nullable(),
+    /** disallowedMethods/disallowedTemplateIds が空でないときのみ意味を持つ。 */
+    overrideAllowed: z.boolean().nullable(),
+    judgement: judgementSchema,
+    provisional: z.boolean(),
+  })
+  .superRefine((rule, ctx) => {
+    const hasDisallowed = rule.disallowedMethods.length > 0 || rule.disallowedTemplateIds.length > 0;
+    if (hasDisallowed && rule.overrideAllowed === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "disallowedMethods/disallowedTemplateIds が非空のとき overrideAllowed は true/false が必須です",
+        path: ["overrideAllowed"],
+      });
+    }
+    if (!hasDisallowed && rule.overrideAllowed !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "disallowed対象が無いとき overrideAllowed は null である必要があります",
+        path: ["overrideAllowed"],
+      });
+    }
+  });
+export type ConstraintRule = z.infer<typeof constraintRuleSchema>;
+
+// ---------------------------------------------------------------------------
 // RuleSet（§6.1）
 // ---------------------------------------------------------------------------
 
@@ -391,7 +487,7 @@ export const ruleSetSchema = z
     templates: z.array(ruleSetSessionTemplateSchema),
     envelopes: z.array(envelopeSchema),
     eligibility: z.array(eligibilityRuleSchema),
-    constraints: notYetImplementedArraySchema,
+    constraints: z.array(constraintRuleSchema),
     timingTolerances: z.array(timingToleranceRuleSchema),
     stopPolicies: z.array(stopPolicySchema),
     aggregationRules: notYetImplementedArraySchema,
@@ -629,6 +725,28 @@ export const ruleSetSchema = z
             "LONG_SPRINT_RACE_SPECIFIC + INCOMPLETE 用の StopPolicy が最低1件必要です（SP_LSR_INCOMPLETE_ADV 等）",
           path: ["stopPolicies"],
         });
+      }
+    }
+
+    // ---- ConstraintRule ---------------------------------------------------------
+    const constraintIdsSeen = new Set<string>();
+    for (const [i, c] of rs.constraints.entries()) {
+      if (constraintIdsSeen.has(c.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `ConstraintRule.id が重複しています: ${c.id}`,
+          path: ["constraints", i, "id"],
+        });
+      }
+      constraintIdsSeen.add(c.id);
+      for (const [ti, tid] of c.disallowedTemplateIds.entries()) {
+        if (!templateIdsSeen.has(tid)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `ConstraintRule.disallowedTemplateIds が実在しない template を参照しています: ${tid}`,
+            path: ["constraints", i, "disallowedTemplateIds", ti],
+          });
+        }
       }
     }
 

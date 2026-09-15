@@ -1,10 +1,82 @@
 {
   "aggregationRules": [],
   "changelog": [
-    "rs-2026.09.0: 初版。正式仕様 docs/RUNNING_PRESCRIPTION_ENGINE_V2_SPEC.md の §3-§10 をデータ化。全 Evidence は SECONDARY_REPORT_ONLY、status=DRAFT（一次資料未照合のため ACTIVE 化しない）。"
+    "rs-2026.09.0: 初版。正式仕様 docs/RUNNING_PRESCRIPTION_ENGINE_V2_SPEC.md の §3-§10 をデータ化。全 Evidence は SECONDARY_REPORT_ONLY、status=DRAFT（一次資料未照合のため ACTIVE 化しない）。",
+    "R3: added versioned constraints (U12 hard constraints, U15 ASSISTED_SPRINT non-overridable, maturity/training-age auto-complexity caps), SessionTemplate complexity (§7.5) and EligibilityRule.requiresPhaseEvaluation metadata. methods/envelopes/evidence/timingTolerances/stopPolicies/plausibility values unchanged. Status remains DRAFT."
   ],
   "competitionRules": [],
-  "constraints": [],
+  "constraints": [
+    {
+      "id": "CONSTRAINT_U12_HARD",
+      "match": {
+        "dimension": "AGE_BAND",
+        "ageBands": [
+          "U12"
+        ]
+      },
+      "disallowedMethods": [
+        "ASSISTED_SPRINT",
+        "LONG_SPRINT_RACE_SPECIFIC",
+        "TEMPO_INTENSIVE"
+      ],
+      "disallowedTemplateIds": [
+        "RS_SLED_HEAVY"
+      ],
+      "maxAutoComplexity": "LOW",
+      "overrideAllowed": false,
+      "judgement": "ENGINE_POLICY",
+      "provisional": true
+    },
+    {
+      "id": "CONSTRAINT_MATURITY_COMPLEXITY_CAP",
+      "match": {
+        "dimension": "MATURITY_CATEGORY",
+        "categories": [
+          "PRE",
+          "EFFECTIVE_UNKNOWN",
+          "CIRCA"
+        ]
+      },
+      "disallowedMethods": [],
+      "disallowedTemplateIds": [],
+      "maxAutoComplexity": "MEDIUM",
+      "overrideAllowed": null,
+      "judgement": "ENGINE_POLICY",
+      "provisional": true
+    },
+    {
+      "id": "CONSTRAINT_TRAINING_AGE_BEGINNER_COMPLEXITY_CAP",
+      "match": {
+        "dimension": "TRAINING_AGE_TIER",
+        "tiers": [
+          "BEGINNER"
+        ]
+      },
+      "disallowedMethods": [],
+      "disallowedTemplateIds": [],
+      "maxAutoComplexity": "MEDIUM",
+      "overrideAllowed": null,
+      "judgement": "ENGINE_POLICY",
+      "provisional": true
+    },
+    {
+      "id": "CONSTRAINT_U15_ASSISTED_NONOVERRIDABLE",
+      "match": {
+        "dimension": "AGE_BAND",
+        "ageBands": [
+          "U15"
+        ]
+      },
+      "disallowedMethods": [
+        "ASSISTED_SPRINT"
+      ],
+      "disallowedTemplateIds": [],
+      "maxAutoComplexity": null,
+      "overrideAllowed": false,
+      "judgement": "ENGINE_POLICY",
+      "provisional": true
+    }
+  ],
   "eligibility": [
     {
       "conditionNote": null,
@@ -20,7 +92,8 @@
         "ACC_CROUCH_20",
         "ACC_STANDING_20",
         "ACC_FALLING_10"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -36,7 +109,8 @@
         "ACC_CROUCH_20",
         "ACC_STANDING_20",
         "ACC_FALLING_10"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -52,7 +126,8 @@
         "ACC_CROUCH_20",
         "ACC_STANDING_20",
         "ACC_FALLING_10"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -68,7 +143,8 @@
         "ACC_CROUCH_20",
         "ACC_STANDING_20",
         "ACC_FALLING_10"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -81,7 +157,8 @@
       "templateIds": [
         "ACC_BLOCK_30",
         "ACC_BLOCK_40"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -94,7 +171,8 @@
       "templateIds": [
         "ACC_BLOCK_30",
         "ACC_BLOCK_40"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -107,7 +185,8 @@
       "templateIds": [
         "ACC_BLOCK_30",
         "ACC_BLOCK_40"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "tier依存（EnvelopeTierがDEVELOPMENTAL/ADVANCEDのどちらかにより数値が変わるだけで、不適格にはならない）",
@@ -120,7 +199,8 @@
       "templateIds": [
         "ACC_BLOCK_30",
         "ACC_BLOCK_40"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "reps≤3",
@@ -132,7 +212,8 @@
       "ruleId": "ELIG_MV_FLY10_PRE",
       "templateIds": [
         "MV_FLY10"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "reps≤3",
@@ -144,7 +225,8 @@
       "ruleId": "ELIG_MV_FLY10_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "MV_FLY10"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "reps≤3",
@@ -156,7 +238,8 @@
       "ruleId": "ELIG_MV_FLY10_CIRCA",
       "templateIds": [
         "MV_FLY10"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -168,7 +251,8 @@
       "ruleId": "ELIG_MV_FLY10_POST",
       "templateIds": [
         "MV_FLY10"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -181,7 +265,8 @@
       "templateIds": [
         "MV_FLY20",
         "MV_FLY30"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -194,7 +279,8 @@
       "templateIds": [
         "MV_FLY20",
         "MV_FLY30"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -207,7 +293,8 @@
       "templateIds": [
         "MV_FLY20",
         "MV_FLY30"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "tier依存（EnvelopeTierにより数値が変わるだけで、不適格にはならない）",
@@ -220,7 +307,8 @@
       "templateIds": [
         "MV_FLY20",
         "MV_FLY30"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -234,7 +322,8 @@
         "ST_WARMUP",
         "ST_RELAXED",
         "ST_BETWEEN_SETS"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -248,7 +337,8 @@
         "ST_WARMUP",
         "ST_RELAXED",
         "ST_BETWEEN_SETS"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -262,7 +352,8 @@
         "ST_WARMUP",
         "ST_RELAXED",
         "ST_BETWEEN_SETS"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -276,7 +367,8 @@
         "ST_WARMUP",
         "ST_RELAXED",
         "ST_BETWEEN_SETS"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
@@ -290,7 +382,8 @@
         "TE_100",
         "TE_200",
         "TE_300"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
@@ -304,7 +397,8 @@
         "TE_100",
         "TE_200",
         "TE_300"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
@@ -318,7 +412,8 @@
         "TE_100",
         "TE_200",
         "TE_300"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -332,7 +427,8 @@
         "TE_100",
         "TE_200",
         "TE_300"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -347,7 +443,8 @@
         "SES_100",
         "SES_120",
         "SES_150"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -362,7 +459,8 @@
         "SES_100",
         "SES_120",
         "SES_150"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -377,7 +475,8 @@
         "SES_100",
         "SES_120",
         "SES_150"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "条件付き自動（§4.5）: tier=ADVANCED、または (POST & tier≥DEVELOPING & phase≠TRANSITION)",
@@ -392,7 +491,8 @@
         "SES_100",
         "SES_120",
         "SES_150"
-      ]
+      ],
+      "requiresPhaseEvaluation": true
     },
     {
       "conditionNote": null,
@@ -406,7 +506,8 @@
         "LSR_SPECIAL_ENDURANCE_I",
         "LSR_SPECIAL_ENDURANCE_II",
         "LSR_RACE_MODEL"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -420,7 +521,8 @@
         "LSR_SPECIAL_ENDURANCE_I",
         "LSR_SPECIAL_ENDURANCE_II",
         "LSR_RACE_MODEL"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -434,7 +536,8 @@
         "LSR_SPECIAL_ENDURANCE_I",
         "LSR_SPECIAL_ENDURANCE_II",
         "LSR_RACE_MODEL"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "条件付き自動（§4.5）: POST & trainingAge tier∈{TRAINED,ADVANCED} & primaryEvent∈{200m,400m,400mH}",
@@ -448,7 +551,8 @@
         "LSR_SPECIAL_ENDURANCE_I",
         "LSR_SPECIAL_ENDURANCE_II",
         "LSR_RACE_MODEL"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -462,7 +566,8 @@
         "LSR_300_PLUS_100",
         "LSR_200_PLUS_200",
         "LSR_BROKEN_400"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -476,7 +581,8 @@
         "LSR_300_PLUS_100",
         "LSR_200_PLUS_200",
         "LSR_BROKEN_400"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -490,7 +596,8 @@
         "LSR_300_PLUS_100",
         "LSR_200_PLUS_200",
         "LSR_BROKEN_400"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "POST+EnvelopeTier=ADVANCEDのみ自動（§4.5, Fable C-7）。primaryEvent∈{200m,400m,400mH}",
@@ -504,7 +611,8 @@
         "LSR_300_PLUS_100",
         "LSR_200_PLUS_200",
         "LSR_BROKEN_400"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -517,7 +625,8 @@
       "templateIds": [
         "TI_VITTORI_SE",
         "TI_COACH_DEFINED"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -530,7 +639,8 @@
       "templateIds": [
         "TI_VITTORI_SE",
         "TI_COACH_DEFINED"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -543,7 +653,8 @@
       "templateIds": [
         "TI_VITTORI_SE",
         "TI_COACH_DEFINED"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "TI_VITTORI_SEはadvancedOnly",
@@ -556,7 +667,8 @@
       "templateIds": [
         "TI_VITTORI_SE",
         "TI_COACH_DEFINED"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -569,7 +681,8 @@
       "templateIds": [
         "RS_SLED_LIGHT",
         "RS_HILL_SHORT"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -582,7 +695,8 @@
       "templateIds": [
         "RS_SLED_LIGHT",
         "RS_HILL_SHORT"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -595,7 +709,8 @@
       "templateIds": [
         "RS_SLED_LIGHT",
         "RS_HILL_SHORT"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -608,7 +723,8 @@
       "templateIds": [
         "RS_SLED_LIGHT",
         "RS_HILL_SHORT"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -620,7 +736,8 @@
       "ruleId": "ELIG_RS_MODERATE_PRE",
       "templateIds": [
         "RS_SLED_MODERATE"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -632,7 +749,8 @@
       "ruleId": "ELIG_RS_MODERATE_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "RS_SLED_MODERATE"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -644,7 +762,8 @@
       "ruleId": "ELIG_RS_MODERATE_CIRCA",
       "templateIds": [
         "RS_SLED_MODERATE"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "ADVANCEDのみ自動",
@@ -656,7 +775,8 @@
       "ruleId": "ELIG_RS_MODERATE_POST",
       "templateIds": [
         "RS_SLED_MODERATE"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -668,7 +788,8 @@
       "ruleId": "ELIG_RS_HEAVY_PRE",
       "templateIds": [
         "RS_SLED_HEAVY"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -680,7 +801,8 @@
       "ruleId": "ELIG_RS_HEAVY_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "RS_SLED_HEAVY"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -692,7 +814,8 @@
       "ruleId": "ELIG_RS_HEAVY_CIRCA",
       "templateIds": [
         "RS_SLED_HEAVY"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "ADVANCED + 実測vdec必須",
@@ -704,7 +827,8 @@
       "ruleId": "ELIG_RS_HEAVY_POST",
       "templateIds": [
         "RS_SLED_HEAVY"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -717,7 +841,8 @@
       "templateIds": [
         "AS_TOWING",
         "AS_DOWNHILL"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -730,7 +855,8 @@
       "templateIds": [
         "AS_TOWING",
         "AS_DOWNHILL"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -743,7 +869,8 @@
       "templateIds": [
         "AS_TOWING",
         "AS_DOWNHILL"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": "advancedOnly（§4.5）。EnvelopeTier=ADVANCED & allowAdvancedMethods=true & vmax.confidence≥MEDIUM でも自動生成はしない（手動のみ）",
@@ -756,7 +883,8 @@
       "templateIds": [
         "AS_TOWING",
         "AS_DOWNHILL"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -769,7 +897,8 @@
       "templateIds": [
         "EA_HURDLE_START_TO_H1",
         "EA_JUMP_SHORT_APPROACH"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -782,7 +911,8 @@
       "templateIds": [
         "EA_HURDLE_START_TO_H1",
         "EA_JUMP_SHORT_APPROACH"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -795,7 +925,8 @@
       "templateIds": [
         "EA_HURDLE_START_TO_H1",
         "EA_JUMP_SHORT_APPROACH"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -808,7 +939,8 @@
       "templateIds": [
         "EA_HURDLE_START_TO_H1",
         "EA_JUMP_SHORT_APPROACH"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -821,7 +953,8 @@
       "templateIds": [
         "EA_HURDLE_RHYTHM",
         "EA_JUMP_FULL_APPROACH"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -834,7 +967,8 @@
       "templateIds": [
         "EA_HURDLE_RHYTHM",
         "EA_JUMP_FULL_APPROACH"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -847,7 +981,8 @@
       "templateIds": [
         "EA_HURDLE_RHYTHM",
         "EA_JUMP_FULL_APPROACH"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     },
     {
       "conditionNote": null,
@@ -860,7 +995,8 @@
       "templateIds": [
         "EA_HURDLE_RHYTHM",
         "EA_JUMP_FULL_APPROACH"
-      ]
+      ],
+      "requiresPhaseEvaluation": false
     }
   ],
   "engineSchemaVersion": 1,
@@ -4472,7 +4608,8 @@
       "labelJa": "ブロックスタート10m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "BLOCK"
+      "startType": "BLOCK",
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4485,7 +4622,8 @@
       "labelJa": "ブロックスタート20m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "BLOCK"
+      "startType": "BLOCK",
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4498,7 +4636,8 @@
       "labelJa": "ブロックスタート30m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "BLOCK"
+      "startType": "BLOCK",
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4511,7 +4650,8 @@
       "labelJa": "ブロックスタート40m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "BLOCK"
+      "startType": "BLOCK",
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4524,7 +4664,8 @@
       "labelJa": "クラウチングスタート20m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "THREE_POINT"
+      "startType": "THREE_POINT",
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4537,7 +4678,8 @@
       "labelJa": "スタンディングスタート20m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "STANDING"
+      "startType": "STANDING",
+      "complexity": "LOW"
     },
     {
       "advancedOnly": false,
@@ -4550,7 +4692,8 @@
       "labelJa": "フォーリングスタート10m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "FALLING"
+      "startType": "FALLING",
+      "complexity": "LOW"
     },
     {
       "advancedOnly": false,
@@ -4563,7 +4706,8 @@
       "labelJa": "フライ10m",
       "method": "MAX_VELOCITY",
       "recoveryStructure": null,
-      "startType": "FLYING"
+      "startType": "FLYING",
+      "complexity": "LOW"
     },
     {
       "advancedOnly": false,
@@ -4576,7 +4720,8 @@
       "labelJa": "フライ20m",
       "method": "MAX_VELOCITY",
       "recoveryStructure": null,
-      "startType": "FLYING"
+      "startType": "FLYING",
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4589,7 +4734,8 @@
       "labelJa": "フライ30m",
       "method": "MAX_VELOCITY",
       "recoveryStructure": null,
-      "startType": "FLYING"
+      "startType": "FLYING",
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4601,7 +4747,8 @@
       "id": "SES_80",
       "labelJa": "スプリント持久80m",
       "method": "SPRINT_ENDURANCE_SHORT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4613,7 +4760,8 @@
       "id": "SES_100",
       "labelJa": "スプリント持久100m",
       "method": "SPRINT_ENDURANCE_SHORT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4625,7 +4773,8 @@
       "id": "SES_120",
       "labelJa": "スプリント持久120m",
       "method": "SPRINT_ENDURANCE_SHORT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4637,7 +4786,8 @@
       "id": "SES_150",
       "labelJa": "スプリント持久150m",
       "method": "SPRINT_ENDURANCE_SHORT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4654,7 +4804,8 @@
         "400m",
         "400mH"
       ],
-      "recoveryStructure": "FULL"
+      "recoveryStructure": "FULL",
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": false,
@@ -4670,7 +4821,8 @@
         "400m",
         "400mH"
       ],
-      "recoveryStructure": "FULL"
+      "recoveryStructure": "FULL",
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": false,
@@ -4686,7 +4838,8 @@
         "400m",
         "400mH"
       ],
-      "recoveryStructure": "FULL"
+      "recoveryStructure": "FULL",
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": true,
@@ -4701,7 +4854,8 @@
         "400m",
         "400mH"
       ],
-      "recoveryStructure": "INCOMPLETE"
+      "recoveryStructure": "INCOMPLETE",
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": true,
@@ -4716,7 +4870,8 @@
         "400m",
         "400mH"
       ],
-      "recoveryStructure": "INCOMPLETE"
+      "recoveryStructure": "INCOMPLETE",
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": true,
@@ -4731,7 +4886,8 @@
         "400m",
         "400mH"
       ],
-      "recoveryStructure": "INCOMPLETE"
+      "recoveryStructure": "INCOMPLETE",
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": false,
@@ -4743,7 +4899,8 @@
       "id": "TE_100",
       "labelJa": "テンポ走100m",
       "method": "TEMPO_EXTENSIVE",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "LOW"
     },
     {
       "advancedOnly": false,
@@ -4755,7 +4912,8 @@
       "id": "TE_200",
       "labelJa": "テンポ走200m",
       "method": "TEMPO_EXTENSIVE",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "LOW"
     },
     {
       "advancedOnly": false,
@@ -4767,7 +4925,8 @@
       "id": "TE_300",
       "labelJa": "テンポ走300m",
       "method": "TEMPO_EXTENSIVE",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "LOW"
     },
     {
       "advancedOnly": true,
@@ -4779,7 +4938,8 @@
       "id": "TI_VITTORI_SE",
       "labelJa": "ヴィットーリ式スペシャルエンデュランス",
       "method": "TEMPO_INTENSIVE",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4790,7 +4950,8 @@
       "id": "TI_COACH_DEFINED",
       "labelJa": "コーチ定義テンポ・インテンシブ",
       "method": "TEMPO_INTENSIVE",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4801,7 +4962,8 @@
       "id": "RS_SLED_LIGHT",
       "labelJa": "軽負荷ソリ引き",
       "method": "RESISTED_SPRINT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4812,7 +4974,8 @@
       "id": "RS_SLED_MODERATE",
       "labelJa": "中負荷ソリ引き",
       "method": "RESISTED_SPRINT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": true,
@@ -4823,7 +4986,8 @@
       "id": "RS_SLED_HEAVY",
       "labelJa": "重負荷ソリ引き",
       "method": "RESISTED_SPRINT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": false,
@@ -4834,7 +4998,8 @@
       "id": "RS_HILL_SHORT",
       "labelJa": "短坂ダッシュ",
       "method": "RESISTED_SPRINT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": true,
@@ -4845,7 +5010,8 @@
       "id": "AS_TOWING",
       "labelJa": "牽引走（トウイング）",
       "method": "ASSISTED_SPRINT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": true,
@@ -4856,7 +5022,8 @@
       "id": "AS_DOWNHILL",
       "labelJa": "下り坂走",
       "method": "ASSISTED_SPRINT",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": false,
@@ -4868,7 +5035,8 @@
       "labelJa": "スタート〜第1ハードル",
       "method": "EVENT_APPROACH_SPEED",
       "recoveryStructure": null,
-      "startType": "BLOCK"
+      "startType": "BLOCK",
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": false,
@@ -4879,7 +5047,8 @@
       "id": "EA_HURDLE_RHYTHM",
       "labelJa": "ハードルリズム走",
       "method": "EVENT_APPROACH_SPEED",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": false,
@@ -4890,7 +5059,8 @@
       "id": "EA_JUMP_SHORT_APPROACH",
       "labelJa": "短助走跳躍",
       "method": "EVENT_APPROACH_SPEED",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "MEDIUM"
     },
     {
       "advancedOnly": false,
@@ -4901,7 +5071,8 @@
       "id": "EA_JUMP_FULL_APPROACH",
       "labelJa": "フル助走跳躍",
       "method": "EVENT_APPROACH_SPEED",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "HIGH"
     },
     {
       "advancedOnly": false,
@@ -4912,7 +5083,8 @@
       "id": "ST_WARMUP",
       "labelJa": "ウォームアップ流し",
       "method": "STRIDE",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "LOW"
     },
     {
       "advancedOnly": false,
@@ -4924,7 +5096,8 @@
       "id": "ST_RELAXED",
       "labelJa": "リラックス流し",
       "method": "STRIDE",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "LOW"
     },
     {
       "advancedOnly": false,
@@ -4935,7 +5108,8 @@
       "id": "ST_BETWEEN_SETS",
       "labelJa": "セット間流し",
       "method": "STRIDE",
-      "recoveryStructure": null
+      "recoveryStructure": null,
+      "complexity": "LOW"
     }
   ],
   "timingTolerances": [

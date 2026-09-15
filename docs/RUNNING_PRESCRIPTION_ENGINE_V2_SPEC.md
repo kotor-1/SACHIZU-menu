@@ -459,6 +459,13 @@ export type GroupProfile = {
   - ageBand = 最年少、trainingAge = 最低 tier、maturity = メンバーに現れる全カテゴリの制約を**積集合**で適用。
   - 個人記録（marks/vmax）は使わない → 参照依存 Method の prescriptionConfidence は最大 LOW、個人目標タイムは出さない。
   - members が空 → ageBand/maturity/trainingAge すべて UNKNOWN 扱い（§4.4 の保守既定）。
+- **[R3 implementation note]** `ResolvedAgeBand = AgeBand | "UNKNOWN"` は R3 context 層だけで使う
+  **観測状態の型**であり、canonical な `AgeBand`（U12/U15/U18/ADULT）や Evidence の
+  population enum を変更しない。members が空の GROUP（または birthDate・ageBandOverride が
+  無い ATHLETE）は出力上 `ageBand = "UNKNOWN"` のまま保持し、特定の年齢帯（U12 等）へ偽装しない。
+  ただし年齢帯に依存する制約（§8.2 の ConstraintRule）だけは「全 AgeBand で許されるものの積集合」
+  として評価する（＝どの年齢帯であっても安全な側に倒す）。maturity は EFFECTIVE_UNKNOWN、
+  trainingAge は未知（effective tier = BEGINNER）、EnvelopeTier は DEVELOPMENTAL。
 
 ### 4.2 ageBand（暦年齢）— maturation と分離
 
@@ -490,6 +497,16 @@ export type MaturityAssessment = {
 - [ENGINE-POLICY] 医学的診断機能にしない。UI 文言は「成長段階の目安（コーチ判断）」とし、思春期評価（二次性徴）を**入力項目にしない**（Fable M-1）。
 - [SOURCE-BACKED] 年間成長速度の急増（Claude DR が narrative review の 7.2cm/年を報告）→ **`rapidGrowthFlag`**。
   - [ENGINE-POLICY] flag=true のとき、申告 status に関係なく **CIRCA の制約を適用**。閾値 7.2cm/年は provisional。
+  - **[R3 implementation policy]** 成長速度の算出（初版 ENGINE-POLICY・provisional。医学的診断値ではない）:
+    1. `heightHistory` のうち、§8.5 の身長 plausibility が BLOCK の点と、`asOf` より未来の点を除外する。
+    2. 残った有効点が **2点未満**なら算出しない（rapidGrowthFlag を無理に確定しない）。
+    3. 有効点の **最古点と最新点の2点だけ**を使う（回帰・平滑化・区間の重み付けはしない）。
+    4. 2点の間隔が **6か月以上**（実装上は 182 日以上。日付は date-only の通日番号差で計算し、
+       タイムゾーンに依存しない）でなければ算出しない。
+    5. 年換算成長速度 = (最新身長 − 最古身長) ÷ 日数差 × 365。
+    6. **`> 7.2` cm/年のときだけ** `rapidGrowthFlag = true`（`>=` ではない）。
+    - `method = GROWTH_VELOCITY` なのに 2〜4 の条件を満たせない場合は、confidence を MEDIUM へ
+      上げず、`method = NONE` と同様に status = UNKNOWN / confidence = LOW として扱う。
 - [ENGINE-POLICY] Mirwald 等の推定式は v2 初期ルールセットに**実装しない**（係数を一次資料で未照合）。入力として offset を受け取る場合も confidence 最大 MEDIUM。
 - [ENGINE-POLICY] `maturityConfidence` の実効値: `method=NONE` → status を UNKNOWN に強制、`COACH_OBSERVATION/PARENT_REPORT` → 最大 MEDIUM、`GROWTH_VELOCITY`（2点以上・6か月以上間隔）→ 最大 MEDIUM、`MATURITY_OFFSET_EQUATION` → 最大 MEDIUM。HIGH は ageBand=ADULT のみ。
 
@@ -497,6 +514,27 @@ export type MaturityAssessment = {
 
 - 原則: **UNKNOWN/LOW を ADULT 扱いしない。ただし PRE と完全同一にもしない。** [ENGINE-POLICY]
 - 実効カテゴリ: `status=UNKNOWN` または `confidence=LOW` → **`EFFECTIVE_UNKNOWN`**（`status=POST & confidence=LOW` も含む）。
+- **[R3 errata]** 上の1文を額面どおり「confidence=LOW なら常に EFFECTIVE_UNKNOWN」と読むと、
+  `PRE + LOW` が EFFECTIVE_UNKNOWN になり、下表の SPRINT_ENDURANCE_SHORT が
+  「不適格（override 可）」→「手動+REVIEW」へ**緩む**（confidence が下がっただけで eligibility が
+  緩和される逆転）。これは安全側の原則に反するため、実効カテゴリは次のとおり確定する
+  （上から順に最初に該当したもの）:
+
+  | 条件 | 実効カテゴリ |
+  | --- | --- |
+  | `rapidGrowthFlag = true` | CIRCA |
+  | normalized status = PRE | PRE（confidence に関わらず） |
+  | normalized status = CIRCA | CIRCA（confidence に関わらず） |
+  | normalized status = UNKNOWN | EFFECTIVE_UNKNOWN |
+  | normalized status = POST かつ confidence = LOW | EFFECTIVE_UNKNOWN |
+  | normalized status = POST かつ confidence ≥ MEDIUM | POST |
+
+  - **LOW confidence は、既知の PRE / CIRCA を EFFECTIVE_UNKNOWN へ変換しない。** LOW は
+    eligibility を緩める方向に働いてはならない（confidence を下げたときの結果は、同等か
+    より制約的でなければならない。R3 のテストで 64 セル全件について検証する）。
+  - normalized status は §4.3 の規則で先に決まる（`method=NONE` や、履歴条件を満たさない
+    `GROWTH_VELOCITY` は status=UNKNOWN に強制される）。表のヘッダー「POST（≥MEDIUM）」の
+    confidence 条件は POST 列にだけ適用される。
 
 | Method / Template | PRE | EFFECTIVE_UNKNOWN | CIRCA（または rapidGrowth） | POST（≥MEDIUM） |
 | --- | --- | --- | --- | --- |
@@ -560,6 +598,11 @@ export type TrainingAgeInput = {
 - [ENGINE-POLICY] **100m PB → Vmax 推定式は初期ルールセットに入れない**（`vmaxEstimationModels: []`）。追加する場合は §5 の EvidenceRecord と `value/lower/upper/confidence` の出力を必須とし、confidence は最大 LOW。[OPEN-02]
 - [ENGINE-POLICY] fly split → 速度: `v = d / t`、区間は `d/(t+tol) .. d/(t−tol)`（tol は §10.2）。
 - [ENGINE-POLICY] 記録の鮮度（Fable M-11）※: ageBand ≠ ADULT は 180日超、ADULT は 365日超で confidence を1段下げる（provisional）。
+- **[R3 provisional policy]** VIDEO の fly: 上表は RADAR/PHOTO_CELL/FAT（HIGH）と HAND（LOW）
+  しか明記していない。v2 初期ポリシーでは **VIDEO fly の基準 confidence = LOW** とし、
+  計時法の妥当性を示す Evidence / policy が定まるまで維持する。PHOTO_CELL・FAT・RADAR の
+  HIGH を VIDEO へ類推しない。（`timing=VIDEO` で fps 未入力は §10.2 どおり UNKNOWN 扱い。）
+  鮮度による1段下げは LOW を NONE に落とさない（HIGH→MEDIUM→LOW→LOW）。
 - `prescriptionConfidence` への反映は §5.4。
 
 ---
@@ -973,11 +1016,21 @@ export type Envelope = {
 | ageBand | 追加制約 |
 | --- | --- |
 | U12 | ASSISTED・LONG（全）・RS_SLED_HEAVY・TEMPO_INTENSIVE（全）を**不適格（override 不可）**。自動生成は complexity LOW のみ |
-| U15 | JAAF 中学ガイド（週≤16h・休養日2日）を週次ガードで評価（§12.4, REQUIRE_COACH_REVIEW） |
+| U15 | **ASSISTED_SPRINT を不適格（override 不可）**。JAAF 中学ガイド（週≤16h・休養日2日）を週次ガードで評価（§12.4, REQUIRE_COACH_REVIEW） |
 | U18 | 未成年の健康情報の取り扱い規則（§13.5）を適用 |
 | ADULT | 追加制約なし |
 
 - 早熟な U12（maturity=POST）でも U12 の制約は外れない。[ENGINE-POLICY]
+- **[R3 errata]** 初版の本表は U15 に ASSISTED の制約を書いていなかったため、§4.4 の表だけでは
+  「U15・POST・EnvelopeTier=ADVANCED」の ASSISTED が「手動」になり、§20 T-POP-07
+  （「U12/U15 と PRE/CIRCA/UNKNOWN は coach override でも不可」）と矛盾していた。
+  T-POP-07 に合わせて U15 行へ「ASSISTED_SPRINT 不適格（override 不可）」を追加する。
+  RuleSet では U12 の制約と混ぜず、独立した ConstraintRule
+  `CONSTRAINT_U15_ASSISTED_NONOVERRIDABLE` として保持する（U12 は LONG/TI/RS_SLED_HEAVY も
+  禁止するため別ルールのまま）。**U18 は年齢だけで ASSISTED を禁止しない**：U18 でも
+  POST・EnvelopeTier=ADVANCED・allowAdvancedMethods=true・vmax.confidence ≥ MEDIUM なら
+  手動候補になりうる（自動生成はしない。§4.5）。PRE/CIRCA/EFFECTIVE_UNKNOWN は §4.4 の表で
+  override 不可のまま。
 - 方向性（小学生で overspeed・長い解糖系・重い抵抗を避ける）は [SOURCE-BACKED]（Claude/Perplexity/ChatGPT DR）。
 
 ### 8.3 Override 可否

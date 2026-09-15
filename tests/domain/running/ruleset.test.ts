@@ -545,14 +545,107 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
     expect(80000).toBeGreaterThan(rule!.blockThreshold!.max!);
   });
 
-  it("aggregationRules / weeklyRules / readinessRules / phaseRules / competitionRules / constraints / vmaxEstimationModels はすべて空配列（R2ではまだ実装しない）", () => {
+  it("aggregationRules / weeklyRules / readinessRules / phaseRules / competitionRules / vmaxEstimationModels はすべて空配列（R6/R7ではまだ実装しない）", () => {
     expect(rs.aggregationRules).toEqual([]);
     expect(rs.weeklyRules).toEqual([]);
     expect(rs.readinessRules).toEqual([]);
     expect(rs.phaseRules).toEqual([]);
     expect(rs.competitionRules).toEqual([]);
-    expect(rs.constraints).toEqual([]);
     expect(rs.vmaxEstimationModels).toEqual([]);
+  });
+
+  it("constraints は R3 で正式化され、4件のConstraintRuleを持つ（§8.2 U12 hard / U15 ASSISTED + §7.5 complexity cap ×2）", () => {
+    expect(rs.constraints.length).toBe(4);
+    const ids = new Set(rs.constraints.map((c) => c.id));
+    expect(ids.has("CONSTRAINT_U12_HARD")).toBe(true);
+    expect(ids.has("CONSTRAINT_U15_ASSISTED_NONOVERRIDABLE")).toBe(true);
+    expect(ids.has("CONSTRAINT_MATURITY_COMPLEXITY_CAP")).toBe(true);
+    expect(ids.has("CONSTRAINT_TRAINING_AGE_BEGINNER_COMPLEXITY_CAP")).toBe(true);
+  });
+
+  it("CONSTRAINT_U15_ASSISTED_NONOVERRIDABLE は U15 の ASSISTED_SPRINT だけを override 不可で disallow し、complexity 上限は持たない（§8.2 R3 errata）", () => {
+    const c = rs.constraints.find((c) => c.id === "CONSTRAINT_U15_ASSISTED_NONOVERRIDABLE")!;
+    expect(c.match).toEqual({ dimension: "AGE_BAND", ageBands: ["U15"] });
+    expect(c.disallowedMethods).toEqual(["ASSISTED_SPRINT"]);
+    expect(c.disallowedTemplateIds).toEqual([]);
+    expect(c.overrideAllowed).toBe(false);
+    expect(c.maxAutoComplexity).toBeNull();
+    expect(c.judgement).toBe("ENGINE_POLICY");
+    expect(c.provisional).toBe(true);
+  });
+
+  it("U18 を年齢だけで ASSISTED 禁止にする ConstraintRule は存在しない", () => {
+    const u18Assisted = rs.constraints.filter(
+      (c) =>
+        c.match.dimension === "AGE_BAND" &&
+        (c.match.ageBands as readonly string[]).includes("U18") &&
+        c.disallowedMethods.includes("ASSISTED_SPRINT"),
+    );
+    expect(u18Assisted).toEqual([]);
+  });
+
+  it("changelog に R3 の変更（constraints / complexity / requiresPhaseEvaluation / U15 ASSISTED）が記録されている", () => {
+    const r3 = rs.changelog.find((line) => line.startsWith("R3:"));
+    expect(r3).toBeDefined();
+    expect(r3).toContain("constraints");
+    expect(r3).toContain("complexity");
+    expect(r3).toContain("requiresPhaseEvaluation");
+    expect(r3).toContain("U15 ASSISTED_SPRINT");
+    expect(rs.status).toBe("DRAFT");
+    expect(rs.validFrom).toBe("2026-09-15");
+  });
+
+  it("CONSTRAINT_U12_HARD は ASSISTED/LONG/TEMPO_INTENSIVE を disallow、RS_SLED_HEAVY をdisallowTemplateIds、override不可、complexity上限LOW", () => {
+    const c = rs.constraints.find((c) => c.id === "CONSTRAINT_U12_HARD")!;
+    expect(c.match).toEqual({ dimension: "AGE_BAND", ageBands: ["U12"] });
+    expect(new Set(c.disallowedMethods)).toEqual(
+      new Set(["ASSISTED_SPRINT", "LONG_SPRINT_RACE_SPECIFIC", "TEMPO_INTENSIVE"]),
+    );
+    expect(c.disallowedTemplateIds).toEqual(["RS_SLED_HEAVY"]);
+    expect(c.overrideAllowed).toBe(false);
+    expect(c.maxAutoComplexity).toBe("LOW");
+  });
+
+  it("全38 template が complexity（LOW/MEDIUM/HIGH）を持つ（§7.5 分類表の完全転記。R2実装時の欠落をR3で補完）", () => {
+    for (const t of rs.templates) {
+      expect(["LOW", "MEDIUM", "HIGH"]).toContain(t.complexity);
+    }
+    expect(rs.templates.length).toBe(38);
+  });
+
+  it("§7.5 complexity の代表値: ACC_STANDING_20=LOW, ACC_BLOCK_20=MEDIUM, LSR_RACE_MODEL=HIGH, RS_SLED_HEAVY=HIGH, MV_FLY10=LOW, ST_WARMUP=LOW", () => {
+    const byId = new Map(rs.templates.map((t) => [t.id, t.complexity]));
+    expect(byId.get("ACC_STANDING_20")).toBe("LOW");
+    expect(byId.get("ACC_BLOCK_20")).toBe("MEDIUM");
+    expect(byId.get("LSR_RACE_MODEL")).toBe("HIGH");
+    expect(byId.get("RS_SLED_HEAVY")).toBe("HIGH");
+    expect(byId.get("MV_FLY10")).toBe("LOW");
+    expect(byId.get("ST_WARMUP")).toBe("LOW");
+  });
+
+  it("eligibility: requiresPhaseEvaluation=true は SES+POST の1件のみ（他63件はfalse）", () => {
+    const flagged = rs.eligibility.filter((e) => e.requiresPhaseEvaluation);
+    expect(flagged.length).toBe(1);
+    expect(flagged[0].ruleId).toBe("ELIG_SES_POST");
+    expect(flagged[0].method).toBe("SPRINT_ENDURANCE_SHORT");
+    expect(flagged[0].maturityCategory).toBe("POST");
+    expect(rs.eligibility.length).toBe(64);
+  });
+
+  it("R2 の Critical transcription 値が R3 の変更後も同一である（ACC/MV/SES/STRIDE の代表値）", () => {
+    const acc = rs.envelopes.find((e) => e.method === "ACCELERATION" && e.tier === "DEVELOPMENTAL")!;
+    expect(acc.fields.repDistanceM!.recommended).toEqual({ min: 10, max: 20, unit: "m" });
+    const mv = rs.envelopes.find((e) => e.method === "MAX_VELOCITY" && e.tier === "ADVANCED")!;
+    expect(mv.fields.flyVolumeM!.recommended).toEqual({ min: 50, max: 150, unit: "m" });
+    const vittori = rs.envelopes.find(
+      (e) => e.method === "TEMPO_INTENSIVE" && e.templateIds.includes("TI_VITTORI_SE" as never),
+    )!;
+    expect(vittori.fields.repsPerSet!.recommended).toEqual({ min: 3, max: 5, unit: "reps" });
+    expect(vittori.fields.sets!.recommended).toEqual({ min: 2, max: 4, unit: "sets" });
+    const assisted = rs.envelopes.find((e) => e.method === "ASSISTED_SPRINT")!;
+    expect(assisted.fields.intensityPercent!.coachEditable).toEqual({ min: 100, max: 105, unit: "percent" });
+    expect(rs.evidence.length).toBe(24);
+    expect(rs.evidence.filter((e) => e.verification === "SECONDARY_REPORT_ONLY").length).toBe(24);
   });
 
   it("status=DRAFT である（一次資料未照合のため ACTIVE 化しない、§25）", () => {

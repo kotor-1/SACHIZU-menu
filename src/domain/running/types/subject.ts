@@ -70,7 +70,12 @@ export const trainingAgeTierSchema = z.enum(TRAINING_AGE_TIERS);
 export type TrainingAgeTier = z.infer<typeof trainingAgeTierSchema>;
 
 export const trainingAgeInputSchema = z.object({
-  structuredSprintYears: z.number().nonnegative().nullable(),
+  // [R3 defect fix] z.number().nonnegative() だけでは +Infinity を拒否できない
+  // （NaN は基底の z.number() が既に拒否するが、Infinity は「非負の有限でない数」
+  // として通過してしまう）。R3 の Training Age validation 要件
+  // （負値・NaN・Infinity をすべて拒否）を満たすため `.finite()` を追加する。
+  // 他のフィールド・意味は変更していない。
+  structuredSprintYears: z.number().nonnegative().finite().nullable(),
   coachAssignedTier: trainingAgeTierSchema.nullable().optional(),
 });
 export type TrainingAgeInput = z.infer<typeof trainingAgeInputSchema>;
