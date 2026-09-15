@@ -45,6 +45,37 @@ Purpose/Event/Favorite は種目カタログの分類・検索のための情報
 スナップショットに含める必要があるか」を自問し、不要ならこれまで通り
 Exercise 側だけに留めること。
 
+## Running Prescription Engine v2（開発中）
+
+走トレーニング処方の作り直しが進行中。**正式仕様は
+[`docs/RUNNING_PRESCRIPTION_ENGINE_V2_SPEC.md`](docs/RUNNING_PRESCRIPTION_ENGINE_V2_SPEC.md)
+の1本のみ**。長い内容をここへ複製しないので、詳細は必ずそちらを読むこと。
+ここには実装中に忘れてはいけない不変条件だけを書く。
+
+守ること:
+- **3 層責務分離は Running v2 でも絶対に変えない。** `Exercise` = 知識、
+  `MenuItem` = 計画、`SessionItem` = 実績。Running Prescription Engine は
+  `MenuItem` を作るための domain engine であり、**第4の永続層ではない**
+  （エンジン専用テーブルを作らない）
+- **`SessionItem` の snapshot integrity を壊さない。** `createSessionFromMenu()`
+  のコピー方式（参照ではない）は Running v2 でも同じ。これは
+  `tests/repository/snapshot-integrity.test.ts` と `scripts/verify-snapshot.ts`
+  で検証する
+- **現行の `src/domain/prescription/`（legacy）は正式仕様の Phase R13 まで
+  勝手に削除・修正しない。** 数値も分類も、必要な Constraint 層・置き換え先が
+  揃うまでは現状のまま残す
+- **legacy の走系の係数（レベル係数・期分け係数）や分類ミスは、R0 時点では
+  「正しいもの」として認定しない。** `tests/domain/prescription-legacy-golden.test.ts`
+  と `tests/fixtures/prescription-legacy-golden.json` /
+  `prescription-legacy-warnings.json` は、あくまで**現在の挙動を固定するため
+  の characterization test**であり、科学的正しさの保証ではない
+- **`npm run db:seed` / `npm run db:reset` / `npm run setup` は実行禁止。**
+  現在の実データ（Exercise 158件など）を消去する
+- **Phase は正式仕様の R0 → R1 → … の順に実施する。** 前の Phase の完了条件
+  （テスト・typecheck・build 等）を満たす前に、次の Phase の実装を先行させない
+- **`git add .` は使わない。** リポジトリには大容量の未追跡動画・scratch 系
+  ファイルがあるため、変更したファイルだけを明示的に `git add` すること
+
 ## 層の約束
 
 - `src/domain/` … DB にも React にも依存しない。列挙値・値オブジェクト・Zod スキーマだけ

@@ -48,3 +48,12 @@ prisma/*.db-wal
 
 # typescript
 tsconfig.tsbuildinfo
+
+# 動画取り込み・スクラッチ作業で生まれる大容量ファイル
+# （Running Prescription Engine v2 の R0 で追加。既存の未追跡ファイルを
+#   移動・削除するものではなく、今後の誤 add を防ぐためだけの追加）
+public/uploads/
+videos/
+tmp/
+scratch/
+/video_*.*

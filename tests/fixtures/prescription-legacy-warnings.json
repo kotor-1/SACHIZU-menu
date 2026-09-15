@@ -1,0 +1,1271 @@
+{
+  "_meta": {
+    "purpose": "各 golden case の suggestPrescription().warnings をそのまま記録したもの。R6 で aggregation / plausibility 由来の warning を追加する際は、このファイルだけを更新すれば済むよう、数値 golden とは分離してある。",
+    "caseCount": 971
+  },
+  "warningsByCaseId": {
+    "matrix__SPEED_ACCELERATION__JHS__PREPARATION__A": [],
+    "matrix__SPEED_ACCELERATION__JHS__PREPARATION__B": [
+      "この種目だけで300m。1回の練習の目安288mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__PREPARATION__C": [],
+    "matrix__SPEED_ACCELERATION__JHS__PREPARATION__D": [
+      "この種目だけで10800m。1回の練習の目安288mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__PRE_COMPETITION__A": [],
+    "matrix__SPEED_ACCELERATION__JHS__PRE_COMPETITION__B": [
+      "この種目だけで300m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__PRE_COMPETITION__C": [],
+    "matrix__SPEED_ACCELERATION__JHS__PRE_COMPETITION__D": [
+      "この種目だけで8100m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__COMPETITION__A": [],
+    "matrix__SPEED_ACCELERATION__JHS__COMPETITION__B": [
+      "この種目だけで300m。1回の練習の目安168mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__COMPETITION__C": [],
+    "matrix__SPEED_ACCELERATION__JHS__COMPETITION__D": [
+      "この種目だけで5400m。1回の練習の目安168mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__TRANSITION__A": [],
+    "matrix__SPEED_ACCELERATION__JHS__TRANSITION__B": [
+      "この種目だけで300m。1回の練習の目安120mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__TRANSITION__C": [],
+    "matrix__SPEED_ACCELERATION__JHS__TRANSITION__D": [
+      "この種目だけで5400m。1回の練習の目安120mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__NO_PHASE__A": [],
+    "matrix__SPEED_ACCELERATION__JHS__NO_PHASE__B": [
+      "この種目だけで300m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__JHS__NO_PHASE__C": [],
+    "matrix__SPEED_ACCELERATION__JHS__NO_PHASE__D": [
+      "この種目だけで8100m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__PREPARATION__D": [
+      "この種目だけで13500m。1回の練習の目安360mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__PRE_COMPETITION__D": [
+      "この種目だけで10800m。1回の練習の目安300mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__COMPETITION__B": [
+      "この種目だけで300m。1回の練習の目安210mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__COMPETITION__D": [
+      "この種目だけで8100m。1回の練習の目安210mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__TRANSITION__B": [
+      "この種目だけで300m。1回の練習の目安150mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__TRANSITION__D": [
+      "この種目だけで5400m。1回の練習の目安150mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__SPEED_ACCELERATION__HS_BEGINNER__NO_PHASE__D": [
+      "この種目だけで10800m。1回の練習の目安300mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__PREPARATION__D": [
+      "この種目だけで16200m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__PRE_COMPETITION__D": [
+      "この種目だけで13500m。1回の練習の目安400mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__COMPETITION__B": [
+      "この種目だけで300m。1回の練習の目安280mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__COMPETITION__D": [
+      "この種目だけで10800m。1回の練習の目安280mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__TRANSITION__B": [
+      "この種目だけで300m。1回の練習の目安200mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__TRANSITION__D": [
+      "この種目だけで8100m。1回の練習の目安200mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__SPEED_ACCELERATION__HS_ADVANCED__NO_PHASE__D": [
+      "この種目だけで13500m。1回の練習の目安400mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PREPARATION__D": [
+      "この種目だけで18900m。1回の練習の目安576mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PRE_COMPETITION__D": [
+      "この種目だけで16200m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__COMPETITION__D": [
+      "この種目だけで10800m。1回の練習の目安336mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__TRANSITION__B": [
+      "この種目だけで300m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__TRANSITION__D": [
+      "この種目だけで8100m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__NO_PHASE__D": [
+      "この種目だけで16200m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__PREPARATION__A": [
+      "この種目だけで300m。1回の練習の目安288mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__PREPARATION__B": [
+      "この種目だけで400m。1回の練習の目安288mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__PREPARATION__C": [
+      "この種目だけで300m。1回の練習の目安288mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__PREPARATION__D": [
+      "この種目だけで13500m。1回の練習の目安288mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__PRE_COMPETITION__A": [],
+    "matrix__SPEED_MAX_VELOCITY__JHS__PRE_COMPETITION__B": [
+      "この種目だけで400m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__PRE_COMPETITION__C": [],
+    "matrix__SPEED_MAX_VELOCITY__JHS__PRE_COMPETITION__D": [
+      "この種目だけで9000m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__COMPETITION__A": [
+      "この種目だけで200m。1回の練習の目安168mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__COMPETITION__B": [
+      "この種目だけで400m。1回の練習の目安168mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__COMPETITION__C": [
+      "この種目だけで200m。1回の練習の目安168mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__COMPETITION__D": [
+      "この種目だけで9000m。1回の練習の目安168mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__TRANSITION__A": [],
+    "matrix__SPEED_MAX_VELOCITY__JHS__TRANSITION__B": [
+      "この種目だけで400m。1回の練習の目安120mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__TRANSITION__C": [],
+    "matrix__SPEED_MAX_VELOCITY__JHS__TRANSITION__D": [
+      "この種目だけで4500m。1回の練習の目安120mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__NO_PHASE__A": [],
+    "matrix__SPEED_MAX_VELOCITY__JHS__NO_PHASE__B": [
+      "この種目だけで400m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__JHS__NO_PHASE__C": [],
+    "matrix__SPEED_MAX_VELOCITY__JHS__NO_PHASE__D": [
+      "この種目だけで9000m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PREPARATION__A": [
+      "この種目だけで400m。1回の練習の目安360mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PREPARATION__B": [
+      "この種目だけで400m。1回の練習の目安360mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PREPARATION__C": [
+      "この種目だけで400m。1回の練習の目安360mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PREPARATION__D": [
+      "この種目だけで18000m。1回の練習の目安360mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PRE_COMPETITION__B": [
+      "この種目だけで400m。1回の練習の目安300mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PRE_COMPETITION__D": [
+      "この種目だけで13500m。1回の練習の目安300mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__COMPETITION__B": [
+      "この種目だけで400m。1回の練習の目安210mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__COMPETITION__D": [
+      "この種目だけで9000m。1回の練習の目安210mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__TRANSITION__A": [
+      "この種目だけで200m。1回の練習の目安150mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__TRANSITION__B": [
+      "この種目だけで400m。1回の練習の目安150mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__TRANSITION__C": [
+      "この種目だけで200m。1回の練習の目安150mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__TRANSITION__D": [
+      "この種目だけで9000m。1回の練習の目安150mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__NO_PHASE__B": [
+      "この種目だけで400m。1回の練習の目安300mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__NO_PHASE__D": [
+      "この種目だけで13500m。1回の練習の目安300mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PREPARATION__A": [
+      "この種目だけで500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PREPARATION__C": [
+      "この種目だけで500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PREPARATION__D": [
+      "この種目だけで22500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PRE_COMPETITION__D": [
+      "この種目だけで18000m。1回の練習の目安400mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__COMPETITION__A": [
+      "この種目だけで300m。1回の練習の目安280mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__COMPETITION__B": [
+      "この種目だけで400m。1回の練習の目安280mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__COMPETITION__C": [
+      "この種目だけで300m。1回の練習の目安280mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__COMPETITION__D": [
+      "この種目だけで13500m。1回の練習の目安280mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__TRANSITION__B": [
+      "この種目だけで400m。1回の練習の目安200mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__TRANSITION__D": [
+      "この種目だけで9000m。1回の練習の目安200mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__NO_PHASE__D": [
+      "この種目だけで18000m。1回の練習の目安400mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PREPARATION__A": [
+      "この種目だけで600m。1回の練習の目安576mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PREPARATION__C": [
+      "この種目だけで600m。1回の練習の目安576mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PREPARATION__D": [
+      "この種目だけで27000m。1回の練習の目安576mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PRE_COMPETITION__A": [
+      "この種目だけで500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PRE_COMPETITION__C": [
+      "この種目だけで500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PRE_COMPETITION__D": [
+      "この種目だけで22500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__COMPETITION__B": [
+      "この種目だけで400m。1回の練習の目安336mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__COMPETITION__D": [
+      "この種目だけで13500m。1回の練習の目安336mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__TRANSITION__B": [
+      "この種目だけで400m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__TRANSITION__D": [
+      "この種目だけで9000m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__NO_PHASE__A": [
+      "この種目だけで500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__NO_PHASE__C": [
+      "この種目だけで500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__NO_PHASE__D": [
+      "この種目だけで22500m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__PREPARATION__A": [],
+    "matrix__SPEED_ENDURANCE__JHS__PREPARATION__B": [
+      "この種目だけで720m。1回の練習の目安576mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__PREPARATION__C": [],
+    "matrix__SPEED_ENDURANCE__JHS__PREPARATION__D": [
+      "この種目だけで21600m。1回の練習の目安576mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__PRE_COMPETITION__A": [],
+    "matrix__SPEED_ENDURANCE__JHS__PRE_COMPETITION__B": [
+      "この種目だけで720m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__PRE_COMPETITION__C": [],
+    "matrix__SPEED_ENDURANCE__JHS__PRE_COMPETITION__D": [
+      "この種目だけで21600m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__COMPETITION__A": [],
+    "matrix__SPEED_ENDURANCE__JHS__COMPETITION__B": [
+      "この種目だけで720m。1回の練習の目安336mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__COMPETITION__C": [],
+    "matrix__SPEED_ENDURANCE__JHS__COMPETITION__D": [
+      "この種目だけで10800m。1回の練習の目安336mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__TRANSITION__A": [],
+    "matrix__SPEED_ENDURANCE__JHS__TRANSITION__B": [
+      "この種目だけで720m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__TRANSITION__C": [],
+    "matrix__SPEED_ENDURANCE__JHS__TRANSITION__D": [
+      "この種目だけで10800m。1回の練習の目安240mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__NO_PHASE__A": [],
+    "matrix__SPEED_ENDURANCE__JHS__NO_PHASE__B": [
+      "この種目だけで720m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__JHS__NO_PHASE__C": [],
+    "matrix__SPEED_ENDURANCE__JHS__NO_PHASE__D": [
+      "この種目だけで21600m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__PREPARATION__D": [
+      "この種目だけで32400m。1回の練習の目安720mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__PRE_COMPETITION__B": [
+      "この種目だけで720m。1回の練習の目安600mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__PRE_COMPETITION__D": [
+      "この種目だけで21600m。1回の練習の目安600mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__COMPETITION__A": [
+      "この種目だけで480m。1回の練習の目安420mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__COMPETITION__B": [
+      "この種目だけで720m。1回の練習の目安420mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__COMPETITION__C": [
+      "この種目だけで480m。1回の練習の目安420mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__COMPETITION__D": [
+      "この種目だけで21600m。1回の練習の目安420mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__TRANSITION__B": [
+      "この種目だけで720m。1回の練習の目安300mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__TRANSITION__D": [
+      "この種目だけで10800m。1回の練習の目安300mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__NO_PHASE__B": [
+      "この種目だけで720m。1回の練習の目安600mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__SPEED_ENDURANCE__HS_BEGINNER__NO_PHASE__D": [
+      "この種目だけで21600m。1回の練習の目安600mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__PREPARATION__D": [
+      "この種目だけで43200m。1回の練習の目安960mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__PRE_COMPETITION__D": [
+      "この種目だけで32400m。1回の練習の目安800mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__COMPETITION__B": [
+      "この種目だけで720m。1回の練習の目安560mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__COMPETITION__D": [
+      "この種目だけで21600m。1回の練習の目安560mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__TRANSITION__A": [
+      "この種目だけで480m。1回の練習の目安400mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__TRANSITION__B": [
+      "この種目だけで720m。1回の練習の目安400mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__TRANSITION__C": [
+      "この種目だけで480m。1回の練習の目安400mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__TRANSITION__D": [
+      "この種目だけで21600m。1回の練習の目安400mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__SPEED_ENDURANCE__HS_ADVANCED__NO_PHASE__D": [
+      "この種目だけで32400m。1回の練習の目安800mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PREPARATION__D": [
+      "この種目だけで43200m。1回の練習の目安1152mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PRE_COMPETITION__D": [
+      "この種目だけで43200m。1回の練習の目安960mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__COMPETITION__A": [
+      "この種目だけで720m。1回の練習の目安672mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__COMPETITION__B": [
+      "この種目だけで720m。1回の練習の目安672mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__COMPETITION__C": [
+      "この種目だけで720m。1回の練習の目安672mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__COMPETITION__D": [
+      "この種目だけで32400m。1回の練習の目安672mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__TRANSITION__B": [
+      "この種目だけで720m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__TRANSITION__D": [
+      "この種目だけで21600m。1回の練習の目安480mを超えています。"
+    ],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__NO_PHASE__D": [
+      "この種目だけで43200m。1回の練習の目安960mを超えています。"
+    ],
+    "matrix__TEMPO_AEROBIC__JHS__PREPARATION__A": [],
+    "matrix__TEMPO_AEROBIC__JHS__PREPARATION__B": [],
+    "matrix__TEMPO_AEROBIC__JHS__PREPARATION__C": [],
+    "matrix__TEMPO_AEROBIC__JHS__PREPARATION__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__A": [],
+    "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__B": [],
+    "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__C": [],
+    "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__COMPETITION__A": [],
+    "matrix__TEMPO_AEROBIC__JHS__COMPETITION__B": [],
+    "matrix__TEMPO_AEROBIC__JHS__COMPETITION__C": [],
+    "matrix__TEMPO_AEROBIC__JHS__COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__TRANSITION__A": [],
+    "matrix__TEMPO_AEROBIC__JHS__TRANSITION__B": [],
+    "matrix__TEMPO_AEROBIC__JHS__TRANSITION__C": [],
+    "matrix__TEMPO_AEROBIC__JHS__TRANSITION__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__A": [],
+    "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__B": [],
+    "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__C": [],
+    "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "matrix__DRILL_TECHNICAL__JHS__PREPARATION__A": [],
+    "matrix__DRILL_TECHNICAL__JHS__PREPARATION__B": [],
+    "matrix__DRILL_TECHNICAL__JHS__PREPARATION__C": [],
+    "matrix__DRILL_TECHNICAL__JHS__PREPARATION__D": [],
+    "matrix__DRILL_TECHNICAL__JHS__PRE_COMPETITION__A": [],
+    "matrix__DRILL_TECHNICAL__JHS__PRE_COMPETITION__B": [],
+    "matrix__DRILL_TECHNICAL__JHS__PRE_COMPETITION__C": [],
+    "matrix__DRILL_TECHNICAL__JHS__PRE_COMPETITION__D": [],
+    "matrix__DRILL_TECHNICAL__JHS__COMPETITION__A": [],
+    "matrix__DRILL_TECHNICAL__JHS__COMPETITION__B": [],
+    "matrix__DRILL_TECHNICAL__JHS__COMPETITION__C": [],
+    "matrix__DRILL_TECHNICAL__JHS__COMPETITION__D": [],
+    "matrix__DRILL_TECHNICAL__JHS__TRANSITION__A": [],
+    "matrix__DRILL_TECHNICAL__JHS__TRANSITION__B": [],
+    "matrix__DRILL_TECHNICAL__JHS__TRANSITION__C": [],
+    "matrix__DRILL_TECHNICAL__JHS__TRANSITION__D": [],
+    "matrix__DRILL_TECHNICAL__JHS__NO_PHASE__A": [],
+    "matrix__DRILL_TECHNICAL__JHS__NO_PHASE__B": [],
+    "matrix__DRILL_TECHNICAL__JHS__NO_PHASE__C": [],
+    "matrix__DRILL_TECHNICAL__JHS__NO_PHASE__D": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__DRILL_TECHNICAL__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__DRILL_TECHNICAL__HS_ADVANCED__NO_PHASE__D": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__DRILL_TECHNICAL__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "matrix__PLYOMETRIC__JHS__PREPARATION__A": [],
+    "matrix__PLYOMETRIC__JHS__PREPARATION__B": [],
+    "matrix__PLYOMETRIC__JHS__PREPARATION__C": [],
+    "matrix__PLYOMETRIC__JHS__PREPARATION__D": [
+      "接地数630回。1回の練習の目安86回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__JHS__PRE_COMPETITION__A": [],
+    "matrix__PLYOMETRIC__JHS__PRE_COMPETITION__B": [],
+    "matrix__PLYOMETRIC__JHS__PRE_COMPETITION__C": [],
+    "matrix__PLYOMETRIC__JHS__PRE_COMPETITION__D": [
+      "接地数540回。1回の練習の目安72回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__JHS__COMPETITION__A": [],
+    "matrix__PLYOMETRIC__JHS__COMPETITION__B": [],
+    "matrix__PLYOMETRIC__JHS__COMPETITION__C": [],
+    "matrix__PLYOMETRIC__JHS__COMPETITION__D": [
+      "接地数360回。1回の練習の目安50回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__JHS__TRANSITION__A": [],
+    "matrix__PLYOMETRIC__JHS__TRANSITION__B": [
+      "接地数40回。1回の練習の目安36回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__JHS__TRANSITION__C": [],
+    "matrix__PLYOMETRIC__JHS__TRANSITION__D": [
+      "接地数270回。1回の練習の目安36回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__JHS__NO_PHASE__A": [],
+    "matrix__PLYOMETRIC__JHS__NO_PHASE__B": [],
+    "matrix__PLYOMETRIC__JHS__NO_PHASE__C": [],
+    "matrix__PLYOMETRIC__JHS__NO_PHASE__D": [
+      "接地数540回。1回の練習の目安72回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__PREPARATION__D": [
+      "接地数810回。1回の練習の目安108回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__PRE_COMPETITION__D": [
+      "接地数720回。1回の練習の目安90回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__COMPETITION__D": [
+      "接地数450回。1回の練習の目安63回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__TRANSITION__D": [
+      "接地数360回。1回の練習の目安45回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__PLYOMETRIC__HS_BEGINNER__NO_PHASE__D": [
+      "接地数720回。1回の練習の目安90回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__PREPARATION__D": [
+      "接地数1080回。1回の練習の目安144回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__PRE_COMPETITION__D": [
+      "接地数900回。1回の練習の目安120回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__COMPETITION__D": [
+      "接地数630回。1回の練習の目安84回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__TRANSITION__D": [
+      "接地数450回。1回の練習の目安60回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__PLYOMETRIC__HS_ADVANCED__NO_PHASE__D": [
+      "接地数900回。1回の練習の目安120回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__PREPARATION__D": [
+      "接地数1260回。1回の練習の目安173回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__PRE_COMPETITION__D": [
+      "接地数1080回。1回の練習の目安144回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__COMPETITION__D": [
+      "接地数720回。1回の練習の目安101回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__TRANSITION__D": [
+      "接地数540回。1回の練習の目安72回を超えています。"
+    ],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__PLYOMETRIC__UNIVERSITY_PLUS__NO_PHASE__D": [
+      "接地数1080回。1回の練習の目安144回を超えています。"
+    ],
+    "matrix__THROW_POWER__JHS__PREPARATION__A": [],
+    "matrix__THROW_POWER__JHS__PREPARATION__B": [],
+    "matrix__THROW_POWER__JHS__PREPARATION__C": [],
+    "matrix__THROW_POWER__JHS__PREPARATION__D": [],
+    "matrix__THROW_POWER__JHS__PRE_COMPETITION__A": [],
+    "matrix__THROW_POWER__JHS__PRE_COMPETITION__B": [],
+    "matrix__THROW_POWER__JHS__PRE_COMPETITION__C": [],
+    "matrix__THROW_POWER__JHS__PRE_COMPETITION__D": [],
+    "matrix__THROW_POWER__JHS__COMPETITION__A": [],
+    "matrix__THROW_POWER__JHS__COMPETITION__B": [],
+    "matrix__THROW_POWER__JHS__COMPETITION__C": [],
+    "matrix__THROW_POWER__JHS__COMPETITION__D": [],
+    "matrix__THROW_POWER__JHS__TRANSITION__A": [],
+    "matrix__THROW_POWER__JHS__TRANSITION__B": [],
+    "matrix__THROW_POWER__JHS__TRANSITION__C": [],
+    "matrix__THROW_POWER__JHS__TRANSITION__D": [],
+    "matrix__THROW_POWER__JHS__NO_PHASE__A": [],
+    "matrix__THROW_POWER__JHS__NO_PHASE__B": [],
+    "matrix__THROW_POWER__JHS__NO_PHASE__C": [],
+    "matrix__THROW_POWER__JHS__NO_PHASE__D": [],
+    "matrix__THROW_POWER__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__THROW_POWER__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__THROW_POWER__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__THROW_POWER__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__THROW_POWER__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__THROW_POWER__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__THROW_POWER__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__THROW_POWER__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__THROW_POWER__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__THROW_POWER__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__THROW_POWER__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__THROW_POWER__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__THROW_POWER__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__THROW_POWER__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__THROW_POWER__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__THROW_POWER__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__THROW_POWER__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__THROW_POWER__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__THROW_POWER__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__THROW_POWER__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__THROW_POWER__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__THROW_POWER__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__THROW_POWER__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__THROW_POWER__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__THROW_POWER__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__THROW_POWER__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__THROW_POWER__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__THROW_POWER__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__THROW_POWER__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__THROW_POWER__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__THROW_POWER__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__THROW_POWER__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__THROW_POWER__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__THROW_POWER__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__THROW_POWER__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__THROW_POWER__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__THROW_POWER__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__THROW_POWER__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__THROW_POWER__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__THROW_POWER__HS_ADVANCED__NO_PHASE__D": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__THROW_POWER__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "matrix__STRENGTH_MAX__JHS__PREPARATION__A": [],
+    "matrix__STRENGTH_MAX__JHS__PREPARATION__B": [],
+    "matrix__STRENGTH_MAX__JHS__PREPARATION__C": [],
+    "matrix__STRENGTH_MAX__JHS__PREPARATION__D": [],
+    "matrix__STRENGTH_MAX__JHS__PRE_COMPETITION__A": [],
+    "matrix__STRENGTH_MAX__JHS__PRE_COMPETITION__B": [],
+    "matrix__STRENGTH_MAX__JHS__PRE_COMPETITION__C": [],
+    "matrix__STRENGTH_MAX__JHS__PRE_COMPETITION__D": [],
+    "matrix__STRENGTH_MAX__JHS__COMPETITION__A": [],
+    "matrix__STRENGTH_MAX__JHS__COMPETITION__B": [],
+    "matrix__STRENGTH_MAX__JHS__COMPETITION__C": [],
+    "matrix__STRENGTH_MAX__JHS__COMPETITION__D": [],
+    "matrix__STRENGTH_MAX__JHS__TRANSITION__A": [],
+    "matrix__STRENGTH_MAX__JHS__TRANSITION__B": [],
+    "matrix__STRENGTH_MAX__JHS__TRANSITION__C": [],
+    "matrix__STRENGTH_MAX__JHS__TRANSITION__D": [],
+    "matrix__STRENGTH_MAX__JHS__NO_PHASE__A": [],
+    "matrix__STRENGTH_MAX__JHS__NO_PHASE__B": [],
+    "matrix__STRENGTH_MAX__JHS__NO_PHASE__C": [],
+    "matrix__STRENGTH_MAX__JHS__NO_PHASE__D": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__STRENGTH_MAX__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__STRENGTH_MAX__HS_ADVANCED__NO_PHASE__D": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__STRENGTH_MAX__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__PREPARATION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__PREPARATION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__PREPARATION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__PREPARATION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__PRE_COMPETITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__PRE_COMPETITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__PRE_COMPETITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__PRE_COMPETITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__COMPETITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__COMPETITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__COMPETITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__COMPETITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__TRANSITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__TRANSITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__TRANSITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__TRANSITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__NO_PHASE__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__NO_PHASE__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__NO_PHASE__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__JHS__NO_PHASE__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__HS_ADVANCED__NO_PHASE__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__STRENGTH_HYPERTROPHY__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "matrix__CORE_CIRCUIT__JHS__PREPARATION__A": [],
+    "matrix__CORE_CIRCUIT__JHS__PREPARATION__B": [],
+    "matrix__CORE_CIRCUIT__JHS__PREPARATION__C": [],
+    "matrix__CORE_CIRCUIT__JHS__PREPARATION__D": [],
+    "matrix__CORE_CIRCUIT__JHS__PRE_COMPETITION__A": [],
+    "matrix__CORE_CIRCUIT__JHS__PRE_COMPETITION__B": [],
+    "matrix__CORE_CIRCUIT__JHS__PRE_COMPETITION__C": [],
+    "matrix__CORE_CIRCUIT__JHS__PRE_COMPETITION__D": [],
+    "matrix__CORE_CIRCUIT__JHS__COMPETITION__A": [],
+    "matrix__CORE_CIRCUIT__JHS__COMPETITION__B": [],
+    "matrix__CORE_CIRCUIT__JHS__COMPETITION__C": [],
+    "matrix__CORE_CIRCUIT__JHS__COMPETITION__D": [],
+    "matrix__CORE_CIRCUIT__JHS__TRANSITION__A": [],
+    "matrix__CORE_CIRCUIT__JHS__TRANSITION__B": [],
+    "matrix__CORE_CIRCUIT__JHS__TRANSITION__C": [],
+    "matrix__CORE_CIRCUIT__JHS__TRANSITION__D": [],
+    "matrix__CORE_CIRCUIT__JHS__NO_PHASE__A": [],
+    "matrix__CORE_CIRCUIT__JHS__NO_PHASE__B": [],
+    "matrix__CORE_CIRCUIT__JHS__NO_PHASE__C": [],
+    "matrix__CORE_CIRCUIT__JHS__NO_PHASE__D": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__CORE_CIRCUIT__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__CORE_CIRCUIT__HS_ADVANCED__NO_PHASE__D": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__CORE_CIRCUIT__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "matrix__MOBILITY_WARMUP__JHS__PREPARATION__A": [],
+    "matrix__MOBILITY_WARMUP__JHS__PREPARATION__B": [],
+    "matrix__MOBILITY_WARMUP__JHS__PREPARATION__C": [],
+    "matrix__MOBILITY_WARMUP__JHS__PREPARATION__D": [],
+    "matrix__MOBILITY_WARMUP__JHS__PRE_COMPETITION__A": [],
+    "matrix__MOBILITY_WARMUP__JHS__PRE_COMPETITION__B": [],
+    "matrix__MOBILITY_WARMUP__JHS__PRE_COMPETITION__C": [],
+    "matrix__MOBILITY_WARMUP__JHS__PRE_COMPETITION__D": [],
+    "matrix__MOBILITY_WARMUP__JHS__COMPETITION__A": [],
+    "matrix__MOBILITY_WARMUP__JHS__COMPETITION__B": [],
+    "matrix__MOBILITY_WARMUP__JHS__COMPETITION__C": [],
+    "matrix__MOBILITY_WARMUP__JHS__COMPETITION__D": [],
+    "matrix__MOBILITY_WARMUP__JHS__TRANSITION__A": [],
+    "matrix__MOBILITY_WARMUP__JHS__TRANSITION__B": [],
+    "matrix__MOBILITY_WARMUP__JHS__TRANSITION__C": [],
+    "matrix__MOBILITY_WARMUP__JHS__TRANSITION__D": [],
+    "matrix__MOBILITY_WARMUP__JHS__NO_PHASE__A": [],
+    "matrix__MOBILITY_WARMUP__JHS__NO_PHASE__B": [],
+    "matrix__MOBILITY_WARMUP__JHS__NO_PHASE__C": [],
+    "matrix__MOBILITY_WARMUP__JHS__NO_PHASE__D": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__MOBILITY_WARMUP__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__MOBILITY_WARMUP__HS_ADVANCED__NO_PHASE__D": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__MOBILITY_WARMUP__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "matrix__COOLDOWN__JHS__PREPARATION__A": [],
+    "matrix__COOLDOWN__JHS__PREPARATION__B": [],
+    "matrix__COOLDOWN__JHS__PREPARATION__C": [],
+    "matrix__COOLDOWN__JHS__PREPARATION__D": [],
+    "matrix__COOLDOWN__JHS__PRE_COMPETITION__A": [],
+    "matrix__COOLDOWN__JHS__PRE_COMPETITION__B": [],
+    "matrix__COOLDOWN__JHS__PRE_COMPETITION__C": [],
+    "matrix__COOLDOWN__JHS__PRE_COMPETITION__D": [],
+    "matrix__COOLDOWN__JHS__COMPETITION__A": [],
+    "matrix__COOLDOWN__JHS__COMPETITION__B": [],
+    "matrix__COOLDOWN__JHS__COMPETITION__C": [],
+    "matrix__COOLDOWN__JHS__COMPETITION__D": [],
+    "matrix__COOLDOWN__JHS__TRANSITION__A": [],
+    "matrix__COOLDOWN__JHS__TRANSITION__B": [],
+    "matrix__COOLDOWN__JHS__TRANSITION__C": [],
+    "matrix__COOLDOWN__JHS__TRANSITION__D": [],
+    "matrix__COOLDOWN__JHS__NO_PHASE__A": [],
+    "matrix__COOLDOWN__JHS__NO_PHASE__B": [],
+    "matrix__COOLDOWN__JHS__NO_PHASE__C": [],
+    "matrix__COOLDOWN__JHS__NO_PHASE__D": [],
+    "matrix__COOLDOWN__HS_BEGINNER__PREPARATION__A": [],
+    "matrix__COOLDOWN__HS_BEGINNER__PREPARATION__B": [],
+    "matrix__COOLDOWN__HS_BEGINNER__PREPARATION__C": [],
+    "matrix__COOLDOWN__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__COOLDOWN__HS_BEGINNER__PRE_COMPETITION__A": [],
+    "matrix__COOLDOWN__HS_BEGINNER__PRE_COMPETITION__B": [],
+    "matrix__COOLDOWN__HS_BEGINNER__PRE_COMPETITION__C": [],
+    "matrix__COOLDOWN__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__COOLDOWN__HS_BEGINNER__COMPETITION__A": [],
+    "matrix__COOLDOWN__HS_BEGINNER__COMPETITION__B": [],
+    "matrix__COOLDOWN__HS_BEGINNER__COMPETITION__C": [],
+    "matrix__COOLDOWN__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__COOLDOWN__HS_BEGINNER__TRANSITION__A": [],
+    "matrix__COOLDOWN__HS_BEGINNER__TRANSITION__B": [],
+    "matrix__COOLDOWN__HS_BEGINNER__TRANSITION__C": [],
+    "matrix__COOLDOWN__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__COOLDOWN__HS_BEGINNER__NO_PHASE__A": [],
+    "matrix__COOLDOWN__HS_BEGINNER__NO_PHASE__B": [],
+    "matrix__COOLDOWN__HS_BEGINNER__NO_PHASE__C": [],
+    "matrix__COOLDOWN__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__COOLDOWN__HS_ADVANCED__PREPARATION__A": [],
+    "matrix__COOLDOWN__HS_ADVANCED__PREPARATION__B": [],
+    "matrix__COOLDOWN__HS_ADVANCED__PREPARATION__C": [],
+    "matrix__COOLDOWN__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__COOLDOWN__HS_ADVANCED__PRE_COMPETITION__A": [],
+    "matrix__COOLDOWN__HS_ADVANCED__PRE_COMPETITION__B": [],
+    "matrix__COOLDOWN__HS_ADVANCED__PRE_COMPETITION__C": [],
+    "matrix__COOLDOWN__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__COOLDOWN__HS_ADVANCED__COMPETITION__A": [],
+    "matrix__COOLDOWN__HS_ADVANCED__COMPETITION__B": [],
+    "matrix__COOLDOWN__HS_ADVANCED__COMPETITION__C": [],
+    "matrix__COOLDOWN__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__COOLDOWN__HS_ADVANCED__TRANSITION__A": [],
+    "matrix__COOLDOWN__HS_ADVANCED__TRANSITION__B": [],
+    "matrix__COOLDOWN__HS_ADVANCED__TRANSITION__C": [],
+    "matrix__COOLDOWN__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__COOLDOWN__HS_ADVANCED__NO_PHASE__A": [],
+    "matrix__COOLDOWN__HS_ADVANCED__NO_PHASE__B": [],
+    "matrix__COOLDOWN__HS_ADVANCED__NO_PHASE__C": [],
+    "matrix__COOLDOWN__HS_ADVANCED__NO_PHASE__D": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__PREPARATION__B": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__PREPARATION__C": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__COMPETITION__A": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__COMPETITION__B": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__COMPETITION__C": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__TRANSITION__A": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__TRANSITION__B": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__TRANSITION__C": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__NO_PHASE__A": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__NO_PHASE__B": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__NO_PHASE__C": [],
+    "matrix__COOLDOWN__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "defaultPattern__B1_accel_matching_defaults": [],
+    "defaultPattern__B2_strength_hypertrophy_matching_defaults": [],
+    "defaultPattern__C1_accel_rest_shorter_than_complete_recovery": [],
+    "defaultPattern__C2_acceleration_150m_known_misclassification": [
+      "この種目だけで1500m。1回の練習の目安400mを超えています。"
+    ],
+    "defaultPattern__C3_wind_sprint_misclassified_as_acceleration": [
+      "この種目だけで1440m。1回の練習の目安480mを超えています。"
+    ],
+    "defaultPattern__C4_hurdle_reps_classified_as_speed_endurance": [
+      "この種目だけで2400m。1回の練習の目安800mを超えています。"
+    ],
+    "defaultPattern__D1_pace_run_5000m_extreme_volume": [],
+    "defaultPattern__D2_interval_400m_extreme_volume": [],
+    "defaultPattern__D3_extreme_default_sets_ignores_volume_factor": [
+      "この種目だけで360m。1回の練習の目安168mを超えています。"
+    ],
+    "contextDefault__omitted_context_object": [],
+    "contextDefault__explicit_baseline_no_phase": []
+  }
+}
