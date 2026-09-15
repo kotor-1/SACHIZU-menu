@@ -1,0 +1,5022 @@
+{
+  "aggregationRules": [],
+  "changelog": [
+    "rs-2026.09.0: 初版。正式仕様 docs/RUNNING_PRESCRIPTION_ENGINE_V2_SPEC.md の §3-§10 をデータ化。全 Evidence は SECONDARY_REPORT_ONLY、status=DRAFT（一次資料未照合のため ACTIVE 化しない）。"
+  ],
+  "competitionRules": [],
+  "constraints": [],
+  "eligibility": [
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "ACCELERATION",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_ACC_LE20_PRE",
+      "templateIds": [
+        "ACC_BLOCK_10",
+        "ACC_BLOCK_20",
+        "ACC_CROUCH_20",
+        "ACC_STANDING_20",
+        "ACC_FALLING_10"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "ACCELERATION",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_ACC_LE20_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "ACC_BLOCK_10",
+        "ACC_BLOCK_20",
+        "ACC_CROUCH_20",
+        "ACC_STANDING_20",
+        "ACC_FALLING_10"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "ACCELERATION",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_ACC_LE20_CIRCA",
+      "templateIds": [
+        "ACC_BLOCK_10",
+        "ACC_BLOCK_20",
+        "ACC_CROUCH_20",
+        "ACC_STANDING_20",
+        "ACC_FALLING_10"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "POST",
+      "method": "ACCELERATION",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_ACC_LE20_POST",
+      "templateIds": [
+        "ACC_BLOCK_10",
+        "ACC_BLOCK_20",
+        "ACC_CROUCH_20",
+        "ACC_STANDING_20",
+        "ACC_FALLING_10"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "ACCELERATION",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_ACC_30_40_PRE",
+      "templateIds": [
+        "ACC_BLOCK_30",
+        "ACC_BLOCK_40"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "ACCELERATION",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_ACC_30_40_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "ACC_BLOCK_30",
+        "ACC_BLOCK_40"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "ACCELERATION",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_ACC_30_40_CIRCA",
+      "templateIds": [
+        "ACC_BLOCK_30",
+        "ACC_BLOCK_40"
+      ]
+    },
+    {
+      "conditionNote": "tier依存（EnvelopeTierがDEVELOPMENTAL/ADVANCEDのどちらかにより数値が変わるだけで、不適格にはならない）",
+      "maturityCategory": "POST",
+      "method": "ACCELERATION",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_ACC_30_40_POST",
+      "templateIds": [
+        "ACC_BLOCK_30",
+        "ACC_BLOCK_40"
+      ]
+    },
+    {
+      "conditionNote": "reps≤3",
+      "maturityCategory": "PRE",
+      "method": "MAX_VELOCITY",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_MV_FLY10_PRE",
+      "templateIds": [
+        "MV_FLY10"
+      ]
+    },
+    {
+      "conditionNote": "reps≤3",
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "MAX_VELOCITY",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_MV_FLY10_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "MV_FLY10"
+      ]
+    },
+    {
+      "conditionNote": "reps≤3",
+      "maturityCategory": "CIRCA",
+      "method": "MAX_VELOCITY",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_MV_FLY10_CIRCA",
+      "templateIds": [
+        "MV_FLY10"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "POST",
+      "method": "MAX_VELOCITY",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_MV_FLY10_POST",
+      "templateIds": [
+        "MV_FLY10"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "MAX_VELOCITY",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_MV_FLY20_30_PRE",
+      "templateIds": [
+        "MV_FLY20",
+        "MV_FLY30"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "MAX_VELOCITY",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_MV_FLY20_30_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "MV_FLY20",
+        "MV_FLY30"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "MAX_VELOCITY",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_MV_FLY20_30_CIRCA",
+      "templateIds": [
+        "MV_FLY20",
+        "MV_FLY30"
+      ]
+    },
+    {
+      "conditionNote": "tier依存（EnvelopeTierにより数値が変わるだけで、不適格にはならない）",
+      "maturityCategory": "POST",
+      "method": "MAX_VELOCITY",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_MV_FLY20_30_POST",
+      "templateIds": [
+        "MV_FLY20",
+        "MV_FLY30"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "STRIDE",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_STRIDE_ALL_PRE",
+      "templateIds": [
+        "ST_WARMUP",
+        "ST_RELAXED",
+        "ST_BETWEEN_SETS"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "STRIDE",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_STRIDE_ALL_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "ST_WARMUP",
+        "ST_RELAXED",
+        "ST_BETWEEN_SETS"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "STRIDE",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_STRIDE_ALL_CIRCA",
+      "templateIds": [
+        "ST_WARMUP",
+        "ST_RELAXED",
+        "ST_BETWEEN_SETS"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "POST",
+      "method": "STRIDE",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_STRIDE_ALL_POST",
+      "templateIds": [
+        "ST_WARMUP",
+        "ST_RELAXED",
+        "ST_BETWEEN_SETS"
+      ]
+    },
+    {
+      "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
+      "maturityCategory": "PRE",
+      "method": "TEMPO_EXTENSIVE",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_TE_ALL_PRE",
+      "templateIds": [
+        "TE_100",
+        "TE_200",
+        "TE_300"
+      ]
+    },
+    {
+      "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "TEMPO_EXTENSIVE",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_TE_ALL_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "TE_100",
+        "TE_200",
+        "TE_300"
+      ]
+    },
+    {
+      "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
+      "maturityCategory": "CIRCA",
+      "method": "TEMPO_EXTENSIVE",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_TE_ALL_CIRCA",
+      "templateIds": [
+        "TE_100",
+        "TE_200",
+        "TE_300"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "POST",
+      "method": "TEMPO_EXTENSIVE",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_TE_ALL_POST",
+      "templateIds": [
+        "TE_100",
+        "TE_200",
+        "TE_300"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": true,
+      "requiresReview": false,
+      "ruleId": "ELIG_SES_PRE",
+      "templateIds": [
+        "SES_80",
+        "SES_100",
+        "SES_120",
+        "SES_150"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_SES_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "SES_80",
+        "SES_100",
+        "SES_120",
+        "SES_150"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_SES_CIRCA",
+      "templateIds": [
+        "SES_80",
+        "SES_100",
+        "SES_120",
+        "SES_150"
+      ]
+    },
+    {
+      "conditionNote": "条件付き自動（§4.5）: tier=ADVANCED、または (POST & tier≥DEVELOPING & phase≠TRANSITION)",
+      "maturityCategory": "POST",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_SES_POST",
+      "templateIds": [
+        "SES_80",
+        "SES_100",
+        "SES_120",
+        "SES_150"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_LONG_FULL_PRE",
+      "templateIds": [
+        "LSR_SPECIAL_ENDURANCE_I",
+        "LSR_SPECIAL_ENDURANCE_II",
+        "LSR_RACE_MODEL"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": true,
+      "requiresReview": false,
+      "ruleId": "ELIG_LONG_FULL_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "LSR_SPECIAL_ENDURANCE_I",
+        "LSR_SPECIAL_ENDURANCE_II",
+        "LSR_RACE_MODEL"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": true,
+      "requiresReview": false,
+      "ruleId": "ELIG_LONG_FULL_CIRCA",
+      "templateIds": [
+        "LSR_SPECIAL_ENDURANCE_I",
+        "LSR_SPECIAL_ENDURANCE_II",
+        "LSR_RACE_MODEL"
+      ]
+    },
+    {
+      "conditionNote": "条件付き自動（§4.5）: POST & trainingAge tier∈{TRAINED,ADVANCED} & primaryEvent∈{200m,400m,400mH}",
+      "maturityCategory": "POST",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_LONG_FULL_POST",
+      "templateIds": [
+        "LSR_SPECIAL_ENDURANCE_I",
+        "LSR_SPECIAL_ENDURANCE_II",
+        "LSR_RACE_MODEL"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_LONG_INCOMPLETE_PRE",
+      "templateIds": [
+        "LSR_300_PLUS_100",
+        "LSR_200_PLUS_200",
+        "LSR_BROKEN_400"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_LONG_INCOMPLETE_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "LSR_300_PLUS_100",
+        "LSR_200_PLUS_200",
+        "LSR_BROKEN_400"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_LONG_INCOMPLETE_CIRCA",
+      "templateIds": [
+        "LSR_300_PLUS_100",
+        "LSR_200_PLUS_200",
+        "LSR_BROKEN_400"
+      ]
+    },
+    {
+      "conditionNote": "POST+EnvelopeTier=ADVANCEDのみ自動（§4.5, Fable C-7）。primaryEvent∈{200m,400m,400mH}",
+      "maturityCategory": "POST",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_LONG_INCOMPLETE_POST",
+      "templateIds": [
+        "LSR_300_PLUS_100",
+        "LSR_200_PLUS_200",
+        "LSR_BROKEN_400"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "TEMPO_INTENSIVE",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": true,
+      "requiresReview": false,
+      "ruleId": "ELIG_TI_ALL_PRE",
+      "templateIds": [
+        "TI_VITTORI_SE",
+        "TI_COACH_DEFINED"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "TEMPO_INTENSIVE",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_TI_ALL_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "TI_VITTORI_SE",
+        "TI_COACH_DEFINED"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "TEMPO_INTENSIVE",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_TI_ALL_CIRCA",
+      "templateIds": [
+        "TI_VITTORI_SE",
+        "TI_COACH_DEFINED"
+      ]
+    },
+    {
+      "conditionNote": "TI_VITTORI_SEはadvancedOnly",
+      "maturityCategory": "POST",
+      "method": "TEMPO_INTENSIVE",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_TI_ALL_POST",
+      "templateIds": [
+        "TI_VITTORI_SE",
+        "TI_COACH_DEFINED"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "RESISTED_SPRINT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_RS_LIGHT_HILL_PRE",
+      "templateIds": [
+        "RS_SLED_LIGHT",
+        "RS_HILL_SHORT"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "RESISTED_SPRINT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_RS_LIGHT_HILL_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "RS_SLED_LIGHT",
+        "RS_HILL_SHORT"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "RESISTED_SPRINT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_RS_LIGHT_HILL_CIRCA",
+      "templateIds": [
+        "RS_SLED_LIGHT",
+        "RS_HILL_SHORT"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "POST",
+      "method": "RESISTED_SPRINT",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_RS_LIGHT_HILL_POST",
+      "templateIds": [
+        "RS_SLED_LIGHT",
+        "RS_HILL_SHORT"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "RESISTED_SPRINT",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": true,
+      "requiresReview": false,
+      "ruleId": "ELIG_RS_MODERATE_PRE",
+      "templateIds": [
+        "RS_SLED_MODERATE"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "RESISTED_SPRINT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_RS_MODERATE_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "RS_SLED_MODERATE"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "RESISTED_SPRINT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_RS_MODERATE_CIRCA",
+      "templateIds": [
+        "RS_SLED_MODERATE"
+      ]
+    },
+    {
+      "conditionNote": "ADVANCEDのみ自動",
+      "maturityCategory": "POST",
+      "method": "RESISTED_SPRINT",
+      "outcome": "AUTO",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_RS_MODERATE_POST",
+      "templateIds": [
+        "RS_SLED_MODERATE"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "RESISTED_SPRINT",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_RS_HEAVY_PRE",
+      "templateIds": [
+        "RS_SLED_HEAVY"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "RESISTED_SPRINT",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_RS_HEAVY_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "RS_SLED_HEAVY"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "RESISTED_SPRINT",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_RS_HEAVY_CIRCA",
+      "templateIds": [
+        "RS_SLED_HEAVY"
+      ]
+    },
+    {
+      "conditionNote": "ADVANCED + 実測vdec必須",
+      "maturityCategory": "POST",
+      "method": "RESISTED_SPRINT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_RS_HEAVY_POST",
+      "templateIds": [
+        "RS_SLED_HEAVY"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "ASSISTED_SPRINT",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_ASSISTED_ALL_PRE",
+      "templateIds": [
+        "AS_TOWING",
+        "AS_DOWNHILL"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "ASSISTED_SPRINT",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_ASSISTED_ALL_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "AS_TOWING",
+        "AS_DOWNHILL"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "ASSISTED_SPRINT",
+      "outcome": "INELIGIBLE",
+      "overrideAllowed": false,
+      "requiresReview": false,
+      "ruleId": "ELIG_ASSISTED_ALL_CIRCA",
+      "templateIds": [
+        "AS_TOWING",
+        "AS_DOWNHILL"
+      ]
+    },
+    {
+      "conditionNote": "advancedOnly（§4.5）。EnvelopeTier=ADVANCED & allowAdvancedMethods=true & vmax.confidence≥MEDIUM でも自動生成はしない（手動のみ）",
+      "maturityCategory": "POST",
+      "method": "ASSISTED_SPRINT",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_ASSISTED_ALL_POST",
+      "templateIds": [
+        "AS_TOWING",
+        "AS_DOWNHILL"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "EVENT_APPROACH_SPEED",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_EA_SHORT_PRE",
+      "templateIds": [
+        "EA_HURDLE_START_TO_H1",
+        "EA_JUMP_SHORT_APPROACH"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "EVENT_APPROACH_SPEED",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_EA_SHORT_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "EA_HURDLE_START_TO_H1",
+        "EA_JUMP_SHORT_APPROACH"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "EVENT_APPROACH_SPEED",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_EA_SHORT_CIRCA",
+      "templateIds": [
+        "EA_HURDLE_START_TO_H1",
+        "EA_JUMP_SHORT_APPROACH"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "POST",
+      "method": "EVENT_APPROACH_SPEED",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": false,
+      "ruleId": "ELIG_EA_SHORT_POST",
+      "templateIds": [
+        "EA_HURDLE_START_TO_H1",
+        "EA_JUMP_SHORT_APPROACH"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "PRE",
+      "method": "EVENT_APPROACH_SPEED",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_EA_FULL_PRE",
+      "templateIds": [
+        "EA_HURDLE_RHYTHM",
+        "EA_JUMP_FULL_APPROACH"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "EFFECTIVE_UNKNOWN",
+      "method": "EVENT_APPROACH_SPEED",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_EA_FULL_EFFECTIVE_UNKNOWN",
+      "templateIds": [
+        "EA_HURDLE_RHYTHM",
+        "EA_JUMP_FULL_APPROACH"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "CIRCA",
+      "method": "EVENT_APPROACH_SPEED",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_EA_FULL_CIRCA",
+      "templateIds": [
+        "EA_HURDLE_RHYTHM",
+        "EA_JUMP_FULL_APPROACH"
+      ]
+    },
+    {
+      "conditionNote": null,
+      "maturityCategory": "POST",
+      "method": "EVENT_APPROACH_SPEED",
+      "outcome": "MANUAL",
+      "overrideAllowed": null,
+      "requiresReview": true,
+      "ruleId": "ELIG_EA_FULL_POST",
+      "templateIds": [
+        "EA_HURDLE_RHYTHM",
+        "EA_JUMP_FULL_APPROACH"
+      ]
+    }
+  ],
+  "engineSchemaVersion": 1,
+  "envelopes": [
+    {
+      "fields": {
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 30,
+            "min": 10,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_ACC_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 20,
+            "min": 10,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 300,
+            "min": 90,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_ACC_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 180,
+            "min": 120,
+            "unit": "s"
+          }
+        },
+        "repsPerSet": {
+          "coachEditable": {
+            "max": 8,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 6,
+            "min": 3,
+            "unit": "reps"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 200,
+            "min": 40,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 160,
+            "min": 60,
+            "unit": "m"
+          }
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 600,
+            "min": 180,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 420,
+            "min": 240,
+            "unit": "s"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 3,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 10,
+            "min": 3,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 8,
+            "min": 4,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "templateIds": [
+        "ACC_BLOCK_10",
+        "ACC_BLOCK_20",
+        "ACC_BLOCK_30",
+        "ACC_BLOCK_40",
+        "ACC_CROUCH_20",
+        "ACC_STANDING_20",
+        "ACC_FALLING_10"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 60,
+            "min": 10,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_ACC_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 50,
+            "min": 20,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 600,
+            "min": 120,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_ACC_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 420,
+            "min": 180,
+            "unit": "s"
+          }
+        },
+        "repsPerSet": {
+          "coachEditable": {
+            "max": 8,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 5,
+            "min": 3,
+            "unit": "reps"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 400,
+            "min": 80,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_VOLUME_TABLE"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 300,
+            "min": 100,
+            "unit": "m"
+          }
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 900,
+            "min": 240,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 600,
+            "min": 300,
+            "unit": "s"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 4,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 3,
+            "min": 1,
+            "unit": "sets"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 12,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 8,
+            "min": 3,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "templateIds": [
+        "ACC_BLOCK_10",
+        "ACC_BLOCK_20",
+        "ACC_BLOCK_30",
+        "ACC_BLOCK_40",
+        "ACC_CROUCH_20",
+        "ACC_STANDING_20",
+        "ACC_FALLING_10"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "buildUpM": {
+          "coachEditable": {
+            "max": 30,
+            "min": 15,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_MV_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 25,
+            "min": 15,
+            "unit": "m"
+          }
+        },
+        "decelerationM": {
+          "coachEditable": {
+            "max": 20,
+            "min": 20,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 20,
+            "min": 20,
+            "unit": "m"
+          }
+        },
+        "flyVolumeM": {
+          "coachEditable": {
+            "max": 60,
+            "min": 10,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 40,
+            "min": 20,
+            "unit": "m"
+          }
+        },
+        "flyZoneM": {
+          "coachEditable": {
+            "max": 20,
+            "min": 10,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_MV_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 10,
+            "min": 10,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 420,
+            "min": 150,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_MV_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 300,
+            "min": 180,
+            "unit": "s"
+          }
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 600,
+            "min": 300,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1,
+            "min": 1,
+            "unit": "sets"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 4,
+            "min": 1,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 3,
+            "min": 2,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "MAX_VELOCITY",
+      "recoveryStructure": null,
+      "templateIds": [
+        "MV_FLY10",
+        "MV_FLY20",
+        "MV_FLY30"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "buildUpM": {
+          "coachEditable": {
+            "max": 70,
+            "min": 20,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_MV_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 60,
+            "min": 30,
+            "unit": "m"
+          }
+        },
+        "decelerationM": {
+          "coachEditable": {
+            "max": 30,
+            "min": 30,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 30,
+            "min": 30,
+            "unit": "m"
+          }
+        },
+        "flyVolumeM": {
+          "coachEditable": {
+            "max": 180,
+            "min": 20,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_VOLUME_TABLE"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 150,
+            "min": 50,
+            "unit": "m"
+          }
+        },
+        "flyZoneM": {
+          "coachEditable": {
+            "max": 40,
+            "min": 10,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_MV_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 30,
+            "min": 20,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 1080,
+            "min": 240,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_MV_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 900,
+            "min": 480,
+            "unit": "s"
+          }
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 1200,
+            "min": 480,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 900,
+            "min": 600,
+            "unit": "s"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 3,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 8,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 6,
+            "min": 3,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "MAX_VELOCITY",
+      "recoveryStructure": null,
+      "templateIds": [
+        "MV_FLY10",
+        "MV_FLY20",
+        "MV_FLY30"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "repDurationS": {
+          "coachEditable": {
+            "max": 13,
+            "min": 6,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_SES_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 12,
+            "min": 7,
+            "unit": "s"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 900,
+            "min": 420,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_SES_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 720,
+            "min": 480,
+            "unit": "s"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 400,
+            "min": 100,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 300,
+            "min": 150,
+            "unit": "m"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1,
+            "min": 1,
+            "unit": "sets"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 4,
+            "min": 1,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_SES_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 3,
+            "min": 2,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "SES_80",
+        "SES_100",
+        "SES_120",
+        "SES_150"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "repDurationS": {
+          "coachEditable": {
+            "max": 17,
+            "min": 6,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_SES_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 15,
+            "min": 7,
+            "unit": "s"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 1800,
+            "min": 600,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_SES_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 1800,
+            "min": 1200,
+            "unit": "s"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 900,
+            "min": 200,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_VOLUME_TABLE"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 900,
+            "min": 300,
+            "unit": "m"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 6,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_SES_EXAMPLES"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 6,
+            "min": 4,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "SES_80",
+        "SES_100",
+        "SES_120",
+        "SES_150"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "repDurationS": {
+          "coachEditable": {
+            "max": 40,
+            "min": 15,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "OPEN",
+          "recommended": {
+            "max": 30,
+            "min": 15,
+            "unit": "s"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 1800,
+            "min": 900,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1500,
+            "min": 900,
+            "unit": "s"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 400,
+            "min": 150,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "OPEN",
+          "recommended": {
+            "max": 400,
+            "min": 150,
+            "unit": "m"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 2,
+            "min": 1,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 2,
+            "min": 1,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "recoveryStructure": "FULL",
+      "templateIds": [
+        "LSR_SPECIAL_ENDURANCE_I",
+        "LSR_SPECIAL_ENDURANCE_II",
+        "LSR_RACE_MODEL"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "repDurationS": {
+          "coachEditable": {
+            "max": 60,
+            "min": 15,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 45,
+            "min": 15,
+            "unit": "s"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 2400,
+            "min": 600,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1800,
+            "min": 900,
+            "unit": "s"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 1000,
+            "min": 200,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 800,
+            "min": 300,
+            "unit": "m"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 4,
+            "min": 1,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 3,
+            "min": 1,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "recoveryStructure": "FULL",
+      "templateIds": [
+        "LSR_SPECIAL_ENDURANCE_I",
+        "LSR_SPECIAL_ENDURANCE_II",
+        "LSR_RACE_MODEL"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "intraRepRestS": {
+          "coachEditable": {
+            "max": 180,
+            "min": 30,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 90,
+            "min": 45,
+            "unit": "s"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 2400,
+            "min": 600,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1800,
+            "min": 900,
+            "unit": "s"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 1000,
+            "min": 300,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 800,
+            "min": 400,
+            "unit": "m"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 3,
+            "min": 1,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 2,
+            "min": 1,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "recoveryStructure": "INCOMPLETE",
+      "templateIds": [
+        "LSR_300_PLUS_100",
+        "LSR_200_PLUS_200",
+        "LSR_BROKEN_400"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "intensityPercent": {
+          "coachEditable": {
+            "max": 75,
+            "min": 55,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_TEMPO"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 70,
+            "min": 60,
+            "unit": "percent"
+          }
+        },
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 300,
+            "min": 60,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 200,
+            "min": 100,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 180,
+            "min": 30,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 120,
+            "min": 45,
+            "unit": "s"
+          }
+        },
+        "repsPerSet": {
+          "coachEditable": {
+            "max": 10,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 8,
+            "min": 3,
+            "unit": "reps"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 1500,
+            "min": 300,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1000,
+            "min": 400,
+            "unit": "m"
+          }
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 360,
+            "min": 60,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 300,
+            "min": 120,
+            "unit": "s"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 3,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          }
+        }
+      },
+      "method": "TEMPO_EXTENSIVE",
+      "recoveryStructure": null,
+      "templateIds": [
+        "TE_100",
+        "TE_200",
+        "TE_300"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "intensityPercent": {
+          "coachEditable": {
+            "max": 75,
+            "min": 55,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_TEMPO"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 70,
+            "min": 60,
+            "unit": "percent"
+          }
+        },
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 400,
+            "min": 60,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_TEMPO"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 300,
+            "min": 100,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 180,
+            "min": 30,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 120,
+            "min": 45,
+            "unit": "s"
+          }
+        },
+        "repsPerSet": {
+          "coachEditable": {
+            "max": 12,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 10,
+            "min": 4,
+            "unit": "reps"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 2500,
+            "min": 600,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_TEMPO"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 2000,
+            "min": 1000,
+            "unit": "m"
+          }
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 360,
+            "min": 60,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 300,
+            "min": 120,
+            "unit": "s"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 4,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 3,
+            "min": 1,
+            "unit": "sets"
+          }
+        }
+      },
+      "method": "TEMPO_EXTENSIVE",
+      "recoveryStructure": null,
+      "templateIds": [
+        "TE_100",
+        "TE_200",
+        "TE_300"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "intensityPercent": {
+          "coachEditable": {
+            "max": 95,
+            "min": 88,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_VITTORI"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 95,
+            "min": 90,
+            "unit": "percent"
+          }
+        },
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 100,
+            "min": 50,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_VITTORI"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 80,
+            "min": 60,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 180,
+            "min": 60,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_VITTORI"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 150,
+            "min": 90,
+            "unit": "s"
+          }
+        },
+        "repsPerSet": {
+          "recommended": {
+            "min": 3,
+            "max": 5,
+            "unit": "reps"
+          },
+          "coachEditable": {
+            "min": 3,
+            "max": 5,
+            "unit": "reps"
+          },
+          "hardSafety": null,
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "judgement": "ENGINE_POLICY"
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 2000,
+            "min": 400,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1200,
+            "min": 600,
+            "unit": "m"
+          }
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 720,
+            "min": 360,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_HAUGEN_2019_VITTORI"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 540,
+            "min": 420,
+            "unit": "s"
+          }
+        },
+        "sets": {
+          "recommended": {
+            "min": 2,
+            "max": 4,
+            "unit": "sets"
+          },
+          "coachEditable": {
+            "min": 2,
+            "max": 4,
+            "unit": "sets"
+          },
+          "hardSafety": null,
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "judgement": "ENGINE_POLICY"
+        }
+      },
+      "method": "TEMPO_INTENSIVE",
+      "recoveryStructure": null,
+      "templateIds": [
+        "TI_VITTORI_SE"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "intensityPercent": {
+          "coachEditable": {
+            "max": 94,
+            "min": 70,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 300,
+            "min": 80,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 360,
+            "min": 60,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "repsPerSet": {
+          "coachEditable": {
+            "max": 10,
+            "min": 1,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 800,
+            "min": 0,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 720,
+            "min": 180,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 4,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        }
+      },
+      "method": "TEMPO_INTENSIVE",
+      "recoveryStructure": null,
+      "templateIds": [
+        "TI_COACH_DEFINED"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "intensityPercent": {
+          "coachEditable": {
+            "max": 94,
+            "min": 70,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 300,
+            "min": 80,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 360,
+            "min": 60,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "repsPerSet": {
+          "coachEditable": {
+            "max": 10,
+            "min": 1,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 1600,
+            "min": 0,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "setRestS": {
+          "coachEditable": {
+            "max": 720,
+            "min": 180,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 4,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        }
+      },
+      "method": "TEMPO_INTENSIVE",
+      "recoveryStructure": null,
+      "templateIds": [
+        "TI_COACH_DEFINED"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 30,
+            "min": 10,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 20,
+            "min": 10,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 360,
+            "min": 90,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 240,
+            "min": 120,
+            "unit": "s"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 160,
+            "min": 30,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 120,
+            "min": 40,
+            "unit": "m"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 8,
+            "min": 3,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 6,
+            "min": 4,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "RS_SLED_LIGHT",
+        "RS_SLED_MODERATE",
+        "RS_HILL_SHORT"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "vdecPercent": {
+          "coachEditable": {
+            "max": 10,
+            "min": 0,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_PETRAKOS_2016_VDEC"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 10,
+            "min": 0,
+            "unit": "percent"
+          }
+        }
+      },
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "RS_SLED_LIGHT"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "vdecPercent": {
+          "coachEditable": {
+            "max": 15,
+            "min": 10,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_PETRAKOS_2016_VDEC"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 15,
+            "min": 10,
+            "unit": "percent"
+          }
+        }
+      },
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "RS_SLED_MODERATE"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 40,
+            "min": 10,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 30,
+            "min": 10,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 480,
+            "min": 120,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 360,
+            "min": 180,
+            "unit": "s"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 240,
+            "min": 40,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 200,
+            "min": 50,
+            "unit": "m"
+          }
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 10,
+            "min": 3,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 8,
+            "min": 4,
+            "unit": "reps"
+          }
+        }
+      },
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "RS_SLED_LIGHT",
+        "RS_SLED_MODERATE",
+        "RS_SLED_HEAVY",
+        "RS_HILL_SHORT"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "vdecPercent": {
+          "coachEditable": {
+            "max": 10,
+            "min": 0,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_PETRAKOS_2016_VDEC"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 10,
+            "min": 0,
+            "unit": "percent"
+          }
+        }
+      },
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "RS_SLED_LIGHT"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "vdecPercent": {
+          "coachEditable": {
+            "max": 15,
+            "min": 10,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_PETRAKOS_2016_VDEC"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 15,
+            "min": 10,
+            "unit": "percent"
+          }
+        }
+      },
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "RS_SLED_MODERATE"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "vdecPercent": {
+          "coachEditable": {
+            "max": 30,
+            "min": 15,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_PETRAKOS_2016_VDEC"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 30,
+            "min": 15,
+            "unit": "percent"
+          }
+        }
+      },
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "RS_SLED_HEAVY"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "buildUpM": {
+          "coachEditable": {
+            "max": 60,
+            "min": 20,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "flyVolumeM": {
+          "coachEditable": {
+            "max": 100,
+            "min": 0,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "flyZoneM": {
+          "coachEditable": {
+            "max": 30,
+            "min": 10,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 900,
+            "min": 300,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "totalReps": {
+          "coachEditable": {
+            "max": 6,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
+        "intensityPercent": {
+          "recommended": null,
+          "coachEditable": {
+            "min": 100,
+            "max": 105,
+            "unit": "percent"
+          },
+          "hardSafety": null,
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "judgement": "ENGINE_POLICY"
+        }
+      },
+      "method": "ASSISTED_SPRINT",
+      "recoveryStructure": null,
+      "templateIds": [
+        "AS_TOWING",
+        "AS_DOWNHILL"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "attempts": {
+          "coachEditable": {
+            "max": 8,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 6,
+            "min": 3,
+            "unit": "reps"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 480,
+            "min": 120,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 360,
+            "min": 180,
+            "unit": "s"
+          }
+        }
+      },
+      "method": "EVENT_APPROACH_SPEED",
+      "recoveryStructure": null,
+      "templateIds": [
+        "EA_HURDLE_START_TO_H1",
+        "EA_HURDLE_RHYTHM",
+        "EA_JUMP_SHORT_APPROACH",
+        "EA_JUMP_FULL_APPROACH"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "attempts": {
+          "coachEditable": {
+            "max": 10,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 8,
+            "min": 4,
+            "unit": "reps"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 600,
+            "min": 120,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 480,
+            "min": 180,
+            "unit": "s"
+          }
+        }
+      },
+      "method": "EVENT_APPROACH_SPEED",
+      "recoveryStructure": null,
+      "templateIds": [
+        "EA_HURDLE_START_TO_H1",
+        "EA_HURDLE_RHYTHM",
+        "EA_JUMP_SHORT_APPROACH",
+        "EA_JUMP_FULL_APPROACH"
+      ],
+      "tier": "ADVANCED"
+    },
+    {
+      "fields": {
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 150,
+            "min": 50,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_JAAF_WIND_SPRINT"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 120,
+            "min": 80,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 240,
+            "min": 30,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 180,
+            "min": 60,
+            "unit": "s"
+          }
+        },
+        "repsPerSet": {
+          "coachEditable": {
+            "max": 6,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_JAAF_WIND_SPRINT"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 4,
+            "min": 3,
+            "unit": "reps"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 900,
+            "min": 100,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 480,
+            "min": 240,
+            "unit": "m"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1,
+            "min": 1,
+            "unit": "sets"
+          }
+        }
+      },
+      "method": "STRIDE",
+      "recoveryStructure": null,
+      "templateIds": [
+        "ST_WARMUP",
+        "ST_RELAXED",
+        "ST_BETWEEN_SETS"
+      ],
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "fields": {
+        "repDistanceM": {
+          "coachEditable": {
+            "max": 150,
+            "min": 50,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_JAAF_WIND_SPRINT"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 120,
+            "min": 80,
+            "unit": "m"
+          }
+        },
+        "repRestS": {
+          "coachEditable": {
+            "max": 240,
+            "min": 30,
+            "unit": "s"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 180,
+            "min": 60,
+            "unit": "s"
+          }
+        },
+        "repsPerSet": {
+          "coachEditable": {
+            "max": 6,
+            "min": 2,
+            "unit": "reps"
+          },
+          "evidenceIds": [
+            "EV_JAAF_WIND_SPRINT"
+          ],
+          "hardSafety": null,
+          "judgement": "SOURCE_BACKED",
+          "recommended": {
+            "max": 4,
+            "min": 3,
+            "unit": "reps"
+          }
+        },
+        "sessionVolumeM": {
+          "coachEditable": {
+            "max": 900,
+            "min": 100,
+            "unit": "m"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 480,
+            "min": 240,
+            "unit": "m"
+          }
+        },
+        "sets": {
+          "coachEditable": {
+            "max": 2,
+            "min": 1,
+            "unit": "sets"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 1,
+            "min": 1,
+            "unit": "sets"
+          }
+        }
+      },
+      "method": "STRIDE",
+      "recoveryStructure": null,
+      "templateIds": [
+        "ST_WARMUP",
+        "ST_RELAXED",
+        "ST_BETWEEN_SETS"
+      ],
+      "tier": "ADVANCED"
+    }
+  ],
+  "evidence": [
+    {
+      "applicabilityNotes": "短距離トレーニングの科学と best practice の統合レビュー。一次資料未照合（DR経由の二次報告）。",
+      "evidenceLevel": 3,
+      "id": "EV_HAUGEN_2019_REVIEW",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Haugen 2019 (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2019
+      },
+      "reportedBy": [
+        "CLAUDE_DR",
+        "CHATGPT_DR",
+        "PERPLEXITY_DR"
+      ],
+      "sourceType": "NARRATIVE_REVIEW",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "加速 10–50m の例。youth 20m/約2分、elite 40m block/約7分。UKA分類由来。一次資料未照合。",
+      "evidenceLevel": 4,
+      "id": "EV_HAUGEN_2019_ACC_EXAMPLES",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": [
+          "YOUTH_DEVELOPING",
+          "ELITE"
+        ],
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Haugen 2019 (UKA classification via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2019
+      },
+      "reportedBy": [
+        "CLAUDE_DR",
+        "CHATGPT_DR"
+      ],
+      "sourceType": "COACHING_BEST_PRACTICE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "build 20–60m, fly 10–30m。youth 20+10m/約4分、elite 40+30m/約15分。一次資料未照合。",
+      "evidenceLevel": 4,
+      "id": "EV_HAUGEN_2019_MV_EXAMPLES",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": [
+          "YOUTH_DEVELOPING",
+          "ELITE"
+        ],
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Haugen 2019 (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2019
+      },
+      "reportedBy": [
+        "CLAUDE_DR",
+        "CHATGPT_DR"
+      ],
+      "sourceType": "COACHING_BEST_PRACTICE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "7–15秒・95–100%。youth 2–3×100m/約10分、elite 4–6×150m/20–30分。一次資料未照合。",
+      "evidenceLevel": 4,
+      "id": "EV_HAUGEN_2019_SES_EXAMPLES",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": [
+          "YOUTH_DEVELOPING",
+          "ELITE"
+        ],
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Haugen 2019 (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2019
+      },
+      "reportedBy": [
+        "CLAUDE_DR",
+        "CHATGPT_DR"
+      ],
+      "sourceType": "COACHING_BEST_PRACTICE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "Acc 100–300m / MV fly 50–150m / SES 300–900m / Tempo 1000–2000m。Perplexity・Gemini DR報告。Claude DRはAcc 100–160mと報告しており不一致（OPEN-07）。一次資料未照合。",
+      "evidenceLevel": 4,
+      "id": "EV_HAUGEN_2019_VOLUME_TABLE",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Haugen 2019 volume table (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2019
+      },
+      "reportedBy": [
+        "PERPLEXITY_DR",
+        "GEMINI_DR",
+        "CLAUDE_DR"
+      ],
+      "sourceType": "COACHING_BEST_PRACTICE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "100–300m、約60–70%Vmax。準備期 約2000m / 試合期 約1000m。一次資料未照合。",
+      "evidenceLevel": 4,
+      "id": "EV_HAUGEN_2019_TEMPO",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": [
+          "ELITE"
+        ],
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Haugen 2019 tempo practice (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2019
+      },
+      "reportedBy": [
+        "CLAUDE_DR",
+        "CHATGPT_DR"
+      ],
+      "sourceType": "ELITE_COACH_PRACTICE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "60–80m、約90→95%、rep約2分/set約8分。TI_VITTORI_SEのみに適用。一次資料未照合。",
+      "evidenceLevel": 4,
+      "id": "EV_HAUGEN_2019_VITTORI",
+      "population": {
+        "ageBands": [
+          "ADULT"
+        ],
+        "maturity": [
+          "POST"
+        ],
+        "performanceLevels": [
+          "ELITE"
+        ],
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Haugen 2019 (Vittori method via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2019
+      },
+      "reportedBy": [
+        "CLAUDE_DR",
+        "CHATGPT_DR"
+      ],
+      "sourceType": "ELITE_COACH_PRACTICE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "高強度セッションは通常48h程度離す実践。数値の処方根拠ではなく週次文脈の CHECK_ONLY。",
+      "evidenceLevel": 4,
+      "id": "EV_HAUGEN_2019_48H",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Haugen 2019 (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2019
+      },
+      "reportedBy": [
+        "CLAUDE_DR"
+      ],
+      "sourceType": "COACHING_BEST_PRACTICE",
+      "studyDesign": null,
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "強度帯（95–100 / 76–94 / <75%）、完全/不完全回復の分類。数値根拠ではなく分類の CHECK_ONLY。",
+      "evidenceLevel": 4,
+      "id": "EV_UKA_CLASSIFICATION",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "UKA classification (via Claude Deep Research)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "CLAUDE_DR"
+      ],
+      "sourceType": "COACHING_BEST_PRACTICE",
+      "studyDesign": null,
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "vdec帯: <10% / 10–15% / 15–30% / >30%。band分類のみに使用。",
+      "evidenceLevel": 1,
+      "id": "EV_PETRAKOS_2016_VDEC",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Petrakos 2016",
+        "doi": null,
+        "url": null,
+        "year": 2016
+      },
+      "reportedBy": [
+        "PERPLEXITY_DR",
+        "CHATGPT_DR"
+      ],
+      "sourceType": "SYSTEMATIC_REVIEW",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "resistedは主に10m/加速に効果。重いほど良いとは言えない。数値根拠ではなく方向性の CONTEXT_ONLY。",
+      "evidenceLevel": 1,
+      "id": "EV_RESISTED_META_2024_2025",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Resisted sprint meta-analysis 2024-2025 (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "CHATGPT_DR",
+        "PERPLEXITY_DR"
+      ],
+      "sourceType": "META_ANALYSIS",
+      "studyDesign": null,
+      "usage": "CONTEXT_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "assistedの長期効果データは限定的。処方の数値根拠にはしない CHECK_ONLY。",
+      "evidenceLevel": 1,
+      "id": "EV_ASSISTED_EVIDENCE_LIMITED",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Assisted sprint systematic review (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "PERPLEXITY_DR"
+      ],
+      "sourceType": "SYSTEMATIC_REVIEW",
+      "studyDesign": null,
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "週2回・約20m×最大16本・work:rest 1:25 または ≥90秒（男子ユース・主に団体競技）。Fable H-2 により処方には使わない。usage=CONTEXT_ONLYとして型的にEnvelopeから参照不可（T-EV-03）。",
+      "evidenceLevel": 1,
+      "id": "EV_MORAN_2016_YOUTH_DOSE",
+      "population": {
+        "ageBands": [
+          "U12",
+          "U15"
+        ],
+        "maturity": "ANY",
+        "performanceLevels": [
+          "YOUTH_DEVELOPING"
+        ],
+        "sexes": [
+          "MALE"
+        ],
+        "sport": "TEAM_SPORT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Moran 2016 youth resistance/sprint training dose meta-analysis",
+        "doi": null,
+        "url": null,
+        "year": 2016
+      },
+      "reportedBy": [
+        "CLAUDE_DR",
+        "CHATGPT_DR"
+      ],
+      "sourceType": "META_ANALYSIS",
+      "studyDesign": null,
+      "usage": "CONTEXT_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "暦年齢・学年から成熟度を確定しない。処方の数値根拠ではなく判定方針の CHECK_ONLY。",
+      "evidenceLevel": 1,
+      "id": "EV_MATURITY_NOT_AGE",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "GENERAL"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Maturity vs chronological age consensus (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "CLAUDE_DR",
+        "CHATGPT_DR",
+        "PERPLEXITY_DR"
+      ],
+      "sourceType": "CONSENSUS_STATEMENT",
+      "studyDesign": "R2 implementation representation policy: Deep Researchではsystematic review + consensusの複合根拠として報告。現schema（EvidenceRecord.sourceTypeが単一値）ではCONSENSUS_STATEMENTとして代表。一次資料未照合。科学的事実としてではなく代表表記として扱うこと。",
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "成長速度 >7.2cm/年で傷害リスク上昇の目安。Claude DRのみの報告。処方数値ではなくrapidGrowthFlagのCHECK_ONLY。",
+      "evidenceLevel": 3,
+      "id": "EV_GROWTH_VELOCITY_7_2",
+      "population": {
+        "ageBands": [
+          "U12",
+          "U15",
+          "U18"
+        ],
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "GENERAL"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Growth velocity narrative review (via Claude Deep Research)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "CLAUDE_DR"
+      ],
+      "sourceType": "NARRATIVE_REVIEW",
+      "studyDesign": null,
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "約2週間、volume -41〜60%、intensity/frequency維持。短距離特異的ではない。ADVANCED×PEAKのみで参照。",
+      "evidenceLevel": 1,
+      "id": "EV_BOSQUET_2007_TAPER",
+      "population": {
+        "ageBands": [
+          "ADULT"
+        ],
+        "maturity": [
+          "POST"
+        ],
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "MIXED"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Bosquet 2007 taper meta-analysis",
+        "doi": null,
+        "url": null,
+        "year": 2007
+      },
+      "reportedBy": [
+        "PERPLEXITY_DR",
+        "CHATGPT_DR"
+      ],
+      "sourceType": "META_ANALYSIS",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "20%BM resisted後の30m低下が72hまで残る報告。数値根拠ではなく週次判断のCHECK_ONLY。",
+      "evidenceLevel": 3,
+      "id": "EV_RESISTED_RECOVERY_2023",
+      "population": {
+        "ageBands": [
+          "ADULT"
+        ],
+        "maturity": [
+          "POST"
+        ],
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Resisted sprint recovery study 2023 (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": 2023
+      },
+      "reportedBy": [
+        "CHATGPT_DR",
+        "PERPLEXITY_DR"
+      ],
+      "sourceType": "CROSSOVER_REPEATED_MEASURES",
+      "studyDesign": "crossover",
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "squat/jump/sprint後の疲労が48-72h残る（n=10成人男性・15×30m・crossover設計。RCTではない。Fable M-9の訂正を反映）。CHECK_ONLY。",
+      "evidenceLevel": 3,
+      "id": "EV_THOMAS_2018",
+      "population": {
+        "ageBands": [
+          "ADULT"
+        ],
+        "maturity": [
+          "POST"
+        ],
+        "performanceLevels": "ANY",
+        "sexes": [
+          "MALE"
+        ],
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Thomas 2018",
+        "doi": null,
+        "url": null,
+        "year": 2018
+      },
+      "reportedBy": [
+        "CHATGPT_DR"
+      ],
+      "sourceType": "CROSSOVER_REPEATED_MEASURES",
+      "studyDesign": "crossover, n=10, adult males, 15x30m",
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "主観的wellnessは負荷変化に客観指標より一貫して反応する。readiness文脈のCHECK_ONLY。",
+      "evidenceLevel": 1,
+      "id": "EV_WELLNESS_SR",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "MIXED"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Wellness monitoring systematic review (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "PERPLEXITY_DR"
+      ],
+      "sourceType": "SYSTEMATIC_REVIEW",
+      "studyDesign": null,
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "手動計時の誤差・MDC、timing gateのCV 1.1-2.4%。timing tolerance検討のCHECK_ONLY（数値確定値ではない）。",
+      "evidenceLevel": 3,
+      "id": "EV_TIMING_ERROR_REPORTS",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Manual/electronic timing error observational reports (via Deep Research reports)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "PERPLEXITY_DR",
+        "GEMINI_DR"
+      ],
+      "sourceType": "OBSERVATIONAL",
+      "studyDesign": null,
+      "usage": "CHECK_ONLY",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "中学: 週≤16h、週5日+休養2日、平日約2h/休日約3h。Claude DRのみ・一次未照合。週次ガードの根拠。",
+      "evidenceLevel": 3,
+      "id": "EV_JAAF_JHS_GUIDE",
+      "population": {
+        "ageBands": [
+          "U15"
+        ],
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "JAAF junior high school guidance (via Claude Deep Research)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "CLAUDE_DR"
+      ],
+      "sourceType": "GOVERNING_BODY_GUIDANCE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "発育期: 痛みがあれば休養、改善しなければ受診。安全ゲート文言の根拠。Claude DRのみ・一次未照合。",
+      "evidenceLevel": 3,
+      "id": "EV_JSPO_GROWTH_GUIDE",
+      "population": {
+        "ageBands": [
+          "U12",
+          "U15",
+          "U18"
+        ],
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "GENERAL"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "JSPO growth-period guidance (via Claude Deep Research)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "CLAUDE_DR"
+      ],
+      "sourceType": "GOVERNING_BODY_GUIDANCE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "ウインドスプリント 100-150m×3-4本。STRIDEの根拠。Claude DRのみ・一次未照合。",
+      "evidenceLevel": 3,
+      "id": "EV_JAAF_WIND_SPRINT",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "JAAF wind sprint guidance (via Claude Deep Research)",
+        "doi": null,
+        "url": null,
+        "year": null
+      },
+      "reportedBy": [
+        "CLAUDE_DR"
+      ],
+      "sourceType": "GOVERNING_BODY_GUIDANCE",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    },
+    {
+      "applicabilityNotes": "本アプリの暫定運用値。科学的確定値ではない。ENGINE_POLICY判断のEnvelopeセル・timing tolerance等全般で参照する。",
+      "evidenceLevel": 5,
+      "id": "EV_ENGINE_POLICY",
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "performanceLevels": "ANY",
+        "sexes": "ANY",
+        "sport": "GENERAL"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "SACHIZU Running Prescription Engine v2 — internal engine policy",
+        "doi": null,
+        "url": null,
+        "year": 2026
+      },
+      "reportedBy": [
+        "HUMAN"
+      ],
+      "sourceType": "ENGINE_POLICY",
+      "studyDesign": null,
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY"
+    }
+  ],
+  "methods": [
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "MAX_INTENT"
+      ],
+      "enabledByDefault": true,
+      "highSpeedExposureModel": "DISTANCE_MINUS_ACCEL_INTERVAL",
+      "intensityFallback": null,
+      "loadClass": "HIGH_NEURAL",
+      "method": "ACCELERATION",
+      "primaryDoseUnit": "DISTANCE",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_ACC"
+      ],
+      "weeklyLoadCategory": "RUNNING_HIGH_INTENSITY"
+    },
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "MEASURED_VMAX",
+        "FLY_SPLIT",
+        "MAX_INTENT"
+      ],
+      "enabledByDefault": true,
+      "highSpeedExposureModel": "FLY_ZONE",
+      "intensityFallback": "MAX_INTENT",
+      "loadClass": "HIGH_NEURAL",
+      "method": "MAX_VELOCITY",
+      "primaryDoseUnit": "DISTANCE",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_MV"
+      ],
+      "weeklyLoadCategory": "RUNNING_HIGH_INTENSITY"
+    },
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "SAME_DISTANCE_BEST",
+        "MEASURED_VMAX",
+        "MAX_INTENT"
+      ],
+      "enabledByDefault": true,
+      "highSpeedExposureModel": "WHOLE_REP",
+      "intensityFallback": "MAX_INTENT",
+      "loadClass": "HIGH_METABOLIC",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "primaryDoseUnit": "DURATION",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_SES"
+      ],
+      "weeklyLoadCategory": "RUNNING_HIGH_INTENSITY"
+    },
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "RACE_PACE",
+        "TARGET_SPLIT",
+        "SAME_DISTANCE_BEST"
+      ],
+      "enabledByDefault": true,
+      "highSpeedExposureModel": "DISTANCE_MINUS_ACCEL_INTERVAL",
+      "intensityFallback": null,
+      "loadClass": "HIGH_METABOLIC",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "primaryDoseUnit": "DURATION",
+      "requiresRecoveryStructure": true,
+      "stopPolicyIds": [
+        "SP_LSR_FULL",
+        "SP_LSR_INCOMPLETE_ADV",
+        "SP_LSR_INCOMPLETE_STRICT"
+      ],
+      "weeklyLoadCategory": "RUNNING_HIGH_INTENSITY"
+    },
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "MEASURED_VMAX",
+        "SAME_DISTANCE_BEST"
+      ],
+      "enabledByDefault": true,
+      "highSpeedExposureModel": "NONE",
+      "intensityFallback": "RELAXED_SUBMAX",
+      "loadClass": "LOW",
+      "method": "TEMPO_EXTENSIVE",
+      "primaryDoseUnit": "DISTANCE",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_TE"
+      ],
+      "weeklyLoadCategory": "RUNNING_LOW_INTENSITY"
+    },
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "MEASURED_VMAX",
+        "SAME_DISTANCE_BEST"
+      ],
+      "enabledByDefault": false,
+      "highSpeedExposureModel": "NONE",
+      "intensityFallback": null,
+      "loadClass": "MODERATE",
+      "method": "TEMPO_INTENSIVE",
+      "primaryDoseUnit": "DISTANCE",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_TI"
+      ],
+      "weeklyLoadCategory": "RUNNING_HIGH_INTENSITY"
+    },
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "VELOCITY_DECREMENT",
+        "MAX_INTENT"
+      ],
+      "enabledByDefault": true,
+      "highSpeedExposureModel": "NONE",
+      "intensityFallback": "MAX_INTENT",
+      "loadClass": "HIGH_NEURAL",
+      "method": "RESISTED_SPRINT",
+      "primaryDoseUnit": "DISTANCE",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_RS"
+      ],
+      "weeklyLoadCategory": "RUNNING_HIGH_INTENSITY"
+    },
+    {
+      "advancedOnly": true,
+      "allowedIntensityReferences": [
+        "MEASURED_VMAX"
+      ],
+      "enabledByDefault": false,
+      "highSpeedExposureModel": "FLY_ZONE",
+      "intensityFallback": null,
+      "loadClass": "HIGH_NEURAL",
+      "method": "ASSISTED_SPRINT",
+      "primaryDoseUnit": "DISTANCE",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_AS"
+      ],
+      "weeklyLoadCategory": "RUNNING_HIGH_INTENSITY"
+    },
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "COACH_DEFINED",
+        "TARGET_SPLIT"
+      ],
+      "enabledByDefault": false,
+      "highSpeedExposureModel": "DISTANCE_MINUS_ACCEL_INTERVAL",
+      "intensityFallback": "COACH_DEFINED",
+      "loadClass": "HIGH_NEURAL",
+      "method": "EVENT_APPROACH_SPEED",
+      "primaryDoseUnit": "ATTEMPTS",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_EA"
+      ],
+      "weeklyLoadCategory": "RUNNING_HIGH_INTENSITY"
+    },
+    {
+      "advancedOnly": false,
+      "allowedIntensityReferences": [
+        "RELAXED_SUBMAX"
+      ],
+      "enabledByDefault": true,
+      "highSpeedExposureModel": "NONE",
+      "intensityFallback": null,
+      "loadClass": "LOW",
+      "method": "STRIDE",
+      "primaryDoseUnit": "DISTANCE",
+      "requiresRecoveryStructure": false,
+      "stopPolicyIds": [
+        "SP_STRIDE"
+      ],
+      "weeklyLoadCategory": "RUNNING_LOW_INTENSITY"
+    }
+  ],
+  "phaseRules": [],
+  "plausibility": [
+    {
+      "appliesToMethods": [
+        "ACCELERATION",
+        "MAX_VELOCITY",
+        "SPRINT_ENDURANCE_SHORT",
+        "RESISTED_SPRINT",
+        "ASSISTED_SPRINT",
+        "STRIDE"
+      ],
+      "blockThreshold": {
+        "max": 300,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 150,
+        "min": null
+      },
+      "field": null,
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_ITEM_DISTANCE_STANDARD",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "1本の距離（ACC/MV合計/SES/RS/AS/STRIDE）",
+      "unit": "m"
+    },
+    {
+      "appliesToMethods": [
+        "LONG_SPRINT_RACE_SPECIFIC"
+      ],
+      "blockThreshold": {
+        "max": 1000,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 600,
+        "min": null
+      },
+      "field": null,
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_ITEM_DISTANCE_LONG",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "1本の距離（LONG）",
+      "unit": "m"
+    },
+    {
+      "appliesToMethods": [
+        "TEMPO_EXTENSIVE",
+        "TEMPO_INTENSIVE"
+      ],
+      "blockThreshold": {
+        "max": 1000,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 400,
+        "min": null
+      },
+      "field": null,
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_ITEM_DISTANCE_TEMPO",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "1本の距離（TE/TI）",
+      "unit": "m"
+    },
+    {
+      "appliesToMethods": [
+        "MAX_VELOCITY",
+        "ASSISTED_SPRINT"
+      ],
+      "blockThreshold": {
+        "max": 120,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 70,
+        "min": null
+      },
+      "field": "buildUpM",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_BUILD_UP_M",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "buildUpM",
+      "unit": "m"
+    },
+    {
+      "appliesToMethods": [
+        "MAX_VELOCITY",
+        "ASSISTED_SPRINT"
+      ],
+      "blockThreshold": {
+        "max": 80,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 40,
+        "min": null
+      },
+      "field": "flyZoneM",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_FLY_ZONE_M",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "flyZoneM",
+      "unit": "m"
+    },
+    {
+      "appliesToMethods": [
+        "SPRINT_ENDURANCE_SHORT",
+        "TEMPO_INTENSIVE"
+      ],
+      "blockThreshold": {
+        "max": 120,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 20,
+        "min": null
+      },
+      "field": "repDurationS",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_REP_DURATION_NON_LONG",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "1本の時間（LONG以外）",
+      "unit": "s"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 30,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 12,
+        "min": null
+      },
+      "field": "repsPerSet",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_REPS_PER_SET",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "repsPerSet",
+      "unit": "reps"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 20,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 6,
+        "min": null
+      },
+      "field": "sets",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_SETS",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "sets",
+      "unit": "sets"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 80,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 30,
+        "min": null
+      },
+      "field": "totalReps",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_TOTAL_REPS",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "totalReps",
+      "unit": "reps"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 3600,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 2400,
+        "min": null
+      },
+      "field": "repRestS",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_REP_REST_S",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "repRestS",
+      "unit": "s"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 5400,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 3000,
+        "min": null
+      },
+      "field": "setRestS",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_SET_REST_S",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "setRestS",
+      "unit": "s"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 10000,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 3000,
+        "min": null
+      },
+      "field": "sessionVolumeM",
+      "note": null,
+      "ratioMultiplier": null,
+      "ruleId": "PLA_ITEM_TOTAL_DISTANCE",
+      "scope": "ITEM_FIELD",
+      "targetLabel": "1項目の総走行距離",
+      "unit": "m"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 30000,
+        "min": null
+      },
+      "confirmThreshold": {
+        "max": 8000,
+        "min": null
+      },
+      "field": null,
+      "note": "監査C-1のペース走80km・インターバル25.6km事故の再発防止",
+      "ratioMultiplier": null,
+      "ruleId": "PLA_MENU_TOTAL_DISTANCE",
+      "scope": "MENU_TOTAL",
+      "targetLabel": "メニュー全体の総走行距離",
+      "unit": "m"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": null,
+      "confirmThreshold": null,
+      "field": "totalReps",
+      "note": "totalReps ≥ recommended.totalReps.max × 3 のとき REQUIRE_CONFIRMATION（BLOCKなし）",
+      "ratioMultiplier": 3,
+      "ruleId": "PLA_SETS_REPS_MIXUP",
+      "scope": "RATIO",
+      "targetLabel": "sets/reps取り違え疑い",
+      "unit": "reps"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 60,
+        "min": 5
+      },
+      "confirmThreshold": {
+        "max": 25,
+        "min": 9
+      },
+      "field": null,
+      "note": "confirm: < 9.0s または > 25s。block: < 5s または > 60s",
+      "ratioMultiplier": null,
+      "ruleId": "PLA_INPUT_100M_RECORD",
+      "scope": "INPUT",
+      "targetLabel": "入力: 100m記録",
+      "unit": "s"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 5,
+        "min": 0.5
+      },
+      "confirmThreshold": {
+        "max": 2.5,
+        "min": 0.8
+      },
+      "field": null,
+      "note": "confirm: < 0.80s または > 2.5s。block: < 0.5s または > 5s",
+      "ratioMultiplier": null,
+      "ruleId": "PLA_INPUT_FLY_10M",
+      "scope": "INPUT",
+      "targetLabel": "入力: fly 10m",
+      "unit": "s"
+    },
+    {
+      "appliesToMethods": null,
+      "blockThreshold": {
+        "max": 260,
+        "min": 50
+      },
+      "confirmThreshold": {
+        "max": 220,
+        "min": 100
+      },
+      "field": null,
+      "note": "confirm: < 100cm または > 220cm。block: < 50cm または > 260cm",
+      "ratioMultiplier": null,
+      "ruleId": "PLA_INPUT_HEIGHT",
+      "scope": "INPUT",
+      "targetLabel": "入力: 身長",
+      "unit": "cm"
+    },
+    {
+      "appliesToMethods": [
+        "EVENT_APPROACH_SPEED"
+      ],
+      "blockThreshold": null,
+      "confirmThreshold": {
+        "max": 60,
+        "min": null
+      },
+      "field": null,
+      "note": "approachDistanceMはEnvelopeで管理せず手入力＋plausibilityのみで扱う（§7.4 EVENT_APPROACH_SPEED注記）",
+      "ratioMultiplier": null,
+      "ruleId": "PLA_INPUT_APPROACH_DISTANCE",
+      "scope": "INPUT",
+      "targetLabel": "EVENT_APPROACH_SPEED approachDistanceM（手入力）",
+      "unit": "m"
+    }
+  ],
+  "readinessRules": [],
+  "ruleSetVersion": "rs-2026.09.0",
+  "status": "DRAFT",
+  "stopPolicies": [
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": 2,
+      "id": "SP_ACC",
+      "method": "ACCELERATION",
+      "numericStopAvailable": true,
+      "referenceDescription": "セッション内の同距離ベスト",
+      "ruleDescriptionJa": "1回目FAIL→EXTEND_REST（1回まで）。2回連続FAIL→END_SESSION_QUALITY。startQuality=POOR 2回連続→COACH_REVIEW"
+    },
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": 2,
+      "id": "SP_MV",
+      "method": "MAX_VELOCITY",
+      "numericStopAvailable": true,
+      "referenceDescription": "セッション内 fly ベスト",
+      "ruleDescriptionJa": "SP_ACC と同じ判定"
+    },
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": 2,
+      "id": "SP_SES",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "numericStopAvailable": true,
+      "referenceDescription": "目標区間の上端（無ければセッション内ベスト）",
+      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY"
+    },
+    {
+      "appliesToRecoveryStructure": "FULL",
+      "consecutiveFailuresToStop": 2,
+      "id": "SP_LSR_FULL",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "numericStopAvailable": true,
+      "referenceDescription": "目標スプリット上端",
+      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY"
+    },
+    {
+      "appliesToRecoveryStructure": "INCOMPLETE",
+      "consecutiveFailuresToStop": 2,
+      "id": "SP_LSR_INCOMPLETE_ADV",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "numericStopAvailable": true,
+      "referenceDescription": "目標スプリット上端（POST+ADVANCEDのみ）",
+      "ruleDescriptionJa": "分割走内の低下では止めない。2回連続で目標超過→COACH_REVIEW。共通hard stopは有効"
+    },
+    {
+      "appliesToRecoveryStructure": "INCOMPLETE",
+      "consecutiveFailuresToStop": 2,
+      "id": "SP_LSR_INCOMPLETE_STRICT",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "numericStopAvailable": true,
+      "referenceDescription": "目標スプリット上端（override経由でPOST+ADVANCED以外に処方した場合）",
+      "ruleDescriptionJa": "SP_LSR_FULL と同じ（疲労許容ロジックを適用しない）"
+    },
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": null,
+      "id": "SP_TE",
+      "method": "TEMPO_EXTENSIVE",
+      "numericStopAvailable": false,
+      "referenceDescription": "目標区間（あれば）",
+      "ruleDescriptionJa": "数値stopなし（COACH_ONLY）。目標下端より速すぎが2回→WARN「テンポの目的外」"
+    },
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": 2,
+      "id": "SP_TI",
+      "method": "TEMPO_INTENSIVE",
+      "numericStopAvailable": true,
+      "referenceDescription": "目標区間",
+      "ruleDescriptionJa": "2回連続FAIL→END_SET"
+    },
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": null,
+      "id": "SP_RS",
+      "method": "RESISTED_SPRINT",
+      "numericStopAvailable": false,
+      "referenceDescription": "実測vdec（あれば）",
+      "ruleDescriptionJa": "band外→COACH_REVIEW（負荷調整）"
+    },
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": null,
+      "id": "SP_AS",
+      "method": "ASSISTED_SPRINT",
+      "numericStopAvailable": false,
+      "referenceDescription": "—",
+      "ruleDescriptionJa": "technique≠GOOD→STOP_SAFETY"
+    },
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": null,
+      "id": "SP_EA",
+      "method": "EVENT_APPROACH_SPEED",
+      "numericStopAvailable": false,
+      "referenceDescription": "—",
+      "ruleDescriptionJa": "COACH_ONLY。attempts上限到達→END_SESSION_QUALITY"
+    },
+    {
+      "appliesToRecoveryStructure": null,
+      "consecutiveFailuresToStop": null,
+      "id": "SP_STRIDE",
+      "method": "STRIDE",
+      "numericStopAvailable": false,
+      "referenceDescription": "—",
+      "ruleDescriptionJa": "数値stopなし。コーチの「全力化」判定→COACH_REVIEW"
+    }
+  ],
+  "supersedes": null,
+  "templates": [
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Block Start 10m"
+      ],
+      "displayDistanceM": 10,
+      "enabledByDefault": true,
+      "id": "ACC_BLOCK_10",
+      "labelJa": "ブロックスタート10m",
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "startType": "BLOCK"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Block Start 20m"
+      ],
+      "displayDistanceM": 20,
+      "enabledByDefault": true,
+      "id": "ACC_BLOCK_20",
+      "labelJa": "ブロックスタート20m",
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "startType": "BLOCK"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Block Start 30m"
+      ],
+      "displayDistanceM": 30,
+      "enabledByDefault": true,
+      "id": "ACC_BLOCK_30",
+      "labelJa": "ブロックスタート30m",
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "startType": "BLOCK"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Block Start 40m"
+      ],
+      "displayDistanceM": 40,
+      "enabledByDefault": true,
+      "id": "ACC_BLOCK_40",
+      "labelJa": "ブロックスタート40m",
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "startType": "BLOCK"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Crouch Start 20m"
+      ],
+      "displayDistanceM": 20,
+      "enabledByDefault": true,
+      "id": "ACC_CROUCH_20",
+      "labelJa": "クラウチングスタート20m",
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "startType": "THREE_POINT"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Standing Start 20m"
+      ],
+      "displayDistanceM": 20,
+      "enabledByDefault": true,
+      "id": "ACC_STANDING_20",
+      "labelJa": "スタンディングスタート20m",
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "startType": "STANDING"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Falling Start 10m"
+      ],
+      "displayDistanceM": 10,
+      "enabledByDefault": true,
+      "id": "ACC_FALLING_10",
+      "labelJa": "フォーリングスタート10m",
+      "method": "ACCELERATION",
+      "recoveryStructure": null,
+      "startType": "FALLING"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Fly 10m"
+      ],
+      "displayDistanceM": 10,
+      "enabledByDefault": true,
+      "id": "MV_FLY10",
+      "labelJa": "フライ10m",
+      "method": "MAX_VELOCITY",
+      "recoveryStructure": null,
+      "startType": "FLYING"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Fly 20m"
+      ],
+      "displayDistanceM": 20,
+      "enabledByDefault": true,
+      "id": "MV_FLY20",
+      "labelJa": "フライ20m",
+      "method": "MAX_VELOCITY",
+      "recoveryStructure": null,
+      "startType": "FLYING"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Fly 30m"
+      ],
+      "displayDistanceM": 30,
+      "enabledByDefault": true,
+      "id": "MV_FLY30",
+      "labelJa": "フライ30m",
+      "method": "MAX_VELOCITY",
+      "recoveryStructure": null,
+      "startType": "FLYING"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "SES 80m"
+      ],
+      "displayDistanceM": 80,
+      "enabledByDefault": true,
+      "id": "SES_80",
+      "labelJa": "スプリント持久80m",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "SES 100m"
+      ],
+      "displayDistanceM": 100,
+      "enabledByDefault": true,
+      "id": "SES_100",
+      "labelJa": "スプリント持久100m",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "SES 120m"
+      ],
+      "displayDistanceM": 120,
+      "enabledByDefault": true,
+      "id": "SES_120",
+      "labelJa": "スプリント持久120m",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "SES 150m"
+      ],
+      "displayDistanceM": 150,
+      "enabledByDefault": true,
+      "id": "SES_150",
+      "labelJa": "スプリント持久150m",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Special Endurance I",
+        "SE1"
+      ],
+      "enabledByDefault": true,
+      "id": "LSR_SPECIAL_ENDURANCE_I",
+      "labelJa": "スペシャルエンデュランスI",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "primaryEvents": [
+        "200m",
+        "400m",
+        "400mH"
+      ],
+      "recoveryStructure": "FULL"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Special Endurance II",
+        "SE2"
+      ],
+      "enabledByDefault": true,
+      "id": "LSR_SPECIAL_ENDURANCE_II",
+      "labelJa": "スペシャルエンデュランスII",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "primaryEvents": [
+        "400m",
+        "400mH"
+      ],
+      "recoveryStructure": "FULL"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Race Model"
+      ],
+      "enabledByDefault": true,
+      "id": "LSR_RACE_MODEL",
+      "labelJa": "レースモデル走",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "primaryEvents": [
+        "200m",
+        "400m",
+        "400mH"
+      ],
+      "recoveryStructure": "FULL"
+    },
+    {
+      "advancedOnly": true,
+      "coachingAliases": [
+        "300+100 broken run"
+      ],
+      "enabledByDefault": true,
+      "id": "LSR_300_PLUS_100",
+      "labelJa": "300m+100m（分割走）",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "primaryEvents": [
+        "400m",
+        "400mH"
+      ],
+      "recoveryStructure": "INCOMPLETE"
+    },
+    {
+      "advancedOnly": true,
+      "coachingAliases": [
+        "200+200 broken run"
+      ],
+      "enabledByDefault": true,
+      "id": "LSR_200_PLUS_200",
+      "labelJa": "200m+200m（分割走）",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "primaryEvents": [
+        "400m",
+        "400mH"
+      ],
+      "recoveryStructure": "INCOMPLETE"
+    },
+    {
+      "advancedOnly": true,
+      "coachingAliases": [
+        "Broken 400"
+      ],
+      "enabledByDefault": true,
+      "id": "LSR_BROKEN_400",
+      "labelJa": "分割400m走",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "primaryEvents": [
+        "400m",
+        "400mH"
+      ],
+      "recoveryStructure": "INCOMPLETE"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Tempo 100m"
+      ],
+      "displayDistanceM": 100,
+      "enabledByDefault": true,
+      "id": "TE_100",
+      "labelJa": "テンポ走100m",
+      "method": "TEMPO_EXTENSIVE",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Tempo 200m"
+      ],
+      "displayDistanceM": 200,
+      "enabledByDefault": true,
+      "id": "TE_200",
+      "labelJa": "テンポ走200m",
+      "method": "TEMPO_EXTENSIVE",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Tempo 300m"
+      ],
+      "displayDistanceM": 300,
+      "enabledByDefault": true,
+      "id": "TE_300",
+      "labelJa": "テンポ走300m",
+      "method": "TEMPO_EXTENSIVE",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": true,
+      "coachingAliases": [
+        "Vittori Special Endurance"
+      ],
+      "displayDistanceM": 70,
+      "enabledByDefault": false,
+      "id": "TI_VITTORI_SE",
+      "labelJa": "ヴィットーリ式スペシャルエンデュランス",
+      "method": "TEMPO_INTENSIVE",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Coach-defined tempo intensive"
+      ],
+      "enabledByDefault": false,
+      "id": "TI_COACH_DEFINED",
+      "labelJa": "コーチ定義テンポ・インテンシブ",
+      "method": "TEMPO_INTENSIVE",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Light Sled Sprint"
+      ],
+      "enabledByDefault": true,
+      "id": "RS_SLED_LIGHT",
+      "labelJa": "軽負荷ソリ引き",
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Moderate Sled Sprint"
+      ],
+      "enabledByDefault": true,
+      "id": "RS_SLED_MODERATE",
+      "labelJa": "中負荷ソリ引き",
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": true,
+      "coachingAliases": [
+        "Heavy Sled Sprint"
+      ],
+      "enabledByDefault": true,
+      "id": "RS_SLED_HEAVY",
+      "labelJa": "重負荷ソリ引き",
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Short Hill Sprint"
+      ],
+      "enabledByDefault": true,
+      "id": "RS_HILL_SHORT",
+      "labelJa": "短坂ダッシュ",
+      "method": "RESISTED_SPRINT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": true,
+      "coachingAliases": [
+        "Towing"
+      ],
+      "enabledByDefault": false,
+      "id": "AS_TOWING",
+      "labelJa": "牽引走（トウイング）",
+      "method": "ASSISTED_SPRINT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": true,
+      "coachingAliases": [
+        "Downhill Sprint"
+      ],
+      "enabledByDefault": false,
+      "id": "AS_DOWNHILL",
+      "labelJa": "下り坂走",
+      "method": "ASSISTED_SPRINT",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Start to H1"
+      ],
+      "enabledByDefault": false,
+      "id": "EA_HURDLE_START_TO_H1",
+      "labelJa": "スタート〜第1ハードル",
+      "method": "EVENT_APPROACH_SPEED",
+      "recoveryStructure": null,
+      "startType": "BLOCK"
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Hurdle Rhythm"
+      ],
+      "enabledByDefault": false,
+      "id": "EA_HURDLE_RHYTHM",
+      "labelJa": "ハードルリズム走",
+      "method": "EVENT_APPROACH_SPEED",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Short Approach Jump"
+      ],
+      "enabledByDefault": false,
+      "id": "EA_JUMP_SHORT_APPROACH",
+      "labelJa": "短助走跳躍",
+      "method": "EVENT_APPROACH_SPEED",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Full Approach Jump"
+      ],
+      "enabledByDefault": false,
+      "id": "EA_JUMP_FULL_APPROACH",
+      "labelJa": "フル助走跳躍",
+      "method": "EVENT_APPROACH_SPEED",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Warm-up Stride"
+      ],
+      "enabledByDefault": true,
+      "id": "ST_WARMUP",
+      "labelJa": "ウォームアップ流し",
+      "method": "STRIDE",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Relaxed Stride",
+        "Wind Sprint"
+      ],
+      "enabledByDefault": true,
+      "id": "ST_RELAXED",
+      "labelJa": "リラックス流し",
+      "method": "STRIDE",
+      "recoveryStructure": null
+    },
+    {
+      "advancedOnly": false,
+      "coachingAliases": [
+        "Between-sets Stride"
+      ],
+      "enabledByDefault": true,
+      "id": "ST_BETWEEN_SETS",
+      "labelJa": "セット間流し",
+      "method": "STRIDE",
+      "recoveryStructure": null
+    }
+  ],
+  "timingTolerances": [
+    {
+      "coachOnlyRatioThreshold": 0.1,
+      "evidenceIds": [
+        "EV_ENGINE_POLICY",
+        "EV_TIMING_ERROR_REPORTS"
+      ],
+      "judgement": "ENGINE_POLICY",
+      "numericStopAllowed": true,
+      "provisional": true,
+      "timing": "HAND",
+      "toleranceS": 0.25,
+      "toleranceSPerFps": null
+    },
+    {
+      "coachOnlyRatioThreshold": 0.1,
+      "evidenceIds": [
+        "EV_ENGINE_POLICY",
+        "EV_TIMING_ERROR_REPORTS"
+      ],
+      "judgement": "ENGINE_POLICY",
+      "numericStopAllowed": true,
+      "provisional": true,
+      "timing": "PHOTO_CELL",
+      "toleranceS": 0.05,
+      "toleranceSPerFps": null
+    },
+    {
+      "coachOnlyRatioThreshold": 0.1,
+      "evidenceIds": [
+        "EV_ENGINE_POLICY",
+        "EV_TIMING_ERROR_REPORTS"
+      ],
+      "judgement": "ENGINE_POLICY",
+      "numericStopAllowed": true,
+      "provisional": true,
+      "timing": "FAT",
+      "toleranceS": 0.05,
+      "toleranceSPerFps": null
+    },
+    {
+      "coachOnlyRatioThreshold": 0.1,
+      "evidenceIds": [
+        "EV_ENGINE_POLICY",
+        "EV_TIMING_ERROR_REPORTS"
+      ],
+      "judgement": "ENGINE_POLICY",
+      "numericStopAllowed": true,
+      "provisional": true,
+      "timing": "VIDEO",
+      "toleranceS": null,
+      "toleranceSPerFps": 2
+    },
+    {
+      "coachOnlyRatioThreshold": null,
+      "evidenceIds": [
+        "EV_ENGINE_POLICY"
+      ],
+      "judgement": "ENGINE_POLICY",
+      "numericStopAllowed": false,
+      "provisional": true,
+      "timing": "RADAR_LASER",
+      "toleranceS": null,
+      "toleranceSPerFps": null
+    },
+    {
+      "coachOnlyRatioThreshold": null,
+      "evidenceIds": [
+        "EV_ENGINE_POLICY"
+      ],
+      "judgement": "ENGINE_POLICY",
+      "numericStopAllowed": false,
+      "provisional": true,
+      "timing": "UNKNOWN",
+      "toleranceS": null,
+      "toleranceSPerFps": null
+    }
+  ],
+  "validFrom": "2026-09-15",
+  "vmaxEstimationModels": [],
+  "weeklyRules": []
+}

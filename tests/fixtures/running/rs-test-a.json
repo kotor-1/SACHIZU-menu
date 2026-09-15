@@ -1,0 +1,93 @@
+{
+  "ruleSetVersion": "rs-test-a",
+  "status": "ACTIVE",
+  "validFrom": "2020-01-01",
+  "supersedes": null,
+  "engineSchemaVersion": 1,
+  "changelog": ["rs-test-a: minimal fixture for loader/versioning/hash tests. Not a real ruleset."],
+  "evidence": [
+    {
+      "id": "EV_TEST_POLICY",
+      "sourceType": "ENGINE_POLICY",
+      "studyDesign": null,
+      "population": {
+        "ageBands": "ANY",
+        "maturity": "ANY",
+        "sexes": "ANY",
+        "performanceLevels": "ANY",
+        "sport": "GENERAL"
+      },
+      "reference": { "citation": "test fixture", "year": null, "doi": null, "url": null },
+      "evidenceLevel": 5,
+      "applicabilityNotes": "test fixture only",
+      "usage": "PRESCRIPTION",
+      "verification": "SECONDARY_REPORT_ONLY",
+      "reportedBy": ["HUMAN"],
+      "provisional": true
+    }
+  ],
+  "methods": [
+    {
+      "method": "STRIDE",
+      "loadClass": "LOW",
+      "weeklyLoadCategory": "RUNNING_LOW_INTENSITY",
+      "primaryDoseUnit": "DISTANCE",
+      "allowedIntensityReferences": ["RELAXED_SUBMAX"],
+      "intensityFallback": null,
+      "highSpeedExposureModel": "NONE",
+      "requiresRecoveryStructure": false,
+      "enabledByDefault": true,
+      "advancedOnly": false,
+      "stopPolicyIds": ["SP_TEST_STRIDE"]
+    }
+  ],
+  "templates": [
+    {
+      "id": "ST_WARMUP",
+      "method": "STRIDE",
+      "labelJa": "テスト用ウォームアップ流し",
+      "coachingAliases": [],
+      "recoveryStructure": null,
+      "enabledByDefault": true,
+      "advancedOnly": false
+    }
+  ],
+  "envelopes": [
+    {
+      "method": "STRIDE",
+      "tier": "DEVELOPMENTAL",
+      "templateIds": ["ST_WARMUP"],
+      "recoveryStructure": null,
+      "fields": {
+        "repDistanceM": {
+          "recommended": { "min": 80, "max": 100, "unit": "m" },
+          "coachEditable": { "min": 50, "max": 150, "unit": "m" },
+          "hardSafety": null,
+          "evidenceIds": ["EV_TEST_POLICY"],
+          "judgement": "ENGINE_POLICY"
+        }
+      }
+    }
+  ],
+  "eligibility": [],
+  "constraints": [],
+  "timingTolerances": [],
+  "stopPolicies": [
+    {
+      "id": "SP_TEST_STRIDE",
+      "method": "STRIDE",
+      "appliesToRecoveryStructure": null,
+      "referenceDescription": "—",
+      "ruleDescriptionJa": "test fixture: no numeric stop",
+      "consecutiveFailuresToStop": null,
+      "numericStopAvailable": false
+    }
+  ],
+  "aggregationRules": [],
+  "weeklyRules": [],
+  "readinessRules": [],
+  "phaseRules": [],
+  "competitionRules": [],
+  "plausibility": [],
+  "vmaxEstimationModels": []
+}

@@ -863,8 +863,18 @@ export type Envelope = {
 | intensityPercent | 90–95 / 88–95 | null / 70–94 | VITTORI SB（約90→95%）。COACH 上限 94 は UKA 76–94 に合わせた EP（DR 間で 70–90/75–90/80–89 と不一致 → OP-12） |
 | repRestS | 90–150 / 60–180 | null / 60–360 | VITTORI 約2分（SB）を中心に EP 幅 |
 | setRestS | 420–540 / 360–720 | null / 180–720 | 約8分（SB）を中心に EP 幅 |
-| repsPerSet / sets | 3–5 / 2–4 | null / 1–10, 1–4 | EP |
+| repsPerSet | 3–5 / 3–5 | null / 1–10 | EP |
+| sets | 2–4 / 2–4 | null / 1–4 | EP |
 | sessionVolumeM | 600–1200 / 400–2000 | null / DEV≤800, ADV≤1600 | EP |
+
+- **[R2 errata]** 上記 `repsPerSet` / `sets` の行は、初版（R2実装前）では
+  「repsPerSet / sets | 3–5 / 2–4」という1行に2変数を圧縮して記載しており、
+  どちらの数値がどちらの変数を指すか一意に読み取れなかった。R2 の
+  RuleSet 実装時にこの曖昧さが判明したため、本書を2行に分離して
+  「repsPerSet = 3–5（recommended・coachEditable とも）」
+  「sets = 2–4（recommended・coachEditable とも）」と確定する
+  （coachEditable の追加拡張は行わない。TI_VITTORI_SE の recommended/coachEditable
+  が一致するのは意図的で、他の EP 値のように編集幅を広げる根拠が本書に無いため）。
 
 #### RESISTED_SPRINT
 
@@ -873,7 +883,7 @@ export type Envelope = {
 | vdecPercent（sled） | LIGHT <10、MODERATE 10–15（HEAVY 不適格） | LIGHT <10、MODERATE 10–15、HEAVY 15–30 | band 境界 SB（Petrakos 2016）。DEV で HEAVY を外すのは EP（DR 一致の方向性） |
 | vdec 実測 | 無い場合 band は `measured:false`・confidence LOW。HEAVY は実測必須 | 同左 | EP |
 | HILL | vdec を使わない（平地参照が無い） | 同左 | EP（Fable M-13） |
-| repDistanceM | 10–20 / 10–30 | 10–30 / 10–40 | ADV SB（主に 10–30/10–40）、DEV EP |
+| repDistanceM | 10–20 / 10–30 | 10–30 / 10–40 | **EP**（§5.6 の Evidence には usage=PRESCRIPTION でこの数値を直接裏付ける記録が無いため、DEV・ADV とも ENGINE_POLICY として扱う。研究が存在しないという意味ではなく、初版 EvidenceRecord 構造では数値処方へ直接使える一次根拠を登録できていないための保守的処理。§24 OPEN-23 参照） |
 | totalReps | 4–6 / 3–8 | 4–8 / 3–10 | EP |
 | repRestS | 120–240 / 90–360 | 180–360 / 120–480 | EP（Perplexity 3–6分） |
 | sessionVolumeM | 40–120 / 30–160 | 50–200 / 40–240 | EP（Perplexity DR 構成） |
@@ -885,8 +895,19 @@ export type Envelope = {
 | buildUpM / flyZoneM | 編集可 20–60 / 10–30 | EP |
 | totalReps | 編集可 2–6 | EP |
 | repRestS | 編集可 300–900 | EP |
-| assistedSpeed | 実測 Vmax の ≤105%（編集可の上限） | EP（Perplexity DR「原則105%以下」、根拠は弱いと明記） |
+| intensityPercent | 編集可 100–105（recommended=null） | EP（Perplexity DR「原則105%以下」、根拠は弱いと明記） |
 | flyVolumeM | 編集可 ≤100 | EP |
+
+- **[R2 errata]** 初版では「assistedSpeed」という独立フィールドとして記載していたが、
+  §7.2 の `EnvelopeField` 列挙に該当項目が無い。新しい `EnvelopeField` を追加する
+  代わりに、既存の `intensityPercent`（`EnvelopeField` に既存）を
+  「実測 Vmax に対する百分率」という representation として流用し、
+  `coachEditable = 100–105%` で表現する。**100% という下限は「assisted =
+  通常 Vmax を超える曝露である」ことを Range で表すための representation
+  policy であり、科学的閾値ではない。** 105% を hardSafety へ昇格させることもしない
+  （引き続き `hardSafety = null`）。`EV_ASSISTED_EVIDENCE_LIMITED`
+  （usage=CHECK_ONLY）はこの cell の `evidenceIds` には含めない
+  （`EV_ENGINE_POLICY` のみを参照する）。
 
 #### EVENT_APPROACH_SPEED（coach-configured）
 
@@ -896,6 +917,15 @@ export type Envelope = {
 | repRestS | 180–360 / 120–480 | 180–480 / 120–600 | EP |
 | approachDistanceM | 手入力（plausibility ≤60m） | 同左 | EP |
 | 高速曝露・荷重 | FULL 助走は §11 で計上。踏切/ハードル実施フラグで JUMPS/HURDLES 負荷も計上 | 同左 | EP（Fable M-15） |
+
+- **[R2 errata]** `approachDistanceM` は **EnvelopeCell ではない**。
+  §2.4 の `AttemptsRepSpec.approachDistanceM: FieldValue<"m"> | null` が示すとおり
+  **コーチの手入力値**であり、`recommended`/`coachEditable` をエンジンが提示する
+  対象ではない。R2 では `PlausibilityRule`（scope=INPUT）として
+  「手入力・plausibility ≤60m（REQUIRE_CONFIRMATION）」の形でのみ保持し、
+  手入力値を `FieldValue<"m">` へ変換する方法（`coachEditable`/`recommended` を
+  どう埋めるか）は R4（Planning Engine）の実装時に定める。R2 時点で
+  新しい数値レンジを発明しない。
 
 #### STRIDE（TEMPO_EXTENSIVE とは別 Envelope）
 
@@ -2173,6 +2203,7 @@ export function proposalToPlanRequests(
 | OPEN-20 | ルールセットを ACTIVE にする承認者と一次資料照合の手順 | 全版 DRAFT | ユーザー（コーチ）＋照合担当 |
 | OPEN-21 | Special Endurance I/II の距離・時間境界 | template 名だけ持ち境界を定義しない | 研究 |
 | OPEN-22 | `plannedDate` が無いテンプレートの週次評価 | 練習作成時にのみ評価 | UX 判断 |
+| OPEN-23 | RESISTED_SPRINT の repDistanceM（10–30/10–40m 等）を裏付ける usage=PRESCRIPTION の一次資料 | §5.6 に該当 Evidence が無いため ENGINE_POLICY（R2 で SOURCE_BACKED から降格。§7.4 RESISTED_SPRINT errata参照） | 一次資料照合 |
 
 ---
 

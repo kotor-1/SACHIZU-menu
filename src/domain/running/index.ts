@@ -176,3 +176,33 @@ export {
   type UsedEvidenceSummary,
   type HistoryCoverage,
 } from "./evidence/confidence";
+
+// --- RuleSet（R2） ------------------------------------------------------------
+// manifest/hash 計算などの内部配線（`readManifest`/`computeContentHash` 等は
+// `scripts/running-ruleset-hash.ts` 側）や、schema 組み立て専用のジェネリック
+// helper はここから export しない（Primitives セクションと同じ方針）。
+export {
+  ruleSetSchema,
+  methodMetaSchema,
+  ruleSetSessionTemplateSchema,
+  envelopeSchema,
+  envelopeCellSchema,
+  eligibilityRuleSchema,
+  plausibilityRuleSchema,
+  timingToleranceRuleSchema,
+  stopPolicySchema,
+  type RuleSet,
+  type RuleSetStatus,
+  type MethodMeta,
+  type RuleSetSessionTemplate,
+  type Envelope,
+  type EnvelopeCell,
+  type EnvelopeField,
+  type EligibilityRule,
+  type PlausibilityRule,
+  type TimingToleranceRule,
+  type StopPolicy,
+  type Judgement,
+} from "./rules/schema";
+
+export { getRuleSet, getActiveRuleSet, type ActiveRuleSetResult } from "./rules/loader";
