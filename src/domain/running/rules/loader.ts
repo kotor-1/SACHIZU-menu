@@ -12,9 +12,17 @@
  *     planning 側＝R4 の責務）
  *   - ruleSetContentHash の計算（`scripts/running-ruleset-hash.ts` の責務。
  *     `node:crypto` は import boundary 違反になるため domain 層には置けない）
+ *
+ * [R4] `getActiveRuleSet()` は、検証済み `manifest.json` に記録された
+ * `contentHash` を一緒に返す（planning が `RunningPrescription.ruleSet` に
+ * 埋め込むため）。ここでは hash を**再計算しない**。manifest と RuleSet JSON の
+ * version/status/validFrom が一致しない場合は読み込み時に例外にする。
+ * 実ファイルと manifest の hash 一致は `scripts/running-ruleset-hash.ts --check`
+ * と `tests/domain/running/rules-manifest.test.ts` が保証する。
  */
 import rs202609 from "./sets/rs-2026.09.0.json";
-import { ruleSetSchema, checkRuleSetCompleteness, type RuleSet } from "./schema";
+import manifestJson from "./manifest.json";
+import { ruleSetSchema, checkRuleSetCompleteness, manifestSchema, type RuleSet, type ManifestEntry } from "./schema";
 
 /** 新しい版を追加したら、ここに import 文と配列要素を追加する。 */
 const RAW_RULE_SETS: readonly unknown[] = [rs202609];
@@ -48,6 +56,7 @@ export function parseProductionRuleSet(raw: unknown): RuleSet {
 }
 
 let parsedCache: RuleSet[] | null = null;
+let manifestCache: readonly ManifestEntry[] | null = null;
 
 function allRuleSets(): RuleSet[] {
   if (parsedCache) return parsedCache;
@@ -61,15 +70,49 @@ function allRuleSets(): RuleSet[] {
   return parsedCache;
 }
 
+/**
+ * manifest.json を schema 検証し、ロード済み RuleSet と version/status/validFrom が
+ * 1対1で一致することを確認する（hash の再計算はしない）。
+ */
+function validatedManifest(): readonly ManifestEntry[] {
+  if (manifestCache) return manifestCache;
+  const parsed = manifestSchema.safeParse(manifestJson);
+  if (!parsed.success) {
+    throw new Error(
+      `RuleSet manifest failed schema validation: ${parsed.error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join("; ")}`,
+    );
+  }
+  for (const rs of allRuleSets()) {
+    const entry = parsed.data.find((e) => e.version === rs.ruleSetVersion);
+    if (!entry) {
+      throw new Error(`RuleSet manifest has no entry for loaded RuleSet ${rs.ruleSetVersion}`);
+    }
+    if (entry.status !== rs.status || entry.validFrom !== rs.validFrom) {
+      throw new Error(
+        `RuleSet manifest entry for ${rs.ruleSetVersion} does not match the RuleSet JSON (status/validFrom)`,
+      );
+    }
+  }
+  manifestCache = parsed.data;
+  return manifestCache;
+}
+
 /** バージョン文字列（例 "rs-2026.09.0"）から RuleSet を取得する。見つからなければ null。 */
 export function getRuleSet(version: string): RuleSet | null {
   return allRuleSets().find((rs) => rs.ruleSetVersion === version) ?? null;
 }
 
-export type ActiveRuleSetResult = {
+export type SelectedRuleSet = {
   ruleSet: RuleSet;
   /** true = ACTIVE 版が無く最新 DRAFT を代わりに返した（§6.2）。 */
   isDraftFallback: boolean;
+};
+
+export type ActiveRuleSetResult = SelectedRuleSet & {
+  /** [R4] 検証済み manifest.json に記録された canonical SHA-256（domain では再計算しない）。 */
+  contentHash: string;
 };
 
 /**
@@ -82,7 +125,7 @@ export type ActiveRuleSetResult = {
  * `rs-2026.09.0` を差し替えずに `tests/fixtures/running/rs-test-{a,b}.json`
  * だけでバージョン選択ロジックを検証できる。
  */
-export function selectActiveRuleSet(ruleSets: readonly RuleSet[], at: string): ActiveRuleSetResult {
+export function selectActiveRuleSet(ruleSets: readonly RuleSet[], at: string): SelectedRuleSet {
   const activeCandidates = ruleSets
     .filter((rs) => rs.status === "ACTIVE" && rs.validFrom <= at)
     .slice()
@@ -103,7 +146,12 @@ export function selectActiveRuleSet(ruleSets: readonly RuleSet[], at: string): A
 }
 
 export function getActiveRuleSet(at: string): ActiveRuleSetResult {
-  return selectActiveRuleSet(allRuleSets(), at);
+  const selected = selectActiveRuleSet(allRuleSets(), at);
+  const entry = validatedManifest().find((e) => e.version === selected.ruleSet.ruleSetVersion);
+  if (!entry) {
+    throw new Error(`RuleSet manifest has no entry for ${selected.ruleSet.ruleSetVersion}`);
+  }
+  return { ...selected, contentHash: entry.contentHash };
 }
 
 /** テスト・監査用: 現在ロードされている全 RuleSet のバージョン一覧。 */

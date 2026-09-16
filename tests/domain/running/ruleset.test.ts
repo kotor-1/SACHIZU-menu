@@ -968,3 +968,223 @@ describe("judgement vs evidence audit", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// [R4 structured metadata] planning が文字列・ID 命名を解析しないための機械可読フィールド
+// ---------------------------------------------------------------------------
+
+describe("R4 structured metadata（rs-2026.09.0）", () => {
+  const rs = getRuleSet("rs-2026.09.0")!;
+  const emptyConditions = {
+    requiresEnvelopeTier: null,
+    requiresTrainingAgeTiers: null,
+    requiresPrimaryEvents: null,
+    requiresAllowAdvancedMethods: false,
+    requiresMeasuredVelocityDecrement: false,
+    requiresVmaxConfidenceAtLeast: null,
+    whenUnmet: null,
+  };
+
+  function canonical(value: unknown): string {
+    if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+    if (value !== null && typeof value === "object") {
+      return `{${Object.keys(value as Record<string, unknown>)
+        .sort()
+        .map((k) => `${JSON.stringify(k)}:${canonical((value as Record<string, unknown>)[k])}`)
+        .join(",")}}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  it("既存の科学的データ・数値は R4 の metadata 追加で1バイトも変わっていない（R3 commit 時点の内容の SHA-256）", async () => {
+    const { createHash } = await import("node:crypto");
+    const raw = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../src/domain/running/rules/sets/rs-2026.09.0.json"), "utf-8"));
+    const NEW_KEYS: Record<string, string[]> = {
+      templates: ["approachType", "resistanceBand", "fixedDistanceField"],
+      eligibility: ["conditions", "autoGenerationLimits"],
+      stopPolicies: ["appliesToEligibilityPath"],
+      plausibility: ["inputTarget"],
+    };
+    const EXPECTED: Record<string, string> = {
+      methods: "b048e8197b8f0b0ab617aaa8ec57a195d3b600ce531ea3ceda6fa9555ec2f3ee",
+      envelopes: "3015587e8a263d963f7504211c6b8292ff6092745b2996a63cc47523e97ef023",
+      evidence: "7425f5b3570cc9f7ab72ba365ae1a3543671e489c793b01c2bd3dcce1435c45b",
+      timingTolerances: "8b0d3b0264e7629f8157e93c1353ac511ea1bb709f6bb07bc63e65560ed6c04e",
+      constraints: "cebe8dd9bfd111a78e6107b7d9640c81be6f1e4e43c5b514772fe463fe479a17",
+      stopPolicies: "2550dabf2fc0bb93672c8aad4c64cb3cccd9d7f8f2e9523e58f1fdd68a2f6eff",
+      plausibility: "fb7c3e69b4c62adf83d431204aa66bc858b93e391764782f8425e84adbdf922b",
+      eligibility: "ffb3a80c2117700bae73784411d1e9d923c7898d14f47e3c804c6deb65abc202",
+      templates: "4a42d63c2f254f6e8a2871790114abe594417601fc3a192bd6d2c7ff1071ddee",
+    };
+    for (const [section, expected] of Object.entries(EXPECTED)) {
+      const rows = (raw[section] as Record<string, unknown>[]).map((row) =>
+        Object.fromEntries(Object.entries(row).filter(([k]) => !(NEW_KEYS[section] ?? []).includes(k))),
+      );
+      expect(createHash("sha256").update(canonical(rows)).digest("hex"), section).toBe(expected);
+    }
+    expect(rs.status).toBe("DRAFT");
+    expect(rs.validFrom).toBe("2026-09-15");
+    expect(rs.ruleSetVersion).toBe("rs-2026.09.0");
+  });
+
+  it("changelog に R4 の metadata 追加が記録され、数値は不変と明記されている", () => {
+    const r4 = rs.changelog.find((line) => line.startsWith("R4:"));
+    expect(r4).toBeDefined();
+    expect(r4).toContain("conditionNote is now explanatory only");
+    expect(r4).toContain("unchanged");
+  });
+
+  it("EligibilityRule.conditions: conditionNote が機械判定を含んでいた5行だけが requires* を持つ", () => {
+    const withConditions = rs.eligibility.filter((r) => r.conditions.whenUnmet !== null);
+    expect(Object.fromEntries(withConditions.map((r) => [r.ruleId, r.conditions]))).toEqual({
+      ELIG_LONG_FULL_POST: { ...emptyConditions, requiresTrainingAgeTiers: ["TRAINED", "ADVANCED"], requiresPrimaryEvents: ["200m", "400m", "400mH"], whenUnmet: "MANUAL_WITH_REVIEW" },
+      ELIG_LONG_INCOMPLETE_POST: { ...emptyConditions, requiresEnvelopeTier: "ADVANCED", requiresPrimaryEvents: ["200m", "400m", "400mH"], whenUnmet: "MANUAL_WITH_REVIEW" },
+      ELIG_RS_MODERATE_POST: { ...emptyConditions, requiresEnvelopeTier: "ADVANCED", whenUnmet: "MANUAL_WITH_REVIEW" },
+      ELIG_RS_HEAVY_POST: { ...emptyConditions, requiresEnvelopeTier: "ADVANCED", requiresMeasuredVelocityDecrement: true, whenUnmet: "INELIGIBLE_NON_OVERRIDABLE" },
+      ELIG_ASSISTED_ALL_POST: {
+        ...emptyConditions,
+        requiresEnvelopeTier: "ADVANCED",
+        requiresAllowAdvancedMethods: true,
+        requiresVmaxConfidenceAtLeast: "MEDIUM",
+        whenUnmet: "INELIGIBLE_NON_OVERRIDABLE",
+      },
+    });
+    for (const r of rs.eligibility.filter((row) => row.conditions.whenUnmet === null)) {
+      expect(r.conditions, r.ruleId).toEqual(emptyConditions);
+    }
+  });
+
+  it("EligibilityRule.autoGenerationLimits: MV_FLY10 の reps≤3（PRE/EU/CIRCA）と TE の lower half（PRE/EU/CIRCA）だけ", () => {
+    const limited = rs.eligibility.filter((r) => r.autoGenerationLimits.maxTotalReps !== null || r.autoGenerationLimits.positionCap !== null);
+    expect(Object.fromEntries(limited.map((r) => [r.ruleId, r.autoGenerationLimits]))).toEqual({
+      ELIG_MV_FLY10_PRE: { maxTotalReps: 3, positionCap: null },
+      ELIG_MV_FLY10_EFFECTIVE_UNKNOWN: { maxTotalReps: 3, positionCap: null },
+      ELIG_MV_FLY10_CIRCA: { maxTotalReps: 3, positionCap: null },
+      ELIG_TE_ALL_PRE: { maxTotalReps: null, positionCap: "LOWER_HALF" },
+      ELIG_TE_ALL_EFFECTIVE_UNKNOWN: { maxTotalReps: null, positionCap: "LOWER_HALF" },
+      ELIG_TE_ALL_CIRCA: { maxTotalReps: null, positionCap: "LOWER_HALF" },
+    });
+    // 説明文としての conditionNote は残す（削除しない）
+    expect(rs.eligibility.find((r) => r.ruleId === "ELIG_MV_FLY10_PRE")?.conditionNote).toBe("reps≤3");
+  });
+
+  it("SessionTemplate: approachType は EA だけ（§4.4 の SHORT / FULL の行と一致）、resistanceBand は sled だけ、fixedDistanceField は ACC/MV/TE/TI_VITTORI_SE", () => {
+    const byId = new Map(rs.templates.map((t) => [t.id, t]));
+    const shortRows = rs.eligibility.find((r) => r.ruleId === "ELIG_EA_SHORT_POST")!.templateIds;
+    const fullRows = rs.eligibility.find((r) => r.ruleId === "ELIG_EA_FULL_POST")!.templateIds;
+    for (const id of shortRows) expect(byId.get(id)?.approachType, id).toBe("SHORT");
+    for (const id of fullRows) expect(byId.get(id)?.approachType, id).toBe("FULL");
+    expect(rs.templates.filter((t) => t.approachType !== null).map((t) => t.id).sort()).toEqual([...shortRows, ...fullRows].sort());
+
+    expect(Object.fromEntries(rs.templates.filter((t) => t.resistanceBand !== null).map((t) => [t.id, t.resistanceBand]))).toEqual({
+      RS_SLED_LIGHT: "LIGHT",
+      RS_SLED_MODERATE: "MODERATE",
+      RS_SLED_HEAVY: "HEAVY",
+    });
+    // resistanceBand を持つ template は、その band の vdecPercent Envelope を持つ
+    for (const t of rs.templates.filter((x) => x.resistanceBand !== null)) {
+      expect(rs.envelopes.some((e) => e.templateIds.includes(t.id as never) && e.fields.vdecPercent), t.id).toBe(true);
+    }
+
+    const fixed = Object.fromEntries(rs.templates.filter((t) => t.fixedDistanceField !== null).map((t) => [t.id, t.fixedDistanceField]));
+    expect(fixed).toEqual({
+      ACC_BLOCK_10: "repDistanceM",
+      ACC_BLOCK_20: "repDistanceM",
+      ACC_BLOCK_30: "repDistanceM",
+      ACC_BLOCK_40: "repDistanceM",
+      ACC_CROUCH_20: "repDistanceM",
+      ACC_STANDING_20: "repDistanceM",
+      ACC_FALLING_10: "repDistanceM",
+      MV_FLY10: "flyZoneM",
+      MV_FLY20: "flyZoneM",
+      MV_FLY30: "flyZoneM",
+      TE_100: "repDistanceM",
+      TE_200: "repDistanceM",
+      TE_300: "repDistanceM",
+      TI_VITTORI_SE: "repDistanceM",
+    });
+    // SES の displayDistanceM は表示専用（一次軸は時間）なので固定しない
+    for (const t of rs.templates.filter((x) => x.method === "SPRINT_ENDURANCE_SHORT")) expect(t.fixedDistanceField, t.id).toBeNull();
+  });
+
+  it("StopPolicy.appliesToEligibilityPath: LONG INCOMPLETE の2件だけが経路で分かれ、他はすべて ANY", () => {
+    expect(Object.fromEntries(rs.stopPolicies.filter((sp) => sp.appliesToEligibilityPath !== "ANY").map((sp) => [sp.id, sp.appliesToEligibilityPath]))).toEqual({
+      SP_LSR_INCOMPLETE_ADV: "AUTO_CONDITIONS_MET",
+      SP_LSR_INCOMPLETE_STRICT: "MANUAL_OR_OVERRIDE",
+    });
+  });
+
+  it("PlausibilityRule.inputTarget: scope=INPUT の4行だけが持つ", () => {
+    expect(Object.fromEntries(rs.plausibility.filter((p) => p.inputTarget !== null).map((p) => [p.ruleId, p.inputTarget]))).toEqual({
+      PLA_INPUT_100M_RECORD: { kind: "TIMED_MARK", event: "100m" },
+      PLA_INPUT_FLY_10M: { kind: "TIMED_MARK", event: "FLY10" },
+      PLA_INPUT_HEIGHT: { kind: "HEIGHT_CM" },
+      PLA_INPUT_APPROACH_DISTANCE: { kind: "COACH_EDIT_APPROACH_DISTANCE_M" },
+    });
+  });
+
+  it("eventDefinitions は全 TimedMark / RaceEvent を網羅し、fly の距離は R3 の fly split 計算と一致する", async () => {
+    const { computeFlySplitVelocity } = await import("@/domain/running/context/performance");
+    const { TIMED_MARK_EVENTS } = await import("@/domain/running/types/intensity");
+    const { RACE_EVENTS } = await import("@/domain/running/types/primitives");
+    expect(rs.eventDefinitions.timedMarks.map((d) => d.event).sort()).toEqual([...TIMED_MARK_EVENTS].sort());
+    expect(rs.eventDefinitions.raceEvents.map((d) => d.event).sort()).toEqual([...RACE_EVENTS].sort());
+    for (const def of rs.eventDefinitions.timedMarks.filter((d) => d.segment === "FLY_ZONE")) {
+      const v = computeFlySplitVelocity({ event: def.event, timeS: 2, date: "2026-09-01" as never, timing: "RADAR_LASER" }, rs);
+      expect(v.valueMps * 2, def.event).toBeCloseTo(def.distanceM, 10);
+    }
+    expect(rs.eventDefinitions.raceEvents.find((d) => d.event === "400mH")).toEqual({ event: "400mH", distanceM: 400, hurdles: true });
+  });
+
+  it("monitoring snapshot の schema は RuleSet の StopPolicy / TimingTolerance 行をそのまま受け付ける（strict。項目が増えたら snapshot を明示的に更新する）", async () => {
+    const { stopPolicySnapshotSchema, timingToleranceSnapshotSchema } = await import("@/domain/running/types/prescription");
+    for (const sp of rs.stopPolicies) expect(stopPolicySnapshotSchema.safeParse(sp).success, sp.id).toBe(true);
+    for (const t of rs.timingTolerances) expect(timingToleranceSnapshotSchema.safeParse(t).success, t.timing).toBe(true);
+  });
+
+  it("schema は metadata の不整合を拒否する", () => {
+    const base = loadFixture("rs-test-a");
+    // approachType は EVENT_APPROACH_SPEED だけ
+    expect(ruleSetSchema.safeParse({ ...base, templates: [{ ...base.templates[0], approachType: "SHORT" }] }).success).toBe(false);
+    // resistanceBand は RESISTED_SPRINT だけ
+    expect(ruleSetSchema.safeParse({ ...base, templates: [{ ...base.templates[0], resistanceBand: "LIGHT" }] }).success).toBe(false);
+    // fixedDistanceField には displayDistanceM が必要
+    expect(ruleSetSchema.safeParse({ ...base, templates: [{ ...base.templates[0], fixedDistanceField: "repDistanceM" }] }).success).toBe(false);
+    // stop policy は method × recoveryStructure で一意に選べる必要がある
+    expect(ruleSetSchema.safeParse({ ...base, stopPolicies: [{ ...base.stopPolicies[0], appliesToEligibilityPath: "AUTO_CONDITIONS_MET" }] }).success).toBe(false);
+
+    const row = {
+      ruleId: "ELIG_TEST",
+      method: "STRIDE",
+      templateIds: ["ST_WARMUP"],
+      maturityCategory: "POST",
+      outcome: "AUTO",
+      requiresReview: false,
+      overrideAllowed: null,
+      conditionNote: null,
+      requiresPhaseEvaluation: false,
+      conditions: { ...emptyConditions },
+      autoGenerationLimits: { maxTotalReps: null, positionCap: null },
+    };
+    expect(eligibilityRuleSchema.safeParse(row).success).toBe(true);
+    expect(eligibilityRuleSchema.safeParse({ ...row, conditions: { ...emptyConditions, whenUnmet: "MANUAL_WITH_REVIEW" } }).success).toBe(false);
+    expect(eligibilityRuleSchema.safeParse({ ...row, conditions: { ...emptyConditions, requiresEnvelopeTier: "ADVANCED" } }).success).toBe(false);
+    expect(
+      eligibilityRuleSchema.safeParse({ ...row, outcome: "INELIGIBLE", overrideAllowed: true, autoGenerationLimits: { maxTotalReps: 3, positionCap: null } }).success,
+    ).toBe(false);
+
+    const pla = rs.plausibility.find((p) => p.ruleId === "PLA_INPUT_HEIGHT")!;
+    expect(plausibilityRuleSchema.safeParse({ ...pla, inputTarget: null }).success).toBe(false);
+    const item = rs.plausibility.find((p) => p.scope === "ITEM_FIELD")!;
+    expect(plausibilityRuleSchema.safeParse({ ...item, inputTarget: { kind: "HEIGHT_CM" } }).success).toBe(false);
+  });
+
+  it("fixture（rs-test-a / rs-test-b）も R4 metadata を持って schema を通る", () => {
+    for (const name of ["rs-test-a", "rs-test-b"]) {
+      const fx = loadFixture(name);
+      expect(fx.templates[0].approachType).toBeNull();
+      expect(fx.stopPolicies[0].appliesToEligibilityPath).toBe("ANY");
+      expect(fx.eventDefinitions).toEqual({ timedMarks: [], raceEvents: [] });
+    }
+  });
+});

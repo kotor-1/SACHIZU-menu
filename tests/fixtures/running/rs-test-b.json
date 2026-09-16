@@ -63,7 +63,10 @@
       "recoveryStructure": null,
       "enabledByDefault": true,
       "advancedOnly": false,
-      "complexity": "LOW"
+      "complexity": "LOW",
+      "approachType": null,
+      "resistanceBand": null,
+      "fixedDistanceField": null
     }
   ],
   "envelopes": [
@@ -106,7 +109,8 @@
       "referenceDescription": "—",
       "ruleDescriptionJa": "test fixture: no numeric stop",
       "consecutiveFailuresToStop": null,
-      "numericStopAvailable": false
+      "numericStopAvailable": false,
+      "appliesToEligibilityPath": "ANY"
     }
   ],
   "aggregationRules": [],
@@ -115,5 +119,9 @@
   "phaseRules": [],
   "competitionRules": [],
   "plausibility": [],
-  "vmaxEstimationModels": []
+  "vmaxEstimationModels": [],
+  "eventDefinitions": {
+    "timedMarks": [],
+    "raceEvents": []
+  }
 }

@@ -321,6 +321,38 @@ export type Finding = {
 ```
 
 - [ENGINE-POLICY] v2 項目では **`sets` と `repsPerSet` の両方が必須・非 null**。「4set×60m = 4本」のような legacy の曖昧さ（監査 C-1）を型で排除する。
+- **[R4 errata]**（§2.4 の型。`types/prescription.ts` と Zod が正。R4 pre-commit 補正後の確定形）:
+  - `FieldValue` は**位置と値の由来を分離**する（`editedBy` は `origin` に統合して廃止）:
+    ```ts
+    type RangePosition = "LOWER_BOUND" | "LOWER_HALF" | "MIDDLE" | "UPPER_HALF";   // §7.3 の位置のみ
+    type ValueOrigin =
+      | "ENGINE_POSITIONED"   // recommended 内の position に置いた値（position 必須・recommended 内）
+      | "SOLVER_DERIVED"      // §7.3 ②③ の解決順で決まった回数（recommended 内）
+      | "TEMPLATE_FIXED"      // SessionTemplate.fixedDistanceField による固定値（recommended 外は Finding）
+      | "STRUCTURAL_FIXED"    // schemaVersion=1 の構造正規化規則による値（§7.3 R4 errata の sets=1 等）
+      | "COACH"               // コーチ入力（coachEditable 内）
+      | "COACH_OVERRIDE";     // CoachOverride（coachEditable / hardSafety 外もありうる）
+    type FieldValue<U> = { value; unit; recommended: Range<U> | null; coachEditable; hardSafety;
+                           position: RangePosition | null; origin: ValueOrigin; evidenceIds };
+    ```
+    Zod refine: `position != null` ⇔ `origin = ENGINE_POSITIONED`／ENGINE_POSITIONED・SOLVER_DERIVED は recommended 内／
+    `recommended = null`（§7.2 の手動専用セル）の値は COACH / COACH_OVERRIDE だけ（推奨範囲を捏造しない）／
+    coachEditable 外・hardSafety 外は COACH_OVERRIDE だけ（対応する CoachOverride の存在は planning step 13 で照合）。
+    rest の「MIDDLE 以上」、confidence の位置上限、固定値、手動値を同じ enum で比較しない。
+  - `FlyRep.decelerationDistanceM` / `totalRunningDistanceM` は `number | null`（両方同時に null）。
+    `decelerationM` セルを持たない ASSISTED_SPRINT で 0 を入れて「減速なし」と偽装しないため。
+  - `AttemptsRepSpec.approachDistanceM` は `FieldValue<"m">` ではなく
+    `{ value: number; unit: "m"; source: "COACH_ENTERED" } | null`（§7.4 R2 errata の「EnvelopeCell ではない手入力値」。
+    recommended / coachEditable を持たせない。plausibility は `PlausibilityRule.inputTarget = COACH_EDIT_APPROACH_DISTANCE_M` の行（≤60m で REQUIRE_CONFIRMATION））。
+  - `RunningPrescription.monitoringSnapshot: { stopPolicy: StopPolicySnapshot; timingTolerances: TimingToleranceSnapshot[] }` を追加
+    （§17.1 不変条件5）。plan 時点の RuleSet から、選ばれた StopPolicy の行と**全 TimingMethod** の TimingTolerance の行を
+    **データとしてコピー**する（RuleSet object への参照ではない。snapshot の schema は schemaVersion=1 の一部として strict に独立定義）。
+    `stopPolicyId` は検索・表示用に残し、`monitoringSnapshot.stopPolicy.id` と一致しなければならない。
+  - `RunningPrescription.confidence.inputData` は `HIGH | MEDIUM | LOW | NONE | NOT_REQUIRED`（§5.4 R4 errata）。
+  - `runningPrescriptionSchema` は RuleSet を見ずに決まる構造（MAX_INTENT / RELAXED_SUBMAX / FLY_SPLIT と MAX_VELOCITY の
+    target=null、snapshot の stopPolicy id 一致）を refine する。RuleSet に依存する整合（reference kind の MethodMeta 許可、
+    Envelope セルとの範囲一致、stopPolicy と recoveryStructure、snapshot が plan 時点の RuleSet 行と一致、構造正規化規則、
+    エンジン rest の位置、fixedDistanceField / approachType との一致）は `planning/validatePrescription.ts` が検証する（Zod に偽装しない）。
 
 ---
 
@@ -556,6 +588,20 @@ export type MaturityAssessment = {
 | EVENT_APPROACH FULL | 手動+REVIEW | 手動+REVIEW | 手動+REVIEW | 手動 |
 
 - 表の区分定義: 「自動」= AI/エンジンが自動生成してよい。「手動」= コーチが明示選択した場合のみ。「+REVIEW」= `REQUIRE_COACH_REVIEW` Finding 付き。「不適格」= 選択不可、override の可否は §8.3。
+- **[R4 errata]** 表の括弧内の条件（「reps≤3」「lower half」「ADVANCED のみ自動」「実測 vdec 必須」、§4.5 の条件付き自動）は、
+  RuleSet の `EligibilityRule.conditionNote`（人間向けの説明）ではなく、構造化フィールドで保持する:
+  `conditions`（`requiresEnvelopeTier` / `requiresTrainingAgeTiers` / `requiresPrimaryEvents` / `requiresAllowAdvancedMethods` /
+  `requiresMeasuredVelocityDecrement` / `requiresVmaxConfidenceAtLeast` と、満たさないときの `whenUnmet` =
+  `MANUAL_WITH_REVIEW`（AUTO 行）/ `INELIGIBLE_NON_OVERRIDABLE`（MANUAL 行））と `autoGenerationLimits`
+  （`maxTotalReps` / `positionCap`。エンジンが置く値の上限）。phase に依存する条件は既存の `requiresPhaseEvaluation`。
+  **`conditionNote` は説明専用**で、planning は conditionNote・ruleId・templateId の文字列を読まずに同じ判断をする
+  （conditionNote を全件書き換えても結果が変わらないことをテストで保証）。
+  SES POST の「tier=ADVANCED、または (POST & tier≥DEVELOPING & phase≠TRANSITION)」は OR を含む phase 依存条件のため
+  R4 では `requiresPhaseEvaluation=true` のみで表し（AUTO にしない）、構造化は R7 で phase を接続するときに行う。
+- **[R4 implementation note]** この表の「自動」/ 条件付き自動は population / context 上の自動生成**許可**を意味するだけで、後段の
+  Evidence / prescriptionConfidence gate（§5.5: LOW・POLICY_ONLY × HIGH_METABOLIC）により AI / SYSTEM の自動生成が最終的に BLOCK される場合がある。
+  現行 DRAFT の LONG_SPRINT_RACE_SPECIFIC は使用 Envelope セルの Evidence がすべて ENGINE_POLICY で POLICY_ONLY になるため AI / SYSTEM では自動生成されないが、
+  これは意図した安全側の挙動であり（COACH の手動計画は eligibility が許せば可能）、eligibility の不具合として RuleSet の数値を広げない。
 - 判断: 表全体 [ENGINE-POLICY]。方向性（youth で LONG/ASSISTED/heavy resisted を外す、短い加速・流し・短い fly を候補にする）は [SOURCE-BACKED]（Claude・ChatGPT・Perplexity DR と Fable C-1 が一致）。個々の境界（20m、reps≤3 等）は provisional。
 
 ### 4.5 trainingAge と Tier
@@ -679,6 +725,26 @@ export type EvidenceRecord = {
 | それ以外 | `HIGH` |
 
 - 初期ルールセットは全件 `SECONDARY_REPORT_ONLY` のため、**v2 初期の最高値は MODERATE**（HIGH は一次資料照合後にしか出ない）。
+- **[R4 integration errata]** 72h 履歴カバレッジに `NOT_EVALUATED` を追加する（`HistoryCoverage = COMPLETE | PARTIAL | NONE | NOT_EVALUATED`）。
+  R4 は §9.2 step 5（週次・履歴）を接続しないため、`history` の有無に関わらず `NOT_EVALUATED` を渡す。`NOT_EVALUATED` は
+  **中立**（上表の LOW 条件「NONE」にも、確認済みの「COMPLETE」にも読み替えない）。R7 で step 5 を接続した後は
+  COMPLETE / PARTIAL / NONE のいずれかになり、T-MISS-04（history=null → LOW）はそこで成立させる。
+- **[R4 integration errata]** 「使用した Envelope フィールド」= その処方の Envelope のセルのうち、実際に使ったもの。
+  `intensityPercent` は数値目標（§9.5）の計算に使ったときだけ、`vdecPercent` は VELOCITY_DECREMENT 参照のときだけ含める。
+  directness は ageBand=UNKNOWN（4帯すべて）・EFFECTIVE_UNKNOWN（PRE/CIRCA/POST/UNKNOWN すべて）・GROUP（member ごと）の
+  ありうる context で評価して**最も弱いもの**を採用する。全体の directness は ENGINE_POLICY 以外の最弱、すべて ENGINE_POLICY なら
+  NOT_APPLICABLE。
+- **[R4 provisional policy]** §5.3 の performanceLevel は trainingAge tier から写像する: TRAINED / ADVANCED → `TRAINED`、
+  BEGINNER / DEVELOPING → `YOUTH_DEVELOPING`。競技レベルの入力が無いため `NATIONAL` / `ELITE` には写像しない。
+- **[R4 errata]** §4.6 の inputData confidence に **`NOT_REQUIRED`** を追加する（`InputDataConfidence = HIGH | MEDIUM | LOW | NONE | NOT_REQUIRED`）。
+  「データが不要」と「高品質なデータがある（HIGH）」は別概念であり、HIGH と偽装しない。
+  - `NOT_REQUIRED`: 設計上 performance データを必要としない参照 — MethodMeta でそれより優先される**適用可能な**データ参照が
+    無いもの（ACCELERATION の MAX_INTENT、STRIDE の RELAXED_SUBMAX、sled の band を持たない RS_HILL_SHORT の MAX_INTENT）。
+  - `LOW`: 優先度の高いデータ参照が使えずに落ちてきた fallback（MV の MAX_INTENT、TE の RELAXED_SUBMAX、sled の MAX_INTENT 等。§4.6 表どおり）。
+  - コーチ入力の参照（RACE_PACE / TARGET_SPLIT / COACH_DEFINED / 実測 vdec）は MEDIUM、`VELOCITY_DECREMENT.measured=false` は LOW。
+  - §4.1 の GROUP の上限（最大 LOW）は参照依存のときだけ適用し、NOT_REQUIRED には適用しない。
+  - `derivePrescriptionConfidence` では **中立**: LOW 条件（LOW / NONE）にも MODERATE 条件（MEDIUM）にも該当せず、confidence は
+    Evidence / directness / 履歴だけで決まる。初期 RuleSet は全 Evidence が SECONDARY_REPORT_ONLY のため、NOT_REQUIRED でも最高 MODERATE。
 
 ### 5.5 挙動への接続（表示だけで終わらせない）[ENGINE-POLICY]
 
@@ -758,6 +824,18 @@ export type RuleSet = {
 };
 ```
 
+- **[R4 errata]** planning が人間向け文字列や ID の命名規約を実行ロジックにしないよう、構造メタデータを追加する
+  （rs-2026.09.0 は DRAFT のまま・数値データは不変・changelog に記録・manifest hash 更新）:
+  - `EligibilityRule.conditions` / `EligibilityRule.autoGenerationLimits`（§4.4 R4 errata）
+  - `SessionTemplate.approachType`（EVENT_APPROACH_SPEED の SHORT / FULL）、`SessionTemplate.resistanceBand`（sled の負荷 band。
+    VELOCITY_DECREMENT.band と照合）、`SessionTemplate.fixedDistanceField`（`displayDistanceM` を固定値として使うフィールド。
+    null なら displayDistanceM は表示専用）
+  - `StopPolicy.appliesToEligibilityPath`（`ANY` / `AUTO_CONDITIONS_MET` / `MANUAL_OR_OVERRIDE`。§10.3 R4 errata）
+  - `PlausibilityRule.inputTarget`（scope=INPUT の行が検査する入力: TIMED_MARK の event / HEIGHT_CM / COACH_EDIT_APPROACH_DISTANCE_M）
+  - `eventDefinitions`（`timedMarks[]: { event, distanceM, segment: FROM_START | FLY_ZONE }`、`raceEvents[]: { event, distanceM, hurdles }`。
+    "FLY20" や "400m" の文字列から距離を読み取らないための種目定義）
+  - RuleSet の行は id の**完全一致で参照するだけ**で、id・templateId・表示名を解析して意味を取り出さない。
+
 ### 6.2 不変性と追跡
 - [ENGINE-POLICY] `rules/manifest.json` に `{ version, status, contentHash(sha256 of canonical JSON), validFrom }` を列挙。
 - [ENGINE-POLICY] テスト `rules-manifest.test.ts` が各ファイルの hash を計算し manifest と照合。**status が ACTIVE/RETIRED になった版のファイルを 1 byte でも変えるとテスト失敗**。DRAFT 版だけ編集可（hash 更新を伴う）。
@@ -829,6 +907,30 @@ export type Envelope = {
 - 丸め: 距離 50m 以上は 10m 単位、未満は 5m 単位／秒は 30秒単位（60秒未満は 15秒単位）／回数は `UPPER_HALF` のみ四捨五入、それ以外は切り捨て。すべて `recommended.min` 未満にしない。
 - template が距離を固定する場合（`ACC_BLOCK_20` = 20m、`MV_FLY20` = fly 20m 等）は template 値を優先し、範囲外なら Finding。
 - 解決順: ①template 固定値 → ②`totalReps` を reps 範囲かつ `sessionVolumeM`（または `flyVolumeM`）範囲に収まる最大値で決定 → ③`sets` を最小にし `repsPerSet` を範囲内に → ④rest。解が無ければ `ENVELOPE_INFEASIBLE`（BLOCK_AUTOGEN）。
+- **[R4 errata]** 丸め・解決順の実装で確定した事項（係数は一切使わない）:
+  - rest（repRestS / setRestS / intraRepRestS）は「最低この時間」なので秒の単位（30秒 / 60秒未満は15秒）へ**切り上げ**、
+    recommended.max を超える場合は max。切り捨てると MIDDLE より短くなり §9.3 の「rest は常に MIDDLE 以上」に反するため。
+  - 1本の時間（repDurationS。7–15秒等）に 15/30 秒単位を当てると範囲が潰れる（常に min になる）ため、**1秒単位で切り捨て**
+    （recommended.min 未満にしない）。
+  - ① の template 固定値は `SessionTemplate.fixedDistanceField`（repDistanceM / flyZoneM）が指すフィールドだけに適用し、値は
+    `displayDistanceM`（origin=TEMPLATE_FIXED）。SES の displayDistanceM は表示専用で固定しない。
+  - ② の「reps 範囲」は `totalReps`（EVENT_APPROACH_SPEED は `attempts`）の recommended.min 〜 位置で置いた値、「総量範囲」は
+    recommended.min 〜 位置の点（丸めなし）。`EligibilityRule.autoGenerationLimits.maxTotalReps` もここで上限に加える。
+    ③ の sets / repsPerSet は、totalReps セルを持つ Method では recommended 内の構造的な分解（origin=SOLVER_DERIVED、位置上限は
+    総本数と総量に適用済み）、totalReps セルを持たない Method（TEMPO / STRIDE）では sets / repsPerSet 自体に位置上限を適用する。
+    sets × repsPerSet = totalReps（端数を作らない）。
+  - **RunningPrescription schemaVersion=1 の構造正規化規則**: RuleSet に sets の次元（sets セル）が存在しない template
+    （LONG / RESISTED / ASSISTED / EVENT_APPROACH）は、単一 set の表現として `sets = 1` を origin=`STRUCTURAL_FIXED`
+    （range [1,1]・evidenceIds 空・position なし）で snapshot する。これは **training dose の推奨ではなく**、sets / repsPerSet 非 null の
+    不変条件（§2.5）を満たすための表現規則であり、rationale で「セット数の推奨ではない」ことを示す。将来 RuleSet に sets セルが
+    追加されたら必ずそちらを使う。repsPerSet セルが無い Method の repsPerSet は totalReps（attempts）セルの範囲で表し、
+    コーチが sets を入力した場合の「総本数 ÷ sets」も STRUCTURAL_FIXED（coachEditable 内必須、recommended 外は WARN）。
+  - コーチが回数（totalReps / sets / repsPerSet）のいずれかを入力した場合、総量は位置上限ではなく coachEditable で検査する
+    （外なら CoachOverride、recommended 外なら WARN）。総量（sessionVolumeM / flyVolumeM）は回数×距離の結果であり、
+    CoachFieldEdit の対象にしない。
+  - MAX_VELOCITY の減速区間（decelerationM）は安全のための距離なので、rest と同じく低 confidence / LOWER 希望で短くしない（MIDDLE）。
+  - template 固定値が coachEditable の外（例: DEVELOPMENTAL の ACC_BLOCK_40 = 40m > 30m）の場合、値を clamp せず、
+    AI / SYSTEM は BLOCKED、COACH は `newValue` = template 値の FIELD override を付けたときだけ処方する。
 
 ### 7.4 rs-2026.09.0 の Envelope 値
 
@@ -1115,6 +1217,45 @@ export type PlanResult =
 ```
 
 - `ruleSetVersion` は PlanRequest に**含めない**（サーバーが `getActiveRuleSet(plannedDate ?? today)` で決める）。テスト用に loader を差し替える口だけ用意。[ENGINE-POLICY]
+- **[R4 errata]** 入出力は次のとおり確定する（`src/domain/running/planning/schema.ts` の Zod が正）:
+  - `planningDate: IsoDate` を追加（必須・実在する日付）。RuleSet の選択（`getActiveRuleSet(planningDate)`）・ageBand・記録の鮮度の
+    評価基準日。`menuContext.plannedDate` は null 可、非 null なら `planningDate` と一致しなければならない。domain は
+    `Date.now()` / `new Date()` を使わない（上の `plannedDate ?? today` はサーバー側が planningDate を決める規則として読む）。
+  - `ruleSetVersion` は `.strict()` で拒否する。処方には `ruleSet: { version, contentHash, status }` を埋め込み、contentHash は
+    検証済み `manifest.json` から取る（domain で hash を再計算しない）。
+  - `coachReference: CoachReferenceInput | null` を追加。`IntensityReference` のうち `RACE_PACE` / `TARGET_SPLIT` /
+    `VELOCITY_DECREMENT` / `COACH_DEFINED` だけを受け付ける（MEASURED_VMAX / FLY_SPLIT / SAME_DISTANCE_BEST をコーチ入力で偽装させない）。
+    目標区間の lower / upper は正の有限値必須。kind は MethodMeta（allowedIntensityReferences + intensityFallback）で許可されている
+    必要があり、VELOCITY_DECREMENT の band は `SessionTemplate.resistanceBand` と一致しなければならない（band を持たない template では使えない）。
+  - actor が AI_PLANNER / SYSTEM のとき `coachEdits=[]`・`overrides=[]`・`coachReference=null`（schema で拒否）。COACH の actor と
+    `overrides[].actor` は branded `CoachActor`（認証ではない）で、ownerId が一致しなければならない。
+  - **[R4 transitional restriction]**（最終的な PlanRequest contract ではない。R5 / R6 / R7 の型を先行実装しないための暫定制限）:
+    `readiness` は R5 の `ReadinessDecision` 型が未実装のため **`null` 固定**（非 null を黙って無視すると pain gate を素通りさせるため拒否。
+    **R5 で開放**）。`menuContext.otherItems` は **R6 で開放**、`menuContext.competitions` は **R7 で開放**（それまで空配列のみ）。
+    `history`（R1 の `LoadEvent[]`）と `menuContext.phase` は既存の型で安全に受け取れるため受け付けるが、R4 では評価しない（中立。
+    週次・履歴・phase の評価は **R7 で接続**）。
+  - `CoachFieldEdit = { field: EnvelopeField | "approachDistanceM"; value: number（有限）; unit: Unit }`（strict・field 重複不可）。
+    field は選択した template の Envelope に存在し、その処方で実際に使われなければならない（使われない edit は BLOCKED
+    `COACH_EDIT_NOT_APPLICABLE`）。`approachDistanceM` は EVENT_APPROACH_SPEED だけ。同じ field に edit と FIELD override は併用不可。
+  - `CoachOverride` は §8.3 の型どおり（reason はトリム後 10 文字以上、ELIGIBILITY / HARD_SAFETY は confirmedTwice=true、
+    FIELD は newValue 必須、ELIGIBILITY は newValue 不可）。ELIGIBILITY override の ruleId は INELIGIBLE の原因として報告された id
+    （EligibilityRule.ruleId / ConstraintRule.id / R4 の advancedOnly gate id `ADVANCED_ONLY:<templateId>` — templateId から組み立てる
+    識別子で、文字列を解析しない）でなければならない。`EligibilityRule.conditions.whenUnmet = INELIGIBLE_NON_OVERRIDABLE` による不適格
+    （reason `ELIGIBILITY_CONDITIONS_UNMET`、ruleId はその EligibilityRule の id）は常に override 不可。
+  - `PlanResult`:
+    ```ts
+    type PlanResult =
+      | { status: "OK"; prescription: RunningPrescriptionValue; sessionFindings: Finding[] }
+      | { status: "INELIGIBLE"; reasons: EligibilityReason[]; substitutes: RunningSelection[]; findings: Finding[] }  // findings を追加
+      | { status: "BLOCKED"; findings: Finding[] };
+    ```
+    INELIGIBLE の `findings` を追加し、§6.2 の「DRAFT fallback 時は全出力に `RULESET_DRAFT`（INFO）」を満たす（RuleSet を選んだ後の
+    OK / INELIGIBLE / BLOCKED はすべて RULESET_DRAFT を持つ。PlanRequest が parse できず RuleSet 選択前に BLOCKED になる場合は付けない）。
+    責務: 不適格の**理由そのもの**は `EligibilityReason`、結果の種類に依らない**横断情報**（RULESET_DRAFT、PHASE / WEEKLY の
+    NOT_EVALUATED、入力確認など）は `Finding`。同じ内容を二重化しない。
+    `sessionFindings` は R6 まで常に `[]`、`substitutes` は R4 では `[]`。PlanRequest が schema を満たさない場合は例外にせず
+    `BLOCKED`（`PLAN_REQUEST_INVALID`）。
+  - `EligibilityReason = { code; ruleId: string | null; overrideAllowed: boolean | null }`。
 
 ### 9.2 最終 Pipeline（レビュー済み・確定）
 
@@ -1175,6 +1316,11 @@ export type RestPlan = {
 - 出力値は Envelope の `repRestS` / `setRestS` から §9.3 の位置で置く。**計算式を持たない。** [ENGINE-POLICY]
 - UKA「疾走1秒につき1–2分」は youth 20m 約2分の例と整合しないため、**rs-2026.09.0 では生成にもチェックにも使わない**。[OPEN-14]
 - 「10m=60秒」は使わない。[SOURCE-BACKED 否定: 全DR]
+- **[R4 errata]** `feasibility` の R4 と R6 の責務境界: R4（1項目）は、**mandatory な rest（＋時間が確定している走行時間:
+  DURATION rep の時間、TARGET_SPLIT の目標下限の合計）だけで** `availableMinutes` を明らかに超えるときだけ `EXCEEDS_AVAILABLE_TIME`
+  （WARN `REST_INFEASIBLE_FOR_PRACTICE`）。移動・準備・走行時間が不明な rep・同じメニューの他項目を含む総所要時間は R4 では確定しないため、
+  収まりそうでも `OK` と断定せず `UNKNOWN`（`availableMinutes = null` も `UNKNOWN`）。rest + 走行時間 + 他項目の評価は R6 の
+  Session Aggregation が行う。rest を時間不足に合わせて短縮しない原則は変えない。
 
 ### 9.5 個別化（目標値は区間で出す）[ENGINE-POLICY]
 
@@ -1189,6 +1335,26 @@ export type RestPlan = {
 
 - 丸め: HAND/UNKNOWN 由来は 0.1秒、それ以外は 0.01秒。区間は外側に丸める。
 - 目標タイムは **ATHLETE subject のときだけ**出す（GROUP では出さない）。
+- **[R4 errata]** 個別化の実装で確定した事項:
+  - 参照は MethodMeta.allowedIntensityReferences（→ intensityFallback）の順で、R3 `resolveReference()` の解決ロジック（鮮度・
+    計時法・fly split 区間）を1 kind ずつ再利用して決める。100m PB → Vmax は推定しない。
+  - MEASURED_VMAX: `athlete.vmax` を優先。FLY_SPLIT を別 kind に持たない Method（TE / TI / SES / ASSISTED）では、fly 記録から
+    R3 が導出した VelocityEstimate（source=FLY_SPLIT_*）も MEASURED_VMAX として使う（T-MISS-03）。FLY_SPLIT の区間距離は
+    `eventDefinitions.timedMarks`（segment=FLY_ZONE）の distanceM。
+  - SAME_DISTANCE_BEST は rep と同じ距離の記録だけ（距離は `eventDefinitions` から読む。template の displayDistanceM、LONG は
+    template.primaryEvents のハードルでないレース種目の距離）。R3 の方針どおり 100m 記録は同距離 best に使わない。
+  - **SAME_DISTANCE_BEST から数値 target を生成するのは、該当 Envelope に versioned な `intensityPercent` の範囲が存在する場合のみ**
+    （target = best / p）。`intensityPercent` セルを持たない Method（SES / LONG）では reference は保持するが `target = null`。
+    p の値（95% 等）を Method 名や経験則から推測しない。MEASURED_VMAX の `distance / (v × p)` も同じ。
+  - RACE_PACE / TARGET_SPLIT は target にコーチ入力をそのまま入れる（TARGET_SPLIT は区間の合計）。丸めない。RACE_PACE の表示距離は
+    `eventDefinitions.raceEvents` の distanceM × 時間 ÷ 目標タイムの区間。
+  - VELOCITY_DECREMENT は band の `vdecPercent` セルの recommended を `QuantityInterval<"percent">`（RULE_DEFINITION）で出す。
+    ASSISTED_SPRINT はコーチ入力の intensityPercent を percent target として出す。NOT_REQUIRED の参照は target を持たない。
+  - LONG: FULL で TARGET_SPLIT のときは SPLIT rep（区間距離はコーチ入力、合計目標時間は repDurationS の範囲で検査）、RACE_PACE /
+    SAME_DISTANCE_BEST のときは DURATION rep（表示距離は時間×速度の区間。同距離 best は下端 null）。INCOMPLETE は 2 区間以上の
+    TARGET_SPLIT が必須（無ければ INELIGIBLE `REFERENCE_UNAVAILABLE`）で、区間休息は intraRepRestS。
+  - EVENT_APPROACH_SPEED の SHORT / FULL は `SessionTemplate.approachType` から読む。
+  - 目標値の区間計算（§9.2 step 9）は、template 固定値・位置で置いた rep 距離が決まった後（step 12 の後）に行う。
 
 ---
 
@@ -1266,6 +1432,11 @@ export function monitorRunningPrescription(state: MonitorState, obs: RepObservat
 
 - 判断: 「LONG で疲労を目的に含むため Vmax 低下だけで止めない」は [SOURCE-BACKED]（ChatGPT DR）。「止めない設計を POST+ADVANCED に限定」は [ENGINE-POLICY]（Fable C-7・要件§14）。
 - **技術評価はコーチ入力のみ**（`COACH_JUDGMENT`）。エンジンは推定しない。AI の生成文に「フォームが崩れたら中止」を出させない（§18）。[ENGINE-POLICY]（Fable M-4）
+- **[R4 errata]** plan 時の stop policy の選択は、MethodMeta.stopPolicyIds のうち method・`appliesToRecoveryStructure` が一致し、
+  `StopPolicy.appliesToEligibilityPath` が処方経路に適用されるものを一意に選ぶ（policy id の文字列では選ばない）:
+  `ANY` = 経路に依らない／`AUTO_CONDITIONS_MET` = override なしで eligibility が AUTO（構造化条件を満たす）だった処方
+  （rs-2026.09.0 では SP_LSR_INCOMPLETE_ADV）／`MANUAL_OR_OVERRIDE` = 手動選択・override 経由の処方（SP_LSR_INCOMPLETE_STRICT）。
+  選ばれた policy の行と全 TimingTolerance の行は `RunningPrescription.monitoringSnapshot` にコピーする（§17.1-5）。
 
 ### 10.4 Runtime pipeline（確定）
 
@@ -1346,6 +1517,11 @@ RELAY（助走付き区間）         → lower = max(0, leg − 20) × n, upper
 
 - A の値: 若年・初心者は 20–30m 付近で最高速度近くに達し、上級者はより長く加速する、という方向は [SOURCE-BACKED]（Gemini/Perplexity/ChatGPT DR・Fable H-4）。**区間の数値は [ENGINE-POLICY]**。`distance − A` を真値として扱わず、常に区間で持つ。
 - 旧来の legacy 走種目（Exercise の SPRINT 等、v2 ではない項目）: `sets/reps` の意味が曖昧なため、総走行距離を **下限 = 距離×sets、上限 = 距離×sets×(reps ?? 1)** の区間で持つ（監査 C-1 の曖昧さを区間で表す）。
+- **[R4 errata]** R4 は項目単位の露出だけを出す（集計は R6）。推定加速距離 A の区間を TS 定数として持たない（RuleSet に未収録）ため:
+  NONE → [0, 0]（RULE_DEFINITION）、FLY_ZONE → [fly×n, (fly + buildUp)×n]（ESTIMATED。build-up 全体を上端に含める安全側の上限）、
+  DISTANCE_MINUS_ACCEL_INTERVAL / WHOLE_REP → [null, d×n]（ESTIMATED。A を要する下端は null で 0 にしない）。
+  nearMaxSprintVolumeM は上表どおり（EA SHORT と TE / TI / STRIDE は [0, 0] RULE_DEFINITION、EA FULL は助走距離の入力が無ければ null）。
+  SES の表示距離は template の displayDistanceM（RULE_DEFINITION）、LONG INCOMPLETE は計画した区間の合計だけ。
 
 ### 11.3 null / UNKNOWN の伝播規則 [ENGINE-POLICY]
 - 1項目でも bound が null → 合計のその bound は null、`completeness = "PARTIAL"`、Finding `AGG_INCOMPLETE_DATA`（INFO）。
@@ -1770,6 +1946,9 @@ export type Provenance = {
 3. `SessionItem` の planned 系列（既存 planned* と v2 追加列）は**作成後に更新しない**。更新してよいのは actual 系列だけ。
 4. ルールセットの改版、MenuItem の編集、Exercise の編集・削除、レンダラ（日本語文言）の変更は、**既存 SessionItem の計画値・理由文を変えない**。
 5. Stop policy と timing tolerance は plan 時に `prescriptionJson` に**埋め込む**。monitor はスナップショットの値で判定する（ルールセット改版後も当時の基準で判定）。
+   - **[R4 errata]** 埋め込み先は `RunningPrescription.monitoringSnapshot`（`stopPolicy` = 選ばれた StopPolicy の行のコピー、
+     `timingTolerances` = plan 時点の全 TimingMethod の行のコピー）。`stopPolicyId` は検索・表示用。RuleSet を後から変更しても
+     既存処方の snapshot は変わらないことを R4 のテストで保証する（monitor 本体は R8）。
 6. 理由文は plan 時に**レンダリング済みテキスト**で保存する（コードも保存するが、後から再レンダリングしない）。
 
 ### 17.2 コピー対応表（MenuItem → SessionItem）
@@ -2081,6 +2260,31 @@ export function proposalToPlanRequests(
 | 既存互換 | UI・DB 未接続 |
 | 完了条件 | グリッド全組み合わせで PROPERTY の6条件が成立。rationale にエンジン内部の enum キーが出ない |
 | rollback | `planning/` `rationale/` とテストを削除 |
+
+- **[R4 errata]** 実装時の補足（R4 pre-commit 補正後）:
+  - 追加の helper ファイル: `planning/schema.ts`（PlanRequest / PlanResult / CoachFieldEdit / CoachOverride / coachReference の Zod）、
+    `planning/validatePrescription.ts`（RuleSet-aware な出力検証）。既存ファイルの変更は `types/prescription.ts`（§2.4 errata）、
+    `evidence/confidence.ts`（§5.4 NOT_EVALUATED / NOT_REQUIRED）、`rules/schema.ts` と `rules/sets/rs-2026.09.0.json`・
+    `rules/manifest.json`（§6.1 R4 errata の構造メタデータ。数値は不変）、`rules/loader.ts`（manifest の contentHash を返す）、
+    `index.ts`（`planRunningPrescription` / `PlanRequest` / `PlanResult` のみ追加）。
+  - step 2・11: `readiness` は null 固定（`readinessApplied=[]`）。step 4・5: Finding `PHASE_COMPETITION_NOT_EVALUATED` /
+    `WEEKLY_CONTEXT_NOT_EVALUATED`（INFO）。step 14: 未実装（出力 plausibility・集計なし、`sessionFindings=[]`）。
+  - eligibility: §4.4 の表と §8.2 の制約は R3 の解決結果をそのまま使い、R4 は下向きの判定だけを足す — requiresPhaseEvaluation の
+    行は AUTO にしない（COACH は手動+REVIEW、AI/SYSTEM は INELIGIBLE）、`EligibilityRule.conditions` を満たさなければ `whenUnmet` に従う
+    （AUTO 行は手動+REVIEW、MANUAL 行は override 不可の INELIGIBLE）、complexity が自動生成の上限を超えれば手動+REVIEW、advancedOnly
+    （template / MethodMeta）は EnvelopeTier=ADVANCED かつ allowAdvancedMethods でなければ INELIGIBLE（COACH は override 可）。
+    ASSISTED_SPRINT は構造化条件の結果が R3 `isAssistedManualCandidate` と一致することを防御的に確認する（不一致は RuleSet 不整合として BLOCKED）。
+    planning は conditionNote・ruleId・templateId・event 名の文字列を解析しない（grep テストと、conditionNote / id を書き換えた RuleSet での
+    同一結果テストで保証）。
+  - BLOCK_AUTOGEN（§5.5 の LOW/POLICY_ONLY × HIGH_METABOLIC、MANUAL / 条件付き自動）は AI_PLANNER / SYSTEM にだけ適用し、
+    PlanResult は `INELIGIBLE`。`ENVELOPE_INFEASIBLE`（Finding severity=BLOCK_AUTOGEN）は actor に関わらず `BLOCKED`
+    （コーチは回数等を入力して解消する）。rs-2026.09.0 では位置上限（特に LOW / POLICY_ONLY → LOWER_HALF）と sessionVolumeM の
+    下限が両立しない context があり（例: ADVANCED の ACC_BLOCK_10、DEVELOPMENTAL の TE_200 / TE_300、RACE_PACE / 同距離 best で
+    1本の時間をエンジンが置く LONG）、その場合は数値を作らず BLOCKED になる（数値を広げて隠さない）。
+  - 38 template の到達可能性監査（`planning-grid.test.ts`）: AUTO_REACHABLE 19 / COACH_MANUAL_REACHABLE 10（SES ×4 は §4.5 の phase 依存で
+    R7 まで AI の自動生成なし、LONG ×6 は AI では参照が無いか HIGH_METABOLIC × POLICY_ONLY で自動生成なし）/ INTENTIONALLY_MANUAL_ONLY 9
+    （TI ×2、RS_SLED_HEAVY、ASSISTED ×2、EVENT_APPROACH ×4）/ UNREACHABLE 0。AUTO 候補の行を持つ template で、eligibility を通過した
+    AI の経路がすべて ENVELOPE_INFEASIBLE になるものは無い。
 
 ### R5 — Readiness / Pain gate
 

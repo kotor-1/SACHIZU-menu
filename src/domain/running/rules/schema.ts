@@ -30,14 +30,16 @@ import {
   TEMPLATE_IDS_BY_METHOD,
 } from "../types/template";
 import {
+  RACE_EVENTS,
   anyUnitRangeSchema,
   evidenceIdSchema,
   isoDateSchema,
+  raceEventSchema,
   stopPolicyIdSchema,
 } from "../types/primitives";
-import { envelopeTierSchema } from "../types/subject";
+import { envelopeTierSchema, trainingAgeTierSchema } from "../types/subject";
 import { loadCategorySchema } from "../types/load";
-import { INTENSITY_REFERENCE_KINDS, timingMethodSchema } from "../types/intensity";
+import { INTENSITY_REFERENCE_KINDS, TIMED_MARK_EVENTS, timedMarkEventSchema, timingMethodSchema } from "../types/intensity";
 import { evidenceRecordSchema } from "../evidence/schema";
 
 // ---------------------------------------------------------------------------
@@ -136,6 +138,18 @@ export const COMPLEXITIES = ["LOW", "MEDIUM", "HIGH"] as const;
 export const complexitySchema = z.enum(COMPLEXITIES);
 export type Complexity = z.infer<typeof complexitySchema>;
 
+/**
+ * [R4 structured metadata] planning が template の意味を ID・表示名から推測しないための機械可読フィールド。
+ *   - `approachType`: EVENT_APPROACH_SPEED の助走区分（§4.4 の SHORT / FULL）。他 Method は null
+ *   - `resistanceBand`: RESISTED_SPRINT の sled 負荷 band（VELOCITY_DECREMENT.band と一致させる）。
+ *     vdec を使わない template（HILL）と他 Method は null
+ *   - `fixedDistanceField`: `displayDistanceM` を処方値として固定するフィールド（§7.3 ①）。
+ *     null = displayDistanceM は表示専用（SES 等）または距離を固定しない
+ */
+export const APPROACH_TYPES = ["SHORT", "FULL"] as const;
+export const RESISTANCE_BANDS = ["LIGHT", "MODERATE", "HEAVY", "VERY_HEAVY"] as const;
+export const FIXED_DISTANCE_FIELDS = ["repDistanceM", "flyZoneM"] as const;
+
 export const ruleSetSessionTemplateSchema = z.object({
   id: sessionTemplateIdSchema,
   method: runningTrainingMethodSchema,
@@ -148,6 +162,9 @@ export const ruleSetSessionTemplateSchema = z.object({
   advancedOnly: z.boolean(),
   primaryEvents: z.array(raceEventForTemplateSchema).optional(),
   complexity: complexitySchema,
+  approachType: z.enum(APPROACH_TYPES).nullable(),
+  resistanceBand: z.enum(RESISTANCE_BANDS).nullable(),
+  fixedDistanceField: z.enum(FIXED_DISTANCE_FIELDS).nullable(),
 });
 export type RuleSetSessionTemplate = z.infer<typeof ruleSetSessionTemplateSchema>;
 
@@ -257,6 +274,52 @@ export const maturityCategorySchema = z.enum(MATURITY_CATEGORIES);
 export const ELIGIBILITY_OUTCOMES = ["AUTO", "MANUAL", "INELIGIBLE"] as const;
 export const eligibilityOutcomeSchema = z.enum(ELIGIBILITY_OUTCOMES);
 
+/**
+ * [R4 structured metadata] EligibilityRule の追加条件（§4.5）。`conditionNote` は説明専用で、
+ * planning は conditionNote を読まずにこの構造だけで判定する。
+ *   - requires*: すべて満たしたときだけ行の outcome をそのまま使う
+ *   - whenUnmet: 条件を満たさないときの扱い。`MANUAL_WITH_REVIEW`（AUTO 行: 自動生成しない・コーチ手動+REVIEW）/
+ *     `INELIGIBLE_NON_OVERRIDABLE`（MANUAL 行: 選択不可・override 不可）。requires* が1つも無ければ null
+ * phase に依存する条件は `requiresPhaseEvaluation` で表し、ここには置かない（R7）。
+ */
+export const ELIGIBILITY_UNMET_ACTIONS = ["MANUAL_WITH_REVIEW", "INELIGIBLE_NON_OVERRIDABLE"] as const;
+
+export const eligibilityConditionsSchema = z
+  .object({
+    requiresEnvelopeTier: envelopeTierSchema.nullable(),
+    requiresTrainingAgeTiers: z.array(trainingAgeTierSchema).min(1).nullable(),
+    requiresPrimaryEvents: z.array(raceEventSchema).min(1).nullable(),
+    requiresAllowAdvancedMethods: z.boolean(),
+    requiresMeasuredVelocityDecrement: z.boolean(),
+    requiresVmaxConfidenceAtLeast: z.enum(["MEDIUM", "HIGH"]).nullable(),
+    whenUnmet: z.enum(ELIGIBILITY_UNMET_ACTIONS).nullable(),
+  })
+  .strict();
+export type EligibilityConditions = z.infer<typeof eligibilityConditionsSchema>;
+
+export function eligibilityConditionsHaveRequirement(c: EligibilityConditions): boolean {
+  return (
+    c.requiresEnvelopeTier !== null ||
+    c.requiresTrainingAgeTiers !== null ||
+    c.requiresPrimaryEvents !== null ||
+    c.requiresAllowAdvancedMethods ||
+    c.requiresMeasuredVelocityDecrement ||
+    c.requiresVmaxConfidenceAtLeast !== null
+  );
+}
+
+/**
+ * [R4 structured metadata] エンジンが値を置くときの上限（§4.4 の「自動（reps≤3）」「自動（lower half）」）。
+ * コーチが明示入力した値には適用しない（超えた場合は REQUIRE_COACH_REVIEW）。
+ */
+export const autoGenerationLimitsSchema = z
+  .object({
+    maxTotalReps: z.number().int().positive().nullable(),
+    positionCap: z.enum(["LOWER_HALF"]).nullable(),
+  })
+  .strict();
+export type AutoGenerationLimits = z.infer<typeof autoGenerationLimitsSchema>;
+
 export const eligibilityRuleSchema = z
   .object({
     ruleId: z.string().min(1),
@@ -278,8 +341,25 @@ export const eligibilityRuleSchema = z
      * の値・意味は一切変更していない。
      */
     requiresPhaseEvaluation: z.boolean(),
+    conditions: eligibilityConditionsSchema,
+    autoGenerationLimits: autoGenerationLimitsSchema,
   })
   .superRefine((rule, ctx) => {
+    const hasRequirement = eligibilityConditionsHaveRequirement(rule.conditions);
+    if (hasRequirement !== (rule.conditions.whenUnmet !== null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "conditions.whenUnmet は requires* が1つ以上あるときだけ（かつそのとき必ず）指定します",
+        path: ["conditions", "whenUnmet"],
+      });
+    }
+    if (rule.outcome === "INELIGIBLE" && (hasRequirement || rule.autoGenerationLimits.maxTotalReps !== null || rule.autoGenerationLimits.positionCap !== null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "outcome=INELIGIBLE の行は conditions / autoGenerationLimits を持てません",
+        path: ["conditions"],
+      });
+    }
     if (rule.outcome === "INELIGIBLE" && rule.overrideAllowed === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -318,6 +398,17 @@ const thresholdSchema = z
   })
   .nullable();
 
+/**
+ * [R4 structured metadata] scope=INPUT の plausibility がどの入力を検査するか。planning は ruleId ではなく
+ * この構造で対象の行を選ぶ。
+ */
+export const plausibilityInputTargetSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("TIMED_MARK"), event: timedMarkEventSchema }).strict(),
+  z.object({ kind: z.literal("HEIGHT_CM") }).strict(),
+  z.object({ kind: z.literal("COACH_EDIT_APPROACH_DISTANCE_M") }).strict(),
+]);
+export type PlausibilityInputTarget = z.infer<typeof plausibilityInputTargetSchema>;
+
 export const plausibilityRuleSchema = z
   .object({
     ruleId: z.string().min(1),
@@ -334,8 +425,16 @@ export const plausibilityRuleSchema = z
     /** scope="RATIO" のときのみ設定（例: totalReps ≥ recommended.totalReps.max × 3）。 */
     ratioMultiplier: z.number().positive().nullable(),
     note: z.string().nullable(),
+    inputTarget: plausibilityInputTargetSchema.nullable(),
   })
   .superRefine((rule, ctx) => {
+    if ((rule.scope === "INPUT") !== (rule.inputTarget !== null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "inputTarget は scope=INPUT の行にだけ（かつ必ず）指定します",
+        path: ["inputTarget"],
+      });
+    }
     if (rule.scope === "RATIO" && rule.ratioMultiplier === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -392,8 +491,47 @@ export const stopPolicySchema = z.object({
   ruleDescriptionJa: z.string().min(1),
   consecutiveFailuresToStop: z.number().int().positive().nullable(),
   numericStopAvailable: z.boolean(),
+  /**
+   * [R4 structured metadata] 同じ method × recoveryStructure に複数 policy がある場合の選択条件（§10.3）。
+   *   ANY: 唯一の policy / AUTO_CONDITIONS_MET: eligibility が override なしで AUTO 条件を満たした処方 /
+   *   MANUAL_OR_OVERRIDE: 手動選択・override 経由の処方。planning は policy id の文字列で選ばない。
+   */
+  appliesToEligibilityPath: z.enum(["ANY", "AUTO_CONDITIONS_MET", "MANUAL_OR_OVERRIDE"]),
 });
 export type StopPolicy = z.infer<typeof stopPolicySchema>;
+
+// ---------------------------------------------------------------------------
+// Event definitions（[R4 structured metadata]）
+// ---------------------------------------------------------------------------
+
+/**
+ * 計時記録の種目（TimedMark.event）とレース種目（RaceEvent）の距離定義。planning が "FLY20" / "400m" の
+ * ような文字列から距離を読み取らないために RuleSet に置く（研究由来の数値ではなく種目の定義）。
+ */
+export const eventDefinitionsSchema = z
+  .object({
+    timedMarks: z.array(
+      z
+        .object({
+          event: timedMarkEventSchema,
+          distanceM: z.number().positive(),
+          /** FROM_START = スタートからの計時 / FLY_ZONE = 助走後の計測区間 */
+          segment: z.enum(["FROM_START", "FLY_ZONE"]),
+        })
+        .strict(),
+    ),
+    raceEvents: z.array(
+      z
+        .object({
+          event: raceEventSchema,
+          distanceM: z.number().positive(),
+          hurdles: z.boolean(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+export type EventDefinitions = z.infer<typeof eventDefinitionsSchema>;
 
 // ---------------------------------------------------------------------------
 // ConstraintRule（§8.2, §7.5。R3で正式化。R2では z.array(z.never()) で空配列固定していた）
@@ -497,6 +635,7 @@ export const ruleSetSchema = z
     competitionRules: notYetImplementedArraySchema,
     plausibility: z.array(plausibilityRuleSchema),
     vmaxEstimationModels: notYetImplementedArraySchema,
+    eventDefinitions: eventDefinitionsSchema,
   })
   .superRefine((rs, ctx) => {
     // ---- Method / Template -------------------------------------------------
@@ -580,6 +719,28 @@ export const ruleSetSchema = z
           code: z.ZodIssueCode.custom,
           message: `${t.method} の template は recoveryStructure が null である必要があります`,
           path: ["templates", i, "recoveryStructure"],
+        });
+      }
+      // [R4 structured metadata] の整合。
+      if ((t.method === "EVENT_APPROACH_SPEED") !== (t.approachType !== null)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "approachType は EVENT_APPROACH_SPEED の template にだけ（かつ必ず）指定します",
+          path: ["templates", i, "approachType"],
+        });
+      }
+      if (t.resistanceBand !== null && t.method !== "RESISTED_SPRINT") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "resistanceBand は RESISTED_SPRINT の template にだけ指定できます",
+          path: ["templates", i, "resistanceBand"],
+        });
+      }
+      if (t.fixedDistanceField !== null && t.displayDistanceM === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "fixedDistanceField を指定する template は displayDistanceM（固定する値）が必要です",
+          path: ["templates", i, "fixedDistanceField"],
         });
       }
     }
@@ -699,6 +860,40 @@ export const ruleSetSchema = z
       }
       stopPolicyIdsSeen.add(sp.id);
     }
+    // [R4] method × recoveryStructure ごとに、ANY が1件だけ、または AUTO_CONDITIONS_MET と
+    // MANUAL_OR_OVERRIDE が1件ずつ（policy を一意に選べること）。
+    const policyGroups = new Map<string, typeof rs.stopPolicies>();
+    for (const sp of rs.stopPolicies) {
+      const key = `${sp.method}::${sp.appliesToRecoveryStructure ?? "NULL"}`;
+      policyGroups.set(key, [...(policyGroups.get(key) ?? []), sp]);
+    }
+    for (const [key, group] of policyGroups) {
+      const paths = group.map((sp) => sp.appliesToEligibilityPath).sort().join(",");
+      if (paths !== "ANY" && paths !== "AUTO_CONDITIONS_MET,MANUAL_OR_OVERRIDE") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `StopPolicy（${key}）の appliesToEligibilityPath は ANY 1件、または AUTO_CONDITIONS_MET + MANUAL_OR_OVERRIDE の1件ずつである必要があります（実際: ${paths}）`,
+          path: ["stopPolicies"],
+        });
+      }
+    }
+
+    // ---- Event definitions --------------------------------------------------------
+    const markEventsSeen = new Set<string>();
+    for (const [i, def] of rs.eventDefinitions.timedMarks.entries()) {
+      if (markEventsSeen.has(def.event)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `eventDefinitions.timedMarks が重複しています: ${def.event}`, path: ["eventDefinitions", "timedMarks", i] });
+      }
+      markEventsSeen.add(def.event);
+    }
+    const raceEventsSeen = new Set<string>();
+    for (const [i, def] of rs.eventDefinitions.raceEvents.entries()) {
+      if (raceEventsSeen.has(def.event)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `eventDefinitions.raceEvents が重複しています: ${def.event}`, path: ["eventDefinitions", "raceEvents", i] });
+      }
+      raceEventsSeen.add(def.event);
+    }
+
     // LONG 用 stop policy と recoveryStructure の整合（§10.3）。
     const lsrStopIds = new Set(
       rs.stopPolicies.filter((sp) => sp.method === "LONG_SPRINT_RACE_SPECIFIC").map((sp) => sp.id),
@@ -818,6 +1013,15 @@ export function checkRuleSetCompleteness(rs: RuleSet): string[] {
         problems.push(`R1 型に存在する template ${id}（${method}）が RuleSet に定義されていません`);
       }
     }
+  }
+
+  const markEvents = new Set(rs.eventDefinitions.timedMarks.map((d) => d.event));
+  for (const event of TIMED_MARK_EVENTS) {
+    if (!markEvents.has(event)) problems.push(`eventDefinitions.timedMarks に ${event} がありません`);
+  }
+  const raceEvents = new Set(rs.eventDefinitions.raceEvents.map((d) => d.event));
+  for (const event of RACE_EVENTS) {
+    if (!raceEvents.has(event)) problems.push(`eventDefinitions.raceEvents に ${event} がありません`);
   }
 
   const timingMethodsSeen = new Set(rs.timingTolerances.map((t) => t.timing));

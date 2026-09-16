@@ -213,3 +213,9 @@ export { getRuleSet, getActiveRuleSet, type ActiveRuleSetResult } from "./rules/
 // R4 内部ロジック用であり root からは export しない（必要なら
 // `src/domain/running/context/*` を直接 import する）。
 export { resolveSubjectProfile, type ResolveSubjectProfileInput, type SubjectProfile } from "./context/subject";
+
+// --- Planning engine（R4） ----------------------------------------------------
+// §1.5 の R4 公開 API は `planRunningPrescription` と入出力型だけ。selectEnvelope / placeValue /
+// individualize / derivePlanningConfidence / validateSelection / buildPrescription 等の各 step と、
+// RuleSet 差し替え用の `planRunningPrescriptionWithRuleSet`（テスト専用）は root から export しない。
+export { planRunningPrescription, type PlanRequest, type PlanResult } from "./planning";

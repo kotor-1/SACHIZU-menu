@@ -349,6 +349,7 @@ describe("FlyRep", () => {
       coachEditable: { min: 0, max: 1000, unit: "m" },
       hardSafety: null,
       position: "MIDDLE",
+      origin: "ENGINE_POSITIONED",
       evidenceIds: [],
     };
   }
@@ -417,6 +418,7 @@ describe("SplitSegment", () => {
         coachEditable: { min: 0, max: 300, unit: "s" },
         hardSafety: null,
         position: "MIDDLE",
+        origin: "ENGINE_POSITIONED",
         evidenceIds: [],
       },
     };
@@ -442,6 +444,7 @@ describe("RunningPrescription", () => {
       coachEditable: { min: 0, max: 1000, unit },
       hardSafety: null,
       position: "MIDDLE" as const,
+      origin: "ENGINE_POSITIONED" as const,
       evidenceIds: [] as string[],
     };
   }
@@ -472,6 +475,30 @@ describe("RunningPrescription", () => {
         nearMaxSprintVolumeM: { lower: 60, upper: 60, unit: "m" as const, source: "PLANNED" as const, confidence: "MEDIUM" as const },
       },
       stopPolicyId: "SP_ACC",
+      monitoringSnapshot: {
+        stopPolicy: {
+          id: "SP_ACC",
+          method: "ACCELERATION" as const,
+          appliesToRecoveryStructure: null,
+          appliesToEligibilityPath: "ANY" as const,
+          referenceDescription: "test",
+          ruleDescriptionJa: "test",
+          consecutiveFailuresToStop: 2,
+          numericStopAvailable: true,
+        },
+        timingTolerances: [
+          {
+            timing: "HAND" as const,
+            toleranceS: 0.25,
+            toleranceSPerFps: null,
+            numericStopAllowed: true,
+            coachOnlyRatioThreshold: 0.1,
+            evidenceIds: [],
+            judgement: "ENGINE_POLICY" as const,
+            provisional: true as const,
+          },
+        ],
+      },
       confidence: { prescription: "MODERATE" as const, directness: "PARTIAL" as const, inputData: "MEDIUM" as const },
       readinessApplied: [],
       findings: [],
