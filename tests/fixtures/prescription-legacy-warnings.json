@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "purpose": "各 golden case の suggestPrescription().warnings をそのまま記録したもの。R6 で aggregation / plausibility 由来の warning を追加する際は、このファイルだけを更新すれば済むよう、数値 golden とは分離してある。",
+    "purpose": "各 golden case の suggestPrescription().warnings をそのまま記録したもの。R6 で §8.5 の plausibility 由来の warning（1項目の総走行距離）を追加した。数値 golden とは分離してあるため、更新したのはこのファイルだけであり、prescription の数値・rationale は1件も変わっていない。",
     "caseCount": 971
   },
   "warningsByCaseId": {
@@ -10,7 +10,8 @@
     ],
     "matrix__SPEED_ACCELERATION__JHS__PREPARATION__C": [],
     "matrix__SPEED_ACCELERATION__JHS__PREPARATION__D": [
-      "この種目だけで10800m。1回の練習の目安288mを超えています。"
+      "この種目だけで10800m。1回の練習の目安288mを超えています。",
+      "この種目だけで最大10800mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__JHS__PRE_COMPETITION__A": [],
     "matrix__SPEED_ACCELERATION__JHS__PRE_COMPETITION__B": [
@@ -18,7 +19,8 @@
     ],
     "matrix__SPEED_ACCELERATION__JHS__PRE_COMPETITION__C": [],
     "matrix__SPEED_ACCELERATION__JHS__PRE_COMPETITION__D": [
-      "この種目だけで8100m。1回の練習の目安240mを超えています。"
+      "この種目だけで8100m。1回の練習の目安240mを超えています。",
+      "この種目だけで最大8100mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__JHS__COMPETITION__A": [],
     "matrix__SPEED_ACCELERATION__JHS__COMPETITION__B": [
@@ -26,7 +28,8 @@
     ],
     "matrix__SPEED_ACCELERATION__JHS__COMPETITION__C": [],
     "matrix__SPEED_ACCELERATION__JHS__COMPETITION__D": [
-      "この種目だけで5400m。1回の練習の目安168mを超えています。"
+      "この種目だけで5400m。1回の練習の目安168mを超えています。",
+      "この種目だけで最大5400mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__JHS__TRANSITION__A": [],
     "matrix__SPEED_ACCELERATION__JHS__TRANSITION__B": [
@@ -34,7 +37,8 @@
     ],
     "matrix__SPEED_ACCELERATION__JHS__TRANSITION__C": [],
     "matrix__SPEED_ACCELERATION__JHS__TRANSITION__D": [
-      "この種目だけで5400m。1回の練習の目安120mを超えています。"
+      "この種目だけで5400m。1回の練習の目安120mを超えています。",
+      "この種目だけで最大5400mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__JHS__NO_PHASE__A": [],
     "matrix__SPEED_ACCELERATION__JHS__NO_PHASE__B": [
@@ -42,19 +46,22 @@
     ],
     "matrix__SPEED_ACCELERATION__JHS__NO_PHASE__C": [],
     "matrix__SPEED_ACCELERATION__JHS__NO_PHASE__D": [
-      "この種目だけで8100m。1回の練習の目安240mを超えています。"
+      "この種目だけで8100m。1回の練習の目安240mを超えています。",
+      "この種目だけで最大8100mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__PREPARATION__A": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__PREPARATION__B": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__PREPARATION__C": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__PREPARATION__D": [
-      "この種目だけで13500m。1回の練習の目安360mを超えています。"
+      "この種目だけで13500m。1回の練習の目安360mを超えています。",
+      "この種目だけで最大13500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__PRE_COMPETITION__A": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__PRE_COMPETITION__B": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__PRE_COMPETITION__C": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__PRE_COMPETITION__D": [
-      "この種目だけで10800m。1回の練習の目安300mを超えています。"
+      "この種目だけで10800m。1回の練習の目安300mを超えています。",
+      "この種目だけで最大10800mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__COMPETITION__A": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__COMPETITION__B": [
@@ -62,7 +69,8 @@
     ],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__COMPETITION__C": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__COMPETITION__D": [
-      "この種目だけで8100m。1回の練習の目安210mを超えています。"
+      "この種目だけで8100m。1回の練習の目安210mを超えています。",
+      "この種目だけで最大8100mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__TRANSITION__A": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__TRANSITION__B": [
@@ -70,25 +78,29 @@
     ],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__TRANSITION__C": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__TRANSITION__D": [
-      "この種目だけで5400m。1回の練習の目安150mを超えています。"
+      "この種目だけで5400m。1回の練習の目安150mを超えています。",
+      "この種目だけで最大5400mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__NO_PHASE__A": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__NO_PHASE__B": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__NO_PHASE__C": [],
     "matrix__SPEED_ACCELERATION__HS_BEGINNER__NO_PHASE__D": [
-      "この種目だけで10800m。1回の練習の目安300mを超えています。"
+      "この種目だけで10800m。1回の練習の目安300mを超えています。",
+      "この種目だけで最大10800mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__PREPARATION__A": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__PREPARATION__B": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__PREPARATION__C": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__PREPARATION__D": [
-      "この種目だけで16200m。1回の練習の目安480mを超えています。"
+      "この種目だけで16200m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大16200mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__PRE_COMPETITION__A": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__PRE_COMPETITION__B": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__PRE_COMPETITION__C": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__PRE_COMPETITION__D": [
-      "この種目だけで13500m。1回の練習の目安400mを超えています。"
+      "この種目だけで13500m。1回の練習の目安400mを超えています。",
+      "この種目だけで最大13500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__COMPETITION__A": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__COMPETITION__B": [
@@ -96,7 +108,8 @@
     ],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__COMPETITION__C": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__COMPETITION__D": [
-      "この種目だけで10800m。1回の練習の目安280mを超えています。"
+      "この種目だけで10800m。1回の練習の目安280mを超えています。",
+      "この種目だけで最大10800mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__TRANSITION__A": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__TRANSITION__B": [
@@ -104,31 +117,36 @@
     ],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__TRANSITION__C": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__TRANSITION__D": [
-      "この種目だけで8100m。1回の練習の目安200mを超えています。"
+      "この種目だけで8100m。1回の練習の目安200mを超えています。",
+      "この種目だけで最大8100mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__NO_PHASE__A": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__NO_PHASE__B": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__NO_PHASE__C": [],
     "matrix__SPEED_ACCELERATION__HS_ADVANCED__NO_PHASE__D": [
-      "この種目だけで13500m。1回の練習の目安400mを超えています。"
+      "この種目だけで13500m。1回の練習の目安400mを超えています。",
+      "この種目だけで最大13500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PREPARATION__A": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PREPARATION__B": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PREPARATION__C": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PREPARATION__D": [
-      "この種目だけで18900m。1回の練習の目安576mを超えています。"
+      "この種目だけで18900m。1回の練習の目安576mを超えています。",
+      "この種目だけで最大18900mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__PRE_COMPETITION__D": [
-      "この種目だけで16200m。1回の練習の目安480mを超えています。"
+      "この種目だけで16200m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大16200mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__COMPETITION__A": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__COMPETITION__B": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__COMPETITION__C": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__COMPETITION__D": [
-      "この種目だけで10800m。1回の練習の目安336mを超えています。"
+      "この種目だけで10800m。1回の練習の目安336mを超えています。",
+      "この種目だけで最大10800mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__TRANSITION__A": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__TRANSITION__B": [
@@ -136,13 +154,15 @@
     ],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__TRANSITION__C": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__TRANSITION__D": [
-      "この種目だけで8100m。1回の練習の目安240mを超えています。"
+      "この種目だけで8100m。1回の練習の目安240mを超えています。",
+      "この種目だけで最大8100mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__NO_PHASE__A": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__NO_PHASE__B": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__NO_PHASE__C": [],
     "matrix__SPEED_ACCELERATION__UNIVERSITY_PLUS__NO_PHASE__D": [
-      "この種目だけで16200m。1回の練習の目安480mを超えています。"
+      "この種目だけで16200m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大16200mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__PREPARATION__A": [
       "この種目だけで300m。1回の練習の目安288mを超えています。"
@@ -154,7 +174,8 @@
       "この種目だけで300m。1回の練習の目安288mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__PREPARATION__D": [
-      "この種目だけで13500m。1回の練習の目安288mを超えています。"
+      "この種目だけで13500m。1回の練習の目安288mを超えています。",
+      "この種目だけで最大13500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__PRE_COMPETITION__A": [],
     "matrix__SPEED_MAX_VELOCITY__JHS__PRE_COMPETITION__B": [
@@ -162,7 +183,8 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__PRE_COMPETITION__C": [],
     "matrix__SPEED_MAX_VELOCITY__JHS__PRE_COMPETITION__D": [
-      "この種目だけで9000m。1回の練習の目安240mを超えています。"
+      "この種目だけで9000m。1回の練習の目安240mを超えています。",
+      "この種目だけで最大9000mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__COMPETITION__A": [
       "この種目だけで200m。1回の練習の目安168mを超えています。"
@@ -174,7 +196,8 @@
       "この種目だけで200m。1回の練習の目安168mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__COMPETITION__D": [
-      "この種目だけで9000m。1回の練習の目安168mを超えています。"
+      "この種目だけで9000m。1回の練習の目安168mを超えています。",
+      "この種目だけで最大9000mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__TRANSITION__A": [],
     "matrix__SPEED_MAX_VELOCITY__JHS__TRANSITION__B": [
@@ -182,7 +205,8 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__TRANSITION__C": [],
     "matrix__SPEED_MAX_VELOCITY__JHS__TRANSITION__D": [
-      "この種目だけで4500m。1回の練習の目安120mを超えています。"
+      "この種目だけで4500m。1回の練習の目安120mを超えています。",
+      "この種目だけで最大4500mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__NO_PHASE__A": [],
     "matrix__SPEED_MAX_VELOCITY__JHS__NO_PHASE__B": [
@@ -190,7 +214,8 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__JHS__NO_PHASE__C": [],
     "matrix__SPEED_MAX_VELOCITY__JHS__NO_PHASE__D": [
-      "この種目だけで9000m。1回の練習の目安240mを超えています。"
+      "この種目だけで9000m。1回の練習の目安240mを超えています。",
+      "この種目だけで最大9000mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PREPARATION__A": [
       "この種目だけで400m。1回の練習の目安360mを超えています。"
@@ -202,7 +227,8 @@
       "この種目だけで400m。1回の練習の目安360mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PREPARATION__D": [
-      "この種目だけで18000m。1回の練習の目安360mを超えています。"
+      "この種目だけで18000m。1回の練習の目安360mを超えています。",
+      "この種目だけで最大18000mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PRE_COMPETITION__A": [],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PRE_COMPETITION__B": [
@@ -210,7 +236,8 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PRE_COMPETITION__C": [],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__PRE_COMPETITION__D": [
-      "この種目だけで13500m。1回の練習の目安300mを超えています。"
+      "この種目だけで13500m。1回の練習の目安300mを超えています。",
+      "この種目だけで最大13500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__COMPETITION__A": [],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__COMPETITION__B": [
@@ -218,7 +245,8 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__COMPETITION__C": [],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__COMPETITION__D": [
-      "この種目だけで9000m。1回の練習の目安210mを超えています。"
+      "この種目だけで9000m。1回の練習の目安210mを超えています。",
+      "この種目だけで最大9000mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__TRANSITION__A": [
       "この種目だけで200m。1回の練習の目安150mを超えています。"
@@ -230,7 +258,8 @@
       "この種目だけで200m。1回の練習の目安150mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__TRANSITION__D": [
-      "この種目だけで9000m。1回の練習の目安150mを超えています。"
+      "この種目だけで9000m。1回の練習の目安150mを超えています。",
+      "この種目だけで最大9000mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__NO_PHASE__A": [],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__NO_PHASE__B": [
@@ -238,7 +267,8 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__NO_PHASE__C": [],
     "matrix__SPEED_MAX_VELOCITY__HS_BEGINNER__NO_PHASE__D": [
-      "この種目だけで13500m。1回の練習の目安300mを超えています。"
+      "この種目だけで13500m。1回の練習の目安300mを超えています。",
+      "この種目だけで最大13500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PREPARATION__A": [
       "この種目だけで500m。1回の練習の目安480mを超えています。"
@@ -248,13 +278,15 @@
       "この種目だけで500m。1回の練習の目安480mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PREPARATION__D": [
-      "この種目だけで22500m。1回の練習の目安480mを超えています。"
+      "この種目だけで22500m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大22500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PRE_COMPETITION__A": [],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PRE_COMPETITION__B": [],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PRE_COMPETITION__C": [],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__PRE_COMPETITION__D": [
-      "この種目だけで18000m。1回の練習の目安400mを超えています。"
+      "この種目だけで18000m。1回の練習の目安400mを超えています。",
+      "この種目だけで最大18000mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__COMPETITION__A": [
       "この種目だけで300m。1回の練習の目安280mを超えています。"
@@ -266,7 +298,8 @@
       "この種目だけで300m。1回の練習の目安280mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__COMPETITION__D": [
-      "この種目だけで13500m。1回の練習の目安280mを超えています。"
+      "この種目だけで13500m。1回の練習の目安280mを超えています。",
+      "この種目だけで最大13500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__TRANSITION__A": [],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__TRANSITION__B": [
@@ -274,13 +307,15 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__TRANSITION__C": [],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__TRANSITION__D": [
-      "この種目だけで9000m。1回の練習の目安200mを超えています。"
+      "この種目だけで9000m。1回の練習の目安200mを超えています。",
+      "この種目だけで最大9000mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__NO_PHASE__A": [],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__NO_PHASE__B": [],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__NO_PHASE__C": [],
     "matrix__SPEED_MAX_VELOCITY__HS_ADVANCED__NO_PHASE__D": [
-      "この種目だけで18000m。1回の練習の目安400mを超えています。"
+      "この種目だけで18000m。1回の練習の目安400mを超えています。",
+      "この種目だけで最大18000mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PREPARATION__A": [
       "この種目だけで600m。1回の練習の目安576mを超えています。"
@@ -290,7 +325,8 @@
       "この種目だけで600m。1回の練習の目安576mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PREPARATION__D": [
-      "この種目だけで27000m。1回の練習の目安576mを超えています。"
+      "この種目だけで27000m。1回の練習の目安576mを超えています。",
+      "この種目だけで最大27000mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PRE_COMPETITION__A": [
       "この種目だけで500m。1回の練習の目安480mを超えています。"
@@ -300,7 +336,8 @@
       "この種目だけで500m。1回の練習の目安480mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__PRE_COMPETITION__D": [
-      "この種目だけで22500m。1回の練習の目安480mを超えています。"
+      "この種目だけで22500m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大22500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__COMPETITION__A": [],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__COMPETITION__B": [
@@ -308,7 +345,8 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__COMPETITION__C": [],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__COMPETITION__D": [
-      "この種目だけで13500m。1回の練習の目安336mを超えています。"
+      "この種目だけで13500m。1回の練習の目安336mを超えています。",
+      "この種目だけで最大13500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__TRANSITION__A": [],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__TRANSITION__B": [
@@ -316,7 +354,8 @@
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__TRANSITION__C": [],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__TRANSITION__D": [
-      "この種目だけで9000m。1回の練習の目安240mを超えています。"
+      "この種目だけで9000m。1回の練習の目安240mを超えています。",
+      "この種目だけで最大9000mになります。距離・本数・セット数が意図どおりか確認してください。"
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__NO_PHASE__A": [
       "この種目だけで500m。1回の練習の目安480mを超えています。"
@@ -326,7 +365,8 @@
       "この種目だけで500m。1回の練習の目安480mを超えています。"
     ],
     "matrix__SPEED_MAX_VELOCITY__UNIVERSITY_PLUS__NO_PHASE__D": [
-      "この種目だけで22500m。1回の練習の目安480mを超えています。"
+      "この種目だけで22500m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大22500mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__JHS__PREPARATION__A": [],
     "matrix__SPEED_ENDURANCE__JHS__PREPARATION__B": [
@@ -334,7 +374,8 @@
     ],
     "matrix__SPEED_ENDURANCE__JHS__PREPARATION__C": [],
     "matrix__SPEED_ENDURANCE__JHS__PREPARATION__D": [
-      "この種目だけで21600m。1回の練習の目安576mを超えています。"
+      "この種目だけで21600m。1回の練習の目安576mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__JHS__PRE_COMPETITION__A": [],
     "matrix__SPEED_ENDURANCE__JHS__PRE_COMPETITION__B": [
@@ -342,7 +383,8 @@
     ],
     "matrix__SPEED_ENDURANCE__JHS__PRE_COMPETITION__C": [],
     "matrix__SPEED_ENDURANCE__JHS__PRE_COMPETITION__D": [
-      "この種目だけで21600m。1回の練習の目安480mを超えています。"
+      "この種目だけで21600m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__JHS__COMPETITION__A": [],
     "matrix__SPEED_ENDURANCE__JHS__COMPETITION__B": [
@@ -350,7 +392,8 @@
     ],
     "matrix__SPEED_ENDURANCE__JHS__COMPETITION__C": [],
     "matrix__SPEED_ENDURANCE__JHS__COMPETITION__D": [
-      "この種目だけで10800m。1回の練習の目安336mを超えています。"
+      "この種目だけで10800m。1回の練習の目安336mを超えています。",
+      "この種目だけで最大10800mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__JHS__TRANSITION__A": [],
     "matrix__SPEED_ENDURANCE__JHS__TRANSITION__B": [
@@ -358,7 +401,8 @@
     ],
     "matrix__SPEED_ENDURANCE__JHS__TRANSITION__C": [],
     "matrix__SPEED_ENDURANCE__JHS__TRANSITION__D": [
-      "この種目だけで10800m。1回の練習の目安240mを超えています。"
+      "この種目だけで10800m。1回の練習の目安240mを超えています。",
+      "この種目だけで最大10800mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__JHS__NO_PHASE__A": [],
     "matrix__SPEED_ENDURANCE__JHS__NO_PHASE__B": [
@@ -366,13 +410,15 @@
     ],
     "matrix__SPEED_ENDURANCE__JHS__NO_PHASE__C": [],
     "matrix__SPEED_ENDURANCE__JHS__NO_PHASE__D": [
-      "この種目だけで21600m。1回の練習の目安480mを超えています。"
+      "この種目だけで21600m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__PREPARATION__A": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__PREPARATION__B": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__PREPARATION__C": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__PREPARATION__D": [
-      "この種目だけで32400m。1回の練習の目安720mを超えています。"
+      "この種目だけで32400m。1回の練習の目安720mを超えています。",
+      "この種目だけで最大32400mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__PRE_COMPETITION__A": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__PRE_COMPETITION__B": [
@@ -380,7 +426,8 @@
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__PRE_COMPETITION__C": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__PRE_COMPETITION__D": [
-      "この種目だけで21600m。1回の練習の目安600mを超えています。"
+      "この種目だけで21600m。1回の練習の目安600mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__COMPETITION__A": [
       "この種目だけで480m。1回の練習の目安420mを超えています。"
@@ -392,7 +439,8 @@
       "この種目だけで480m。1回の練習の目安420mを超えています。"
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__COMPETITION__D": [
-      "この種目だけで21600m。1回の練習の目安420mを超えています。"
+      "この種目だけで21600m。1回の練習の目安420mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__TRANSITION__A": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__TRANSITION__B": [
@@ -400,7 +448,8 @@
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__TRANSITION__C": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__TRANSITION__D": [
-      "この種目だけで10800m。1回の練習の目安300mを超えています。"
+      "この種目だけで10800m。1回の練習の目安300mを超えています。",
+      "この種目だけで最大10800mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__NO_PHASE__A": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__NO_PHASE__B": [
@@ -408,19 +457,22 @@
     ],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__NO_PHASE__C": [],
     "matrix__SPEED_ENDURANCE__HS_BEGINNER__NO_PHASE__D": [
-      "この種目だけで21600m。1回の練習の目安600mを超えています。"
+      "この種目だけで21600m。1回の練習の目安600mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__PREPARATION__A": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__PREPARATION__B": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__PREPARATION__C": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__PREPARATION__D": [
-      "この種目だけで43200m。1回の練習の目安960mを超えています。"
+      "この種目だけで43200m。1回の練習の目安960mを超えています。",
+      "この種目だけで最大43200mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__PRE_COMPETITION__A": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__PRE_COMPETITION__B": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__PRE_COMPETITION__C": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__PRE_COMPETITION__D": [
-      "この種目だけで32400m。1回の練習の目安800mを超えています。"
+      "この種目だけで32400m。1回の練習の目安800mを超えています。",
+      "この種目だけで最大32400mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__COMPETITION__A": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__COMPETITION__B": [
@@ -428,7 +480,8 @@
     ],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__COMPETITION__C": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__COMPETITION__D": [
-      "この種目だけで21600m。1回の練習の目安560mを超えています。"
+      "この種目だけで21600m。1回の練習の目安560mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__TRANSITION__A": [
       "この種目だけで480m。1回の練習の目安400mを超えています。"
@@ -440,25 +493,29 @@
       "この種目だけで480m。1回の練習の目安400mを超えています。"
     ],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__TRANSITION__D": [
-      "この種目だけで21600m。1回の練習の目安400mを超えています。"
+      "この種目だけで21600m。1回の練習の目安400mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__NO_PHASE__A": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__NO_PHASE__B": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__NO_PHASE__C": [],
     "matrix__SPEED_ENDURANCE__HS_ADVANCED__NO_PHASE__D": [
-      "この種目だけで32400m。1回の練習の目安800mを超えています。"
+      "この種目だけで32400m。1回の練習の目安800mを超えています。",
+      "この種目だけで最大32400mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PREPARATION__A": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PREPARATION__B": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PREPARATION__C": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PREPARATION__D": [
-      "この種目だけで43200m。1回の練習の目安1152mを超えています。"
+      "この種目だけで43200m。1回の練習の目安1152mを超えています。",
+      "この種目だけで最大43200mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__PRE_COMPETITION__D": [
-      "この種目だけで43200m。1回の練習の目安960mを超えています。"
+      "この種目だけで43200m。1回の練習の目安960mを超えています。",
+      "この種目だけで最大43200mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__COMPETITION__A": [
       "この種目だけで720m。1回の練習の目安672mを超えています。"
@@ -470,7 +527,8 @@
       "この種目だけで720m。1回の練習の目安672mを超えています。"
     ],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__COMPETITION__D": [
-      "この種目だけで32400m。1回の練習の目安672mを超えています。"
+      "この種目だけで32400m。1回の練習の目安672mを超えています。",
+      "この種目だけで最大32400mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__TRANSITION__A": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__TRANSITION__B": [
@@ -478,94 +536,140 @@
     ],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__TRANSITION__C": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__TRANSITION__D": [
-      "この種目だけで21600m。1回の練習の目安480mを超えています。"
+      "この種目だけで21600m。1回の練習の目安480mを超えています。",
+      "この種目だけで最大21600mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__NO_PHASE__A": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__NO_PHASE__B": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__NO_PHASE__C": [],
     "matrix__SPEED_ENDURANCE__UNIVERSITY_PLUS__NO_PHASE__D": [
-      "この種目だけで43200m。1回の練習の目安960mを超えています。"
+      "この種目だけで43200m。1回の練習の目安960mを超えています。",
+      "この種目だけで最大43200mになります。距離・本数・セット数の意味を確認してください。"
     ],
     "matrix__TEMPO_AEROBIC__JHS__PREPARATION__A": [],
     "matrix__TEMPO_AEROBIC__JHS__PREPARATION__B": [],
     "matrix__TEMPO_AEROBIC__JHS__PREPARATION__C": [],
-    "matrix__TEMPO_AEROBIC__JHS__PREPARATION__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__PREPARATION__D": [
+      "この種目だけで最大81000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__A": [],
     "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__B": [],
     "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__C": [],
-    "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__PRE_COMPETITION__D": [
+      "この種目だけで最大67500mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__JHS__COMPETITION__A": [],
     "matrix__TEMPO_AEROBIC__JHS__COMPETITION__B": [],
     "matrix__TEMPO_AEROBIC__JHS__COMPETITION__C": [],
-    "matrix__TEMPO_AEROBIC__JHS__COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__COMPETITION__D": [
+      "この種目だけで最大40500mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__JHS__TRANSITION__A": [],
     "matrix__TEMPO_AEROBIC__JHS__TRANSITION__B": [],
     "matrix__TEMPO_AEROBIC__JHS__TRANSITION__C": [],
-    "matrix__TEMPO_AEROBIC__JHS__TRANSITION__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__TRANSITION__D": [
+      "この種目だけで最大27000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__A": [],
     "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__B": [],
     "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__C": [],
-    "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__D": [],
+    "matrix__TEMPO_AEROBIC__JHS__NO_PHASE__D": [
+      "この種目だけで最大67500mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__A": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__B": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__C": [],
-    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PREPARATION__D": [
+      "この種目だけで最大94500mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__A": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__B": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__C": [],
-    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__PRE_COMPETITION__D": [
+      "この種目だけで最大81000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__A": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__B": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__C": [],
-    "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__COMPETITION__D": [
+      "この種目だけで最大54000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__A": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__B": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__C": [],
-    "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__TRANSITION__D": [
+      "この種目だけで最大40500mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__A": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__B": [],
     "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__C": [],
-    "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__D": [],
+    "matrix__TEMPO_AEROBIC__HS_BEGINNER__NO_PHASE__D": [
+      "この種目だけで最大81000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__A": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__B": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__C": [],
-    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PREPARATION__D": [
+      "この種目だけで最大135000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__A": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__B": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__C": [],
-    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__PRE_COMPETITION__D": [
+      "この種目だけで最大108000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__A": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__B": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__C": [],
-    "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__COMPETITION__D": [
+      "この種目だけで最大81000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__A": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__B": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__C": [],
-    "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__D": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__TRANSITION__D": [
+      "この種目だけで最大54000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__A": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__B": [],
     "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__C": [],
-    "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__D": [],
-    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__A": [],
+    "matrix__TEMPO_AEROBIC__HS_ADVANCED__NO_PHASE__D": [
+      "この種目だけで最大108000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__A": [
+      "この種目だけで最大3600mになります。距離・本数・セット数が意図どおりか確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__B": [],
-    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__C": [],
-    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__C": [
+      "この種目だけで最大3600mになります。距離・本数・セット数が意図どおりか確認してください。"
+    ],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PREPARATION__D": [
+      "この種目だけで最大162000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__A": [],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__B": [],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__C": [],
-    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__PRE_COMPETITION__D": [
+      "この種目だけで最大135000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__A": [],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__B": [],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__C": [],
-    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__COMPETITION__D": [
+      "この種目だけで最大94500mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__A": [],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__B": [],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__C": [],
-    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__TRANSITION__D": [
+      "この種目だけで最大67500mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__A": [],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__B": [],
     "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__C": [],
-    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__D": [],
+    "matrix__TEMPO_AEROBIC__UNIVERSITY_PLUS__NO_PHASE__D": [
+      "この種目だけで最大135000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "matrix__DRILL_TECHNICAL__JHS__PREPARATION__A": [],
     "matrix__DRILL_TECHNICAL__JHS__PREPARATION__B": [],
     "matrix__DRILL_TECHNICAL__JHS__PREPARATION__C": [],
@@ -1260,8 +1364,12 @@
     "defaultPattern__C4_hurdle_reps_classified_as_speed_endurance": [
       "この種目だけで2400m。1回の練習の目安800mを超えています。"
     ],
-    "defaultPattern__D1_pace_run_5000m_extreme_volume": [],
-    "defaultPattern__D2_interval_400m_extreme_volume": [],
+    "defaultPattern__D1_pace_run_5000m_extreme_volume": [
+      "この種目だけで最大80000mになります。距離・本数・セット数の意味を確認してください。"
+    ],
+    "defaultPattern__D2_interval_400m_extreme_volume": [
+      "この種目だけで最大25600mになります。距離・本数・セット数の意味を確認してください。"
+    ],
     "defaultPattern__D3_extreme_default_sets_ignores_volume_factor": [
       "この種目だけで360m。1回の練習の目安168mを超えています。"
     ],

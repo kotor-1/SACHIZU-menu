@@ -1530,21 +1530,143 @@ RELAY（助走付き区間）         → lower = max(0, leg − 20) × n, upper
 
 ### 11.4 判定規則（rs-2026.09.0）
 
+**[R6 pre-commit correction]** 「同一 Method の合計 > tier の recommended.max」という単一絶対上限の設計は、
+同一 Method 内でも template ごとに Envelope 上限が異なる場合（例: TEMPO_INTENSIVE の TI_VITTORI_SE と
+TI_COACH_DEFINED）に一意の判定ができないため廃止した。代わりに **per-item normalized Method budget** を使う:
+
+```
+item usage      = item の contribution ÷ その item が実際に使っている template/tier の Envelope 上限
+methodBudgetUse = Σ item usage（同一 Method 内の全 item）
+```
+
+`methodBudgetUse > 1.0` で「1セッション分の Envelope budget を超えた」と判定する。**1.0 は新しい科学的閾値ではなく、
+「各 item 自身の Envelope 上限を 100% とする」という normalized budget の定義値**（ENGINE-POLICY。RuleSet の
+versioned な値ではない）。量に掛ける係数ではなく判定専用の無次元比率であり、処方値は一切変更しない。
+DEV の ACC を3項目並べる従来ケース（全 item が同じ cap）は `Σ(120/cap) = (120+120+120)/cap` と数学的に一致し、
+旧方式と同じ結果になる（監査 H-5 対策は維持）。
+
 | code | 条件 | severity | 判断 |
 | --- | --- | --- | --- |
-| AGG_METHOD_VOLUME_OVER_RECOMMENDED | 同一 Method の合計（sessionVolumeM / flyVolumeM / attempts）> tier の recommended.max | WARN | [ENGINE-POLICY]（「加速3項目で上限3倍」を塞ぐ） |
-| AGG_METHOD_VOLUME_OVER_EDITABLE | 同上 > coachEditable.max | REQUIRE_COACH_REVIEW + BLOCK_AUTOGEN | [ENGINE-POLICY] |
-| AGG_HIGH_INTENSITY_BUDGET | **高強度予算**: loadClass が HIGH_* の Method ごとに `合計 ÷ recommended.max` を求めた総和 > 1.0 | WARN | [ENGINE-POLICY・provisional] OPEN-06 |
-| AGG_HIGH_INTENSITY_BUDGET_EDITABLE | 同じ総和を coachEditable.max で計算して > 1.0 | REQUIRE_COACH_REVIEW + BLOCK_AUTOGEN | [ENGINE-POLICY] |
+| AGG_METHOD_BUDGET_OVER_RECOMMENDED | 同一 Method の normalized budget（Σ item usage、各 item の recommended.max 基準）> 1.0 | WARN | [ENGINE-POLICY]（「加速3項目で上限3倍」を塞ぐ） |
+| AGG_METHOD_BUDGET_OVER_EDITABLE | 同じ budget を各 item の coachEditable.max 基準で計算して > 1.0 | REQUIRE_COACH_REVIEW + BLOCK_AUTOGEN | [ENGINE-POLICY] |
+| AGG_METHOD_CAP_NOT_DETERMINABLE | ある item の template/tier に metric の Envelope セルが無い等、**真に分母を取得できない** | WARN | [ENGINE-POLICY]（同一 Method 内で template ごとに上限が違うだけでは出さない） |
+| AGG_HIGH_INTENSITY_BUDGET | **高強度予算**: loadClass が HIGH_* の **item ごとに** `contribution ÷ その item の上限（recommended.max 基準）` を求めた総和 > RuleSet の閾値 | WARN | [ENGINE-POLICY・provisional] OPEN-06 |
+| AGG_HIGH_INTENSITY_BUDGET_EDITABLE | 同じ総和を各 item の coachEditable.max 基準で計算して > RuleSet の閾値 | REQUIRE_COACH_REVIEW + BLOCK_AUTOGEN | [ENGINE-POLICY] |
 | AGG_TEMPO_OVER | tempoVolumeM > TE の sessionVolumeM.recommended.max | WARN | [ENGINE-POLICY] |
 | AGG_STRIDE_OVER | strideVolumeM > STRIDE の coachEditable.max | WARN | [ENGINE-POLICY]（STRIDE に TE の量を使わない） |
 | AGG_TOTAL_RUNNING_CONFIRM / BLOCK | §8.5 の Session 行 | REQUIRE_CONFIRMATION / BLOCK | [ENGINE-POLICY] |
 | AGG_COMPETITION_DAY_EXTRA | 大会当日のセッションに race 以外の HIGH_* 項目 | REQUIRE_COACH_REVIEW | [ENGINE-POLICY] |
 | AGG_REST_INFEASIBLE | Σ(本数×rest) + 走行時間 > availableMinutes | WARN | [ENGINE-POLICY] |
 
-- 高強度予算は**量への乗数ではなく、既存の Envelope 上限を按分する判定**。例: 同日に ACC 150m（上限 300m → 0.5）と MV fly 90m（上限 150m → 0.6）→ 1.1 → WARN（§20 T-AGG-03）。
-- recommended が null の Method（ASSISTED・TI_COACH_DEFINED）は coachEditable.max を分母にする。
+- **Method budget（1.0）と高強度予算（RuleSet の閾値）は別物。** Method budget は「同じ Method を複数項目に
+  分割して上限を実質倍増すること」を防ぐ定義上の 100% 判定、高強度予算は「異なる HIGH_* Method を同日に
+  積み上げること」を検出する ENGINE-POLICY・provisional なしきい値（引き続き RuleSet 側の値を使う）。
+  計算 primitive（item usage の合計）は共通でよいが、Finding は別にする。
+- 高強度予算は**量への乗数ではなく、既存の Envelope 上限を按分する判定**。例: 同日に ACC 150m（上限 300m → 0.5）と MV fly 90m（上限 150m → 0.6）→ 1.1 → WARN（§20 T-AGG-03）。TI のように heterogeneous な template を含む Method が混在しても、item ごとに上限を引くため一意に計算できる。
+- recommended が null の item（ASSISTED・TI_COACH_DEFINED）は coachEditable.max を fallback denominator にする。
+  これは「recommended があると偽装する」ことではなく、recommended-level の按分判定を評価するための代替分母。
 - plyometricContacts と strengthLoad には rs-2026.09.0 で上限を置かない（legacy の接地上限 120回は出典なし）。表示と週次文脈にのみ使う。[OPEN-16]
+
+### 11.6 [R6 representation errata]（R6 実装で確定した表現）
+
+§11.1〜§11.5 の意味は変えず、実装上の表現だけを次のとおり確定する
+（`src/domain/running/aggregation/` の型と `RuleSet.aggregationRules` が正）。
+
+1. **`AggregationItem` は2種類だけ**（strict な判別共用体）:
+   `{ kind: "RUNNING_V2", prescription }`（完成した処方のスナップショット。生の PlanRequest は渡さない）と
+   `{ kind: "LEGACY", item }`（legacy 項目の最小要約 = `category` / `sets` / `reps` / `distanceMeters` /
+   `durationSeconds` / `restSeconds` のみ。巨大な Exercise 行を domain へ渡さない。NaN / Infinity / 非正値は拒否）。
+
+2. **`AggregationContext`** = `{ ruleSet, tier, availableMinutes, competitionDay, mode }`。
+   `competitionDay` は R7 まで `"NOT_EVALUATED"` 固定で、**false 扱いにもしない**（大会日を推測しない。
+   `AGG_COMPETITION_DAY_EXTRA` は R6 では発火させない）。RuleSet は解決済みオブジェクトで受け取り、
+   version 文字列を request 側から指定させない（§18.1）。
+
+3. **判定データは `RuleSet.aggregationRules`**（版管理・contentHash の対象）:
+   `ACCEL_INTERVAL`（tier ごとの推定加速距離 A の区間）、`RELAY_ALLOWANCE`、`METHOD_AGGREGATION`
+   （Method ごとの `volumeMetric` / `nearMaxModel` / `volumeCategory`）、`HIGH_INTENSITY_BUDGET`
+   （しきい値と recommended 欠損時の分母）、`SESSION_VOLUME_LIMIT`（tempo / stride がどの Envelope 上限を見るか）、
+   `LEGACY_CATEGORY`（legacy の category が走行距離か接地数か）。
+   **Method ごとの量の上限は Envelope（`recommended.max` / `coachEditable.max`）が single source of truth**であり、
+   `aggregationRules` に数値を再入力しない。ID・表示名・`conditionNote` の解析で分岐しない（§8.2 と同じ方針）。
+
+4. **[R6 pre-commit correction] Method に1個の絶対上限があるという設計を廃止し、per-item normalized budget に
+   一般化した。** 同じ Method × tier × metric でも template によって Envelope 上限が異なりうる
+   （rs-2026.09.0 の実データ監査で判明: `TEMPO_INTENSIVE × ADVANCED × sessionVolumeM` は `TI_VITTORI_SE`
+   （recommended.max=1200 / coachEditable.max=2000）と `TI_COACH_DEFINED`（recommended=null /
+   coachEditable.max=1600）で異なる）。`max` / `min` / 平均を勝手に採る・どちらかの template を決め打つ・
+   新しい科学数値を作る、のいずれもしない。代わりに **item ごとに実際に使っている template/tier/recoveryStructure
+   の Envelope セルから上限を引き**（`resolveItemCap`）、`item usage = contribution ÷ その item の上限` を
+   同一 Method 内で合計する（`methodBudgetUse = Σ usage`）。DEV ACC 3項目のような homogeneous なケースは
+   旧方式と数学的に一致する（§11.4 冒頭参照）。
+   `AGG_METHOD_CAP_NOT_DETERMINABLE`（WARN）を出すのは、**真に分母を取得できない item がある場合だけ**
+   （aggregation metric に対応する Envelope セルが無い、同一 template × tier × recoveryStructure の行が複数あって
+   上限が食い違う malformed RuleSet 等）。template ごとに上限が異なること自体はこの Finding の理由にしない。
+   判明した item だけの usage 合計が既に閾値を超えていれば、不明な item を足しても増えることはあっても
+   減らない（非負の比率の総和）ので `OVER` と断定してよい。超えていなければ、不明な item がある間は
+   「範囲内」と断定しない（`AGG_METHOD_CAP_NOT_DETERMINABLE` を維持するだけで `OVER` は出さない）。
+   高強度予算（`AGG_HIGH_INTENSITY_BUDGET*`）も同じ primitive（item ごとの usage の合計）に統一し、
+   heterogeneous な template を持つ Method が混在しても一意に計算できるようにした。
+   completeness の監査は「同じ Method/tier の cap が全 template で同一」ではなく、
+   「各 Method × tier × 実在する template（× recoveryStructure）について、`METHOD_AGGREGATION.metric` に
+   対応する Envelope セルから少なくとも `coachEditable.max` を取得できる」ことを検証する
+   （`recommended` は null 可。null の場合は fallback policy を使う）。
+
+5. **`QuantityInterval` の source / confidence の合成**（ENGINE-POLICY）:
+   `RULE_DEFINITION` の `[0,0]`（定義上の既知 0）は合計の確からしさを下げないので無視し、残りのうち
+   **最も弱い source**（`MEASURED` < `PLANNED` < `COACH_ENTERED` < `ESTIMATED` < `UNKNOWN`）と
+   **最も低い confidence** を採る。すべてが既知 0 のときだけ `RULE_DEFINITION` のまま。
+   `ESTIMATED` を含む合計を `MEASURED` にしない。unknown な bound は null のまま伝播する。
+
+6. **completeness**: 集計対象 metric のいずれかの bound が null なら `PARTIAL` + `AGG_INCOMPLETE_DATA`（INFO）。
+   「定義上その metric へ 0 しか寄与しない」項目（STRIDE の高速曝露など）は unknown ではないので `COMPLETE` のまま。
+
+7. **上限比較**: `upper` があれば `upper`、無ければ `lower` で比較し、`lower` も超えていなければ
+   **安全とは断定せず** `AGG_NOT_DETERMINABLE`（WARN）。null を 0 にしない。
+
+8. **`AGG_METHOD_BUDGET_OVER_EDITABLE` / `AGG_HIGH_INTENSITY_BUDGET_EDITABLE`** は
+   「REQUIRE_COACH_REVIEW + BLOCK_AUTOGEN」の2つの意味を持つが、`Finding.severity` は1つしか持てないため、
+   **同じ code の Finding を2件**（severity 違い）出して両方の意味を保つ。どちらか一方を捨てない。
+
+9. **rest の数え方**（同じ休息を二重計上しない）: 本間 = `sets × max(0, repsPerSet − 1)` 回、
+   セット間 = `max(0, sets − 1)` 回、分割走の区間休息 = `(segments − 1) × totalReps` 回。
+   走行時間は確実に計算できるもの（DURATION rep・コーチ入力の TARGET_SPLIT の下限合計）だけを足し、
+   不明な走行時間を推測しない。収まって見えても不明が残る場合は「OK」と断定せず Finding を出さないだけにする。
+
+10. **`actualHighSpeedExposureM`** は R6（計画時）では常に `null`。「未実測だから 0」にはしない（実測は R8/R9）。
+    `strengthLoad` も `null` のまま（OPEN-16。筋トン数を発明しない）。
+
+11. **[R6 provisional legacy policy] legacy の category semantics**: `SPRINT` / `ENDURANCE` は走行距離、
+    `JUMP` は接地数、`WARM_UP` / `MOBILITY` / `COOL_DOWN` / `THROW` / `STRENGTH` / `CORE` は定義上 0。
+    `HURDLE` / `DRILL` / `OTHER` は**走かどうかを既存 category semantics だけでは断定できない**ため `UNKNOWN` とし、
+    距離が入っている場合だけ unknown を伝播する（勝手に走／走でないを決めない・0 と推定する方が危険）。
+    これは R6 初版の暫定方針であり、将来 category の意味がより正確に定義された時点で見直してよい。[OPEN]
+    legacy には強度の情報が無いため、走項目の高速曝露・nearMax は **0 と決めつけず unknown** にする。
+    `JUMP` は `plyometricContacts` だけを集計し、走行距離は推測しない（接地上限も作らない）。
+
+12. **[R6 integration policy] `REQUIRE_CONFIRMATION`**: 確認済みを表現する contract（確認 UI）がまだ無いため、
+    最終出力（item / session）に `REQUIRE_CONFIRMATION` が残る場合は **全 actor で `PlanResult.BLOCKED`** として返す。
+    `CoachOverride` では突破できない。確認 contract を追加した時点でこの暫定方針を解除できる。
+    `BLOCK` は当然すべての actor で BLOCKED。session の `BLOCK_AUTOGEN` は AI / SYSTEM のみ BLOCKED とし、
+    COACH は `REQUIRE_COACH_REVIEW` を保ったまま手動で継続できる（hard BLOCK と区別する）。
+
+13. **Finding の scope**: 項目の出力 plausibility は `ITEM`（`prescription.findings`）、
+    §11 の集計由来は `SESSION`（`PlanResult.sessionFindings`）。混ぜない。
+
+14. **`PlausibilityRule.outputTarget`**（R6 で追加した機械可読メタデータ）:
+    `PRESCRIPTION_FIELD` / `REP_DISTANCE` / `ITEM_TOTAL_DISTANCE` / `SESSION_TOTAL_DISTANCE` /
+    `TOTAL_REPS_VS_RECOMMENDED`。**閾値そのものは R2 の値から変更していない。**
+    入力 plausibility の canonical 実装は `plausibility/input.ts` に一本化し、
+    `context/plausibility.ts` は再 export（互換ラッパ）にする。
+
+15. **[R6 formal spec correction] §20 T-PLA-01 の入力 template を修正する。** 旧記述は「TE で
+    distance=5000 × reps=8 × sets=2」だったが、rs-2026.09.0 の TE template（`TE_100`/`TE_200`/`TE_300`）は
+    `fixedDistanceField=repDistanceM` で距離が template 固定であり、コーチが distance=5000 を入力できない
+    （現行 Template contract では表現不能）。80km 事故を再現する正式ケースは
+    **`TI_COACH_DEFINED`（TEMPO_INTENSIVE。distance がコーチ入力）で distance=5000 × reps=8 × sets=2**
+    に修正する。§8.5 の「1本の距離（TE/TI）」行は TE と TI の両方に適用されるため、事故の趣旨（監査 C-1）は
+    変わらない。項目 80,000m → 項目 BLOCK（>10000m）+ Session BLOCK（>30000m）、override 不可。
+    legacy の「ペース走 5000m」ケース（監査 C-1 のもう一方）はテスト用の再現であり変更しない。
 
 ### 11.5 呼び出し箇所
 - MenuItem の add / update / move / delete の各 Server Action（R10）。
@@ -2218,7 +2340,7 @@ export function proposalToPlanRequests(
 | T-WK-03 | legacy の UNKNOWN 強度 | 30h 前に legacy JUMP 種目 | readiness 必須。未入力なら USE_LOWER_BOUND |
 | T-WK-04 | 48–72h | 60h 前に MV | READINESS_CHECK_REQUIRED |
 | T-WK-05 | Method 別時間差を持たない | 前回 SES / 前回 ACC の各 50h 後 | 同一判定（どちらも 48h 経過扱い） |
-| T-AGG-01 | 加速3項目 | DEV で ACC 各 120m × 3項目 | AGG_METHOD_VOLUME_OVER_*（監査 H-5 の再発防止） |
+| T-AGG-01 | 加速3項目 | DEV で ACC 各 120m × 3項目 | AGG_METHOD_BUDGET_OVER_*（監査 H-5 の再発防止。§11.6-4） |
 | T-AGG-02 | null を 0 にしない | 露出 upper=null の項目を含む | completeness=PARTIAL、比較不能 Finding |
 | T-AGG-03 | **MAXV + acceleration 同日** | ADV: ACC 150m + MV fly 90m | 高強度予算 0.5 + 0.6 = 1.1 → AGG_HIGH_INTENSITY_BUDGET（WARN） |
 | T-AGG-04 | legacy の sets/reps 曖昧 | legacy SPRINT 60m, sets 4, reps null | 総走行距離 [240, 240]。reps 5 なら [240, 1200] |
@@ -2229,7 +2351,7 @@ export function proposalToPlanRequests(
 | T-LSR-02 | **LONG INCOMPLETE（POST+ADVANCED）** | 同上、LSR_300_PLUS_100 | SP_LSR_INCOMPLETE_ADV、分割走内の低下では END しない、hard stop は有効 |
 | T-LSR-03 | LONG INCOMPLETE（それ以外） | U18 POST DEVELOPING 400m | 自動生成されない。override で手動処方しても stopPolicy=SP_LSR_INCOMPLETE_STRICT |
 | T-LSR-04 | recoveryStructure 必須 | LONG で recoveryStructure 欠落 | Zod で拒否 |
-| T-PLA-01 | **80km accident** | TE で distance 5000 × reps 8 × sets 2 をコーチ入力 | 項目 BLOCK（>10000m）、Session BLOCK（>30000m）、override 不可 |
+| T-PLA-01 | **80km accident** | TI_COACH_DEFINED で distance 5000 × reps 8 × sets 2 をコーチ入力（§11.6-15） | 項目 BLOCK（>10000m）、Session BLOCK（>30000m）、override 不可 |
 | T-PLA-02 | sets/reps 取り違え | ACC totalReps = recommended.max × 3 | REQUIRE_CONFIRMATION |
 | T-PLA-03 | 入力の桁ミス | 100m PB = 1.08 秒 | 入力 BLOCK |
 | T-PLA-04 | legacy 警告フック | legacy suggestPrescription でペース走 5000m | 数値は golden と同一、Finding（plausibility）が追加される |

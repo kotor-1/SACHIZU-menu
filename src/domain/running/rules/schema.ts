@@ -37,7 +37,7 @@ import {
   raceEventSchema,
   stopPolicyIdSchema,
 } from "../types/primitives";
-import { envelopeTierSchema, trainingAgeTierSchema } from "../types/subject";
+import { ENVELOPE_TIERS, envelopeTierSchema, trainingAgeTierSchema } from "../types/subject";
 import { loadCategorySchema } from "../types/load";
 import { INTENSITY_REFERENCE_KINDS, TIMED_MARK_EVENTS, timedMarkEventSchema, timingMethodSchema } from "../types/intensity";
 import { RED_FLAGS, bodyRegionSchema, readinessActionCodeSchema, redFlagSchema, safetyOutcomeSchema } from "../types/readiness";
@@ -410,6 +410,25 @@ export const plausibilityInputTargetSchema = z.discriminatedUnion("kind", [
 ]);
 export type PlausibilityInputTarget = z.infer<typeof plausibilityInputTargetSchema>;
 
+/**
+ * [R6 structured metadata] scope≠INPUT の plausibility が、出力（処方・セッション）のどの量を検査するか。
+ * R6 の `checkOutputPlausibility` は ruleId や targetLabel の文字列ではなくこの構造で対象を選ぶ。
+ *   - PRESCRIPTION_FIELD: 処方の1フィールド（sets / repsPerSet / totalReps / rest / buildUpM / flyZoneM / repDurationS）
+ *   - REP_DISTANCE:       1本の距離（Method ごとの意味は rep の判別共用体から導く。MV/AS は build-up + fly の合計）
+ *   - ITEM_TOTAL_DISTANCE: 1項目の総走行距離（回数×1本の距離。deceleration を含めない）
+ *   - SESSION_TOTAL_DISTANCE: メニュー全体の総走行距離（§11）
+ *   - TOTAL_REPS_VS_RECOMMENDED: totalReps ÷ Envelope の recommended.max 比（sets/reps 取り違え疑い）
+ */
+export const PLAUSIBILITY_OUTPUT_TARGETS = [
+  "PRESCRIPTION_FIELD",
+  "REP_DISTANCE",
+  "ITEM_TOTAL_DISTANCE",
+  "SESSION_TOTAL_DISTANCE",
+  "TOTAL_REPS_VS_RECOMMENDED",
+] as const;
+export const plausibilityOutputTargetSchema = z.enum(PLAUSIBILITY_OUTPUT_TARGETS);
+export type PlausibilityOutputTarget = z.infer<typeof plausibilityOutputTargetSchema>;
+
 export const plausibilityRuleSchema = z
   .object({
     ruleId: z.string().min(1),
@@ -427,8 +446,24 @@ export const plausibilityRuleSchema = z
     ratioMultiplier: z.number().positive().nullable(),
     note: z.string().nullable(),
     inputTarget: plausibilityInputTargetSchema.nullable(),
+    /** [R6] scope≠INPUT の行が検査する出力の量。scope=INPUT の行は null。 */
+    outputTarget: plausibilityOutputTargetSchema.nullable(),
   })
   .superRefine((rule, ctx) => {
+    if ((rule.scope === "INPUT") !== (rule.outputTarget === null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "outputTarget は scope≠INPUT の行にだけ（かつ必ず）指定します",
+        path: ["outputTarget"],
+      });
+    }
+    if (rule.outputTarget === "PRESCRIPTION_FIELD" && rule.field === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "outputTarget=PRESCRIPTION_FIELD の行は field が必須です",
+        path: ["field"],
+      });
+    }
     if ((rule.scope === "INPUT") !== (rule.inputTarget !== null)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -665,6 +700,111 @@ export const readinessRuleSchema = z.discriminatedUnion("kind", [
 export type ReadinessRule = z.infer<typeof readinessRuleSchema>;
 
 // ---------------------------------------------------------------------------
+// AggregationRule（§11。R6で正式化。R5までは z.array(z.never()) で空配列固定）
+//
+// ここに置くのは §11 の **ENGINE-POLICY だけ**。Method ごとの量の上限は Envelope
+// （recommended.max / coachEditable.max）が single source of truth なので、
+// 「ACC=300m」のような数値をここへ再入力しない（導出のしかただけを持つ）。
+// ---------------------------------------------------------------------------
+
+/** §11.2 の推定加速距離 A（区間。1値にしない）。source=ESTIMATED / confidence=LOW で扱う。 */
+export const AGGREGATION_NEAR_MAX_MODELS = [
+  "REP_DISTANCE",        // ACC / RS: 1本の距離 × 本数
+  "BUILD_UP_PLUS_FLY",   // MV / AS: (build-up + fly) × 本数
+  "DISPLAY_DISTANCE",    // SES / LONG: 表示距離（LONG INCOMPLETE は区間合計）× 本数
+  "APPROACH_IF_FULL",    // EA: approachType=FULL のときだけ助走距離 × 試技数
+  "NONE",                // TE / TI / STRIDE: 定義上 0（[0,0] RULE_DEFINITION）
+] as const;
+export const aggregationNearMaxModelSchema = z.enum(AGGREGATION_NEAR_MAX_MODELS);
+export type AggregationNearMaxModel = z.infer<typeof aggregationNearMaxModelSchema>;
+
+/** §11.4 の Method 合計をどの Envelope セルの上限と比べるか。 */
+export const AGGREGATION_VOLUME_METRICS = ["sessionVolumeM", "flyVolumeM", "attempts"] as const;
+export const aggregationVolumeMetricSchema = z.enum(AGGREGATION_VOLUME_METRICS);
+export type AggregationVolumeMetric = z.infer<typeof aggregationVolumeMetricSchema>;
+
+/** §11.1 の Method 別合計（longSprintVolumeM / tempoVolumeM / strideVolumeM）のどれに足すか。 */
+export const AGGREGATION_VOLUME_CATEGORIES = ["LONG_SPRINT", "TEMPO", "STRIDE", "NONE"] as const;
+export const aggregationVolumeCategorySchema = z.enum(AGGREGATION_VOLUME_CATEGORIES);
+
+/** Envelope のどちらの上限を使うか（数値そのものは Envelope 側にある）。 */
+export const ENVELOPE_CAP_BOUNDS = ["RECOMMENDED_MAX", "COACH_EDITABLE_MAX"] as const;
+export const envelopeCapBoundSchema = z.enum(ENVELOPE_CAP_BOUNDS);
+export type EnvelopeCapBound = z.infer<typeof envelopeCapBoundSchema>;
+
+/** legacy 項目（v2 ではない MenuItem）の category が集計上何を意味するか。 */
+export const LEGACY_CATEGORY_CONTRIBUTIONS = [
+  "RUNNING_DISTANCE", // 走行距離として集計する
+  "CONTACTS",         // 接地数（plyometricContacts）として集計する
+  "NOT_RUNNING",      // 定義上 0（走行距離にも接地数にもならない）
+  "UNKNOWN",          // 走かどうかを既存 category semantics から断定できない → null を伝播
+] as const;
+export const legacyCategoryContributionSchema = z.enum(LEGACY_CATEGORY_CONTRIBUTIONS);
+export type LegacyCategoryContribution = z.infer<typeof legacyCategoryContributionSchema>;
+
+export const aggregationRuleSchema = z.discriminatedUnion("kind", [
+  /** §11.2 推定加速距離 A（tier 別の区間）。 */
+  z
+    .object({
+      kind: z.literal("ACCEL_INTERVAL"),
+      id: z.string().min(1),
+      tier: envelopeTierSchema,
+      lowerM: z.number().nonnegative().finite(),
+      upperM: z.number().nonnegative().finite(),
+    })
+    .strict(),
+  /** §11.2 RELAY の助走許容。R7 の competition ロジックは含まない（数値だけ）。 */
+  z
+    .object({ kind: z.literal("RELAY_ALLOWANCE"), id: z.string().min(1), allowanceM: z.number().nonnegative().finite() })
+    .strict(),
+  /** Method ごとの集計の仕方（上限比較に使うセル・nearMax の求め方・量カテゴリ）。 */
+  z
+    .object({
+      kind: z.literal("METHOD_AGGREGATION"),
+      id: z.string().min(1),
+      method: runningTrainingMethodSchema,
+      volumeMetric: aggregationVolumeMetricSchema,
+      nearMaxModel: aggregationNearMaxModelSchema,
+      volumeCategory: aggregationVolumeCategorySchema,
+    })
+    .strict(),
+  /** §11.4 高強度予算（量への乗数ではなく、Envelope 上限の按分）。 */
+  z
+    .object({
+      kind: z.literal("HIGH_INTENSITY_BUDGET"),
+      id: z.string().min(1),
+      threshold: z.number().positive().finite(),
+      /** recommended.max が null の Method で分母に使う上限。 */
+      fallbackBound: envelopeCapBoundSchema,
+      findingCode: z.string().min(1),
+      editableFindingCode: z.string().min(1),
+    })
+    .strict(),
+  /** §11.4 tempo / stride の合計上限（上限値そのものは Envelope から読む）。 */
+  z
+    .object({
+      kind: z.literal("SESSION_VOLUME_LIMIT"),
+      id: z.string().min(1),
+      metric: aggregationVolumeCategorySchema.exclude(["NONE"]),
+      capMethod: runningTrainingMethodSchema,
+      capField: aggregationVolumeMetricSchema,
+      capBound: envelopeCapBoundSchema,
+      findingCode: z.string().min(1),
+    })
+    .strict(),
+  /** legacy 項目の category semantics（推測でなく版管理されたデータとして持つ）。 */
+  z
+    .object({
+      kind: z.literal("LEGACY_CATEGORY"),
+      id: z.string().min(1),
+      category: z.string().min(1),
+      contribution: legacyCategoryContributionSchema,
+    })
+    .strict(),
+]);
+export type AggregationRule = z.infer<typeof aggregationRuleSchema>;
+
+// ---------------------------------------------------------------------------
 // ConstraintRule（§8.2, §7.5。R3で正式化。R2では z.array(z.never()) で空配列固定していた）
 // ---------------------------------------------------------------------------
 
@@ -759,7 +899,7 @@ export const ruleSetSchema = z
     constraints: z.array(constraintRuleSchema),
     timingTolerances: z.array(timingToleranceRuleSchema),
     stopPolicies: z.array(stopPolicySchema),
-    aggregationRules: notYetImplementedArraySchema,
+    aggregationRules: z.array(aggregationRuleSchema),
     weeklyRules: notYetImplementedArraySchema,
     readinessRules: z.array(readinessRuleSchema),
     phaseRules: notYetImplementedArraySchema,
@@ -1117,6 +1257,70 @@ export const ruleSetSchema = z
       }
     }
 
+    // ---- AggregationRule（R6）----------------------------------------------------
+    const aggIdsSeen = new Set<string>();
+    for (const [i, rule] of rs.aggregationRules.entries()) {
+      if (aggIdsSeen.has(rule.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `AggregationRule.id が重複しています: ${rule.id}`, path: ["aggregationRules", i, "id"] });
+      }
+      aggIdsSeen.add(rule.id);
+      if (rule.kind === "ACCEL_INTERVAL" && rule.lowerM > rule.upperM) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "ACCEL_INTERVAL は lowerM <= upperM である必要があります",
+          path: ["aggregationRules", i, "upperM"],
+        });
+      }
+      if (rule.kind === "ACCEL_INTERVAL") {
+        const dup = rs.aggregationRules.some((r) => r.kind === "ACCEL_INTERVAL" && r.id !== rule.id && r.tier === rule.tier);
+        if (dup) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `tier ${rule.tier} の ACCEL_INTERVAL が複数あります（A は tier ごとに1つ）`,
+            path: ["aggregationRules", i, "tier"],
+          });
+        }
+      }
+      if (rule.kind === "METHOD_AGGREGATION") {
+        const dup = rs.aggregationRules.some((r) => r.kind === "METHOD_AGGREGATION" && r.id !== rule.id && r.method === rule.method);
+        if (dup) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Method ${rule.method} の METHOD_AGGREGATION が複数あります`,
+            path: ["aggregationRules", i, "method"],
+          });
+        }
+      }
+      if (rule.kind === "LEGACY_CATEGORY") {
+        const dup = rs.aggregationRules.some((r) => r.kind === "LEGACY_CATEGORY" && r.id !== rule.id && r.category === rule.category);
+        if (dup) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `legacy category ${rule.category} の LEGACY_CATEGORY が複数あります`,
+            path: ["aggregationRules", i, "category"],
+          });
+        }
+      }
+      if (rule.kind === "SESSION_VOLUME_LIMIT") {
+        const dup = rs.aggregationRules.some((r) => r.kind === "SESSION_VOLUME_LIMIT" && r.id !== rule.id && r.metric === rule.metric);
+        if (dup) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `metric ${rule.metric} の SESSION_VOLUME_LIMIT が複数あります`,
+            path: ["aggregationRules", i, "metric"],
+          });
+        }
+      }
+    }
+    const budgetRules = rs.aggregationRules.filter((r) => r.kind === "HIGH_INTENSITY_BUDGET");
+    if (rs.aggregationRules.length > 0 && budgetRules.length !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "HIGH_INTENSITY_BUDGET はちょうど1行必要です",
+        path: ["aggregationRules"],
+      });
+    }
+
     // ---- ConstraintRule ---------------------------------------------------------
     const constraintIdsSeen = new Set<string>();
     for (const [i, c] of rs.constraints.entries()) {
@@ -1217,6 +1421,24 @@ export function checkRuleSetCompleteness(rs: RuleSet): string[] {
   const swapMethods = new Set(rs.readinessRules.flatMap((r) => (r.kind === "SWAP_TARGET" ? r.fromMethods : [])));
   for (const method of RUNNING_TRAINING_METHODS) {
     if (!swapMethods.has(method)) problems.push(`ReadinessRule に Method ${method} の SWAP_TARGET がありません`);
+  }
+
+  // [R6] §11: 全 Method に METHOD_AGGREGATION、全 tier に ACCEL_INTERVAL、高強度予算が1行あること。
+  if (rs.aggregationRules.length > 0) {
+    const aggMethods = new Set(rs.aggregationRules.flatMap((r) => (r.kind === "METHOD_AGGREGATION" ? [r.method] : [])));
+    for (const method of RUNNING_TRAINING_METHODS) {
+      if (!aggMethods.has(method)) problems.push(`AggregationRule に Method ${method} の METHOD_AGGREGATION がありません`);
+    }
+    const aggTiers = new Set(rs.aggregationRules.flatMap((r) => (r.kind === "ACCEL_INTERVAL" ? [r.tier] : [])));
+    for (const tier of ENVELOPE_TIERS) {
+      if (!aggTiers.has(tier)) problems.push(`AggregationRule に tier ${tier} の ACCEL_INTERVAL（推定加速距離 A）がありません`);
+    }
+    if (!rs.aggregationRules.some((r) => r.kind === "HIGH_INTENSITY_BUDGET")) {
+      problems.push("AggregationRule に HIGH_INTENSITY_BUDGET がありません");
+    }
+    if (!rs.aggregationRules.some((r) => r.kind === "RELAY_ALLOWANCE")) {
+      problems.push("AggregationRule に RELAY_ALLOWANCE がありません");
+    }
   }
 
   const markEvents = new Set(rs.eventDefinitions.timedMarks.map((d) => d.event));

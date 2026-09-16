@@ -545,8 +545,7 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
     expect(80000).toBeGreaterThan(rule!.blockThreshold!.max!);
   });
 
-  it("aggregationRules / weeklyRules / phaseRules / competitionRules / vmaxEstimationModels はすべて空配列（R6/R7ではまだ実装しない）", () => {
-    expect(rs.aggregationRules).toEqual([]);
+  it("weeklyRules / phaseRules / competitionRules / vmaxEstimationModels はすべて空配列（R7ではまだ実装しない）", () => {
     expect(rs.weeklyRules).toEqual([]);
     expect(rs.phaseRules).toEqual([]);
     expect(rs.competitionRules).toEqual([]);
@@ -555,6 +554,10 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
 
   it("[R5] readinessRules は空ではない（§13 の判定データはすべて RuleSet 側にある）", () => {
     expect(rs.readinessRules.length).toBeGreaterThan(0);
+  });
+
+  it("[R6] aggregationRules は空ではない（§11 の判定データはすべて RuleSet 側にある）", () => {
+    expect(rs.aggregationRules.length).toBeGreaterThan(0);
   });
 
   it("constraints は R3 で正式化され、4件のConstraintRuleを持つ（§8.2 U12 hard / U15 ASSISTED + §7.5 complexity cap ×2）", () => {
@@ -999,14 +1002,14 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
     return JSON.stringify(value);
   }
 
-  it("既存の科学的データ・数値は R4 の metadata 追加で1バイトも変わっていない（R3 commit 時点の内容の SHA-256）", async () => {
+  it("既存の科学的データ・数値は R4/R6 の metadata 追加で1バイトも変わっていない（R3 commit 時点の内容の SHA-256）", async () => {
     const { createHash } = await import("node:crypto");
     const raw = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../src/domain/running/rules/sets/rs-2026.09.0.json"), "utf-8"));
     const NEW_KEYS: Record<string, string[]> = {
       templates: ["approachType", "resistanceBand", "fixedDistanceField"],
       eligibility: ["conditions", "autoGenerationLimits"],
       stopPolicies: ["appliesToEligibilityPath"],
-      plausibility: ["inputTarget"],
+      plausibility: ["inputTarget", "outputTarget"],
     };
     const EXPECTED: Record<string, string> = {
       methods: "b048e8197b8f0b0ab617aaa8ec57a195d3b600ce531ea3ceda6fa9555ec2f3ee",

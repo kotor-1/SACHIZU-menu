@@ -15,8 +15,9 @@
  *   - [R5] `readiness` は `ReadinessDecision | null`。**判定済みの decision だけ**を受け取り、生の
  *     `ReadinessReport`（pain / soreness / reporter 等）は `.strict()` が拒否する。健康情報の生値は
  *     PlanRequest に入れない（§13.5）。`null` = readiness 未接続（§13.2/§13.3 を評価しない）。
- *   - [R4 transitional restriction] `menuContext.otherItems` は R6、`menuContext.competitions` は R7 の型が
- *     未実装のため空配列固定（R6 / R7 で開放）。`history`（R1 の LoadEvent）と `phase` は受け取るが R4 では
+ *   - [R6] `menuContext.otherItems` は `AggregationItem[]`（§11）。**現在計画中の項目は含めない**
+ *     （planning が1回だけ自分を足す。同じ項目を2回集計しない）。`menuContext.competitions` は R7 の型が
+ *     未実装のため空配列固定のまま。`history`（R1 の LoadEvent）と `phase` は受け取るが R6 では
  *     評価しない（中立。R7 で接続）。これは最終的な PlanRequest contract ではない。
  */
 import { z } from "zod";
@@ -29,6 +30,7 @@ import { aiPlannerActorSchema, coachActorSchema, systemActorSchema } from "../ty
 import { intensityReferenceSchema, type IntensityReference } from "../types/intensity";
 import { envelopeFieldSchema } from "../rules/schema";
 import { readinessDecisionSchema } from "../readiness/schema";
+import { aggregationItemSchema } from "../aggregation/schema";
 import type { Finding, FindingSeverity } from "../types/findings";
 import type { EvidenceId } from "../types/primitives";
 import type { RunningPrescriptionValue } from "../types/prescription";
@@ -192,8 +194,11 @@ export const menuContextSchema = z
     plannedDate: isoDateSchema.nullable(),
     /** [R4 errata] CompetitionRef は R7。R4 では空配列のみ受け付ける。 */
     competitions: z.array(z.never()),
-    /** [R4 errata] PlannedItemSummary は R6。R4 では空配列のみ受け付ける。 */
-    otherItems: z.array(z.never()),
+    /**
+     * [R6] このメニューの**他の**項目（§11 の集計対象）。現在計画中の項目は含めない。
+     * v2 の項目は完成した処方のスナップショット、legacy の項目は最小限の要約だけを渡す。
+     */
+    otherItems: z.array(aggregationItemSchema),
     availableMinutes: z.number().positive().finite().nullable(),
   })
   .strict();

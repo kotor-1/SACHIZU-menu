@@ -18,6 +18,18 @@ import {
 } from "./rules";
 
 /** 処方の計算に必要な種目の情報。Prisma の行をそのまま渡せる。 */
+/**
+ * [R6] legacy の数値ロジックは一切変えない。最終出力が確定した後に、v2 の plausibility
+ * （§8.5 の「1項目の総走行距離」行）を呼び、`warnings` に一文を足すだけのフック。
+ * 監査 C-1（ペース走 80km / インターバル 400m 25.6km）を legacy 経路でも検出できるようにするためのもの。
+ * R13 で legacy を置き換えるときに、このフックごと削除する。
+ */
+import { checkLegacyItemPlausibility } from "@/domain/running/plausibility/output";
+import { getRuleSet } from "@/domain/running/rules/loader";
+
+/** 警告に使う RuleSet。legacy には計画日が無いため版を明示して固定する（判定値は RuleSet 側にある）。 */
+const LEGACY_WARNING_RULESET_VERSION = "rs-2026.09.0";
+
 export type SuggestibleExercise = ClassifiableExercise & {
   name?: string;
   metricType?: string | null;
@@ -246,6 +258,11 @@ export function suggestPrescription(
     loadKg: null,
   };
 
+  // [R6] 数値はここまでで確定している。以降は warnings を足すだけ（prescription を書き換えない）。
+  for (const w of legacyPlausibilityWarnings(exercise.category, prescription)) {
+    if (!warnings.includes(w)) warnings.push(w);
+  }
+
   return {
     kind,
     prescription,
@@ -267,4 +284,32 @@ export function buildPrescriptionNote(
   const lines = [...suggestion.rationale];
   for (const w of suggestion.warnings) lines.push(`⚠ ${w}`);
   return lines.join("\n").slice(0, 1000);
+}
+
+/**
+ * [R6] 確定した legacy 処方を v2 の plausibility に掛けて、日本語の警告文にする。
+ * 閾値は RuleSet 側にあり、ここには数値を書かない。RuleSet が読めない場合は何も足さない（fail-safe）。
+ */
+function legacyPlausibilityWarnings(category: string, prescription: Prescription): string[] {
+  const ruleSet = getRuleSet(LEGACY_WARNING_RULESET_VERSION);
+  if (!ruleSet) return [];
+  const result = checkLegacyItemPlausibility(
+    {
+      category,
+      sets: prescription.sets ?? null,
+      reps: prescription.reps ?? null,
+      distanceMeters: prescription.distanceMeters ?? null,
+      durationSeconds: prescription.durationSeconds ?? null,
+      restSeconds: prescription.restSeconds ?? null,
+    },
+    ruleSet,
+  );
+  const messages: string[] = [];
+  const total = (prescription.distanceMeters ?? 0) * (prescription.sets ?? 1) * (prescription.reps ?? 1);
+  if (result.blocked) {
+    messages.push(`この種目だけで最大${total}mになります。距離・本数・セット数の意味を確認してください。`);
+  } else if (result.requiresConfirmation) {
+    messages.push(`この種目だけで最大${total}mになります。距離・本数・セット数が意図どおりか確認してください。`);
+  }
+  return messages;
 }

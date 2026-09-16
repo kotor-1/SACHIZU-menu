@@ -233,3 +233,17 @@ export {
   type ReadinessWindowState,
 } from "./readiness";
 export type { AiSafeSubjectContext } from "./readiness/aiSafeContext";
+
+// --- Session aggregation / Plausibility（R6） ----------------------------------
+// §1.5 の R6 公開 API は `evaluateSessionAggregation` / `checkOutputPlausibility` と入出力型だけ。
+// 内部ロジック（sumIntervals / estimateExposure / adaptLegacyItem / resolveItemCap /
+// checkSessionPlausibility / checkLegacyItemPlausibility）は root から export しない
+// （必要なら `src/domain/running/aggregation/*` / `plausibility/*` を直接 import する）。
+export {
+  evaluateSessionAggregation,
+  type AggregationContext,
+  type AggregationItem,
+  type LegacyItemSummary,
+  type SessionAggregate,
+} from "./aggregation";
+export { checkOutputPlausibility, type OutputPlausibilityResult } from "./plausibility/output";

@@ -1,21 +1,213 @@
 {
-  "aggregationRules": [],
+  "aggregationRules": [
+    {
+      "id": "AGG_ACCEL_INTERVAL_DEV",
+      "kind": "ACCEL_INTERVAL",
+      "lowerM": 20,
+      "tier": "DEVELOPMENTAL",
+      "upperM": 30
+    },
+    {
+      "id": "AGG_ACCEL_INTERVAL_ADV",
+      "kind": "ACCEL_INTERVAL",
+      "lowerM": 40,
+      "tier": "ADVANCED",
+      "upperM": 60
+    },
+    {
+      "allowanceM": 20,
+      "id": "AGG_RELAY_ALLOWANCE",
+      "kind": "RELAY_ALLOWANCE"
+    },
+    {
+      "id": "AGG_METHOD_ACCELERATION",
+      "kind": "METHOD_AGGREGATION",
+      "method": "ACCELERATION",
+      "nearMaxModel": "REP_DISTANCE",
+      "volumeCategory": "NONE",
+      "volumeMetric": "sessionVolumeM"
+    },
+    {
+      "id": "AGG_METHOD_MAX_VELOCITY",
+      "kind": "METHOD_AGGREGATION",
+      "method": "MAX_VELOCITY",
+      "nearMaxModel": "BUILD_UP_PLUS_FLY",
+      "volumeCategory": "NONE",
+      "volumeMetric": "flyVolumeM"
+    },
+    {
+      "id": "AGG_METHOD_SPRINT_ENDURANCE_SHORT",
+      "kind": "METHOD_AGGREGATION",
+      "method": "SPRINT_ENDURANCE_SHORT",
+      "nearMaxModel": "DISPLAY_DISTANCE",
+      "volumeCategory": "NONE",
+      "volumeMetric": "sessionVolumeM"
+    },
+    {
+      "id": "AGG_METHOD_LONG_SPRINT_RACE_SPECIFIC",
+      "kind": "METHOD_AGGREGATION",
+      "method": "LONG_SPRINT_RACE_SPECIFIC",
+      "nearMaxModel": "DISPLAY_DISTANCE",
+      "volumeCategory": "LONG_SPRINT",
+      "volumeMetric": "sessionVolumeM"
+    },
+    {
+      "id": "AGG_METHOD_TEMPO_EXTENSIVE",
+      "kind": "METHOD_AGGREGATION",
+      "method": "TEMPO_EXTENSIVE",
+      "nearMaxModel": "NONE",
+      "volumeCategory": "TEMPO",
+      "volumeMetric": "sessionVolumeM"
+    },
+    {
+      "id": "AGG_METHOD_TEMPO_INTENSIVE",
+      "kind": "METHOD_AGGREGATION",
+      "method": "TEMPO_INTENSIVE",
+      "nearMaxModel": "NONE",
+      "volumeCategory": "TEMPO",
+      "volumeMetric": "sessionVolumeM"
+    },
+    {
+      "id": "AGG_METHOD_RESISTED_SPRINT",
+      "kind": "METHOD_AGGREGATION",
+      "method": "RESISTED_SPRINT",
+      "nearMaxModel": "REP_DISTANCE",
+      "volumeCategory": "NONE",
+      "volumeMetric": "sessionVolumeM"
+    },
+    {
+      "id": "AGG_METHOD_ASSISTED_SPRINT",
+      "kind": "METHOD_AGGREGATION",
+      "method": "ASSISTED_SPRINT",
+      "nearMaxModel": "BUILD_UP_PLUS_FLY",
+      "volumeCategory": "NONE",
+      "volumeMetric": "flyVolumeM"
+    },
+    {
+      "id": "AGG_METHOD_EVENT_APPROACH_SPEED",
+      "kind": "METHOD_AGGREGATION",
+      "method": "EVENT_APPROACH_SPEED",
+      "nearMaxModel": "APPROACH_IF_FULL",
+      "volumeCategory": "NONE",
+      "volumeMetric": "attempts"
+    },
+    {
+      "id": "AGG_METHOD_STRIDE",
+      "kind": "METHOD_AGGREGATION",
+      "method": "STRIDE",
+      "nearMaxModel": "NONE",
+      "volumeCategory": "STRIDE",
+      "volumeMetric": "sessionVolumeM"
+    },
+    {
+      "editableFindingCode": "AGG_HIGH_INTENSITY_BUDGET_EDITABLE",
+      "fallbackBound": "COACH_EDITABLE_MAX",
+      "findingCode": "AGG_HIGH_INTENSITY_BUDGET",
+      "id": "AGG_HIGH_INTENSITY_BUDGET",
+      "kind": "HIGH_INTENSITY_BUDGET",
+      "threshold": 1.0
+    },
+    {
+      "capBound": "RECOMMENDED_MAX",
+      "capField": "sessionVolumeM",
+      "capMethod": "TEMPO_EXTENSIVE",
+      "findingCode": "AGG_TEMPO_OVER",
+      "id": "AGG_TEMPO_LIMIT",
+      "kind": "SESSION_VOLUME_LIMIT",
+      "metric": "TEMPO"
+    },
+    {
+      "capBound": "COACH_EDITABLE_MAX",
+      "capField": "sessionVolumeM",
+      "capMethod": "STRIDE",
+      "findingCode": "AGG_STRIDE_OVER",
+      "id": "AGG_STRIDE_LIMIT",
+      "kind": "SESSION_VOLUME_LIMIT",
+      "metric": "STRIDE"
+    },
+    {
+      "category": "SPRINT",
+      "contribution": "RUNNING_DISTANCE",
+      "id": "AGG_LEGACY_SPRINT",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "ENDURANCE",
+      "contribution": "RUNNING_DISTANCE",
+      "id": "AGG_LEGACY_ENDURANCE",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "JUMP",
+      "contribution": "CONTACTS",
+      "id": "AGG_LEGACY_JUMP",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "HURDLE",
+      "contribution": "UNKNOWN",
+      "id": "AGG_LEGACY_HURDLE",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "DRILL",
+      "contribution": "UNKNOWN",
+      "id": "AGG_LEGACY_DRILL",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "WARM_UP",
+      "contribution": "NOT_RUNNING",
+      "id": "AGG_LEGACY_WARM_UP",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "MOBILITY",
+      "contribution": "NOT_RUNNING",
+      "id": "AGG_LEGACY_MOBILITY",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "COOL_DOWN",
+      "contribution": "NOT_RUNNING",
+      "id": "AGG_LEGACY_COOL_DOWN",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "THROW",
+      "contribution": "NOT_RUNNING",
+      "id": "AGG_LEGACY_THROW",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "STRENGTH",
+      "contribution": "NOT_RUNNING",
+      "id": "AGG_LEGACY_STRENGTH",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "CORE",
+      "contribution": "NOT_RUNNING",
+      "id": "AGG_LEGACY_CORE",
+      "kind": "LEGACY_CATEGORY"
+    },
+    {
+      "category": "OTHER",
+      "contribution": "UNKNOWN",
+      "id": "AGG_LEGACY_OTHER",
+      "kind": "LEGACY_CATEGORY"
+    }
+  ],
   "changelog": [
     "rs-2026.09.0: 初版。正式仕様 docs/RUNNING_PRESCRIPTION_ENGINE_V2_SPEC.md の §3-§10 をデータ化。全 Evidence は SECONDARY_REPORT_ONLY、status=DRAFT（一次資料未照合のため ACTIVE 化しない）。",
     "R3: added versioned constraints (U12 hard constraints, U15 ASSISTED_SPRINT non-overridable, maturity/training-age auto-complexity caps), SessionTemplate complexity (§7.5) and EligibilityRule.requiresPhaseEvaluation metadata. methods/envelopes/evidence/timingTolerances/stopPolicies/plausibility values unchanged. Status remains DRAFT.",
     "R4: added structured machine-readable metadata so planning never parses human-readable text or identifier names: EligibilityRule.conditions / autoGenerationLimits (previously only described in conditionNote), SessionTemplate.approachType / resistanceBand / fixedDistanceField, StopPolicy.appliesToEligibilityPath, PlausibilityRule.inputTarget, and eventDefinitions (timed-mark and race-event distances). conditionNote is now explanatory only. methods/envelopes/evidence/timingTolerances/constraints and all stop-policy/plausibility/envelope numeric values unchanged. Status remains DRAFT.",
-    "R5: added versioned readinessRules (§13 pain red flag groups, pain PRESENT / NOT_ASKED gates, growth-period guidance regions, wellness thresholds and signal counts, readiness-window rule, SWAP target map). No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/plausibility/eventDefinitions are byte-identical. Status remains DRAFT."
+    "R5: added versioned readinessRules (§13 pain red flag groups, pain PRESENT / NOT_ASKED gates, growth-period guidance regions, wellness thresholds and signal counts, readiness-window rule, SWAP target map). No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/plausibility/eventDefinitions are byte-identical. Status remains DRAFT.",
+    "R6: added versioned aggregationRules (§11 accel interval A per tier, relay allowance, per-Method aggregation metadata, high-intensity budget, tempo/stride session limits, legacy category semantics) and plausibility outputTarget metadata. No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/readinessRules/eventDefinitions and every plausibility threshold are unchanged. Status remains DRAFT."
   ],
   "competitionRules": [],
   "constraints": [
     {
-      "id": "CONSTRAINT_U12_HARD",
-      "match": {
-        "dimension": "AGE_BAND",
-        "ageBands": [
-          "U12"
-        ]
-      },
       "disallowedMethods": [
         "ASSISTED_SPRINT",
         "LONG_SPRINT_RACE_SPECIFIC",
@@ -24,68 +216,89 @@
       "disallowedTemplateIds": [
         "RS_SLED_HEAVY"
       ],
+      "id": "CONSTRAINT_U12_HARD",
+      "judgement": "ENGINE_POLICY",
+      "match": {
+        "ageBands": [
+          "U12"
+        ],
+        "dimension": "AGE_BAND"
+      },
       "maxAutoComplexity": "LOW",
       "overrideAllowed": false,
-      "judgement": "ENGINE_POLICY",
       "provisional": true
     },
     {
+      "disallowedMethods": [],
+      "disallowedTemplateIds": [],
       "id": "CONSTRAINT_MATURITY_COMPLEXITY_CAP",
+      "judgement": "ENGINE_POLICY",
       "match": {
-        "dimension": "MATURITY_CATEGORY",
         "categories": [
           "PRE",
           "EFFECTIVE_UNKNOWN",
           "CIRCA"
-        ]
+        ],
+        "dimension": "MATURITY_CATEGORY"
       },
-      "disallowedMethods": [],
-      "disallowedTemplateIds": [],
       "maxAutoComplexity": "MEDIUM",
       "overrideAllowed": null,
-      "judgement": "ENGINE_POLICY",
       "provisional": true
     },
     {
+      "disallowedMethods": [],
+      "disallowedTemplateIds": [],
       "id": "CONSTRAINT_TRAINING_AGE_BEGINNER_COMPLEXITY_CAP",
+      "judgement": "ENGINE_POLICY",
       "match": {
         "dimension": "TRAINING_AGE_TIER",
         "tiers": [
           "BEGINNER"
         ]
       },
-      "disallowedMethods": [],
-      "disallowedTemplateIds": [],
       "maxAutoComplexity": "MEDIUM",
       "overrideAllowed": null,
-      "judgement": "ENGINE_POLICY",
       "provisional": true
     },
     {
-      "id": "CONSTRAINT_U15_ASSISTED_NONOVERRIDABLE",
-      "match": {
-        "dimension": "AGE_BAND",
-        "ageBands": [
-          "U15"
-        ]
-      },
       "disallowedMethods": [
         "ASSISTED_SPRINT"
       ],
       "disallowedTemplateIds": [],
+      "id": "CONSTRAINT_U15_ASSISTED_NONOVERRIDABLE",
+      "judgement": "ENGINE_POLICY",
+      "match": {
+        "ageBands": [
+          "U15"
+        ],
+        "dimension": "AGE_BAND"
+      },
       "maxAutoComplexity": null,
       "overrideAllowed": false,
-      "judgement": "ENGINE_POLICY",
       "provisional": true
     }
   ],
   "eligibility": [
     {
+      "autoGenerationLimits": {
+        "maxTotalReps": null,
+        "positionCap": null
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "ACCELERATION",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ACC_LE20_PRE",
       "templateIds": [
@@ -94,28 +307,28 @@
         "ACC_CROUCH_20",
         "ACC_STANDING_20",
         "ACC_FALLING_10"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "ACCELERATION",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ACC_LE20_EFFECTIVE_UNKNOWN",
       "templateIds": [
@@ -124,28 +337,28 @@
         "ACC_CROUCH_20",
         "ACC_STANDING_20",
         "ACC_FALLING_10"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "ACCELERATION",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ACC_LE20_CIRCA",
       "templateIds": [
@@ -154,28 +367,28 @@
         "ACC_CROUCH_20",
         "ACC_STANDING_20",
         "ACC_FALLING_10"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "ACCELERATION",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ACC_LE20_POST",
       "templateIds": [
@@ -184,572 +397,572 @@
         "ACC_CROUCH_20",
         "ACC_STANDING_20",
         "ACC_FALLING_10"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "ACCELERATION",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_ACC_30_40_PRE",
       "templateIds": [
         "ACC_BLOCK_30",
         "ACC_BLOCK_40"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "ACCELERATION",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_ACC_30_40_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "ACC_BLOCK_30",
         "ACC_BLOCK_40"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "ACCELERATION",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_ACC_30_40_CIRCA",
       "templateIds": [
         "ACC_BLOCK_30",
         "ACC_BLOCK_40"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "tier依存（EnvelopeTierがDEVELOPMENTAL/ADVANCEDのどちらかにより数値が変わるだけで、不適格にはならない）",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "ACCELERATION",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ACC_30_40_POST",
       "templateIds": [
         "ACC_BLOCK_30",
         "ACC_BLOCK_40"
-      ],
-      "requiresPhaseEvaluation": false,
+      ]
+    },
+    {
+      "autoGenerationLimits": {
+        "maxTotalReps": 3,
+        "positionCap": null
+      },
+      "conditionNote": "reps≤3",
       "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
         "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
         "whenUnmet": null
       },
-      "autoGenerationLimits": {
-        "maxTotalReps": null,
-        "positionCap": null
-      }
-    },
-    {
-      "conditionNote": "reps≤3",
       "maturityCategory": "PRE",
       "method": "MAX_VELOCITY",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_MV_FLY10_PRE",
       "templateIds": [
         "MV_FLY10"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": 3,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "reps≤3",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "MAX_VELOCITY",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_MV_FLY10_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "MV_FLY10"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": 3,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "reps≤3",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "MAX_VELOCITY",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_MV_FLY10_CIRCA",
       "templateIds": [
         "MV_FLY10"
-      ],
-      "requiresPhaseEvaluation": false,
+      ]
+    },
+    {
+      "autoGenerationLimits": {
+        "maxTotalReps": null,
+        "positionCap": null
+      },
+      "conditionNote": null,
       "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
         "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
         "whenUnmet": null
       },
-      "autoGenerationLimits": {
-        "maxTotalReps": 3,
-        "positionCap": null
-      }
-    },
-    {
-      "conditionNote": null,
       "maturityCategory": "POST",
       "method": "MAX_VELOCITY",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_MV_FLY10_POST",
       "templateIds": [
         "MV_FLY10"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "MAX_VELOCITY",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_MV_FLY20_30_PRE",
       "templateIds": [
         "MV_FLY20",
         "MV_FLY30"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "MAX_VELOCITY",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_MV_FLY20_30_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "MV_FLY20",
         "MV_FLY30"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "MAX_VELOCITY",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_MV_FLY20_30_CIRCA",
       "templateIds": [
         "MV_FLY20",
         "MV_FLY30"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "tier依存（EnvelopeTierにより数値が変わるだけで、不適格にはならない）",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "MAX_VELOCITY",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_MV_FLY20_30_POST",
       "templateIds": [
         "MV_FLY20",
         "MV_FLY30"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "STRIDE",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_STRIDE_ALL_PRE",
       "templateIds": [
         "ST_WARMUP",
         "ST_RELAXED",
         "ST_BETWEEN_SETS"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "STRIDE",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_STRIDE_ALL_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "ST_WARMUP",
         "ST_RELAXED",
         "ST_BETWEEN_SETS"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "STRIDE",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_STRIDE_ALL_CIRCA",
       "templateIds": [
         "ST_WARMUP",
         "ST_RELAXED",
         "ST_BETWEEN_SETS"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "STRIDE",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_STRIDE_ALL_POST",
       "templateIds": [
         "ST_WARMUP",
         "ST_RELAXED",
         "ST_BETWEEN_SETS"
-      ],
-      "requiresPhaseEvaluation": false,
+      ]
+    },
+    {
+      "autoGenerationLimits": {
+        "maxTotalReps": null,
+        "positionCap": "LOWER_HALF"
+      },
+      "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
       "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
         "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
         "whenUnmet": null
       },
-      "autoGenerationLimits": {
-        "maxTotalReps": null,
-        "positionCap": null
-      }
-    },
-    {
-      "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
       "maturityCategory": "PRE",
       "method": "TEMPO_EXTENSIVE",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_TE_ALL_PRE",
       "templateIds": [
         "TE_100",
         "TE_200",
         "TE_300"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": "LOWER_HALF"
-      }
-    },
-    {
+      },
       "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "TEMPO_EXTENSIVE",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_TE_ALL_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "TE_100",
         "TE_200",
         "TE_300"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": "LOWER_HALF"
-      }
-    },
-    {
+      },
       "conditionNote": "lower half（Envelopeのrecommended下半分に限定）",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "TEMPO_EXTENSIVE",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_TE_ALL_CIRCA",
       "templateIds": [
         "TE_100",
         "TE_200",
         "TE_300"
-      ],
-      "requiresPhaseEvaluation": false,
+      ]
+    },
+    {
+      "autoGenerationLimits": {
+        "maxTotalReps": null,
+        "positionCap": null
+      },
+      "conditionNote": null,
       "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
         "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
         "whenUnmet": null
       },
-      "autoGenerationLimits": {
-        "maxTotalReps": null,
-        "positionCap": "LOWER_HALF"
-      }
-    },
-    {
-      "conditionNote": null,
       "maturityCategory": "POST",
       "method": "TEMPO_EXTENSIVE",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_TE_ALL_POST",
       "templateIds": [
         "TE_100",
         "TE_200",
         "TE_300"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "SPRINT_ENDURANCE_SHORT",
       "outcome": "INELIGIBLE",
       "overrideAllowed": true,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_SES_PRE",
       "templateIds": [
@@ -757,28 +970,28 @@
         "SES_100",
         "SES_120",
         "SES_150"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "SPRINT_ENDURANCE_SHORT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_SES_EFFECTIVE_UNKNOWN",
       "templateIds": [
@@ -786,28 +999,28 @@
         "SES_100",
         "SES_120",
         "SES_150"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "SPRINT_ENDURANCE_SHORT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_SES_CIRCA",
       "templateIds": [
@@ -815,28 +1028,28 @@
         "SES_100",
         "SES_120",
         "SES_150"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "条件付き自動（§4.5）: tier=ADVANCED、または (POST & tier≥DEVELOPING & phase≠TRANSITION)",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "SPRINT_ENDURANCE_SHORT",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": true,
       "requiresReview": false,
       "ruleId": "ELIG_SES_POST",
       "templateIds": [
@@ -844,1004 +1057,990 @@
         "SES_100",
         "SES_120",
         "SES_150"
-      ],
-      "requiresPhaseEvaluation": true,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_LONG_FULL_PRE",
       "templateIds": [
         "LSR_SPECIAL_ENDURANCE_I",
         "LSR_SPECIAL_ENDURANCE_II",
         "LSR_RACE_MODEL"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "outcome": "INELIGIBLE",
       "overrideAllowed": true,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_LONG_FULL_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "LSR_SPECIAL_ENDURANCE_I",
         "LSR_SPECIAL_ENDURANCE_II",
         "LSR_RACE_MODEL"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "outcome": "INELIGIBLE",
       "overrideAllowed": true,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_LONG_FULL_CIRCA",
       "templateIds": [
         "LSR_SPECIAL_ENDURANCE_I",
         "LSR_SPECIAL_ENDURANCE_II",
         "LSR_RACE_MODEL"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "条件付き自動（§4.5）: POST & trainingAge tier∈{TRAINED,ADVANCED} & primaryEvent∈{200m,400m,400mH}",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": [
+          "200m",
+          "400m",
+          "400mH"
+        ],
+        "requiresTrainingAgeTiers": [
+          "TRAINED",
+          "ADVANCED"
+        ],
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": "MANUAL_WITH_REVIEW"
+      },
       "maturityCategory": "POST",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_LONG_FULL_POST",
       "templateIds": [
         "LSR_SPECIAL_ENDURANCE_I",
         "LSR_SPECIAL_ENDURANCE_II",
         "LSR_RACE_MODEL"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": [
-          "TRAINED",
-          "ADVANCED"
-        ],
-        "requiresPrimaryEvents": [
-          "200m",
-          "400m",
-          "400mH"
-        ],
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": "MANUAL_WITH_REVIEW"
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_LONG_INCOMPLETE_PRE",
       "templateIds": [
         "LSR_300_PLUS_100",
         "LSR_200_PLUS_200",
         "LSR_BROKEN_400"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_LONG_INCOMPLETE_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "LSR_300_PLUS_100",
         "LSR_200_PLUS_200",
         "LSR_BROKEN_400"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_LONG_INCOMPLETE_CIRCA",
       "templateIds": [
         "LSR_300_PLUS_100",
         "LSR_200_PLUS_200",
         "LSR_BROKEN_400"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "POST+EnvelopeTier=ADVANCEDのみ自動（§4.5, Fable C-7）。primaryEvent∈{200m,400m,400mH}",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": "ADVANCED",
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": [
+          "200m",
+          "400m",
+          "400mH"
+        ],
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": "MANUAL_WITH_REVIEW"
+      },
       "maturityCategory": "POST",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_LONG_INCOMPLETE_POST",
       "templateIds": [
         "LSR_300_PLUS_100",
         "LSR_200_PLUS_200",
         "LSR_BROKEN_400"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": "ADVANCED",
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": [
-          "200m",
-          "400m",
-          "400mH"
-        ],
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": "MANUAL_WITH_REVIEW"
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "TEMPO_INTENSIVE",
       "outcome": "INELIGIBLE",
       "overrideAllowed": true,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_TI_ALL_PRE",
       "templateIds": [
         "TI_VITTORI_SE",
         "TI_COACH_DEFINED"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "TEMPO_INTENSIVE",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_TI_ALL_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "TI_VITTORI_SE",
         "TI_COACH_DEFINED"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "TEMPO_INTENSIVE",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_TI_ALL_CIRCA",
       "templateIds": [
         "TI_VITTORI_SE",
         "TI_COACH_DEFINED"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "TI_VITTORI_SEはadvancedOnly",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "TEMPO_INTENSIVE",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_TI_ALL_POST",
       "templateIds": [
         "TI_VITTORI_SE",
         "TI_COACH_DEFINED"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "RESISTED_SPRINT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_RS_LIGHT_HILL_PRE",
       "templateIds": [
         "RS_SLED_LIGHT",
         "RS_HILL_SHORT"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "RESISTED_SPRINT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_RS_LIGHT_HILL_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "RS_SLED_LIGHT",
         "RS_HILL_SHORT"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "RESISTED_SPRINT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_RS_LIGHT_HILL_CIRCA",
       "templateIds": [
         "RS_SLED_LIGHT",
         "RS_HILL_SHORT"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "RESISTED_SPRINT",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_RS_LIGHT_HILL_POST",
       "templateIds": [
         "RS_SLED_LIGHT",
         "RS_HILL_SHORT"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "RESISTED_SPRINT",
       "outcome": "INELIGIBLE",
       "overrideAllowed": true,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_RS_MODERATE_PRE",
       "templateIds": [
         "RS_SLED_MODERATE"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "RESISTED_SPRINT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_RS_MODERATE_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "RS_SLED_MODERATE"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "RESISTED_SPRINT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_RS_MODERATE_CIRCA",
       "templateIds": [
         "RS_SLED_MODERATE"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "ADVANCEDのみ自動",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": "ADVANCED",
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": "MANUAL_WITH_REVIEW"
+      },
       "maturityCategory": "POST",
       "method": "RESISTED_SPRINT",
       "outcome": "AUTO",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_RS_MODERATE_POST",
       "templateIds": [
         "RS_SLED_MODERATE"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": "ADVANCED",
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": "MANUAL_WITH_REVIEW"
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "RESISTED_SPRINT",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_RS_HEAVY_PRE",
       "templateIds": [
         "RS_SLED_HEAVY"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "RESISTED_SPRINT",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_RS_HEAVY_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "RS_SLED_HEAVY"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "RESISTED_SPRINT",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_RS_HEAVY_CIRCA",
       "templateIds": [
         "RS_SLED_HEAVY"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "ADVANCED + 実測vdec必須",
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": "ADVANCED",
+        "requiresMeasuredVelocityDecrement": true,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": "INELIGIBLE_NON_OVERRIDABLE"
+      },
       "maturityCategory": "POST",
       "method": "RESISTED_SPRINT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_RS_HEAVY_POST",
       "templateIds": [
         "RS_SLED_HEAVY"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": "ADVANCED",
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": true,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": "INELIGIBLE_NON_OVERRIDABLE"
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "ASSISTED_SPRINT",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ASSISTED_ALL_PRE",
       "templateIds": [
         "AS_TOWING",
         "AS_DOWNHILL"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "ASSISTED_SPRINT",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ASSISTED_ALL_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "AS_TOWING",
         "AS_DOWNHILL"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "ASSISTED_SPRINT",
       "outcome": "INELIGIBLE",
       "overrideAllowed": false,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ASSISTED_ALL_CIRCA",
       "templateIds": [
         "AS_TOWING",
         "AS_DOWNHILL"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": "advancedOnly（§4.5）。EnvelopeTier=ADVANCED & allowAdvancedMethods=true & vmax.confidence≥MEDIUM でも自動生成はしない（手動のみ）",
+      "conditions": {
+        "requiresAllowAdvancedMethods": true,
+        "requiresEnvelopeTier": "ADVANCED",
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": "MEDIUM",
+        "whenUnmet": "INELIGIBLE_NON_OVERRIDABLE"
+      },
       "maturityCategory": "POST",
       "method": "ASSISTED_SPRINT",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_ASSISTED_ALL_POST",
       "templateIds": [
         "AS_TOWING",
         "AS_DOWNHILL"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": "ADVANCED",
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": true,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": "MEDIUM",
-        "whenUnmet": "INELIGIBLE_NON_OVERRIDABLE"
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "EVENT_APPROACH_SPEED",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_EA_SHORT_PRE",
       "templateIds": [
         "EA_HURDLE_START_TO_H1",
         "EA_JUMP_SHORT_APPROACH"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "EVENT_APPROACH_SPEED",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_EA_SHORT_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "EA_HURDLE_START_TO_H1",
         "EA_JUMP_SHORT_APPROACH"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "EVENT_APPROACH_SPEED",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_EA_SHORT_CIRCA",
       "templateIds": [
         "EA_HURDLE_START_TO_H1",
         "EA_JUMP_SHORT_APPROACH"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "EVENT_APPROACH_SPEED",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": false,
       "ruleId": "ELIG_EA_SHORT_POST",
       "templateIds": [
         "EA_HURDLE_START_TO_H1",
         "EA_JUMP_SHORT_APPROACH"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "PRE",
       "method": "EVENT_APPROACH_SPEED",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_EA_FULL_PRE",
       "templateIds": [
         "EA_HURDLE_RHYTHM",
         "EA_JUMP_FULL_APPROACH"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "EVENT_APPROACH_SPEED",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_EA_FULL_EFFECTIVE_UNKNOWN",
       "templateIds": [
         "EA_HURDLE_RHYTHM",
         "EA_JUMP_FULL_APPROACH"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "CIRCA",
       "method": "EVENT_APPROACH_SPEED",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_EA_FULL_CIRCA",
       "templateIds": [
         "EA_HURDLE_RHYTHM",
         "EA_JUMP_FULL_APPROACH"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
+      ]
+    },
+    {
       "autoGenerationLimits": {
         "maxTotalReps": null,
         "positionCap": null
-      }
-    },
-    {
+      },
       "conditionNote": null,
+      "conditions": {
+        "requiresAllowAdvancedMethods": false,
+        "requiresEnvelopeTier": null,
+        "requiresMeasuredVelocityDecrement": false,
+        "requiresPrimaryEvents": null,
+        "requiresTrainingAgeTiers": null,
+        "requiresVmaxConfidenceAtLeast": null,
+        "whenUnmet": null
+      },
       "maturityCategory": "POST",
       "method": "EVENT_APPROACH_SPEED",
       "outcome": "MANUAL",
       "overrideAllowed": null,
+      "requiresPhaseEvaluation": false,
       "requiresReview": true,
       "ruleId": "ELIG_EA_FULL_POST",
       "templateIds": [
         "EA_HURDLE_RHYTHM",
         "EA_JUMP_FULL_APPROACH"
-      ],
-      "requiresPhaseEvaluation": false,
-      "conditions": {
-        "requiresEnvelopeTier": null,
-        "requiresTrainingAgeTiers": null,
-        "requiresPrimaryEvents": null,
-        "requiresAllowAdvancedMethods": false,
-        "requiresMeasuredVelocityDecrement": false,
-        "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
-      },
-      "autoGenerationLimits": {
-        "maxTotalReps": null,
-        "positionCap": null
-      }
+      ]
     }
   ],
   "engineSchemaVersion": 1,
@@ -3160,21 +3359,21 @@
           }
         },
         "repsPerSet": {
-          "recommended": {
-            "min": 3,
-            "max": 5,
-            "unit": "reps"
-          },
           "coachEditable": {
-            "min": 3,
             "max": 5,
+            "min": 3,
             "unit": "reps"
           },
-          "hardSafety": null,
           "evidenceIds": [
             "EV_ENGINE_POLICY"
           ],
-          "judgement": "ENGINE_POLICY"
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 5,
+            "min": 3,
+            "unit": "reps"
+          }
         },
         "sessionVolumeM": {
           "coachEditable": {
@@ -3211,21 +3410,21 @@
           }
         },
         "sets": {
-          "recommended": {
-            "min": 2,
-            "max": 4,
-            "unit": "sets"
-          },
           "coachEditable": {
-            "min": 2,
             "max": 4,
+            "min": 2,
             "unit": "sets"
           },
-          "hardSafety": null,
           "evidenceIds": [
             "EV_ENGINE_POLICY"
           ],
-          "judgement": "ENGINE_POLICY"
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": {
+            "max": 4,
+            "min": 2,
+            "unit": "sets"
+          }
         }
       },
       "method": "TEMPO_INTENSIVE",
@@ -3774,6 +3973,19 @@
           "judgement": "ENGINE_POLICY",
           "recommended": null
         },
+        "intensityPercent": {
+          "coachEditable": {
+            "max": 105,
+            "min": 100,
+            "unit": "percent"
+          },
+          "evidenceIds": [
+            "EV_ENGINE_POLICY"
+          ],
+          "hardSafety": null,
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
+        },
         "repRestS": {
           "coachEditable": {
             "max": 900,
@@ -3799,19 +4011,6 @@
           "hardSafety": null,
           "judgement": "ENGINE_POLICY",
           "recommended": null
-        },
-        "intensityPercent": {
-          "recommended": null,
-          "coachEditable": {
-            "min": 100,
-            "max": 105,
-            "unit": "percent"
-          },
-          "hardSafety": null,
-          "evidenceIds": [
-            "EV_ENGINE_POLICY"
-          ],
-          "judgement": "ENGINE_POLICY"
         }
       },
       "method": "ASSISTED_SPRINT",
@@ -4111,6 +4310,92 @@
       "tier": "ADVANCED"
     }
   ],
+  "eventDefinitions": {
+    "raceEvents": [
+      {
+        "distanceM": 100,
+        "event": "100m",
+        "hurdles": false
+      },
+      {
+        "distanceM": 200,
+        "event": "200m",
+        "hurdles": false
+      },
+      {
+        "distanceM": 400,
+        "event": "400m",
+        "hurdles": false
+      },
+      {
+        "distanceM": 400,
+        "event": "400mH",
+        "hurdles": true
+      }
+    ],
+    "timedMarks": [
+      {
+        "distanceM": 10,
+        "event": "FLY10",
+        "segment": "FLY_ZONE"
+      },
+      {
+        "distanceM": 20,
+        "event": "FLY20",
+        "segment": "FLY_ZONE"
+      },
+      {
+        "distanceM": 30,
+        "event": "FLY30",
+        "segment": "FLY_ZONE"
+      },
+      {
+        "distanceM": 10,
+        "event": "10m",
+        "segment": "FROM_START"
+      },
+      {
+        "distanceM": 20,
+        "event": "20m",
+        "segment": "FROM_START"
+      },
+      {
+        "distanceM": 30,
+        "event": "30m",
+        "segment": "FROM_START"
+      },
+      {
+        "distanceM": 60,
+        "event": "60m",
+        "segment": "FROM_START"
+      },
+      {
+        "distanceM": 100,
+        "event": "100m",
+        "segment": "FROM_START"
+      },
+      {
+        "distanceM": 150,
+        "event": "150m",
+        "segment": "FROM_START"
+      },
+      {
+        "distanceM": 200,
+        "event": "200m",
+        "segment": "FROM_START"
+      },
+      {
+        "distanceM": 300,
+        "event": "300m",
+        "segment": "FROM_START"
+      },
+      {
+        "distanceM": 400,
+        "event": "400m",
+        "segment": "FROM_START"
+      }
+    ]
+  },
   "evidence": [
     {
       "applicabilityNotes": "短距離トレーニングの科学と best practice の統合レビュー。一次資料未照合（DR経由の二次報告）。",
@@ -5006,13 +5291,14 @@
         "min": null
       },
       "field": null,
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "REP_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_ITEM_DISTANCE_STANDARD",
       "scope": "ITEM_FIELD",
       "targetLabel": "1本の距離（ACC/MV合計/SES/RS/AS/STRIDE）",
-      "unit": "m",
-      "inputTarget": null
+      "unit": "m"
     },
     {
       "appliesToMethods": [
@@ -5027,13 +5313,14 @@
         "min": null
       },
       "field": null,
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "REP_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_ITEM_DISTANCE_LONG",
       "scope": "ITEM_FIELD",
       "targetLabel": "1本の距離（LONG）",
-      "unit": "m",
-      "inputTarget": null
+      "unit": "m"
     },
     {
       "appliesToMethods": [
@@ -5049,13 +5336,14 @@
         "min": null
       },
       "field": null,
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "REP_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_ITEM_DISTANCE_TEMPO",
       "scope": "ITEM_FIELD",
       "targetLabel": "1本の距離（TE/TI）",
-      "unit": "m",
-      "inputTarget": null
+      "unit": "m"
     },
     {
       "appliesToMethods": [
@@ -5071,13 +5359,14 @@
         "min": null
       },
       "field": "buildUpM",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_BUILD_UP_M",
       "scope": "ITEM_FIELD",
       "targetLabel": "buildUpM",
-      "unit": "m",
-      "inputTarget": null
+      "unit": "m"
     },
     {
       "appliesToMethods": [
@@ -5093,13 +5382,14 @@
         "min": null
       },
       "field": "flyZoneM",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_FLY_ZONE_M",
       "scope": "ITEM_FIELD",
       "targetLabel": "flyZoneM",
-      "unit": "m",
-      "inputTarget": null
+      "unit": "m"
     },
     {
       "appliesToMethods": [
@@ -5115,13 +5405,14 @@
         "min": null
       },
       "field": "repDurationS",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_REP_DURATION_NON_LONG",
       "scope": "ITEM_FIELD",
       "targetLabel": "1本の時間（LONG以外）",
-      "unit": "s",
-      "inputTarget": null
+      "unit": "s"
     },
     {
       "appliesToMethods": null,
@@ -5134,13 +5425,14 @@
         "min": null
       },
       "field": "repsPerSet",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_REPS_PER_SET",
       "scope": "ITEM_FIELD",
       "targetLabel": "repsPerSet",
-      "unit": "reps",
-      "inputTarget": null
+      "unit": "reps"
     },
     {
       "appliesToMethods": null,
@@ -5153,13 +5445,14 @@
         "min": null
       },
       "field": "sets",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_SETS",
       "scope": "ITEM_FIELD",
       "targetLabel": "sets",
-      "unit": "sets",
-      "inputTarget": null
+      "unit": "sets"
     },
     {
       "appliesToMethods": null,
@@ -5172,13 +5465,14 @@
         "min": null
       },
       "field": "totalReps",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_TOTAL_REPS",
       "scope": "ITEM_FIELD",
       "targetLabel": "totalReps",
-      "unit": "reps",
-      "inputTarget": null
+      "unit": "reps"
     },
     {
       "appliesToMethods": null,
@@ -5191,13 +5485,14 @@
         "min": null
       },
       "field": "repRestS",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_REP_REST_S",
       "scope": "ITEM_FIELD",
       "targetLabel": "repRestS",
-      "unit": "s",
-      "inputTarget": null
+      "unit": "s"
     },
     {
       "appliesToMethods": null,
@@ -5210,13 +5505,14 @@
         "min": null
       },
       "field": "setRestS",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_SET_REST_S",
       "scope": "ITEM_FIELD",
       "targetLabel": "setRestS",
-      "unit": "s",
-      "inputTarget": null
+      "unit": "s"
     },
     {
       "appliesToMethods": null,
@@ -5229,13 +5525,14 @@
         "min": null
       },
       "field": "sessionVolumeM",
+      "inputTarget": null,
       "note": null,
+      "outputTarget": "ITEM_TOTAL_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_ITEM_TOTAL_DISTANCE",
       "scope": "ITEM_FIELD",
       "targetLabel": "1項目の総走行距離",
-      "unit": "m",
-      "inputTarget": null
+      "unit": "m"
     },
     {
       "appliesToMethods": null,
@@ -5248,26 +5545,28 @@
         "min": null
       },
       "field": null,
+      "inputTarget": null,
       "note": "監査C-1のペース走80km・インターバル25.6km事故の再発防止",
+      "outputTarget": "SESSION_TOTAL_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_MENU_TOTAL_DISTANCE",
       "scope": "MENU_TOTAL",
       "targetLabel": "メニュー全体の総走行距離",
-      "unit": "m",
-      "inputTarget": null
+      "unit": "m"
     },
     {
       "appliesToMethods": null,
       "blockThreshold": null,
       "confirmThreshold": null,
       "field": "totalReps",
+      "inputTarget": null,
       "note": "totalReps ≥ recommended.totalReps.max × 3 のとき REQUIRE_CONFIRMATION（BLOCKなし）",
+      "outputTarget": "TOTAL_REPS_VS_RECOMMENDED",
       "ratioMultiplier": 3,
       "ruleId": "PLA_SETS_REPS_MIXUP",
       "scope": "RATIO",
       "targetLabel": "sets/reps取り違え疑い",
-      "unit": "reps",
-      "inputTarget": null
+      "unit": "reps"
     },
     {
       "appliesToMethods": null,
@@ -5280,16 +5579,17 @@
         "min": 9
       },
       "field": null,
+      "inputTarget": {
+        "event": "100m",
+        "kind": "TIMED_MARK"
+      },
       "note": "confirm: < 9.0s または > 25s。block: < 5s または > 60s",
+      "outputTarget": null,
       "ratioMultiplier": null,
       "ruleId": "PLA_INPUT_100M_RECORD",
       "scope": "INPUT",
       "targetLabel": "入力: 100m記録",
-      "unit": "s",
-      "inputTarget": {
-        "kind": "TIMED_MARK",
-        "event": "100m"
-      }
+      "unit": "s"
     },
     {
       "appliesToMethods": null,
@@ -5302,16 +5602,17 @@
         "min": 0.8
       },
       "field": null,
+      "inputTarget": {
+        "event": "FLY10",
+        "kind": "TIMED_MARK"
+      },
       "note": "confirm: < 0.80s または > 2.5s。block: < 0.5s または > 5s",
+      "outputTarget": null,
       "ratioMultiplier": null,
       "ruleId": "PLA_INPUT_FLY_10M",
       "scope": "INPUT",
       "targetLabel": "入力: fly 10m",
-      "unit": "s",
-      "inputTarget": {
-        "kind": "TIMED_MARK",
-        "event": "FLY10"
-      }
+      "unit": "s"
     },
     {
       "appliesToMethods": null,
@@ -5324,15 +5625,16 @@
         "min": 100
       },
       "field": null,
+      "inputTarget": {
+        "kind": "HEIGHT_CM"
+      },
       "note": "confirm: < 100cm または > 220cm。block: < 50cm または > 260cm",
+      "outputTarget": null,
       "ratioMultiplier": null,
       "ruleId": "PLA_INPUT_HEIGHT",
       "scope": "INPUT",
       "targetLabel": "入力: 身長",
-      "unit": "cm",
-      "inputTarget": {
-        "kind": "HEIGHT_CM"
-      }
+      "unit": "cm"
     },
     {
       "appliesToMethods": [
@@ -5344,21 +5646,23 @@
         "min": null
       },
       "field": null,
+      "inputTarget": {
+        "kind": "COACH_EDIT_APPROACH_DISTANCE_M"
+      },
       "note": "approachDistanceMはEnvelopeで管理せず手入力＋plausibilityのみで扱う（§7.4 EVENT_APPROACH_SPEED注記）",
+      "outputTarget": null,
       "ratioMultiplier": null,
       "ruleId": "PLA_INPUT_APPROACH_DISTANCE",
       "scope": "INPUT",
       "targetLabel": "EVENT_APPROACH_SPEED approachDistanceM（手入力）",
-      "unit": "m",
-      "inputTarget": {
-        "kind": "COACH_EDIT_APPROACH_DISTANCE_M"
-      }
+      "unit": "m"
     }
   ],
   "readinessRules": [
     {
-      "kind": "PAIN_RED_FLAG_GROUP",
       "id": "RDN_RED_FLAG_MEDICAL",
+      "kind": "PAIN_RED_FLAG_GROUP",
+      "overridable": false,
       "redFlags": [
         "PAIN_AT_REST_OR_NIGHT",
         "SWELLING",
@@ -5368,50 +5672,50 @@
         "PAIN_PERSISTING_OVER_DAYS"
       ],
       "safetyOutcome": "MEDICAL_EVALUATION_RECOMMENDED",
-      "severityRank": 2,
-      "overridable": false
+      "severityRank": 2
     },
     {
-      "kind": "PAIN_RED_FLAG_GROUP",
       "id": "RDN_RED_FLAG_COACH_REVIEW",
+      "kind": "PAIN_RED_FLAG_GROUP",
+      "overridable": false,
       "redFlags": [
         "SUDDEN_SHARP_PAIN",
         "PAIN_WORSENING_DURING_SESSION"
       ],
       "safetyOutcome": "COACH_REVIEW",
-      "severityRank": 1,
-      "overridable": false
+      "severityRank": 1
     },
     {
-      "kind": "PAIN_PRESENT",
-      "id": "RDN_PAIN_PRESENT",
       "actions": [
         "CANCEL_HIGH_INTENSITY",
         "REQUIRE_COACH_REVIEW"
       ],
-      "safetyOutcome": "COACH_REVIEW",
+      "id": "RDN_PAIN_PRESENT",
+      "kind": "PAIN_PRESENT",
       "overridableActions": [
         "CANCEL_HIGH_INTENSITY"
-      ]
+      ],
+      "safetyOutcome": "COACH_REVIEW"
     },
     {
-      "kind": "PAIN_GROWTH_PERIOD_GUIDANCE",
-      "id": "RDN_PAIN_GROWTH_PERIOD",
-      "regions": [
-        "HEEL",
-        "KNEE",
-        "HIP_PELVIS"
-      ],
       "appliesToAgeBands": [
         "U12",
         "U15",
         "U18"
       ],
-      "findingCode": "GROWTH_PERIOD_PAIN_GUIDANCE"
+      "findingCode": "GROWTH_PERIOD_PAIN_GUIDANCE",
+      "id": "RDN_PAIN_GROWTH_PERIOD",
+      "kind": "PAIN_GROWTH_PERIOD_GUIDANCE",
+      "regions": [
+        "HEEL",
+        "KNEE",
+        "HIP_PELVIS"
+      ]
     },
     {
-      "kind": "PAIN_NOT_ASKED",
-      "id": "RDN_PAIN_NOT_ASKED_YOUTH",
+      "actions": [
+        "REQUIRE_COACH_REVIEW"
+      ],
       "appliesToAgeBands": [
         "U12",
         "U15",
@@ -5421,85 +5725,82 @@
         "HIGH_NEURAL",
         "HIGH_METABOLIC"
       ],
-      "actions": [
-        "REQUIRE_COACH_REVIEW"
-      ],
-      "findingCode": "PAIN_CHECK_REQUIRED"
+      "findingCode": "PAIN_CHECK_REQUIRED",
+      "id": "RDN_PAIN_NOT_ASKED_YOUTH",
+      "kind": "PAIN_NOT_ASKED"
     },
     {
-      "kind": "PERFORMANCE_STATUS",
-      "id": "RDN_PERFORMANCE_DOWN",
-      "status": "DOWN",
       "actions": [
         "SWAP_TO_LOWER_LOAD_METHOD",
         "REQUIRE_COACH_REVIEW"
-      ]
+      ],
+      "id": "RDN_PERFORMANCE_DOWN",
+      "kind": "PERFORMANCE_STATUS",
+      "status": "DOWN"
     },
     {
-      "kind": "WELLNESS_SIGNAL",
-      "id": "RDN_SORENESS_HIGH",
-      "metric": "SORENESS",
-      "comparison": "GTE",
-      "threshold": 4,
       "actions": [
         "SWAP_TO_LOWER_LOAD_METHOD"
       ],
-      "countsTowardSignalCount": false
-    },
-    {
-      "kind": "WELLNESS_SIGNAL",
-      "id": "RDN_SORENESS_MODERATE",
-      "metric": "SORENESS",
-      "comparison": "EQ",
-      "threshold": 3,
-      "actions": [],
-      "countsTowardSignalCount": true
-    },
-    {
-      "kind": "WELLNESS_SIGNAL",
-      "id": "RDN_FATIGUE_HIGH",
-      "metric": "FATIGUE",
       "comparison": "GTE",
-      "threshold": 4,
-      "actions": [],
-      "countsTowardSignalCount": true
-    },
-    {
+      "countsTowardSignalCount": false,
+      "id": "RDN_SORENESS_HIGH",
       "kind": "WELLNESS_SIGNAL",
-      "id": "RDN_SLEEP_LOW",
-      "metric": "SLEEP_QUALITY",
-      "comparison": "LTE",
-      "threshold": 2,
-      "actions": [],
-      "countsTowardSignalCount": true
+      "metric": "SORENESS",
+      "threshold": 4
     },
     {
-      "kind": "SIGNAL_COUNT",
-      "id": "RDN_SIGNAL_COUNT_2",
-      "minSignals": 2,
+      "actions": [],
+      "comparison": "EQ",
+      "countsTowardSignalCount": true,
+      "id": "RDN_SORENESS_MODERATE",
+      "kind": "WELLNESS_SIGNAL",
+      "metric": "SORENESS",
+      "threshold": 3
+    },
+    {
+      "actions": [],
+      "comparison": "GTE",
+      "countsTowardSignalCount": true,
+      "id": "RDN_FATIGUE_HIGH",
+      "kind": "WELLNESS_SIGNAL",
+      "metric": "FATIGUE",
+      "threshold": 4
+    },
+    {
+      "actions": [],
+      "comparison": "LTE",
+      "countsTowardSignalCount": true,
+      "id": "RDN_SLEEP_LOW",
+      "kind": "WELLNESS_SIGNAL",
+      "metric": "SLEEP_QUALITY",
+      "threshold": 2
+    },
+    {
       "actions": [
         "SWAP_TO_LOWER_LOAD_METHOD"
-      ]
+      ],
+      "id": "RDN_SIGNAL_COUNT_2",
+      "kind": "SIGNAL_COUNT",
+      "minSignals": 2
     },
     {
-      "kind": "SIGNAL_COUNT",
-      "id": "RDN_SIGNAL_COUNT_1",
-      "minSignals": 1,
       "actions": [
         "USE_LOWER_BOUND",
         "INCREASE_REST"
-      ]
+      ],
+      "id": "RDN_SIGNAL_COUNT_1",
+      "kind": "SIGNAL_COUNT",
+      "minSignals": 1
     },
     {
-      "kind": "MISSING_WELLNESS_IN_ACTIVE_WINDOW",
-      "id": "RDN_MISSING_WELLNESS_WINDOW",
       "actions": [
         "USE_LOWER_BOUND"
-      ]
+      ],
+      "id": "RDN_MISSING_WELLNESS_WINDOW",
+      "kind": "MISSING_WELLNESS_IN_ACTIVE_WINDOW"
     },
     {
-      "kind": "SWAP_TARGET",
-      "id": "RDN_SWAP_HIGH_NEURAL",
       "fromMethods": [
         "ACCELERATION",
         "MAX_VELOCITY",
@@ -5507,6 +5808,8 @@
         "ASSISTED_SPRINT",
         "EVENT_APPROACH_SPEED"
       ],
+      "id": "RDN_SWAP_HIGH_NEURAL",
+      "kind": "SWAP_TARGET",
       "outcome": "SWAP",
       "targets": [
         {
@@ -5518,13 +5821,13 @@
       ]
     },
     {
-      "kind": "SWAP_TARGET",
-      "id": "RDN_SWAP_HIGH_METABOLIC",
       "fromMethods": [
         "SPRINT_ENDURANCE_SHORT",
         "LONG_SPRINT_RACE_SPECIFIC",
         "TEMPO_INTENSIVE"
       ],
+      "id": "RDN_SWAP_HIGH_METABOLIC",
+      "kind": "SWAP_TARGET",
       "outcome": "SWAP",
       "targets": [
         {
@@ -5540,11 +5843,11 @@
       ]
     },
     {
-      "kind": "SWAP_TARGET",
-      "id": "RDN_SWAP_TEMPO_EXTENSIVE",
       "fromMethods": [
         "TEMPO_EXTENSIVE"
       ],
+      "id": "RDN_SWAP_TEMPO_EXTENSIVE",
+      "kind": "SWAP_TARGET",
       "outcome": "SWAP",
       "targets": [
         {
@@ -5556,11 +5859,11 @@
       ]
     },
     {
-      "kind": "SWAP_TARGET",
-      "id": "RDN_SWAP_STRIDE",
       "fromMethods": [
         "STRIDE"
       ],
+      "id": "RDN_SWAP_STRIDE",
+      "kind": "SWAP_TARGET",
       "outcome": "KEEP_CURRENT",
       "targets": []
     }
@@ -5569,369 +5872,372 @@
   "status": "DRAFT",
   "stopPolicies": [
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": 2,
       "id": "SP_ACC",
       "method": "ACCELERATION",
       "numericStopAvailable": true,
       "referenceDescription": "セッション内の同距離ベスト",
-      "ruleDescriptionJa": "1回目FAIL→EXTEND_REST（1回まで）。2回連続FAIL→END_SESSION_QUALITY。startQuality=POOR 2回連続→COACH_REVIEW",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "1回目FAIL→EXTEND_REST（1回まで）。2回連続FAIL→END_SESSION_QUALITY。startQuality=POOR 2回連続→COACH_REVIEW"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": 2,
       "id": "SP_MV",
       "method": "MAX_VELOCITY",
       "numericStopAvailable": true,
       "referenceDescription": "セッション内 fly ベスト",
-      "ruleDescriptionJa": "SP_ACC と同じ判定",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "SP_ACC と同じ判定"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": 2,
       "id": "SP_SES",
       "method": "SPRINT_ENDURANCE_SHORT",
       "numericStopAvailable": true,
       "referenceDescription": "目標区間の上端（無ければセッション内ベスト）",
-      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": "FULL",
       "consecutiveFailuresToStop": 2,
       "id": "SP_LSR_FULL",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "numericStopAvailable": true,
       "referenceDescription": "目標スプリット上端",
-      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY"
     },
     {
+      "appliesToEligibilityPath": "AUTO_CONDITIONS_MET",
       "appliesToRecoveryStructure": "INCOMPLETE",
       "consecutiveFailuresToStop": 2,
       "id": "SP_LSR_INCOMPLETE_ADV",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "numericStopAvailable": true,
       "referenceDescription": "目標スプリット上端（POST+ADVANCEDのみ）",
-      "ruleDescriptionJa": "分割走内の低下では止めない。2回連続で目標超過→COACH_REVIEW。共通hard stopは有効",
-      "appliesToEligibilityPath": "AUTO_CONDITIONS_MET"
+      "ruleDescriptionJa": "分割走内の低下では止めない。2回連続で目標超過→COACH_REVIEW。共通hard stopは有効"
     },
     {
+      "appliesToEligibilityPath": "MANUAL_OR_OVERRIDE",
       "appliesToRecoveryStructure": "INCOMPLETE",
       "consecutiveFailuresToStop": 2,
       "id": "SP_LSR_INCOMPLETE_STRICT",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "numericStopAvailable": true,
       "referenceDescription": "目標スプリット上端（override経由でPOST+ADVANCED以外に処方した場合）",
-      "ruleDescriptionJa": "SP_LSR_FULL と同じ（疲労許容ロジックを適用しない）",
-      "appliesToEligibilityPath": "MANUAL_OR_OVERRIDE"
+      "ruleDescriptionJa": "SP_LSR_FULL と同じ（疲労許容ロジックを適用しない）"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": null,
       "id": "SP_TE",
       "method": "TEMPO_EXTENSIVE",
       "numericStopAvailable": false,
       "referenceDescription": "目標区間（あれば）",
-      "ruleDescriptionJa": "数値stopなし（COACH_ONLY）。目標下端より速すぎが2回→WARN「テンポの目的外」",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "数値stopなし（COACH_ONLY）。目標下端より速すぎが2回→WARN「テンポの目的外」"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": 2,
       "id": "SP_TI",
       "method": "TEMPO_INTENSIVE",
       "numericStopAvailable": true,
       "referenceDescription": "目標区間",
-      "ruleDescriptionJa": "2回連続FAIL→END_SET",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "2回連続FAIL→END_SET"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": null,
       "id": "SP_RS",
       "method": "RESISTED_SPRINT",
       "numericStopAvailable": false,
       "referenceDescription": "実測vdec（あれば）",
-      "ruleDescriptionJa": "band外→COACH_REVIEW（負荷調整）",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "band外→COACH_REVIEW（負荷調整）"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": null,
       "id": "SP_AS",
       "method": "ASSISTED_SPRINT",
       "numericStopAvailable": false,
       "referenceDescription": "—",
-      "ruleDescriptionJa": "technique≠GOOD→STOP_SAFETY",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "technique≠GOOD→STOP_SAFETY"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": null,
       "id": "SP_EA",
       "method": "EVENT_APPROACH_SPEED",
       "numericStopAvailable": false,
       "referenceDescription": "—",
-      "ruleDescriptionJa": "COACH_ONLY。attempts上限到達→END_SESSION_QUALITY",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "COACH_ONLY。attempts上限到達→END_SESSION_QUALITY"
     },
     {
+      "appliesToEligibilityPath": "ANY",
       "appliesToRecoveryStructure": null,
       "consecutiveFailuresToStop": null,
       "id": "SP_STRIDE",
       "method": "STRIDE",
       "numericStopAvailable": false,
       "referenceDescription": "—",
-      "ruleDescriptionJa": "数値stopなし。コーチの「全力化」判定→COACH_REVIEW",
-      "appliesToEligibilityPath": "ANY"
+      "ruleDescriptionJa": "数値stopなし。コーチの「全力化」判定→COACH_REVIEW"
     }
   ],
   "supersedes": null,
   "templates": [
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Block Start 10m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 10,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "ACC_BLOCK_10",
       "labelJa": "ブロックスタート10m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "BLOCK",
-      "complexity": "MEDIUM",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "startType": "BLOCK"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Block Start 20m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 20,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "ACC_BLOCK_20",
       "labelJa": "ブロックスタート20m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "BLOCK",
-      "complexity": "MEDIUM",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "startType": "BLOCK"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Block Start 30m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 30,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "ACC_BLOCK_30",
       "labelJa": "ブロックスタート30m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "BLOCK",
-      "complexity": "MEDIUM",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "startType": "BLOCK"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Block Start 40m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 40,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "ACC_BLOCK_40",
       "labelJa": "ブロックスタート40m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "BLOCK",
-      "complexity": "MEDIUM",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "startType": "BLOCK"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Crouch Start 20m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 20,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "ACC_CROUCH_20",
       "labelJa": "クラウチングスタート20m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "THREE_POINT",
-      "complexity": "MEDIUM",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "startType": "THREE_POINT"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Standing Start 20m"
       ],
+      "complexity": "LOW",
       "displayDistanceM": 20,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "ACC_STANDING_20",
       "labelJa": "スタンディングスタート20m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "STANDING",
-      "complexity": "LOW",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "startType": "STANDING"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Falling Start 10m"
       ],
+      "complexity": "LOW",
       "displayDistanceM": 10,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "ACC_FALLING_10",
       "labelJa": "フォーリングスタート10m",
       "method": "ACCELERATION",
       "recoveryStructure": null,
-      "startType": "FALLING",
-      "complexity": "LOW",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "startType": "FALLING"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Fly 10m"
       ],
+      "complexity": "LOW",
       "displayDistanceM": 10,
       "enabledByDefault": true,
+      "fixedDistanceField": "flyZoneM",
       "id": "MV_FLY10",
       "labelJa": "フライ10m",
       "method": "MAX_VELOCITY",
       "recoveryStructure": null,
-      "startType": "FLYING",
-      "complexity": "LOW",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "flyZoneM"
+      "startType": "FLYING"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Fly 20m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 20,
       "enabledByDefault": true,
+      "fixedDistanceField": "flyZoneM",
       "id": "MV_FLY20",
       "labelJa": "フライ20m",
       "method": "MAX_VELOCITY",
       "recoveryStructure": null,
-      "startType": "FLYING",
-      "complexity": "MEDIUM",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "flyZoneM"
+      "startType": "FLYING"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Fly 30m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 30,
       "enabledByDefault": true,
+      "fixedDistanceField": "flyZoneM",
       "id": "MV_FLY30",
       "labelJa": "フライ30m",
       "method": "MAX_VELOCITY",
       "recoveryStructure": null,
-      "startType": "FLYING",
-      "complexity": "MEDIUM",
-      "approachType": null,
       "resistanceBand": null,
-      "fixedDistanceField": "flyZoneM"
+      "startType": "FLYING"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "SES 80m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 80,
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "SES_80",
       "labelJa": "スプリント持久80m",
       "method": "SPRINT_ENDURANCE_SHORT",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "SES 100m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 100,
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "SES_100",
       "labelJa": "スプリント持久100m",
       "method": "SPRINT_ENDURANCE_SHORT",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "SES 120m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 120,
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "SES_120",
       "labelJa": "スプリント持久120m",
       "method": "SPRINT_ENDURANCE_SHORT",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "SES 150m"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 150,
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "SES_150",
       "labelJa": "スプリント持久150m",
       "method": "SPRINT_ENDURANCE_SHORT",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Special Endurance I",
         "SE1"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "LSR_SPECIAL_ENDURANCE_I",
       "labelJa": "スペシャルエンデュランスI",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -5941,18 +6247,18 @@
         "400mH"
       ],
       "recoveryStructure": "FULL",
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Special Endurance II",
         "SE2"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "LSR_SPECIAL_ENDURANCE_II",
       "labelJa": "スペシャルエンデュランスII",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -5961,17 +6267,17 @@
         "400mH"
       ],
       "recoveryStructure": "FULL",
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Race Model"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "LSR_RACE_MODEL",
       "labelJa": "レースモデル走",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -5981,17 +6287,17 @@
         "400mH"
       ],
       "recoveryStructure": "FULL",
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": true,
+      "approachType": null,
       "coachingAliases": [
         "300+100 broken run"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "LSR_300_PLUS_100",
       "labelJa": "300m+100m（分割走）",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -6000,17 +6306,17 @@
         "400mH"
       ],
       "recoveryStructure": "INCOMPLETE",
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": true,
+      "approachType": null,
       "coachingAliases": [
         "200+200 broken run"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "LSR_200_PLUS_200",
       "labelJa": "200m+200m（分割走）",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -6019,17 +6325,17 @@
         "400mH"
       ],
       "recoveryStructure": "INCOMPLETE",
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": true,
+      "approachType": null,
       "coachingAliases": [
         "Broken 400"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "LSR_BROKEN_400",
       "labelJa": "分割400m走",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -6038,286 +6344,283 @@
         "400mH"
       ],
       "recoveryStructure": "INCOMPLETE",
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Tempo 100m"
       ],
+      "complexity": "LOW",
       "displayDistanceM": 100,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "TE_100",
       "labelJa": "テンポ走100m",
       "method": "TEMPO_EXTENSIVE",
       "recoveryStructure": null,
-      "complexity": "LOW",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Tempo 200m"
       ],
+      "complexity": "LOW",
       "displayDistanceM": 200,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "TE_200",
       "labelJa": "テンポ走200m",
       "method": "TEMPO_EXTENSIVE",
       "recoveryStructure": null,
-      "complexity": "LOW",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Tempo 300m"
       ],
+      "complexity": "LOW",
       "displayDistanceM": 300,
       "enabledByDefault": true,
+      "fixedDistanceField": "repDistanceM",
       "id": "TE_300",
       "labelJa": "テンポ走300m",
       "method": "TEMPO_EXTENSIVE",
       "recoveryStructure": null,
-      "complexity": "LOW",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "resistanceBand": null
     },
     {
       "advancedOnly": true,
+      "approachType": null,
       "coachingAliases": [
         "Vittori Special Endurance"
       ],
+      "complexity": "MEDIUM",
       "displayDistanceM": 70,
       "enabledByDefault": false,
+      "fixedDistanceField": "repDistanceM",
       "id": "TI_VITTORI_SE",
       "labelJa": "ヴィットーリ式スペシャルエンデュランス",
       "method": "TEMPO_INTENSIVE",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": "repDistanceM"
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Coach-defined tempo intensive"
       ],
+      "complexity": "MEDIUM",
       "enabledByDefault": false,
+      "fixedDistanceField": null,
       "id": "TI_COACH_DEFINED",
       "labelJa": "コーチ定義テンポ・インテンシブ",
       "method": "TEMPO_INTENSIVE",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Light Sled Sprint"
       ],
+      "complexity": "MEDIUM",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "RS_SLED_LIGHT",
       "labelJa": "軽負荷ソリ引き",
       "method": "RESISTED_SPRINT",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": "LIGHT",
-      "fixedDistanceField": null
+      "resistanceBand": "LIGHT"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Moderate Sled Sprint"
       ],
+      "complexity": "MEDIUM",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "RS_SLED_MODERATE",
       "labelJa": "中負荷ソリ引き",
       "method": "RESISTED_SPRINT",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": "MODERATE",
-      "fixedDistanceField": null
+      "resistanceBand": "MODERATE"
     },
     {
       "advancedOnly": true,
+      "approachType": null,
       "coachingAliases": [
         "Heavy Sled Sprint"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "RS_SLED_HEAVY",
       "labelJa": "重負荷ソリ引き",
       "method": "RESISTED_SPRINT",
       "recoveryStructure": null,
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": "HEAVY",
-      "fixedDistanceField": null
+      "resistanceBand": "HEAVY"
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Short Hill Sprint"
       ],
+      "complexity": "MEDIUM",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "RS_HILL_SHORT",
       "labelJa": "短坂ダッシュ",
       "method": "RESISTED_SPRINT",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": true,
+      "approachType": null,
       "coachingAliases": [
         "Towing"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": false,
+      "fixedDistanceField": null,
       "id": "AS_TOWING",
       "labelJa": "牽引走（トウイング）",
       "method": "ASSISTED_SPRINT",
       "recoveryStructure": null,
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": true,
+      "approachType": null,
       "coachingAliases": [
         "Downhill Sprint"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": false,
+      "fixedDistanceField": null,
       "id": "AS_DOWNHILL",
       "labelJa": "下り坂走",
       "method": "ASSISTED_SPRINT",
       "recoveryStructure": null,
-      "complexity": "HIGH",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": "SHORT",
       "coachingAliases": [
         "Start to H1"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": false,
+      "fixedDistanceField": null,
       "id": "EA_HURDLE_START_TO_H1",
       "labelJa": "スタート〜第1ハードル",
       "method": "EVENT_APPROACH_SPEED",
       "recoveryStructure": null,
-      "startType": "BLOCK",
-      "complexity": "HIGH",
-      "approachType": "SHORT",
       "resistanceBand": null,
-      "fixedDistanceField": null
+      "startType": "BLOCK"
     },
     {
       "advancedOnly": false,
+      "approachType": "FULL",
       "coachingAliases": [
         "Hurdle Rhythm"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": false,
+      "fixedDistanceField": null,
       "id": "EA_HURDLE_RHYTHM",
       "labelJa": "ハードルリズム走",
       "method": "EVENT_APPROACH_SPEED",
       "recoveryStructure": null,
-      "complexity": "HIGH",
-      "approachType": "FULL",
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": "SHORT",
       "coachingAliases": [
         "Short Approach Jump"
       ],
+      "complexity": "MEDIUM",
       "enabledByDefault": false,
+      "fixedDistanceField": null,
       "id": "EA_JUMP_SHORT_APPROACH",
       "labelJa": "短助走跳躍",
       "method": "EVENT_APPROACH_SPEED",
       "recoveryStructure": null,
-      "complexity": "MEDIUM",
-      "approachType": "SHORT",
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": "FULL",
       "coachingAliases": [
         "Full Approach Jump"
       ],
+      "complexity": "HIGH",
       "enabledByDefault": false,
+      "fixedDistanceField": null,
       "id": "EA_JUMP_FULL_APPROACH",
       "labelJa": "フル助走跳躍",
       "method": "EVENT_APPROACH_SPEED",
       "recoveryStructure": null,
-      "complexity": "HIGH",
-      "approachType": "FULL",
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Warm-up Stride"
       ],
+      "complexity": "LOW",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "ST_WARMUP",
       "labelJa": "ウォームアップ流し",
       "method": "STRIDE",
       "recoveryStructure": null,
-      "complexity": "LOW",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Relaxed Stride",
         "Wind Sprint"
       ],
+      "complexity": "LOW",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "ST_RELAXED",
       "labelJa": "リラックス流し",
       "method": "STRIDE",
       "recoveryStructure": null,
-      "complexity": "LOW",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     },
     {
       "advancedOnly": false,
+      "approachType": null,
       "coachingAliases": [
         "Between-sets Stride"
       ],
+      "complexity": "LOW",
       "enabledByDefault": true,
+      "fixedDistanceField": null,
       "id": "ST_BETWEEN_SETS",
       "labelJa": "セット間流し",
       "method": "STRIDE",
       "recoveryStructure": null,
-      "complexity": "LOW",
-      "approachType": null,
-      "resistanceBand": null,
-      "fixedDistanceField": null
+      "resistanceBand": null
     }
   ],
   "timingTolerances": [
@@ -6400,91 +6703,5 @@
   ],
   "validFrom": "2026-09-15",
   "vmaxEstimationModels": [],
-  "weeklyRules": [],
-  "eventDefinitions": {
-    "timedMarks": [
-      {
-        "event": "FLY10",
-        "distanceM": 10,
-        "segment": "FLY_ZONE"
-      },
-      {
-        "event": "FLY20",
-        "distanceM": 20,
-        "segment": "FLY_ZONE"
-      },
-      {
-        "event": "FLY30",
-        "distanceM": 30,
-        "segment": "FLY_ZONE"
-      },
-      {
-        "event": "10m",
-        "distanceM": 10,
-        "segment": "FROM_START"
-      },
-      {
-        "event": "20m",
-        "distanceM": 20,
-        "segment": "FROM_START"
-      },
-      {
-        "event": "30m",
-        "distanceM": 30,
-        "segment": "FROM_START"
-      },
-      {
-        "event": "60m",
-        "distanceM": 60,
-        "segment": "FROM_START"
-      },
-      {
-        "event": "100m",
-        "distanceM": 100,
-        "segment": "FROM_START"
-      },
-      {
-        "event": "150m",
-        "distanceM": 150,
-        "segment": "FROM_START"
-      },
-      {
-        "event": "200m",
-        "distanceM": 200,
-        "segment": "FROM_START"
-      },
-      {
-        "event": "300m",
-        "distanceM": 300,
-        "segment": "FROM_START"
-      },
-      {
-        "event": "400m",
-        "distanceM": 400,
-        "segment": "FROM_START"
-      }
-    ],
-    "raceEvents": [
-      {
-        "event": "100m",
-        "distanceM": 100,
-        "hurdles": false
-      },
-      {
-        "event": "200m",
-        "distanceM": 200,
-        "hurdles": false
-      },
-      {
-        "event": "400m",
-        "distanceM": 400,
-        "hurdles": false
-      },
-      {
-        "event": "400mH",
-        "distanceM": 400,
-        "hurdles": true
-      }
-    ]
-  }
+  "weeklyRules": []
 }

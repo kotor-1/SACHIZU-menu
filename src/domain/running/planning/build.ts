@@ -1,10 +1,9 @@
 /**
  * Running Prescription Engine v2 — planning pipeline の配線と §9.2 step 15: PRESCRIPTION OUTPUT。
  *
- * 接続している step: 1・2・3・6・7・8・9・10・11・12・13・15。
- * 未接続（R5 のスコープ外）:
+ * 接続している step: 1・2・3・6・7・8・9・10・11・12・13・14・15。
+ * 未接続（R6 のスコープ外）:
  *   - step 4 / 5（competition・phase・weekly）: NOT_EVALUATED。menuContext.phase は値の配置に使わない
- *   - step 14（session aggregation・出力 plausibility）: 未実装（R6）。sessionFindings=[]
  *
  * 出力前に Zod（構造）と RuleSet-aware 検証の両方を通し、通らないものは OK として返さない。
  */
@@ -54,6 +53,8 @@ import type { RangePosition } from "../types/prescription";
 import type { RunningSelection } from "../types/template";
 import type { RationaleCode } from "../rationale/codes";
 import { validatePrescriptionAgainstRuleSet } from "./validatePrescription";
+import { evaluateSessionAggregation } from "../aggregation";
+import { checkOutputPlausibility, checkSessionPlausibility } from "../plausibility/output";
 import { itemFinding, type EligibilityReason, type PlanRequest, type PlanResult } from "./schema";
 
 export type ResolvedRuleSet = {
@@ -1024,5 +1025,40 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     return blocked(problems.map((p) => itemFinding("INTERNAL_PRESCRIPTION_INVALID", "BLOCK", { metric: p })));
   }
 
-  return { status: "OK", prescription: parsed.data, sessionFindings: [] };
+  // ---- step 14: session aggregation + 出力 plausibility ----
+  // コーチ編集・override をすべて適用した後の最終値を見る「最後の防波堤」。
+  // plausibility は入力の訂正・確認の層なので、どの override でも解除できない（§8.5）。
+  const itemPlausibility = checkOutputPlausibility(parsed.data, ruleSet);
+  const prescription =
+    itemPlausibility.findings.length === 0
+      ? parsed.data
+      : runningPrescriptionSchema.parse({ ...parsed.data, findings: [...parsed.data.findings, ...itemPlausibility.findings] });
+
+  // otherItems は「現在計画中の項目を含まない」契約。ここで自分を1回だけ足す（二重計上しない）。
+  const aggregate = evaluateSessionAggregation([...request.menuContext.otherItems, { kind: "RUNNING_V2", prescription }], {
+    ruleSet,
+    tier: profile.envelopeTier,
+    availableMinutes: request.menuContext.availableMinutes,
+    competitionDay: "NOT_EVALUATED",
+    mode: "PLANNING",
+  });
+  const sessionPlausibility = checkSessionPlausibility(aggregate.totalRunningDistanceM, ruleSet);
+  const sessionFindings: Finding[] = [...aggregate.findings, ...sessionPlausibility.findings];
+
+  if (itemPlausibility.blocked) return blocked(itemPlausibility.findings.filter((f) => f.severity === "BLOCK"));
+  if (sessionPlausibility.blocked) return blocked(sessionFindings);
+  if (itemPlausibility.requiresConfirmation || sessionPlausibility.requiresConfirmation) {
+    // [R6 integration policy] 確認済みを表現する contract がまだ無いため、REQUIRE_CONFIRMATION は
+    // 全 actor で BLOCKED として返す（override では突破させない）。確認 UI の contract 追加時に解除する。
+    return blocked([
+      ...itemPlausibility.findings.filter((f) => f.severity === "REQUIRE_CONFIRMATION"),
+      ...sessionPlausibility.findings.filter((f) => f.severity === "REQUIRE_CONFIRMATION"),
+    ]);
+  }
+  if (request.actor.kind !== "COACH" && sessionFindings.some((f) => f.severity === "BLOCK_AUTOGEN")) {
+    // AI / SYSTEM はメニュー全体の合計が上限を超えた状態で自動生成できない（コーチは手動で継続可能）。
+    return blocked(sessionFindings);
+  }
+
+  return { status: "OK", prescription, sessionFindings };
 }
