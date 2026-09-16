@@ -108,6 +108,7 @@ export default async function MenuDetailPage({
               exercises={exercises}
               isFirst={index === 0}
               isLast={index === menu.blocks.length - 1}
+              phase={menu.phase as TrainingPhase | null}
             />
           ))}
           <AddBlockForm menuId={menu.id} />

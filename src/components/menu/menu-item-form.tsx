@@ -8,6 +8,15 @@ import {
   type ExerciseCategory,
   type MetricType,
 } from "@/domain/exercise/constants";
+import type { TrainingPhase } from "@/domain/menu/constants";
+import {
+  suggestPrescription,
+  type PrescriptionSuggestion,
+} from "@/domain/prescription/calculate";
+import {
+  ATHLETE_LEVEL_LABEL,
+  BASELINE_LEVEL,
+} from "@/domain/prescription/constants";
 import type { ExercisePickerItem } from "@/infra/repositories/exercise-repository";
 import type { ActionResult } from "@/domain/shared/result";
 
@@ -59,6 +68,7 @@ export function MenuItemForm({
   onSuccess,
   resetOnSuccess = false,
   compact = false,
+  phase = null,
 }: {
   action: Action;
   exercises: ExercisePickerItem[];
@@ -70,9 +80,14 @@ export function MenuItemForm({
   /** 連続入力できるよう、追加成功後に入力欄を空へ戻す。 */
   resetOnSuccess?: boolean;
   compact?: boolean;
+  /** このメニューの期分け。推奨処方の計算に使う。 */
+  phase?: TrainingPhase | null;
 }) {
   const [state, formAction] = useActionState(action, null);
   const [values, setValues] = useState<MenuItemFormValues>(initial);
+  const [suggestion, setSuggestion] = useState<PrescriptionSuggestion | null>(
+    null,
+  );
 
   // 追加が通ったら入力欄を空へ戻し、連続で登録できるようにする。
   // state は成功のたびに新しいオブジェクトになるので、これを変化の合図に使う。
@@ -97,6 +112,7 @@ export function MenuItemForm({
 
   /** 種目を選び直したら、その種目の推奨値でフォームを埋め直す。 */
   function pickExercise(id: string) {
+    setSuggestion(null);
     const ex = exercises.find((e) => e.id === id);
     if (!ex) {
       setValues((v) => ({ ...v, exerciseId: "" }));
@@ -113,6 +129,43 @@ export function MenuItemForm({
       durationSeconds: str(ex.defaultDurationSeconds),
       restSeconds: str(ex.defaultRestSeconds),
     }));
+  }
+
+  /**
+   * 処方エンジンの推奨値を入れる。
+   *
+   * 押したときだけ動かす（種目を選んだ瞬間に自動で入れない）のは、
+   * コーチが手で入れた数字を勝手に書き換えないため。
+   * note は触らない ―― あそこはコーチ自身の指示欄なので、根拠はこの下に表示するだけ。
+   */
+  function applySuggestion() {
+    if (!selected) return;
+    const s = suggestPrescription(
+      {
+        category: selected.category,
+        energySystem: selected.energySystem,
+        difficulty: selected.difficulty,
+        metricType: selected.metricType,
+        targets: selected.targets.map((t) => t.target),
+        defaultSets: selected.defaultSets,
+        defaultReps: selected.defaultReps,
+        defaultDistanceMeters: selected.defaultDistanceMeters,
+        defaultDurationSeconds: selected.defaultDurationSeconds,
+        defaultRestSeconds: selected.defaultRestSeconds,
+      },
+      { phase, level: BASELINE_LEVEL },
+    );
+    const str = (n: number | null | undefined) => (n == null ? "" : String(n));
+    setValues((v) => ({
+      ...v,
+      sets: str(s.prescription.sets),
+      reps: str(s.prescription.reps),
+      distanceMeters: str(s.prescription.distanceMeters),
+      durationSeconds: str(s.prescription.durationSeconds),
+      restSeconds: str(s.prescription.restSeconds),
+      intensityPercent: str(s.prescription.intensityPercent),
+    }));
+    setSuggestion(s);
   }
 
   const set = (key: keyof MenuItemFormValues) => (e: { target: { value: string } }) =>
@@ -180,6 +233,38 @@ export function MenuItemForm({
           />
         </Field>
       </div>
+
+      {selected && (
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            onClick={applySuggestion}
+            className={buttonClass("secondary", "sm")}
+          >
+            推奨処方を入れる
+          </button>
+          {suggestion && (
+            <div className="rounded border border-slate-200 bg-white px-2.5 py-2 text-xs leading-relaxed text-slate-600">
+              <p className="mb-1 font-medium text-slate-700">
+                根拠（{ATHLETE_LEVEL_LABEL[BASELINE_LEVEL]}想定
+                {suggestion.setRestSeconds != null && "・セット間は下記参照"}）
+              </p>
+              <ul className="list-disc space-y-0.5 pl-4">
+                {suggestion.rationale.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+              {suggestion.warnings.length > 0 && (
+                <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-rose-700">
+                  {suggestion.warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Field label="セット" errors={errors.sets}>

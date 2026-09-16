@@ -187,6 +187,26 @@ describe("exercise repository", () => {
       const picker = await listExercisesForPicker();
       expect(picker.some((e) => e.id === created.id)).toBe(false);
     });
+
+    it("returns the fields the prescription engine needs to classify an exercise", async () => {
+      // energySystem / targets / events が欠けると処方が計算できない。
+      // 軽量リストの select から落ちていないことをここで守る。
+      const created = await createExercise(
+        exerciseInput({
+          name: "30m加速走",
+          category: "SPRINT",
+          metricType: "DISTANCE",
+          energySystem: "ALACTIC",
+          targets: ["ACCELERATION"],
+          events: ["SPRINT"],
+        }),
+      );
+
+      const row = (await listExercisesForPicker()).find((e) => e.id === created.id);
+      expect(row?.energySystem).toBe("ALACTIC");
+      expect(row?.targets.map((t) => t.target)).toEqual(["ACCELERATION"]);
+      expect(row?.events.map((e) => e.event)).toEqual(["SPRINT"]);
+    });
   });
 
   describe("favorite (ON/OFF toggle)", () => {

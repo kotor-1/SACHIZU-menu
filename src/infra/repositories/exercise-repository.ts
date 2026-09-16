@@ -115,7 +115,13 @@ export async function findExercise(id: string) {
   });
 }
 
-/** 名前だけの軽量リスト。メニュー編集の種目ピッカー用。 */
+/**
+ * 名前だけの軽量リスト。メニュー編集の種目ピッカー用。
+ *
+ * 処方エンジン（src/domain/prescription）が種目を分類するのに
+ * energySystem / targets / events を要求するため、ここまでは含める。
+ * purposes とタグは処方の判定に使わないので含めない。
+ */
 export async function listExercisesForPicker() {
   return prisma.exercise.findMany({
     where: { ownerId: DEFAULT_OWNER_ID, status: { not: "ARCHIVED" } },
@@ -125,11 +131,15 @@ export async function listExercisesForPicker() {
       category: true,
       metricType: true,
       difficulty: true,
+      energySystem: true,
+      isFavorite: true,
       defaultSets: true,
       defaultReps: true,
       defaultDistanceMeters: true,
       defaultDurationSeconds: true,
       defaultRestSeconds: true,
+      targets: { select: { target: true } },
+      events: { select: { event: true } },
     },
     orderBy: [{ category: "asc" }, { name: "asc" }],
   });

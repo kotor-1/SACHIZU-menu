@@ -18,6 +18,7 @@ import {
 } from "@/actions/menu-actions";
 import { updateMenuItemAction } from "@/actions/menu-actions";
 import { formatPrescription } from "@/domain/shared/prescription";
+import type { TrainingPhase } from "@/domain/menu/constants";
 import type { MenuBlockDetail } from "@/infra/repositories/menu-repository";
 import type { ExercisePickerItem } from "@/infra/repositories/exercise-repository";
 
@@ -75,12 +76,15 @@ export function MenuBlockEditor({
   exercises,
   isFirst,
   isLast,
+  phase = null,
 }: {
   menuId: string;
   block: MenuBlockDetail;
   exercises: ExercisePickerItem[];
   isFirst: boolean;
   isLast: boolean;
+  /** メニューの期分け。推奨処方の計算に渡す。 */
+  phase?: TrainingPhase | null;
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -103,11 +107,15 @@ export function MenuBlockEditor({
         category: ex.category,
         metricType: ex.metricType,
         difficulty: ex.difficulty,
+        energySystem: null,
+        isFavorite: false,
         defaultSets: null,
         defaultReps: null,
         defaultDistanceMeters: null,
         defaultDurationSeconds: null,
         defaultRestSeconds: null,
+        targets: [],
+        events: [],
       },
       ...exercises,
     ];
@@ -170,6 +178,7 @@ export function MenuBlockEditor({
                     onCancel={() => setEditingId(null)}
                     onSuccess={() => setEditingId(null)}
                     compact
+                    phase={phase}
                   />
                 </li>
               );
@@ -263,6 +272,7 @@ export function MenuBlockEditor({
             onCancel={() => setAdding(false)}
             resetOnSuccess
             compact
+            phase={phase}
           />
         ) : (
           <button
