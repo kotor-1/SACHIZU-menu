@@ -1,9 +1,8 @@
 /**
  * Running Prescription Engine v2 — planning pipeline の配線と §9.2 step 15: PRESCRIPTION OUTPUT。
  *
- * 接続している step: 1・3・6・7・8・9・10・12・13・15。
- * 未接続（R4 のスコープ外）:
- *   - step 2 / 11（pain gate・readiness action）: PlanRequest.readiness は null 固定。readinessApplied=[]
+ * 接続している step: 1・2・3・6・7・8・9・10・11・12・13・15。
+ * 未接続（R5 のスコープ外）:
  *   - step 4 / 5（competition・phase・weekly）: NOT_EVALUATED。menuContext.phase は値の配置に使わない
  *   - step 14（session aggregation・出力 plausibility）: 未実装（R6）。sessionFindings=[]
  *
@@ -48,6 +47,12 @@ import {
   type PlacedPosition,
 } from "./placement";
 import { recheckHardSafety, type FieldValueRecord } from "./hardSafety";
+import { resolveSwapTargets } from "../readiness/swap";
+import { normalizeReadinessActions, type ReadinessDecision } from "../readiness/schema";
+import type { ReadinessActionCode, SafetyOutcome } from "../types/readiness";
+import type { RangePosition } from "../types/prescription";
+import type { RunningSelection } from "../types/template";
+import type { RationaleCode } from "../rationale/codes";
 import { validatePrescriptionAgainstRuleSet } from "./validatePrescription";
 import { itemFinding, type EligibilityReason, type PlanRequest, type PlanResult } from "./schema";
 
@@ -453,11 +458,244 @@ function envelopeEvidenceCounts(envelope: SelectedEnvelope, usedFields: readonly
   };
 }
 
+
+// ---------------------------------------------------------------------------
+// step 2 / 11: readiness（§13）
+//
+// **倍率・割合は一切作らない。** readiness が planning に与える影響は次の4つだけ:
+//   - STOP（step 2 で BLOCKED。override 不可）
+//   - CANCEL_HIGH_INTENSITY / SWAP_TO_LOWER_LOAD_METHOD（この Method では作らない → INELIGIBLE + substitutes）
+//   - USE_LOWER_BOUND（rest 以外のエンジン配置値の position 上限を LOWER_BOUND に）
+//   - INCREASE_REST（rest の position を UPPER_HALF に）
+//
+// [R5 errata] 判断の適用は **raw trigger（signal 単位）→ effective action** の順に行う。
+// 高優先 action が「この Method には適用できない」または「有効な CoachOverride で解除された」場合は、
+// その action **だけ**を取り除いて残りの raw trigger から優先順位を決め直す（独立した signal を消さない）。
+// ---------------------------------------------------------------------------
+
+/** 処方に保存してよい finding だけを使う（部位名・red flag 名・尺度値は決して含めない。§13.5・§20 T-AI-06）。 */
+const READINESS_RATIONALE_ORDER: readonly RationaleCode[] = [
+  "READINESS_CANCEL_OVERRIDDEN",
+  "READINESS_LOWER_BOUND",
+  "READINESS_INCREASE_REST",
+  "READINESS_COACH_REVIEW_REQUIRED",
+  "READINESS_NO_CHANGE",
+];
+
+type ReadinessApplication =
+  | {
+      kind: "PROCEED";
+      /** この項目へ実際に適用した effective action だけ（raw trigger は保存しない。§13.6）。 */
+      applied: ReadinessActionCode[];
+      safetyOutcome: SafetyOutcome;
+      /** rest 以外のエンジン配置値に効く位置上限。 */
+      positionCap: RangePosition | null;
+      /** rest の位置（既定 MIDDLE より上げるときだけ非 null）。 */
+      restPosition: RangePosition | null;
+      findings: Finding[];
+      rationale: RationaleLine[];
+      overrideConsumed: boolean;
+    }
+  | { kind: "INELIGIBLE"; reasons: EligibilityReason[]; substitutes: RunningSelection[] };
+
+type TriggerPool = { ruleId: string; actions: Set<ReadinessActionCode> }[];
+
+function poolUnion(pool: TriggerPool): Set<ReadinessActionCode> {
+  const union = new Set<ReadinessActionCode>();
+  for (const t of pool) for (const a of t.actions) union.add(a);
+  return union;
+}
+
+function dropFromPool(pool: TriggerPool, action: ReadinessActionCode): void {
+  for (const t of pool) t.actions.delete(action);
+}
+
+/** SWAP を取り除いた判断（置換そのものが SWAP の適用）。raw trigger も同時に更新して整合を保つ。 */
+function decisionWithoutSwap(readiness: ReadinessDecision, evaluatedFor: ReadinessDecision["evaluatedFor"]): ReadinessDecision {
+  const triggers = readiness.triggers
+    .map((t) => ({ ruleId: t.ruleId, actions: t.actions.filter((a) => a !== "SWAP_TO_LOWER_LOAD_METHOD") }))
+    .filter((t) => t.actions.length > 0);
+  const actions = normalizeReadinessActions(triggers.flatMap((t) => t.actions));
+  return {
+    ...readiness,
+    triggers,
+    actions: actions.length > 0 ? actions : (["NO_CHANGE"] as ReadinessActionCode[]),
+    evaluatedFor,
+  };
+}
+
+/**
+ * §13.4: SWAP 先の候補を RuleSet から列挙し、**R3/R4 の eligibility をもう一度すべて通した**ものだけを返す
+ * （「swap 先だから安全」とは仮定しない）。候補側の再評価では SWAP だけを取り除く
+ * （候補でもう一度 SWAP を要求すると候補が消えるため）。候補の候補までは辿らない（depth ガード）。
+ */
+function readinessSubstitutes(args: {
+  request: PlanRequest;
+  resolved: ResolvedRuleSet;
+  readiness: ReadinessDecision;
+  depth: number;
+}): RunningSelection[] {
+  const { request, resolved, readiness, depth } = args;
+  if (depth > 0) return [];
+  const targets = resolveSwapTargets(resolved.ruleSet, request.selection.method);
+  if (targets.outcome !== "SWAP") return [];
+
+  const substitutes: RunningSelection[] = [];
+  for (const candidate of targets.candidates) {
+    const meta = resolved.ruleSet.methods.find((m) => m.method === candidate.method);
+    if (!meta) continue;
+    const candidateRequest = {
+      ...request,
+      selection: candidate,
+      readiness: decisionWithoutSwap(readiness, { method: candidate.method, loadClass: meta.loadClass }),
+      // この項目に対するコーチ入力（field 編集・override・参照）は別 Method へは引き継がない。
+      coachEdits: [],
+      overrides: [],
+      coachReference: null,
+    };
+    if (planWithResolvedRuleSet(candidateRequest, resolved, depth + 1).status === "OK") substitutes.push(candidate);
+  }
+  return substitutes;
+}
+
+function applyReadinessActions(args: {
+  readiness: ReadinessDecision | null;
+  request: PlanRequest;
+  resolved: ResolvedRuleSet;
+  loadClass: RuleSet["methods"][number]["loadClass"];
+  depth: number;
+}): ReadinessApplication {
+  const { readiness, request, resolved, loadClass, depth } = args;
+  if (readiness === null) {
+    return {
+      kind: "PROCEED",
+      applied: [],
+      safetyOutcome: "NONE",
+      positionCap: null,
+      restPosition: null,
+      findings: [],
+      rationale: [rationaleLine("READINESS_NOT_EVALUATED")],
+      overrideConsumed: false,
+    };
+  }
+
+  const highIntensity = loadClass === "HIGH_NEURAL" || loadClass === "HIGH_METABOLIC";
+  const swapKeepsCurrent = resolveSwapTargets(resolved.ruleSet, request.selection.method).outcome === "KEEP_CURRENT";
+  const override = request.overrides.find((o) => o.target.kind === "READINESS") ?? null;
+  const canOverride = override !== null && request.actor.kind === "COACH";
+
+  const pool: TriggerPool = readiness.triggers.map((t) => ({ ruleId: t.ruleId, actions: new Set(t.actions) }));
+  const findings: Finding[] = [];
+  const codes = new Set<RationaleCode>();
+  let safetyOutcome: SafetyOutcome = readiness.safetyOutcome;
+  let overrideConsumed = false;
+  let reviewRequired = false;
+
+  // その日の痛みが確認できていない（§13.2 NOT_ASKED）× HIGH_*。override では解除できない。
+  if (highIntensity && readiness.highIntensityAllowedToday === "UNKNOWN") {
+    if (request.actor.kind !== "COACH") {
+      return {
+        kind: "INELIGIBLE",
+        reasons: [{ code: "READINESS_CHECK_REQUIRED", ruleId: null, overrideAllowed: false }],
+        substitutes: readinessSubstitutes({ request, resolved, readiness, depth }),
+      };
+    }
+    reviewRequired = true;
+    findings.push(itemFinding("READINESS_CHECK_REQUIRED", "REQUIRE_COACH_REVIEW"));
+  }
+
+  // 優先順位（§13.6）: CANCEL → SWAP の順に見て、解除・適用不能なら残りの trigger で決め直す。
+  for (;;) {
+    const union = poolUnion(pool);
+    if (union.has("CANCEL_HIGH_INTENSITY")) {
+      if (!highIntensity) {
+        // 高強度ではない項目には効かない。適用していないことを明示し、他の signal の判定へ進む。
+        dropFromPool(pool, "CANCEL_HIGH_INTENSITY");
+        findings.push(itemFinding("READINESS_CANCEL_NOT_APPLICABLE", "INFO"));
+        continue;
+      }
+      if (canOverride && !overrideConsumed) {
+        overrideConsumed = true;
+        for (const t of pool) {
+          // 同じ signal から CANCEL と SWAP が出ていた場合は二重に適用しない。
+          // 別 signal から出た SWAP は残す（独立した判断を override で消さない）。
+          if (t.actions.delete("CANCEL_HIGH_INTENSITY")) t.actions.delete("SWAP_TO_LOWER_LOAD_METHOD");
+        }
+        // override しても健康上の事象そのものは消えない。
+        safetyOutcome = "COACH_REVIEW";
+        reviewRequired = true;
+        codes.add("READINESS_CANCEL_OVERRIDDEN");
+        findings.push(itemFinding("READINESS_CANCEL_OVERRIDDEN", "REQUIRE_COACH_REVIEW"));
+        continue;
+      }
+      return {
+        kind: "INELIGIBLE",
+        reasons: [
+          { code: "READINESS_HIGH_INTENSITY_CANCELLED", ruleId: null, overrideAllowed: request.actor.kind === "COACH" },
+        ],
+        substitutes: readinessSubstitutes({ request, resolved, readiness, depth }),
+      };
+    }
+    if (union.has("SWAP_TO_LOWER_LOAD_METHOD")) {
+      if (swapKeepsCurrent) {
+        // §13.4「変更なし」。Method は変えず、SWAP は適用していない扱いにする。
+        dropFromPool(pool, "SWAP_TO_LOWER_LOAD_METHOD");
+        findings.push(itemFinding("READINESS_SWAP_KEEP_CURRENT", "INFO"));
+        continue;
+      }
+      // 黙って別 Method へ変換しない。候補を返してコーチ / 呼び出し側に選ばせる（override 不可）。
+      return {
+        kind: "INELIGIBLE",
+        reasons: [{ code: "READINESS_SWAP_RECOMMENDED", ruleId: null, overrideAllowed: false }],
+        substitutes: readinessSubstitutes({ request, resolved, readiness, depth }),
+      };
+    }
+    break;
+  }
+
+  // 残った raw trigger から、この項目へ実際に適用する action を決める（量の位置だけを動かす）。
+  const remaining = poolUnion(pool);
+  const applied = new Set<ReadinessActionCode>();
+  let positionCap: RangePosition | null = null;
+  let restPosition: RangePosition | null = null;
+  if (remaining.has("USE_LOWER_BOUND")) {
+    positionCap = "LOWER_BOUND";
+    applied.add("USE_LOWER_BOUND");
+    codes.add("READINESS_LOWER_BOUND");
+  }
+  if (remaining.has("INCREASE_REST")) {
+    restPosition = "UPPER_HALF";
+    applied.add("INCREASE_REST");
+    codes.add("READINESS_INCREASE_REST");
+  }
+  if (remaining.has("REQUIRE_COACH_REVIEW") || reviewRequired) {
+    applied.add("REQUIRE_COACH_REVIEW");
+    codes.add("READINESS_COACH_REVIEW_REQUIRED");
+    if (remaining.has("REQUIRE_COACH_REVIEW")) findings.push(itemFinding("READINESS_COACH_REVIEW_REQUIRED", "REQUIRE_COACH_REVIEW"));
+  }
+
+  const normalized = normalizeReadinessActions(applied);
+  // [R5 errata] readiness を評価した以上 readinessApplied は空にしない（評価していない `null` と区別する）。
+  const appliedList: ReadinessActionCode[] = normalized.length > 0 ? normalized : ["NO_CHANGE"];
+  if (appliedList.length === 1 && appliedList[0] === "NO_CHANGE") codes.add("READINESS_NO_CHANGE");
+
+  return {
+    kind: "PROCEED",
+    applied: appliedList,
+    safetyOutcome,
+    positionCap,
+    restPosition,
+    findings,
+    rationale: READINESS_RATIONALE_ORDER.filter((c) => codes.has(c)).map((c) => rationaleLine(c)),
+    overrideConsumed,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // pipeline
 // ---------------------------------------------------------------------------
 
-export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet): PlanResult {
+export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet, depth = 0): PlanResult {
   const { ruleSet, contentHash } = resolved;
 
   // ---- step 1: normalization + input plausibility ----
@@ -485,6 +723,24 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet)
   });
 
   if (plausibility.blocking.length > 0) return blocked(plausibility.blocking);
+
+  // ---- step 2: pain / safety gate（§13.2）----
+  // envelope / placement より前に止める。STOP はどの actor の override でも解除できない。
+  const readiness = request.readiness;
+  if (readiness !== null) {
+    if (
+      readiness.ruleSet.version !== ruleSet.ruleSetVersion ||
+      readiness.ruleSet.contentHash !== contentHash ||
+      readiness.ruleSet.status !== ruleSet.status
+    ) {
+      // 別バージョン / 別内容の RuleSet で出した判断を、この計画の RuleSet に適用しない。
+      return blocked([itemFinding("READINESS_RULESET_MISMATCH", "BLOCK", { metric: readiness.ruleSet.version })]);
+    }
+    if (readiness.stopPlanning) {
+      // 判断に含まれる表示用 finding はコードだけを写す（部位・red flag・尺度値は元から持たない）。
+      return blocked(readiness.transientFindings.map((f) => itemFinding(f.code, f.severity)));
+    }
+  }
 
   const findings: Finding[] = [...contextFindings];
 
@@ -545,11 +801,28 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet)
     return ineligible([{ code: "LOW_CONFIDENCE_HIGH_METABOLIC_AUTOGEN_BLOCKED", ruleId: null, overrideAllowed: null }]);
   }
 
-  // ---- step 11: readiness 未接続（null = NO_CHANGE） ----
+  // ---- step 11: readiness action（§13.3）----
+  const readinessPlan = applyReadinessActions({ readiness, request, resolved, loadClass: methodMeta.loadClass, depth });
+  if (readinessPlan.kind === "INELIGIBLE") {
+    return {
+      status: "INELIGIBLE",
+      reasons: readinessPlan.reasons,
+      substitutes: readinessPlan.substitutes,
+      findings: [...contextFindings],
+    };
+  }
+  findings.push(...readinessPlan.findings);
 
   // ---- step 12: value placement ----
   const preferenceCap = request.positionPreference === "LOWER" ? positionFromPreference("LOWER") : null;
-  const position = lowestPosition(BASE_POSITION, preferenceCap, confidence.positionCap, eligibility.modifiers.positionCap);
+  // 位置の制約は順序に依存せず積み重なる（最も低いものが勝つ）。
+  const position = lowestPosition(
+    BASE_POSITION,
+    preferenceCap,
+    confidence.positionCap,
+    eligibility.modifiers.positionCap,
+    readinessPlan.positionCap,
+  );
   const inputs = createCoachInputs(request);
   const repBuild = buildRep(
     { request, ruleSet, envelope, template, plan, position, eligibility, inputs, targetUsesIntensityPercent },
@@ -572,6 +845,7 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet)
     runningSecondsPerRepLowerBound: repBuild.runningSecondsPerRepLowerBound,
     availableMinutes: request.menuContext.availableMinutes,
     inputs,
+    restPosition: readinessPlan.restPosition,
   });
   if (!restResult.ok) return blocked([...restResult.findings]);
   findings.push(...restResult.findings);
@@ -590,6 +864,10 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet)
   for (const o of request.overrides) {
     if (o.target.kind === "FIELD" && !inputs.consumedOverrides.has(o.target.field)) {
       unconsumed.push(itemFinding("OVERRIDE_TARGET_INVALID", "BLOCK", { metric: `FIELD:${o.target.field}` }));
+    }
+    if (o.target.kind === "READINESS" && !readinessPlan.overrideConsumed) {
+      // 解除すべき CANCEL が無いのに readiness override が付いている（対象の無い override）。
+      unconsumed.push(itemFinding("OVERRIDE_TARGET_INVALID", "BLOCK", { metric: `READINESS:${o.target.action}` }));
     }
   }
   if (unconsumed.length > 0) return blocked([...unconsumed]);
@@ -707,7 +985,8 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet)
   if ([exposure.plannedHighSpeedExposureM, exposure.totalRunningDistanceM].some((e) => e.source === "ESTIMATED" || e.lower === null)) {
     rationale.push(rationaleLine("EXPOSURE_ESTIMATED"));
   }
-  rationale.push(rationaleLine("PHASE_NOT_EVALUATED"), rationaleLine("WEEKLY_NOT_EVALUATED"), rationaleLine("READINESS_NOT_EVALUATED"));
+  rationale.push(rationaleLine("PHASE_NOT_EVALUATED"), rationaleLine("WEEKLY_NOT_EVALUATED"));
+  rationale.push(...readinessPlan.rationale);
 
   const candidate = {
     schemaVersion: 1,
@@ -724,7 +1003,8 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet)
     stopPolicyId,
     monitoringSnapshot,
     confidence: { prescription: confidence.prescription, directness: confidence.directness, inputData: plan.inputData },
-    readinessApplied: [],
+    readinessApplied: readinessPlan.applied,
+    safetyOutcome: readinessPlan.safetyOutcome,
     findings,
     rationale,
     ruleSet: { version: ruleSet.ruleSetVersion, contentHash, status: ruleSet.status },

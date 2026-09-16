@@ -40,6 +40,7 @@ import {
 import { envelopeTierSchema, trainingAgeTierSchema } from "../types/subject";
 import { loadCategorySchema } from "../types/load";
 import { INTENSITY_REFERENCE_KINDS, TIMED_MARK_EVENTS, timedMarkEventSchema, timingMethodSchema } from "../types/intensity";
+import { RED_FLAGS, bodyRegionSchema, readinessActionCodeSchema, redFlagSchema, safetyOutcomeSchema } from "../types/readiness";
 import { evidenceRecordSchema } from "../evidence/schema";
 
 // ---------------------------------------------------------------------------
@@ -534,6 +535,136 @@ export const eventDefinitionsSchema = z
 export type EventDefinitions = z.infer<typeof eventDefinitionsSchema>;
 
 // ---------------------------------------------------------------------------
+// ReadinessRule（§13。R5 で正式化。R2/R3/R4 では z.array(z.never()) で空配列固定していた）
+// ---------------------------------------------------------------------------
+
+/**
+ * [R5] §13 の readiness ルールを versioned data として持つ最小の判別共用体。
+ * 汎用 DSL にはしない（条件は §13.2〜§13.4 が定義する形だけを表現する）。
+ * planning / readiness の runtime は、この構造だけを読んで判断する
+ * （id・説明文・Method 名の文字列を解析しない。R4 と同じ原則）。
+ */
+export const READINESS_WELLNESS_METRICS = ["SORENESS", "FATIGUE", "SLEEP_QUALITY"] as const;
+export const readinessWellnessMetricSchema = z.enum(READINESS_WELLNESS_METRICS);
+export type ReadinessWellnessMetric = z.infer<typeof readinessWellnessMetricSchema>;
+
+export const READINESS_COMPARISONS = ["GTE", "LTE", "EQ"] as const;
+export const readinessComparisonSchema = z.enum(READINESS_COMPARISONS);
+
+const ageBandListSchema = z.array(z.enum(["U12", "U15", "U18", "ADULT"])).min(1);
+
+const swapTargetSchema = z
+  .object({
+    method: runningTrainingMethodSchema,
+    /** null = その Method の全 template を候補にする（eligibility は候補ごとに再評価する）。 */
+    templateIds: z.array(sessionTemplateIdSchema).min(1).nullable(),
+  })
+  .strict();
+
+export const readinessRuleSchema = z.discriminatedUnion("kind", [
+  /** §13.2: red flag のグループと、その stop の重さ（severityRank が大きいほど厳しい）。stopPlanning は常に true。 */
+  z
+    .object({
+      kind: z.literal("PAIN_RED_FLAG_GROUP"),
+      id: z.string().min(1),
+      redFlags: z.array(redFlagSchema).min(1),
+      safetyOutcome: z.enum(["MEDICAL_EVALUATION_RECOMMENDED", "COACH_REVIEW"]),
+      severityRank: z.number().int().positive(),
+      overridable: z.literal(false),
+    })
+    .strict(),
+  /** §13.2: status=PRESENT（red flag なし）。 */
+  z
+    .object({
+      kind: z.literal("PAIN_PRESENT"),
+      id: z.string().min(1),
+      actions: z.array(readinessActionCodeSchema).min(1),
+      safetyOutcome: safetyOutcomeSchema,
+      /** CoachOverride で解除できる action（§13.2 は CANCEL_HIGH_INTENSITY のみ）。 */
+      overridableActions: z.array(readinessActionCodeSchema),
+    })
+    .strict(),
+  /** §13.2: 成長期の部位ガイダンス（診断ではない表示のみ）。 */
+  z
+    .object({
+      kind: z.literal("PAIN_GROWTH_PERIOD_GUIDANCE"),
+      id: z.string().min(1),
+      regions: z.array(bodyRegionSchema).min(1),
+      appliesToAgeBands: ageBandListSchema,
+      findingCode: z.string().min(1),
+    })
+    .strict(),
+  /** §13.2: status=NOT_ASKED の youth（HIGH_* を自動生成しない）。 */
+  z
+    .object({
+      kind: z.literal("PAIN_NOT_ASKED"),
+      id: z.string().min(1),
+      appliesToAgeBands: ageBandListSchema,
+      appliesToLoadClasses: z.array(loadClassSchema).min(1),
+      actions: z.array(readinessActionCodeSchema),
+      findingCode: z.string().min(1),
+    })
+    .strict(),
+  /** §13.3: performanceStatus。 */
+  z
+    .object({
+      kind: z.literal("PERFORMANCE_STATUS"),
+      id: z.string().min(1),
+      status: z.enum(["DOWN", "UNKNOWN"]),
+      actions: z.array(readinessActionCodeSchema).min(1),
+    })
+    .strict(),
+  /** §13.3: 1–5 尺度のしきい値。`countsTowardSignalCount` が true の行は「2つ以上」の数え上げ対象。 */
+  z
+    .object({
+      kind: z.literal("WELLNESS_SIGNAL"),
+      id: z.string().min(1),
+      metric: readinessWellnessMetricSchema,
+      comparison: readinessComparisonSchema,
+      threshold: z.number().int().min(1).max(5),
+      actions: z.array(readinessActionCodeSchema),
+      countsTowardSignalCount: z.boolean(),
+    })
+    .strict(),
+  /** §13.3: 数え上げた signal 数に対する action（minSignals が大きい行が優先）。 */
+  z
+    .object({
+      kind: z.literal("SIGNAL_COUNT"),
+      id: z.string().min(1),
+      minSignals: z.number().int().positive(),
+      actions: z.array(readinessActionCodeSchema).min(1),
+    })
+    .strict(),
+  /** §13.3: readiness 窓が ACTIVE で soreness/fatigue/sleep がすべて null。 */
+  z
+    .object({
+      kind: z.literal("MISSING_WELLNESS_IN_ACTIVE_WINDOW"),
+      id: z.string().min(1),
+      actions: z.array(readinessActionCodeSchema).min(1),
+    })
+    .strict(),
+  /** §13.4: SWAP 先（候補は eligibility を再評価する。KEEP_CURRENT は Method を変えない）。 */
+  z
+    .object({
+      kind: z.literal("SWAP_TARGET"),
+      id: z.string().min(1),
+      fromMethods: z.array(runningTrainingMethodSchema).min(1),
+      outcome: z.enum(["SWAP", "KEEP_CURRENT"]),
+      targets: z.array(swapTargetSchema),
+    })
+    .strict(),
+]).superRefine((rule, ctx) => {
+  if (rule.kind === "SWAP_TARGET" && (rule.outcome === "SWAP") !== (rule.targets.length > 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "outcome=SWAP のときだけ targets を持ちます（KEEP_CURRENT は Method を変えない）",
+      path: ["targets"],
+    });
+  }
+});
+export type ReadinessRule = z.infer<typeof readinessRuleSchema>;
+
+// ---------------------------------------------------------------------------
 // ConstraintRule（§8.2, §7.5。R3で正式化。R2では z.array(z.never()) で空配列固定していた）
 // ---------------------------------------------------------------------------
 
@@ -630,7 +761,7 @@ export const ruleSetSchema = z
     stopPolicies: z.array(stopPolicySchema),
     aggregationRules: notYetImplementedArraySchema,
     weeklyRules: notYetImplementedArraySchema,
-    readinessRules: notYetImplementedArraySchema,
+    readinessRules: z.array(readinessRuleSchema),
     phaseRules: notYetImplementedArraySchema,
     competitionRules: notYetImplementedArraySchema,
     plausibility: z.array(plausibilityRuleSchema),
@@ -923,6 +1054,69 @@ export const ruleSetSchema = z
       }
     }
 
+    // ---- ReadinessRule ----------------------------------------------------------
+    const readinessIdsSeen = new Set<string>();
+    for (const [i, rule] of rs.readinessRules.entries()) {
+      if (readinessIdsSeen.has(rule.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `ReadinessRule.id が重複しています: ${rule.id}`,
+          path: ["readinessRules", i, "id"],
+        });
+      }
+      readinessIdsSeen.add(rule.id);
+      if (rule.kind === "PAIN_RED_FLAG_GROUP") {
+        for (const flag of rule.redFlags) {
+          const others = rs.readinessRules.filter(
+            (r) => r.kind === "PAIN_RED_FLAG_GROUP" && r.id !== rule.id && (r.redFlags as readonly string[]).includes(flag),
+          );
+          if (others.length > 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `red flag ${flag} が複数の PAIN_RED_FLAG_GROUP に属しています（判定が曖昧になる）`,
+              path: ["readinessRules", i, "redFlags"],
+            });
+          }
+        }
+      }
+      if (rule.kind === "SWAP_TARGET") {
+        for (const method of rule.fromMethods) {
+          const others = rs.readinessRules.filter(
+            (r) => r.kind === "SWAP_TARGET" && r.id !== rule.id && (r.fromMethods as readonly string[]).includes(method),
+          );
+          if (others.length > 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Method ${method} の SWAP_TARGET が複数あります`,
+              path: ["readinessRules", i, "fromMethods"],
+            });
+          }
+        }
+        for (const [ti, target] of rule.targets.entries()) {
+          for (const tid of target.templateIds ?? []) {
+            const template = rs.templates.find((t) => t.id === tid);
+            if (!template || template.method !== target.method) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `SWAP_TARGET.targets が実在しない template（または Method 不一致）を参照しています: ${tid}`,
+                path: ["readinessRules", i, "targets", ti, "templateIds"],
+              });
+            }
+          }
+        }
+      }
+      if (rule.kind === "SIGNAL_COUNT") {
+        const duplicate = rs.readinessRules.some((r) => r.kind === "SIGNAL_COUNT" && r.id !== rule.id && r.minSignals === rule.minSignals);
+        if (duplicate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `SIGNAL_COUNT.minSignals=${rule.minSignals} の行が重複しています`,
+            path: ["readinessRules", i, "minSignals"],
+          });
+        }
+      }
+    }
+
     // ---- ConstraintRule ---------------------------------------------------------
     const constraintIdsSeen = new Set<string>();
     for (const [i, c] of rs.constraints.entries()) {
@@ -1013,6 +1207,16 @@ export function checkRuleSetCompleteness(rs: RuleSet): string[] {
         problems.push(`R1 型に存在する template ${id}（${method}）が RuleSet に定義されていません`);
       }
     }
+  }
+
+  // [R5] §13: 全 RedFlag がいずれかのグループに属し、全 Method に SWAP_TARGET があること。
+  const groupedFlags = new Set(rs.readinessRules.flatMap((r) => (r.kind === "PAIN_RED_FLAG_GROUP" ? r.redFlags : [])));
+  for (const flag of RED_FLAGS) {
+    if (!groupedFlags.has(flag)) problems.push(`ReadinessRule に RedFlag ${flag} の PAIN_RED_FLAG_GROUP がありません`);
+  }
+  const swapMethods = new Set(rs.readinessRules.flatMap((r) => (r.kind === "SWAP_TARGET" ? r.fromMethods : [])));
+  for (const method of RUNNING_TRAINING_METHODS) {
+    if (!swapMethods.has(method)) problems.push(`ReadinessRule に Method ${method} の SWAP_TARGET がありません`);
   }
 
   const markEvents = new Set(rs.eventDefinitions.timedMarks.map((d) => d.event));

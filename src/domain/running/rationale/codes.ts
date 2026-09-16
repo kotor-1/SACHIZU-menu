@@ -59,6 +59,22 @@ export const RATIONALE_CODES = [
   "PHASE_NOT_EVALUATED",
   "WEEKLY_NOT_EVALUATED",
   "READINESS_NOT_EVALUATED",
+  /**
+   * [R5] 当日の体調確認（§13）を反映した、という事実だけを示す行。
+   * 痛みの部位・red flag・soreness/fatigue/sleep の値は **params にも入れない**（§13.5・§20 T-AI-06）。
+   */
+  /** params: なし（NO_CHANGE） */
+  "READINESS_NO_CHANGE",
+  /** params: なし（USE_LOWER_BOUND） */
+  "READINESS_LOWER_BOUND",
+  /** params: なし（INCREASE_REST） */
+  "READINESS_INCREASE_REST",
+  /** params: なし（CANCEL_HIGH_INTENSITY を適用し、高強度を今日は行わない） */
+  "READINESS_HIGH_INTENSITY_CANCELLED",
+  /** params: なし（コーチが CANCEL_HIGH_INTENSITY を override して実施） */
+  "READINESS_CANCEL_OVERRIDDEN",
+  /** params: なし（コーチの確認が必要） */
+  "READINESS_COACH_REVIEW_REQUIRED",
 ] as const;
 
 export type RationaleCode = (typeof RATIONALE_CODES)[number];

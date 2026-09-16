@@ -3,7 +3,8 @@
   "changelog": [
     "rs-2026.09.0: 初版。正式仕様 docs/RUNNING_PRESCRIPTION_ENGINE_V2_SPEC.md の §3-§10 をデータ化。全 Evidence は SECONDARY_REPORT_ONLY、status=DRAFT（一次資料未照合のため ACTIVE 化しない）。",
     "R3: added versioned constraints (U12 hard constraints, U15 ASSISTED_SPRINT non-overridable, maturity/training-age auto-complexity caps), SessionTemplate complexity (§7.5) and EligibilityRule.requiresPhaseEvaluation metadata. methods/envelopes/evidence/timingTolerances/stopPolicies/plausibility values unchanged. Status remains DRAFT.",
-    "R4: added structured machine-readable metadata so planning never parses human-readable text or identifier names: EligibilityRule.conditions / autoGenerationLimits (previously only described in conditionNote), SessionTemplate.approachType / resistanceBand / fixedDistanceField, StopPolicy.appliesToEligibilityPath, PlausibilityRule.inputTarget, and eventDefinitions (timed-mark and race-event distances). conditionNote is now explanatory only. methods/envelopes/evidence/timingTolerances/constraints and all stop-policy/plausibility/envelope numeric values unchanged. Status remains DRAFT."
+    "R4: added structured machine-readable metadata so planning never parses human-readable text or identifier names: EligibilityRule.conditions / autoGenerationLimits (previously only described in conditionNote), SessionTemplate.approachType / resistanceBand / fixedDistanceField, StopPolicy.appliesToEligibilityPath, PlausibilityRule.inputTarget, and eventDefinitions (timed-mark and race-event distances). conditionNote is now explanatory only. methods/envelopes/evidence/timingTolerances/constraints and all stop-policy/plausibility/envelope numeric values unchanged. Status remains DRAFT.",
+    "R5: added versioned readinessRules (§13 pain red flag groups, pain PRESENT / NOT_ASKED gates, growth-period guidance regions, wellness thresholds and signal counts, readiness-window rule, SWAP target map). No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/plausibility/eventDefinitions are byte-identical. Status remains DRAFT."
   ],
   "competitionRules": [],
   "constraints": [
@@ -5354,7 +5355,216 @@
       }
     }
   ],
-  "readinessRules": [],
+  "readinessRules": [
+    {
+      "kind": "PAIN_RED_FLAG_GROUP",
+      "id": "RDN_RED_FLAG_MEDICAL",
+      "redFlags": [
+        "PAIN_AT_REST_OR_NIGHT",
+        "SWELLING",
+        "LIMPING",
+        "NUMBNESS_TINGLING",
+        "DIZZINESS_OR_BREATHING_DIFFICULTY",
+        "PAIN_PERSISTING_OVER_DAYS"
+      ],
+      "safetyOutcome": "MEDICAL_EVALUATION_RECOMMENDED",
+      "severityRank": 2,
+      "overridable": false
+    },
+    {
+      "kind": "PAIN_RED_FLAG_GROUP",
+      "id": "RDN_RED_FLAG_COACH_REVIEW",
+      "redFlags": [
+        "SUDDEN_SHARP_PAIN",
+        "PAIN_WORSENING_DURING_SESSION"
+      ],
+      "safetyOutcome": "COACH_REVIEW",
+      "severityRank": 1,
+      "overridable": false
+    },
+    {
+      "kind": "PAIN_PRESENT",
+      "id": "RDN_PAIN_PRESENT",
+      "actions": [
+        "CANCEL_HIGH_INTENSITY",
+        "REQUIRE_COACH_REVIEW"
+      ],
+      "safetyOutcome": "COACH_REVIEW",
+      "overridableActions": [
+        "CANCEL_HIGH_INTENSITY"
+      ]
+    },
+    {
+      "kind": "PAIN_GROWTH_PERIOD_GUIDANCE",
+      "id": "RDN_PAIN_GROWTH_PERIOD",
+      "regions": [
+        "HEEL",
+        "KNEE",
+        "HIP_PELVIS"
+      ],
+      "appliesToAgeBands": [
+        "U12",
+        "U15",
+        "U18"
+      ],
+      "findingCode": "GROWTH_PERIOD_PAIN_GUIDANCE"
+    },
+    {
+      "kind": "PAIN_NOT_ASKED",
+      "id": "RDN_PAIN_NOT_ASKED_YOUTH",
+      "appliesToAgeBands": [
+        "U12",
+        "U15",
+        "U18"
+      ],
+      "appliesToLoadClasses": [
+        "HIGH_NEURAL",
+        "HIGH_METABOLIC"
+      ],
+      "actions": [
+        "REQUIRE_COACH_REVIEW"
+      ],
+      "findingCode": "PAIN_CHECK_REQUIRED"
+    },
+    {
+      "kind": "PERFORMANCE_STATUS",
+      "id": "RDN_PERFORMANCE_DOWN",
+      "status": "DOWN",
+      "actions": [
+        "SWAP_TO_LOWER_LOAD_METHOD",
+        "REQUIRE_COACH_REVIEW"
+      ]
+    },
+    {
+      "kind": "WELLNESS_SIGNAL",
+      "id": "RDN_SORENESS_HIGH",
+      "metric": "SORENESS",
+      "comparison": "GTE",
+      "threshold": 4,
+      "actions": [
+        "SWAP_TO_LOWER_LOAD_METHOD"
+      ],
+      "countsTowardSignalCount": false
+    },
+    {
+      "kind": "WELLNESS_SIGNAL",
+      "id": "RDN_SORENESS_MODERATE",
+      "metric": "SORENESS",
+      "comparison": "EQ",
+      "threshold": 3,
+      "actions": [],
+      "countsTowardSignalCount": true
+    },
+    {
+      "kind": "WELLNESS_SIGNAL",
+      "id": "RDN_FATIGUE_HIGH",
+      "metric": "FATIGUE",
+      "comparison": "GTE",
+      "threshold": 4,
+      "actions": [],
+      "countsTowardSignalCount": true
+    },
+    {
+      "kind": "WELLNESS_SIGNAL",
+      "id": "RDN_SLEEP_LOW",
+      "metric": "SLEEP_QUALITY",
+      "comparison": "LTE",
+      "threshold": 2,
+      "actions": [],
+      "countsTowardSignalCount": true
+    },
+    {
+      "kind": "SIGNAL_COUNT",
+      "id": "RDN_SIGNAL_COUNT_2",
+      "minSignals": 2,
+      "actions": [
+        "SWAP_TO_LOWER_LOAD_METHOD"
+      ]
+    },
+    {
+      "kind": "SIGNAL_COUNT",
+      "id": "RDN_SIGNAL_COUNT_1",
+      "minSignals": 1,
+      "actions": [
+        "USE_LOWER_BOUND",
+        "INCREASE_REST"
+      ]
+    },
+    {
+      "kind": "MISSING_WELLNESS_IN_ACTIVE_WINDOW",
+      "id": "RDN_MISSING_WELLNESS_WINDOW",
+      "actions": [
+        "USE_LOWER_BOUND"
+      ]
+    },
+    {
+      "kind": "SWAP_TARGET",
+      "id": "RDN_SWAP_HIGH_NEURAL",
+      "fromMethods": [
+        "ACCELERATION",
+        "MAX_VELOCITY",
+        "RESISTED_SPRINT",
+        "ASSISTED_SPRINT",
+        "EVENT_APPROACH_SPEED"
+      ],
+      "outcome": "SWAP",
+      "targets": [
+        {
+          "method": "STRIDE",
+          "templateIds": [
+            "ST_RELAXED"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "SWAP_TARGET",
+      "id": "RDN_SWAP_HIGH_METABOLIC",
+      "fromMethods": [
+        "SPRINT_ENDURANCE_SHORT",
+        "LONG_SPRINT_RACE_SPECIFIC",
+        "TEMPO_INTENSIVE"
+      ],
+      "outcome": "SWAP",
+      "targets": [
+        {
+          "method": "TEMPO_EXTENSIVE",
+          "templateIds": null
+        },
+        {
+          "method": "STRIDE",
+          "templateIds": [
+            "ST_RELAXED"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "SWAP_TARGET",
+      "id": "RDN_SWAP_TEMPO_EXTENSIVE",
+      "fromMethods": [
+        "TEMPO_EXTENSIVE"
+      ],
+      "outcome": "SWAP",
+      "targets": [
+        {
+          "method": "STRIDE",
+          "templateIds": [
+            "ST_RELAXED"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "SWAP_TARGET",
+      "id": "RDN_SWAP_STRIDE",
+      "fromMethods": [
+        "STRIDE"
+      ],
+      "outcome": "KEEP_CURRENT",
+      "targets": []
+    }
+  ],
   "ruleSetVersion": "rs-2026.09.0",
   "status": "DRAFT",
   "stopPolicies": [

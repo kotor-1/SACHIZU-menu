@@ -545,13 +545,16 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
     expect(80000).toBeGreaterThan(rule!.blockThreshold!.max!);
   });
 
-  it("aggregationRules / weeklyRules / readinessRules / phaseRules / competitionRules / vmaxEstimationModels はすべて空配列（R6/R7ではまだ実装しない）", () => {
+  it("aggregationRules / weeklyRules / phaseRules / competitionRules / vmaxEstimationModels はすべて空配列（R6/R7ではまだ実装しない）", () => {
     expect(rs.aggregationRules).toEqual([]);
     expect(rs.weeklyRules).toEqual([]);
-    expect(rs.readinessRules).toEqual([]);
     expect(rs.phaseRules).toEqual([]);
     expect(rs.competitionRules).toEqual([]);
     expect(rs.vmaxEstimationModels).toEqual([]);
+  });
+
+  it("[R5] readinessRules は空ではない（§13 の判定データはすべて RuleSet 側にある）", () => {
+    expect(rs.readinessRules.length).toBeGreaterThan(0);
   });
 
   it("constraints は R3 で正式化され、4件のConstraintRuleを持つ（§8.2 U12 hard / U15 ASSISTED + §7.5 complexity cap ×2）", () => {

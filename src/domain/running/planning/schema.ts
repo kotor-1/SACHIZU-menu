@@ -12,8 +12,9 @@
  *   - `ruleSetVersion` は受け付けない（`.strict()` で拒否。§18.1）。
  *   - `coachReference` を追加（COACH だけが RACE_PACE / TARGET_SPLIT /
  *     VELOCITY_DECREMENT / COACH_DEFINED を入力できる）。
- *   - [R4 transitional restriction] `readiness` は R5 の `ReadinessDecision` 型がまだ存在しないため `null` 固定
- *     （非 null を受け取って黙って無視すると pain gate を素通りさせてしまうため拒否する）。R5 で開放する。
+ *   - [R5] `readiness` は `ReadinessDecision | null`。**判定済みの decision だけ**を受け取り、生の
+ *     `ReadinessReport`（pain / soreness / reporter 等）は `.strict()` が拒否する。健康情報の生値は
+ *     PlanRequest に入れない（§13.5）。`null` = readiness 未接続（§13.2/§13.3 を評価しない）。
  *   - [R4 transitional restriction] `menuContext.otherItems` は R6、`menuContext.competitions` は R7 の型が
  *     未実装のため空配列固定（R6 / R7 で開放）。`history`（R1 の LoadEvent）と `phase` は受け取るが R4 では
  *     評価しない（中立。R7 で接続）。これは最終的な PlanRequest contract ではない。
@@ -27,6 +28,7 @@ import { loadEventSchema } from "../types/load";
 import { aiPlannerActorSchema, coachActorSchema, systemActorSchema } from "../types/actor";
 import { intensityReferenceSchema, type IntensityReference } from "../types/intensity";
 import { envelopeFieldSchema } from "../rules/schema";
+import { readinessDecisionSchema } from "../readiness/schema";
 import type { Finding, FindingSeverity } from "../types/findings";
 import type { EvidenceId } from "../types/primitives";
 import type { RunningPrescriptionValue } from "../types/prescription";
@@ -120,8 +122,14 @@ export type CoachFieldEdit = z.infer<typeof coachFieldEditSchema>;
 // CoachOverride（§8.3）
 // ---------------------------------------------------------------------------
 
+/**
+ * [R5 errata] readiness の override は `CANCEL_HIGH_INTENSITY` **1種類だけ**（§13.2/§13.3）。
+ * STOP / MEDICAL_EVALUATION_RECOMMENDED / PAIN_CHECK_REQUIRED / SWAP / USE_LOWER_BOUND /
+ * INCREASE_REST は override 対象にできない（型として書けない）。
+ */
 export const coachOverrideTargetSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("ELIGIBILITY"), ruleId: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal("READINESS"), action: z.literal("CANCEL_HIGH_INTENSITY") }).strict(),
   z
     .object({
       kind: z.literal("FIELD"),
@@ -142,7 +150,8 @@ export const coachOverrideSchema = z
   })
   .strict()
   .superRefine((o, ctx) => {
-    const needsDoubleConfirm = o.target.kind === "ELIGIBILITY" || o.target.layer === "HARD_SAFETY";
+    // [R5] READINESS override は confirmedTwice を要求しない（§8.3 の二重確認は ELIGIBILITY / HARD_SAFETY のみ）。
+    const needsDoubleConfirm = o.target.kind === "ELIGIBILITY" || (o.target.kind === "FIELD" && o.target.layer === "HARD_SAFETY");
     if (needsDoubleConfirm && !o.confirmedTwice) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -157,10 +166,10 @@ export const coachOverrideSchema = z
         path: ["newValue"],
       });
     }
-    if (o.target.kind === "ELIGIBILITY" && o.newValue !== undefined) {
+    if (o.target.kind !== "FIELD" && o.newValue !== undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "ELIGIBILITY override は数値（newValue）を持てません",
+        message: `${o.target.kind} override は数値（newValue）を持てません`,
         path: ["newValue"],
       });
     }
@@ -196,8 +205,8 @@ export const planRequestSchema = z
     subject: subjectSchema,
     menuContext: menuContextSchema,
     history: z.array(loadEventSchema).nullable(),
-    /** [R4 errata] ReadinessDecision は R5。R4 では null 固定（step 2・11 未接続）。 */
-    readiness: z.null(),
+    /** [R5] `resolveReadinessAction()` が返した判断のみ。生の ReadinessReport は `.strict()` が拒否する。 */
+    readiness: readinessDecisionSchema.nullable(),
     positionPreference: z.enum(["LOWER", "MIDDLE"]).nullable(),
     coachEdits: z.array(coachFieldEditSchema),
     overrides: z.array(coachOverrideSchema),
@@ -258,7 +267,12 @@ export const planRequestSchema = z
           path: ["overrides", i, "actor"],
         });
       }
-      const key = o.target.kind === "ELIGIBILITY" ? `E:${o.target.ruleId}` : `F:${o.target.field}`;
+      const key =
+        o.target.kind === "ELIGIBILITY"
+          ? `E:${o.target.ruleId}`
+          : o.target.kind === "READINESS"
+            ? `R:${o.target.action}`
+            : `F:${o.target.field}`;
       if (overrideKeys.has(key)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: `overrides の対象が重複しています: ${key}`, path: ["overrides", i, "target"] });
       }
@@ -292,6 +306,12 @@ export const ELIGIBILITY_REASON_CODES = [
   "OVERRIDE_NOT_ALLOWED",
   "REFERENCE_UNAVAILABLE",
   "LOW_CONFIDENCE_HIGH_METABOLIC_AUTOGEN_BLOCKED",
+  /** [R5] その日の痛みの確認が取れていない状態での HIGH_*（§13.2 NOT_ASKED）。override では解除できない。 */
+  "READINESS_CHECK_REQUIRED",
+  /** [R5] §13.3 CANCEL_HIGH_INTENSITY。コーチのみ READINESS override で実施できる（確認要求は残る）。 */
+  "READINESS_HIGH_INTENSITY_CANCELLED",
+  /** [R5] §13.3 SWAP_TO_LOWER_LOAD_METHOD。黙って別 Method へ変換せず substitutes を返す（override 不可）。 */
+  "READINESS_SWAP_RECOMMENDED",
 ] as const;
 export type EligibilityReasonCode = (typeof ELIGIBILITY_REASON_CODES)[number];
 

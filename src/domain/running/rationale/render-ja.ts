@@ -191,6 +191,15 @@ const RENDERERS: Record<RationaleCode, (p: Params) => string> = {
   PHASE_NOT_EVALUATED: () => "期分けや大会日程による調整は、この段階ではまだ反映していません。",
   WEEKLY_NOT_EVALUATED: () => "直近の練習や試合の負荷による調整は、この段階ではまだ反映していません。",
   READINESS_NOT_EVALUATED: () => "当日の体調・痛みの確認による調整は、この段階ではまだ反映していません。",
+  // [R5] 以下は「当日の確認の結果、何をしたか」だけを述べる。入力内容（部位・程度・回答者）は書かない。
+  READINESS_NO_CHANGE: () => "当日の体調確認の結果、内容の変更はありません。",
+  READINESS_LOWER_BOUND: () =>
+    "当日の体調確認の結果、距離・時間・本数は推奨範囲の下限に置いています（強度の割合を下げる調整はしていません）。",
+  READINESS_INCREASE_REST: () => "当日の体調確認の結果、レストを推奨範囲の上半分まで長くしています。",
+  READINESS_HIGH_INTENSITY_CANCELLED: () => "当日の体調確認の結果、強度の高い練習は今日は行いません。",
+  READINESS_CANCEL_OVERRIDDEN: () =>
+    "当日の体調確認では強度の高い練習を見送る判断でしたが、コーチの判断で実施しています。指導者の確認が必要です。",
+  READINESS_COACH_REVIEW_REQUIRED: () => "当日の体調確認の結果、実施前に指導者の確認が必要です。",
 };
 
 /** RationaleLine[] を日本語の文の配列に変換する。未知のコードは内部キーを出さずに汎用文にする。 */

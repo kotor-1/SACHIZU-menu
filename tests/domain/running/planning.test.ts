@@ -35,7 +35,7 @@ import type { Unit } from "@/domain/running/types/primitives";
 // ---------------------------------------------------------------------------
 
 const ruleSet = getRuleSet("rs-2026.09.0")!;
-const EXPECTED_HASH = "4b4e88d9e06dc5e2463e7c14ab82d8c62157024f34e56ec600eb52ef504e533c";
+const EXPECTED_HASH = "f5751a852769db227009cca2794691ce59123788c59495d7409fbd0bdb86b230";
 const PLANNING_DATE = "2026-09-15";
 
 function iso(value: string): IsoDate {

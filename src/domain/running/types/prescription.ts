@@ -24,7 +24,7 @@ import {
 import { intensityReferenceSchema } from "./intensity";
 import { envelopeTierSchema } from "./subject";
 import { findingSchema, rationaleLineSchema } from "./findings";
-import { readinessActionCodeSchema } from "./readiness";
+import { readinessActionCodeSchema, safetyOutcomeSchema } from "./readiness";
 import { generationRecordSchema } from "./actor";
 
 // ---------------------------------------------------------------------------
@@ -357,6 +357,12 @@ const runningPrescriptionCommonFields = {
   monitoringSnapshot: monitoringSnapshotSchema,
   confidence: confidenceBlockSchema,
   readinessApplied: z.array(readinessActionCodeSchema),
+  /**
+   * [R5 errata] §13 の判断のうち処方に残してよいのは `readinessApplied` と `safetyOutcome` だけ。
+   * 部位・red flag・soreness/fatigue/sleep・reporter・reportedAt は**保存しない**（§13.5・§20 T-AI-06）。
+   * readiness 未接続（`readiness: null`）のときは `"NONE"`。
+   */
+  safetyOutcome: safetyOutcomeSchema,
   findings: z.array(findingSchema),
   rationale: z.array(rationaleLineSchema),
   ruleSet: ruleSetRefSchema,
@@ -509,6 +515,7 @@ export type RunningPrescription<M extends z.infer<typeof runningTrainingMethodSc
   monitoringSnapshot: MonitoringSnapshot;
   confidence: z.infer<typeof confidenceBlockSchema>;
   readinessApplied: z.infer<typeof readinessActionCodeSchema>[];
+  safetyOutcome: z.infer<typeof safetyOutcomeSchema>;
   findings: z.infer<typeof findingSchema>[];
   rationale: z.infer<typeof rationaleLineSchema>[];
   ruleSet: z.infer<typeof ruleSetRefSchema>;

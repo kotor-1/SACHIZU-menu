@@ -501,6 +501,7 @@ describe("RunningPrescription", () => {
       },
       confidence: { prescription: "MODERATE" as const, directness: "PARTIAL" as const, inputData: "MEDIUM" as const },
       readinessApplied: [],
+      safetyOutcome: "NONE" as const,
       findings: [],
       rationale: [],
       ruleSet: { version: "rs-test-0", contentHash: "deadbeef", status: "DRAFT" as const },

@@ -115,7 +115,7 @@ export {
   type RationaleLine,
 } from "./types/findings";
 
-// --- Readiness（型のみ。resolveReadinessAction は R5） -----------------------
+// --- Readiness の入力型（§13.1） ---------------------------------------------
 export {
   readinessActionCodeSchema,
   safetyOutcomeSchema,
@@ -219,3 +219,17 @@ export { resolveSubjectProfile, type ResolveSubjectProfileInput, type SubjectPro
 // individualize / derivePlanningConfidence / validateSelection / buildPrescription 等の各 step と、
 // RuleSet 差し替え用の `planRunningPrescriptionWithRuleSet`（テスト専用）は root から export しない。
 export { planRunningPrescription, type PlanRequest, type PlanResult } from "./planning";
+
+// --- Readiness / Pain gate（R5） ----------------------------------------------
+// §1.5 の R5 公開 API は `resolveReadinessAction` と入出力型だけ。内部ロジック
+// （evaluatePainGate / deriveReadinessActions / resolveSwapTargets / buildAiSafeSubjectContext）は
+// root から export しない（必要なら `src/domain/running/readiness/*` を直接 import する）。
+// AI に渡してよい文脈の型 `AiSafeSubjectContext` だけは、呼び出し側が「これ以外を渡さない」ことを
+// 型で担保できるよう公開する（値を作る関数は公開しない）。
+export {
+  resolveReadinessAction,
+  type ReadinessContext,
+  type ReadinessDecision,
+  type ReadinessWindowState,
+} from "./readiness";
+export type { AiSafeSubjectContext } from "./readiness/aiSafeContext";

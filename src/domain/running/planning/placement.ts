@@ -29,10 +29,17 @@ const POSITION_FRACTION: Record<RangePosition, number> = { LOWER_BOUND: 0, LOWER
 export const BASE_POSITION: RangePosition = "MIDDLE";
 
 /**
- * rest 系フィールドの位置。§9.3 により常に MIDDLE 以上。R4 では readiness（INCREASE_REST → UPPER_HALF）が
- * 未接続のため MIDDLE 固定。confidence・positionPreference・eligibility の下半分制限は rest に適用しない。
+ * rest 系フィールドの既定位置。§9.3 により常に MIDDLE 以上。
+ * confidence・positionPreference・eligibility の下半分制限は rest に適用しない（レストは短くしない）。
+ * [R5] readiness の `INCREASE_REST` だけが `UPPER_HALF` へ引き上げる（下げる方向へは動かせない）。
  */
 export const REST_POSITION: RangePosition = "MIDDLE";
+
+/** rest 位置を既定（MIDDLE）以上に保ったまま引き上げる。MIDDLE 未満の指定は無視する。 */
+export function raisedRestPosition(requested: RangePosition | null): RangePosition {
+  if (requested === null) return REST_POSITION;
+  return isAtOrAbove(requested, REST_POSITION) ? requested : REST_POSITION;
+}
 
 /** 候補のうち最も低い位置を採用する（§9.3）。null は「この由来による上限なし」。 */
 export function lowestPosition(...candidates: readonly (RangePosition | null)[]): RangePosition {
@@ -371,6 +378,15 @@ export function solveCounts(args: {
 }): CountResolution {
   const { cells, volume, position, maxAutoTotalReps, inputs } = args;
   const findings: Finding[] = [];
+  /**
+   * [R5 errata] 回数・総量は相互依存する（fixed distance × totalReps × sets × repsPerSet × sessionVolumeM /
+   * flyVolumeM × maxTotalReps）。この連立において position=LOWER_BOUND（readiness の USE_LOWER_BOUND）は
+   * 「各セルを個別に recommended.min へ固定する」ことではなく、
+   * **すべての recommended 制約を満たす実行可能解のうち最小 dose の解を選ぶ**ことを意味する。
+   * 探索の向きだけが §7.3 ②（総本数の最大化）と逆になり、制約そのものは一切緩めない
+   * （readiness を理由に recommended を下回る値は作らない）。解が無ければ ENVELOPE_INFEASIBLE。
+   */
+  const lowestFeasible = position === "LOWER_BOUND";
 
   if (cells.total === null && cells.repsPerSet === null) {
     return { ok: false, findings: [itemFinding("ENVELOPE_INFEASIBLE", "BLOCK_AUTOGEN", { metric: "counts:no-count-cells" })] };
@@ -398,7 +414,7 @@ export function solveCounts(args: {
   } else if (cells.sets) {
     const rec = cells.sets.recommended;
     if (rec === null) return { ok: false, findings: [itemFinding("MANUAL_INPUT_REQUIRED", "BLOCK", { metric: "sets" })] };
-    setsCandidates = ascendingRange(rec.min, cells.total ? rec.max : placeValue(rec, position, "COUNT"));
+    setsCandidates = ascendingRange(rec.min, cells.total !== null || lowestFeasible ? rec.max : placeValue(rec, position, "COUNT"));
   } else {
     setsCandidates = [1];
   }
@@ -410,7 +426,7 @@ export function solveCounts(args: {
   } else if (cells.repsPerSet) {
     const rec = cells.repsPerSet.recommended;
     if (rec === null) return { ok: false, findings: [itemFinding("MANUAL_INPUT_REQUIRED", "BLOCK", { metric: "repsPerSet" })] };
-    repsCandidates = ascendingRange(rec.min, cells.total ? rec.max : placeValue(rec, position, "COUNT"));
+    repsCandidates = ascendingRange(rec.min, cells.total !== null || lowestFeasible ? rec.max : placeValue(rec, position, "COUNT"));
   } else {
     repsCandidates = null;
   }
@@ -426,13 +442,13 @@ export function solveCounts(args: {
     if (rec === null) {
       return { ok: false, findings: [itemFinding("MANUAL_INPUT_REQUIRED", "BLOCK", { metric: cells.total.field })] };
     }
-    let hi = placeValue(rec, position, "COUNT");
+    let hi = lowestFeasible ? rec.max : placeValue(rec, position, "COUNT");
     if (maxAutoTotalReps !== null) hi = Math.min(hi, maxAutoTotalReps);
-    totalCandidates = descendingRange(hi, rec.min);
+    totalCandidates = lowestFeasible ? ascendingRange(rec.min, hi) : descendingRange(hi, rec.min);
   } else {
     const products = new Set<number>();
     for (const s of setsCandidates) for (const r of repsCandidates ?? []) products.add(s * r);
-    totalCandidates = [...products].sort((a, b) => b - a);
+    totalCandidates = [...products].sort((a, b) => (lowestFeasible ? a - b : b - a));
   }
 
   let volumeBounds: { min: number; max: number } | null = null;
@@ -443,7 +459,11 @@ export function solveCounts(args: {
     if (inputs.fieldOverrides.has(volume.field)) volumeBounds = null; // override の newValue と一致するかは後段で検査
   } else if (volume) {
     const rec = volume.cell.recommended;
-    if (rec !== null) volumeBounds = { min: rec.min, max: positionPoint(rec, position) };
+    if (rec !== null) {
+      // LOWER_BOUND でも総量の recommended 範囲はそのまま使う（下限を割り込まない）。
+      // 探索が昇順になるため、この範囲を満たす最小の総量が選ばれる。
+      volumeBounds = lowestFeasible ? { min: rec.min, max: rec.max } : { min: rec.min, max: positionPoint(rec, position) };
+    }
   }
 
   let solution: { t: number; s: number; r: number } | null = null;
@@ -580,8 +600,11 @@ export function resolveRestPlan(args: {
   runningSecondsPerRepLowerBound: number | null;
   availableMinutes: number | null;
   inputs: CoachInputs;
+  /** [R5] readiness の INCREASE_REST（UPPER_HALF）。null / 未指定は既定の MIDDLE。 */
+  restPosition?: RangePosition | null;
 }): RestResolution {
   const { cells, sets, totalReps, segmentsPerRep, needsIntraRepRest, availableMinutes, inputs } = args;
+  const restPosition = raisedRestPosition(args.restPosition ?? null);
   const findings: Finding[] = [];
 
   if (!cells.repRestS) {
@@ -592,7 +615,7 @@ export function resolveRestPlan(args: {
     unit: "s",
     cell: cells.repRestS,
     inputs,
-    engine: { kind: "PLACE", position: REST_POSITION, rounding: "REST_SECONDS" },
+    engine: { kind: "PLACE", position: restPosition, rounding: "REST_SECONDS" },
   });
   if (!repRest.ok) return repRest;
   findings.push(...repRest.findings);
@@ -605,7 +628,7 @@ export function resolveRestPlan(args: {
       unit: "s",
       cell: cells.setRestS,
       inputs,
-      engine: { kind: "PLACE", position: REST_POSITION, rounding: "REST_SECONDS" },
+      engine: { kind: "PLACE", position: restPosition, rounding: "REST_SECONDS" },
     });
     if (!resolved.ok) return resolved;
     findings.push(...resolved.findings);
@@ -624,7 +647,7 @@ export function resolveRestPlan(args: {
       unit: "s",
       cell: cells.intraRepRestS,
       inputs,
-      engine: { kind: "PLACE", position: REST_POSITION, rounding: "REST_SECONDS" },
+      engine: { kind: "PLACE", position: restPosition, rounding: "REST_SECONDS" },
     });
     if (!resolved.ok) return resolved;
     findings.push(...resolved.findings);

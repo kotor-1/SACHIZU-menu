@@ -1699,6 +1699,113 @@ export type AiSafeSubjectContext = {
 - 保存: v2 で永続化するのは `readinessActions`（enum 配列）と `safetyOutcome`（enum）だけ。**部位・red flag・尺度値は保存しない**（その場の判定にだけ使う）。傷害履歴として残すかは [OPEN-15]。
 - テスト: `AiSafeSubjectContext` を JSON 化した文字列に `pain` `region` `redFlag` `soreness` `fatigue` `sleep` `birth` `sex` `maturity` のキーが含まれないこと（§20 T-AI-06）。
 
+### 13.6 [R5 representation errata]（R5 実装で確定した表現）
+
+§13.1〜§13.5 の意味は変えず、実装上の表現だけを次のとおり確定する（`src/domain/running/readiness/` の型と
+`RuleSet.readinessRules` が正）。
+
+1. **STOP と SafetyOutcome を分ける。** §13.2 の「`STOP` + `MEDICAL_EVALUATION_RECOMMENDED`」のような複合出力は
+   単一 enum に潰さず、`stopPlanning: boolean` と `safetyOutcome: "NONE" | "COACH_REVIEW" |
+   "MEDICAL_EVALUATION_RECOMMENDED"` の2つで表す（`SafetyOutcome` の `"STOP"` は使わない）。
+   医療系 red flag → `stopPlanning=true` + `MEDICAL_EVALUATION_RECOMMENDED`、その他の red flag →
+   `stopPlanning=true` + `COACH_REVIEW`、status=PRESENT（red flag なし）→ `stopPlanning=false` +
+   `COACH_REVIEW` + `CANCEL_HIGH_INTENSITY` + `REQUIRE_COACH_REVIEW`、通常 → `stopPlanning=false` + `NONE`。
+
+2. **ReadinessDecision（§13 の出力）**:
+
+```ts
+export type ReadinessDecision = {
+  actions: ReadinessActionCode[];               // §13.3 の離散 action（優先順位順に正規化済み）
+  triggers: { ruleId: string; actions: ReadinessActionCode[] }[];  // signal 単位の raw trigger（再正規化用・保存しない）
+  stopPlanning: boolean;                        // §13.2 の STOP（override 不可）
+  safetyOutcome: SafetyOutcome;
+  highIntensityAllowedToday: boolean | "UNKNOWN";
+  painCheckRequired: boolean;                   // §13.2 NOT_ASKED（override では解除できない）
+  transientFindings: Finding[];                 // 表示用。処方には保存しない
+  ruleSet: { version: string; contentHash: string; status: RuleSetStatus };
+  evaluatedFor: { method: RunningTrainingMethod; loadClass: LoadClass };
+};
+```
+
+   `highIntensityAllowedToday` と `painCheckRequired` は **その日**の状態であり Method に依らない。
+   `ruleSet` が計画側の RuleSet と一致しない判断は適用せず `BLOCKED` にする。
+
+3. **readiness 窓の状態を明示する。** §13.3 の「readiness 窓（§12.3）内」は R7（週次）の責務なので、R5 では
+   `readinessWindowState: "ACTIVE" | "INACTIVE" | "NOT_EVALUATED"` を入力で受け取る。`NOT_EVALUATED` を
+   `ACTIVE` と推測しない（未記入ルールは `ACTIVE` のときだけ適用する）。
+
+4. **公開 API**: `resolveReadinessAction(report, ctx)`。`ctx` は
+   `{ planningDate, ageBand: ResolvedAgeBand, method, loadClass?, readinessWindowState }`。
+   `loadClass` を渡す場合は RuleSet の `MethodMeta.loadClass` と一致必須（真実の出所は RuleSet 側）。
+   判断は server / domain の結果であり、**AI が作って渡すことはできない**（`PlanRequest.readiness` は
+   `ReadinessDecision | null` で、生の `ReadinessReport` は `.strict()` が拒否する）。
+
+5. **`AiSafeSubjectContext.ageBand` は `ResolvedAgeBand`**（`AgeBand | "UNKNOWN"`）。生年月日が無い ATHLETE や
+   空の GROUP では年齢帯を観測できないため、U12 等へ偽装せず `"UNKNOWN"` を渡す。
+
+6. **§13.2〜§13.4 の判定データは `RuleSet.readinessRules` に置く**（版管理・contentHash の対象）。
+   red flag のグループ、成長期ガイダンスの部位・年齢帯、NOT_ASKED の対象年齢帯と loadClass、
+   wellness のしきい値（soreness≥4 / soreness=3 / fatigue≥4 / sleepQuality≤2 / シグナル2件以上）、
+   SWAP 先の Method と template は TS 側に複製しない。**ID 文字列や説明文のパースで分岐しない**（§8.2 と同じ方針）。
+
+7. **CoachOverride の readiness 対象は `CANCEL_HIGH_INTENSITY` だけ**（`{ kind: "READINESS", action:
+   "CANCEL_HIGH_INTENSITY" }`、理由10文字以上、actor=COACH、`confirmedTwice` は要求しない）。
+   STOP / MEDICAL_EVALUATION_RECOMMENDED / PAIN_CHECK_REQUIRED / SWAP / USE_LOWER_BOUND / INCREASE_REST は
+   override できない（型として書けない）。override して実施した場合も `REQUIRE_COACH_REVIEW` は外さず、
+   `readinessApplied` に `CANCEL_HIGH_INTENSITY` を記録し、`safetyOutcome` は `COACH_REVIEW` にする。
+
+8. **SWAP は黙って変換しない。** §13.4 に該当する場合、エンジンは Method を差し替えず
+   `INELIGIBLE` + `substitutes`（RuleSet の SWAP 先を列挙し、R3/R4 の eligibility を再評価して通ったものだけ）を返す。
+   STRIDE（変更なし）は Method を変えずに続行し、「SWAP は適用していない」ことを finding で明示する。
+
+9. **`Decision` と `AppliedAction` を分ける。** `RunningPrescription.readinessApplied` は
+   **実際にこの項目へ適用した effective action だけ**を記録する（raw trigger も、解除・適用不能になった action も
+   記録しない）。したがって `CANCEL_HIGH_INTENSITY` を CoachOverride で解除して実施した場合、
+   `readinessApplied` に `CANCEL_HIGH_INTENSITY` は入らず、`REQUIRE_COACH_REVIEW` と
+   `safetyOutcome = COACH_REVIEW` が残る（健康上の事象そのものは override で消えない）。
+   readiness を評価したのに適用結果が何も無い場合は `["NO_CHANGE"]`、`readiness: null`（未評価）の場合は `[]`。
+   `RunningPrescription.safetyOutcome`（enum）を追加し、保存してよい readiness 情報はこの2つだけとする。
+
+10. **position の意味**: `USE_LOWER_BOUND` は rest 以外のエンジン配置値に `LOWER_BOUND` の位置上限を与える
+    （連立する回数・総量での意味は 12 を参照）。
+    位置の制約（既定・positionPreference・confidence・eligibility・readiness）は順序に依存せず、最も低いものが勝つ。
+    `INCREASE_REST` は rest の位置を `UPPER_HALF` にする（rest は常に MIDDLE 以上・短くしない）。
+    **量に割合や係数を掛けることは一切しない。**
+
+11. **エンジン生成値の recommended 不変条件（readiness は例外にしない）**。
+    エンジンが生成した処方は、**使用したすべての `recommended` 制約を満たす**。例外は R4 で既に定義済みの
+    コーチ入力（`COACH` / `COACH_OVERRIDE`）と `TEMPLATE_FIXED` の固定値だけであり、**readiness action は例外ではない**。
+    `OUTSIDE_RECOMMENDED` は、readiness が自動的に recommended を下回るための逃げ道にしない。
+
+12. **`LOWER_BOUND` の意味（scalar と coupled solver で異なる）**。
+    - **独立した scalar フィールド**（`repDistanceM` / `buildUpM` / `repDurationS` 等の通常の `FieldValue`）:
+      従来どおり `LOWER_BOUND → recommended.min`。
+    - **連立する回数・総量**（fixed rep distance / `totalReps` / `sets` / `repsPerSet` / `sessionVolumeM` /
+      `flyVolumeM` / `EligibilityRule.autoGenerationLimits.maxTotalReps`）: セルごとに `recommended.min` へ固定するのではなく、
+      **すべての recommended 制約（および `coachEditable` / `hardSafety` / 固定距離）を満たす実行可能解のうち、
+      最小 dose の解**を選ぶ。探索の向きだけが §7.3 ②（総本数の最大化）と逆になり、制約は一切緩めない。
+      例: 1本 20m 固定・`sessionVolumeM.recommended.min = 60m` なら 2本（40m）へ落とさず 3本（60m）を選ぶ。
+    - 実行可能解が無い場合は `ENVELOPE_INFEASIBLE`（readiness を理由に recommended 未満の数値を作らない）。
+    - solver が決めた回数の `origin` は `SOLVER_DERIVED`・`position = null` のままにする
+      （`position = LOWER_BOUND` へ偽装しない）。`position = LOWER_BOUND` を持つのは `ENGINE_POSITIONED` の値だけ。
+
+13. **raw trigger と effective action を分ける（override / 適用不能後の再正規化）**。
+    各入力から signal 単位の **raw trigger**（`{ ruleId, actions }`）を独立に導出し、その和集合を優先順位で
+    正規化して effective action を決める。高優先 action が
+    **(a) その Method には適用できない**（例: `CANCEL_HIGH_INTENSITY` を LOW/MODERATE の項目へ）、または
+    **(b) 有効な `CoachOverride` で解除された** 場合は、**その action だけ**を取り除き、
+    残っている raw trigger から優先順位を決め直す。独立した signal から生じた下位 action を消さない。
+    同一 signal から `CANCEL` と `SWAP` の両方が出ていた場合だけは、`CANCEL` の解除時に同じ signal の `SWAP` も
+    取り除く（同じ判断を二重に適用しない）。`STOP` は再正規化・override の対象外。
+    例（pain PRESENT + performanceStatus DOWN）:
+    HIGH_* / override なし → `CANCEL`（+ REVIEW）。HIGH_* / valid override → `SWAP`（+ REVIEW、元 selection は
+    `INELIGIBLE` + substitutes）。LOW/MODERATE → `CANCEL` は適用不能でも `SWAP`（+ REVIEW）。
+    trigger の provenance は判断の中だけで保持し、**処方には保存しない**（raw な健康値も rule id も残さない）。
+
+14. **`highIntensityAllowedToday`**: `stopPlanning` / `CANCEL_HIGH_INTENSITY` / `SWAP_TO_LOWER_LOAD_METHOD` の
+    いずれかがある日は `true` にしない（`false`）。未成年の痛み未確認は `"UNKNOWN"`。
+    `NO_CHANGE` および `USE_LOWER_BOUND` / `INCREASE_REST` だけの日は `true`。
+
 ---
 
 ## 14. Phase / Competition / Taper
