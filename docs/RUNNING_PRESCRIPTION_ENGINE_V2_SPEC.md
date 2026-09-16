@@ -116,9 +116,13 @@ src/domain/running/
       ▼
  MenuItem（prescriptionKind="RUNNING_V2", 列 + prescriptionJson + provenanceJson + rationale）
 
-[練習作成時]  createSessionFromMenu()：コピーのみ（再計算しない・ルール参照しない）
+[練習作成時]  Session 作成の application layer（R10）：保存済み MenuItem の ruleSetVersion + contentHash に一致する
+              RuleSet を明示的に読み、evaluateSessionAggregation / evaluateWeeklyContext を実行（active 版で代用しない）
+      │  SessionPlanningEvaluationInput（データ）
       ▼
- SessionItem（planned* + running snapshot 列）  ＋ evaluateWeeklyContext の結果を TrainingSession に保存
+ createSessionFromMenu()（repository）：コピーのみ（再計算しない・ルール参照しない・評価しない）
+      ▼
+ SessionItem（planned* + running snapshot 列）  ＋ 渡された評価結果と RuleSet 非依存の検証結果を TrainingSession.planningSnapshotJson に保存
 
 [実施時]  monitorRunningPrescription(rep 観測) ──► SessionItem.actual*（repLog, 実測露出, stopReason）
 ```
@@ -321,6 +325,14 @@ export type Finding = {
 ```
 
 - [ENGINE-POLICY] v2 項目では **`sets` と `repsPerSet` の両方が必須・非 null**。「4set×60m = 4本」のような legacy の曖昧さ（監査 C-1）を型で排除する。
+- **[R9 errata] `RunningPrescription.loadSnapshot: { loadClass; weeklyLoadCategory }` を追加する。** plan に使った RuleSet の
+  MethodMeta（§3.2）から2項目だけをデータとしてコピーする（Method 名から TS で再定義しない。他の MethodMeta はコピーしない）。
+  §12.2 の週次文脈（SessionItem.loadCategory と LoadEvent.intensityTag）をセッション作成・履歴変換時に RuleSet を読まずに
+  再現するための metadata であり、量・強度・rest・露出・findings・rationale には影響しない。
+  - schemaVersion は 1 のまま。`RunningPrescriptionSchema` 上は **backward-compatible な optional**（R8 までの処方 JSON に
+    無いため、読込では欠落を許す）。
+  - `planRunningPrescription` の成功結果は必ず持つ（`validatePrescription` が MethodMeta との一致を検証）。
+  - R9 以降に新規保存する RUNNING_V2 MenuItem では **必須**（永続化の書込み検証が要求し、repository は RuleSet から補完しない）。
 - **[R4 errata]**（§2.4 の型。`types/prescription.ts` と Zod が正。R4 pre-commit 補正後の確定形）:
   - `FieldValue` は**位置と値の由来を分離**する（`editedBy` は `origin` に統合して廃止）:
     ```ts
@@ -1738,7 +1750,12 @@ DEV の ACC を3項目並べる従来ケース（全 item が同じ cap）は `�
 
 ### 11.5 呼び出し箇所
 - MenuItem の add / update / move / delete の各 Server Action（R10）。
-- `createSessionFromMenu()` の直前（読み取りのみ）。結果は `TrainingSession.planningSnapshotJson` に保存（§16）。
+- セッション作成の application layer（R10）。`createSessionFromMenu()` を呼ぶ**前**に、保存済み MenuItem の
+  `ruleSetVersion` + `ruleSetContentHash` に一致する RuleSet で評価し、結果を `SessionPlanningEvaluationInput` として
+  repository に渡す。repository はそれを `TrainingSession.planningSnapshotJson` に保存するだけで、自分では評価しない（§17.1 不変条件2）。
+- **[R9 clarification]** 評価結果が渡されない経路（legacy のセッション作成・repository の直接呼び出し）では
+  `aggregation` / `weeklyContext` を `NOT_EVALUATED`（`PLANNING_EVALUATION_NOT_SUPPLIED`）として保存する。
+  これは R9→R10 の phase boundary であり FAIL ではない。
 
 ---
 
@@ -1762,12 +1779,20 @@ export type LoadEvent = {
 
 | 元データ | category | intensityTag |
 | --- | --- | --- |
-| v2 SessionItem（done / 実施ログあり） | MethodMeta.weeklyLoadCategory | HIGH_* → HIGH、MODERATE → MODERATE、LOW → LOW |
+| v2 SessionItem（done / 実施ログあり） | MethodMeta.weeklyLoadCategory（[R9] = `SessionItem.loadCategory`。作成時に処方の `loadSnapshot.weeklyLoadCategory` をコピー） | HIGH_* → HIGH、MODERATE → MODERATE、LOW → LOW（[R9] `plannedPrescriptionJson.loadSnapshot.loadClass` から。category から推定しない） |
 | legacy SessionItem（Exercise.category=SPRINT/HURDLE/JUMP/STRENGTH） | RUNNING_HIGH_INTENSITY / HURDLES / PLYOMETRIC / STRENGTH | **UNKNOWN**（強度が記録されていない） |
 | Exercise 削除済みの legacy 項目 | `SessionItem.loadCategory` スナップショット、無ければ OTHER | UNKNOWN |
-| 大会セッション（`sessionKind="COMPETITION"`） | RACE / RELAY | HIGH |
+| 大会セッション（`sessionKind="COMPETITION"`） | RACE / RELAY（[R9] `planningSnapshotJson.competitionLoadCategory`。無ければ RACE = generic fallback） | HIGH |
 | コーチ手入力（学校体育・他クラブ等） | 選択式 | 選択式 |
 | 過去日付で `status=PLANNED` のまま | 元の category | 元の tag、completion=PLANNED_NOT_CONFIRMED（**実施したものとして扱う**） |
+
+- **[R9 errata] v2 の旧 snapshot / 壊れた snapshot。** `plannedPrescriptionJson` が null・壊れている・`loadSnapshot` の無い
+  旧 snapshot のときは、intensityTag = UNKNOWN、category = `SessionItem.loadCategory ?? OTHER`（安全情報を捏造しない）。
+- **[R9 errata] 大会の種別。** `competitionLoadCategory: "RACE" | "RELAY"` は optional で、R11 の大会セッション作成時に設定する
+  （明示の RELAY は RACE fallback を上書きする）。種別が無い（既存・未指定）ときの RACE は **generic competition running load
+  fallback** であり、「実際に個人種目だった」と推定した意味ではない。RACE / RELAY は週次 safety 上どちらも HIGH で同じ 48h guard の
+  対象なので、UNKNOWN→OTHER に落として guard を逃すことを避ける。種別不明でも intensityTag = HIGH。距離・露出は推測せず
+  unknown 区間（`lower = upper = null`、0 にしない。リレー区間距離もレース距離も作らない）。
 
 ### 12.3 時間窓（Method 別の固定時間を持たない）
 
@@ -1784,7 +1809,7 @@ export type LoadEvent = {
 | HISTORY_UNKNOWN | 72h 履歴が null、またはコーチが「記録外の活動なし」を未確認 | prescriptionConfidence=LOW、HIGH_METABOLIC は REQUIRE_COACH_REVIEW |
 | （対象外） | TEMPO_EXTENSIVE / STRIDE | 48h ルールでロックしない |
 
-- `plannedDate` が null のメニュー（日付の無いテンプレート）では週次評価をせず `WEEKLY_NOT_EVALUATED`（INFO）。練習作成時（日付確定時）に必ず評価する。
+- `plannedDate` が null のメニュー（日付の無いテンプレート）では週次評価をせず `WEEKLY_NOT_EVALUATED`（INFO）。練習作成時（日付確定時）に、R10 のセッション作成 application layer が評価して repository に渡す（§11.5。repository は評価しない）。
 
 ### 12.4 7日間ガード [ENGINE-POLICY]（7日という日数自体は科学的最適値ではない）
 
@@ -2191,7 +2216,7 @@ export type ReadinessDecision = {
 
 | 関数 | 変更 |
 | --- | --- |
-| `createSessionFromMenu()` | 新列を**コピーするだけ**追加（§17）。コピー前に集計と週次評価を読み取り専用で実行し `TrainingSession.planningSnapshotJson` に保存。**エンジンの plan() もルールセットも呼ばない** |
+| `createSessionFromMenu()` | 新列を**コピーするだけ**追加（§17）。**エンジンの plan() もルールセットも集計・週次評価も呼ばない**。[R9] application layer（R10）から渡された `SessionPlanningEvaluationInput` と RuleSet 非依存のスナップショット検証結果を `TrainingSession.planningSnapshotJson` に保存（渡されなければ NOT_EVALUATED） |
 | `duplicateMenu()` | 新列を値のままコピー（`ruleSetVersion` も旧版のまま）。UI に「旧ルール版で作成」表示と「現行ルールで再計算」ボタン（押した場合のみ新しい provenance） |
 | `updateMenuItemAction` | `prescriptionKind = "RUNNING_V2"` の項目を拒否（v2 は専用 Action で編集） |
 | `moveMenuItemAction` / `deleteMenuItemAction` | 変更なし。実行後に集計を再評価（R10） |
@@ -2350,6 +2375,9 @@ export type Provenance = {
 ### 17.1 不変条件（既存 + v2 追加）
 1. `TrainingSession` / `SessionItem` は `MenuTemplate` / `MenuItem` を**参照しない。展開時にコピーする**（既存・変更禁止）。
 2. `createSessionFromMenu()` は**ルールセットを読まない・`plan()` を呼ばない・値を再計算しない**。
+   - **[R9 clarification]** RuleSet を必要とする domain policy（集計 §11・週次 §12）の評価も repository では行わない。
+     評価は R10 の application layer の責務で、結果はデータとして渡す（§11.5）。v2 の loadCategory は処方 JSON の
+     `loadSnapshot` から読む（RuleSet lookup をしない）。
 3. `SessionItem` の planned 系列（既存 planned* と v2 追加列）は**作成後に更新しない**。更新してよいのは actual 系列だけ。
 4. ルールセットの改版、MenuItem の編集、Exercise の編集・削除、レンダラ（日本語文言）の変更は、**既存 SessionItem の計画値・理由文を変えない**。
 5. Stop policy と timing tolerance は plan 時に `prescriptionJson` に**埋め込む**。monitor はスナップショットの値で判定する（ルールセット改版後も当時の基準で判定）。
@@ -2379,12 +2407,20 @@ export type Provenance = {
 | intensityReferenceKind / prescriptionConfidence | plannedIntensityReferenceKind / plannedPrescriptionConfidence | 追加 |
 | ruleSetVersion / ruleSetContentHash | 同名 | 追加 |
 | prescriptionJson / provenanceJson / rationale | plannedPrescriptionJson / plannedProvenanceJson / plannedRationale | **文字列をそのままコピー**（パースして再直列化しない） |
-| （Exercise.category → 対応表 §12.2、v2 は MethodMeta） | loadCategory | 追加（Exercise の名前と同じくコピー時点の値） |
+| （Exercise.category → 対応表 §12.2、v2 は MethodMeta） | loadCategory | 追加（Exercise の名前と同じくコピー時点の値）。[R9] v2 は `prescriptionJson.loadSnapshot.weeklyLoadCategory`。壊れた JSON・loadSnapshot の無い旧 snapshot のときだけ null + `SNAPSHOT_LOAD_CATEGORY_UNRESOLVED`（REQUIRE_COACH_REVIEW） |
 
 ### 17.3 スナップショット時の検証 [ENGINE-POLICY]
 - JSON 列はコピー後に `RunningPrescriptionSchema` の**全 schemaVersion 対応パーサ**で検証する。
 - 検証に失敗しても**コピーは中止しない・値を書き換えない**。`planningSnapshotJson.findings` に `SNAPSHOT_JSON_INVALID`（REQUIRE_COACH_REVIEW）を記録する。
 - 過去版の説明表示は SessionItem のスナップショットだけで行う。ルールセットファイルの Evidence 詳細を表示する場合は `version` と `contentHash` の一致を確認し、不一致なら「版情報不一致」と表示する。
+- **[R9 errata] `planningSnapshotJson` の形（schemaVersion 1）:** `{ schemaVersion, plannedDate, plannedAt, aggregation, weeklyContext, findings, competitionLoadCategory? }`。
+  - `aggregation` = `NOT_EVALUATED{ reasons }` | `EVALUATED{ ruleSet: { version, contentHash }, result: SessionAggregate }`
+  - `weeklyContext` = `NOT_EVALUATED{ reasons }` | `EVALUATED{ ruleSet, items: [{ menuItemId, sortOrder, result: WeeklyContextResult }] }`
+    （evaluateWeeklyContext は計画項目ごとの評価のため項目単位。sortOrder は repository が SessionItem に合わせて付ける）
+  - `reasons`: `PLANNING_EVALUATION_NOT_SUPPLIED`（R9 の既定）/ `PLANNED_AT_UNAVAILABLE` / `MIXED_RULESET_VERSIONS` / `RULESET_VERSION_UNAVAILABLE`
+  - `findings` = 渡された評価の findings → RuleSet 非依存のスナップショット検証（`SNAPSHOT_JSON_INVALID` 等）の順
+  - repository は、`EVALUATED` の `ruleSet` がメニューの RUNNING_V2 項目の `ruleSetVersion` + `ruleSetContentHash` と一致しない評価、
+    メニュー外 / legacy の menuItemId を参照する評価を保存しない（例外）。raw health report・RuleSet object・Evidence 全文は含めない。
 
 ### 17.4 維持するテスト（無改変で通すこと）
 - `tests/repository/snapshot-integrity.test.ts`（9件）
@@ -2595,6 +2631,11 @@ export function proposalToPlanRequests(
 ### 21.4 PostgreSQL 移行時
 - JSON を格納する `String` 列 → `Json`、列挙 `String` → enum。Zod スキーマは変更不要。
 
+### 21.5 [R9 clarification] additive-only と SQLite の RedefineTables
+- §21.1 の「追加のみ（additive）」は**論理スキーマの不変条件**（既存列の変更・削除・型変更をしない）であり、生成される SQL の形を制限するものではない。
+- SQLite / Prisma は、NOT NULL + default の列や外部キーを追加するときに RedefineTables（新テーブル作成 → 全行コピー → 差し替え）を生成する。これ自体は禁止しない。代わりに、既存の列・外部キー・index が欠落なくコピーされることを SQL レビューと適用後の監査（列定義・FK・index・`PRAGMA foreign_key_check`・件数照合）で保証する。
+- R9 の migration `add_running_v2_prescription` では `MenuItem`（prescriptionKind の default 付き NOT NULL）・`SessionItem`（同）・`TrainingSession`（sessionKind と competitionId の FK）が redefine された。
+
 ---
 
 ## 22. Implementation Phases R0–R13
@@ -2767,7 +2808,7 @@ export function proposalToPlanRequests(
 | 変更ファイル | `prisma/schema.prisma`、`src/infra/repositories/session-repository.ts`（新列のコピー追加 + 作成前の読み取り専用評価）、`src/infra/repositories/menu-repository.ts`（`duplicateMenu` のコピー追加）、`tests/helpers.ts`（resetDb に Competition）、`scripts/verify-snapshot.ts`（**既存7項目は変えず** v2 の2項目を追加） |
 | 新規ファイル | `prisma/migrations/<ts>_add_running_v2_prescription/`、`src/infra/repositories/{running-item,load-history,competition}-repository.ts`、`tests/repository/running/*.test.ts` |
 | schema / migration | **あり / 必要**（§21 の手順。ユーザー承認と dev.db バックアップが前提） |
-| domain type | Provenance / RunningMenuContext |
+| domain type | Provenance / RunningMenuContext / [R9] `RunningPrescription.loadSnapshot`（§2.5 errata）/ `SessionPlanningEvaluationInput`・planningSnapshotJson（§17.3 errata） |
 | validation | §19.2 の永続化整合規則 |
 | tests | T-SNAP-01〜05、T-RV-02、既存 snapshot-integrity 9件（無改変） |
 | 既存互換 | 既存行は LEGACY。既存画面は変更なし |
@@ -2784,6 +2825,8 @@ export function proposalToPlanRequests(
 | schema / migration | なし / 不要 |
 | UI 規則 | enum キーを表示しない（L-4）／タップ領域 `h-8 w-8` 以上（CLAUDE.md）／「暫定ルール」「確信度」「根拠の出典種類」を表示／`RUNNING_V2_UI_ENABLED` で表示切替 |
 | tests | Action の3ステップ、override に CoachActor 必須、T-AI-07、ガード |
+| [R9 で確定した requirement] セッション作成 | RUNNING_V2 を含むメニューからセッションを作る application path は、`SessionPlanningEvaluationInput` を**必ず**生成して `createSessionFromMenu()` に渡す。評価に RuleSet が必要なときは、MenuItem の `ruleSetVersion` + `ruleSetContentHash` に一致する保存済み RuleSet を**明示的に**読む（`getActiveRuleSet` 等の active selector による silent upgrade 禁止。一致する版が読めなければ `RULESET_VERSION_UNAVAILABLE`）。同じメニューの RUNNING_V2 項目で version / hash が混在する場合は1版に統一せず、`MIXED_RULESET_VERSIONS`（NOT_EVALUATED）+ Finding `MIXED_RULESET_VERSIONS`（REQUIRE_COACH_REVIEW）で明示的に扱う。plannedAt が無ければ週次は `PLANNED_AT_UNAVAILABLE` |
+| [R9 note] 編集面 | `Provenance.coachEdits.field` は formal どおり `EnvelopeField` のため、`approachDistanceM`（EVENT_APPROACH_SPEED の手入力）の編集履歴を記録できない。override / edit surface の設計時に再確認する。汎用 `updateMenuItem` 経路の RUNNING_V2 ガード（§15.3）もここで実装する |
 | 既存互換 | フラグ OFF で従来画面と同一 |
 | 完了条件 | 手動で ACC・MV・STRIDE・LONG FULL を追加し、集計 Finding と provenance が表示・保存される |
 | rollback | フラグ OFF。追加ファイルを削除 |
@@ -2797,6 +2840,7 @@ export function proposalToPlanRequests(
 | 変更ファイル | `src/components/session/session-item-row.tsx`（RUNNING_V2 項目で rep 入力）、`src/actions/session-actions.ts`（`recordRepAction`、actual 列のみ更新） |
 | schema / migration | なし / 不要（R9 で追加済み） |
 | 保存規則 | 部位・red flag・尺度値を保存しない。`readinessActions` と `safetyOutcome` のみ（§13.5） |
+| [R9 で確定した requirement] 大会セッション | 大会セッション（`sessionKind="COMPETITION"`）作成時に `planningSnapshotJson.competitionLoadCategory`（RACE / RELAY）を設定する（planningSnapshotJson は §17.3 の schemaVersion 1 を満たすこと）。未設定の既存データは load history で RACE（generic fallback）として扱われる（§12.2） |
 | tests | actual 列だけが更新され planned 列が不変、COACH_ONLY の表示、STOP_SAFETY で以降の rep 入力を止める |
 | 既存互換 | legacy 項目の実施記録は従来通り |
 | 完了条件 | hand timing / photo cell / UNKNOWN の3通りで判定が §10 どおりに表示される |

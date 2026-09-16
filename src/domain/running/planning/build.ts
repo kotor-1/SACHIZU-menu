@@ -1087,6 +1087,8 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     rationale,
     ruleSet: { version: ruleSet.ruleSetVersion, contentHash, status: ruleSet.status },
     generatedBy: generationRecordFor(request.actor),
+    // [R9] 週次文脈用の MethodMeta のコピー（metadata のみ。量・強度の計算には使わない）
+    loadSnapshot: { loadClass: methodMeta.loadClass, weeklyLoadCategory: methodMeta.weeklyLoadCategory },
   };
 
   const parsed = runningPrescriptionSchema.safeParse(candidate);

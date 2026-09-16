@@ -32,6 +32,23 @@ export const LOAD_CATEGORIES = [
 export const loadCategorySchema = z.enum(LOAD_CATEGORIES);
 export type LoadCategory = z.infer<typeof loadCategorySchema>;
 
+/** MethodMeta.loadClass（§3.2）の列挙値。RuleSet schema と処方の loadSnapshot が共有する。 */
+export const LOAD_CLASSES = ["HIGH_NEURAL", "HIGH_METABOLIC", "MODERATE", "LOW"] as const;
+export const loadClassSchema = z.enum(LOAD_CLASSES);
+export type LoadClass = z.infer<typeof loadClassSchema>;
+
+/**
+ * [R9] plan 時点の MethodMeta のうち、週次文脈（§12.2）に必要な2項目だけのコピー。
+ * 値は plan に使った RuleSet の MethodMeta から作る（Method 名から TS で再定義しない）。
+ */
+export const loadSnapshotSchema = z
+  .object({
+    loadClass: loadClassSchema,
+    weeklyLoadCategory: loadCategorySchema,
+  })
+  .strict();
+export type LoadSnapshot = z.infer<typeof loadSnapshotSchema>;
+
 const distanceIntervalSchema = quantityIntervalSchema(z.literal("m"));
 const contactsIntervalSchema = quantityIntervalSchema(z.literal("contacts"));
 

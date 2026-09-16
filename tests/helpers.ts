@@ -7,6 +7,7 @@ import { prisma } from "@/infra/db/prisma";
 export async function resetDb() {
   await prisma.sessionItem.deleteMany();
   await prisma.trainingSession.deleteMany();
+  await prisma.competition.deleteMany();
   await prisma.menuItem.deleteMany();
   await prisma.menuTag.deleteMany();
   await prisma.menuBlock.deleteMany();

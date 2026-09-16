@@ -94,6 +94,12 @@ export function validatePrescriptionAgainstRuleSet(
   if (template && template.recoveryStructure !== p.recoveryStructure) {
     problems.push("recoveryStructure が template の定義と一致しません");
   }
+  // [R9] 新しい plan の出力は loadSnapshot 必須で、plan に使った RuleSet の MethodMeta と一致する
+  if (p.loadSnapshot === undefined) {
+    problems.push("loadSnapshot がありません");
+  } else if (p.loadSnapshot.loadClass !== methodMeta.loadClass || p.loadSnapshot.weeklyLoadCategory !== methodMeta.weeklyLoadCategory) {
+    problems.push("loadSnapshot が plan 時点の RuleSet の MethodMeta と一致しません");
+  }
 
   const stopPolicy = ruleSet.stopPolicies.find((sp) => sp.id === p.stopPolicyId);
   if (

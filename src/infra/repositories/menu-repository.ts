@@ -164,6 +164,9 @@ export async function deleteMenu(id: string) {
 /**
  * メニューを複製する。
  * 「先週のメニューをベースに今週のを作る」が最頻の使い方なので基本機能として持つ。
+ *
+ * Running v2 の列も値のままコピーする（§15.3）。ruleSetVersion / contentHash / prescriptionJson /
+ * provenanceJson / rationale は旧版のまま残し、現行ルールで再計算しない。
  */
 export async function duplicateMenu(id: string) {
   const source = await findMenu(id);
@@ -178,6 +181,7 @@ export async function duplicateMenu(id: string) {
       phase: source.phase,
       estimatedMinutes: source.estimatedMinutes,
       status: "DRAFT",
+      runningContextJson: source.runningContextJson,
       tags: { create: source.tags.map((t) => ({ tagId: t.tagId })) },
       blocks: {
         create: source.blocks.map((block) => ({
@@ -197,6 +201,21 @@ export async function duplicateMenu(id: string) {
               intensityPercent: item.intensityPercent,
               loadKg: item.loadKg,
               note: item.note,
+              prescriptionKind: item.prescriptionKind,
+              runningMethod: item.runningMethod,
+              sessionTemplateId: item.sessionTemplateId,
+              recoveryStructure: item.recoveryStructure,
+              buildUpDistanceMeters: item.buildUpDistanceMeters,
+              flyZoneDistanceMeters: item.flyZoneDistanceMeters,
+              setRestSeconds: item.setRestSeconds,
+              intraRepRestSeconds: item.intraRepRestSeconds,
+              intensityReferenceKind: item.intensityReferenceKind,
+              prescriptionConfidence: item.prescriptionConfidence,
+              ruleSetVersion: item.ruleSetVersion,
+              ruleSetContentHash: item.ruleSetContentHash,
+              prescriptionJson: item.prescriptionJson,
+              provenanceJson: item.provenanceJson,
+              rationale: item.rationale,
             })),
           },
         })),

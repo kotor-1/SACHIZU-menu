@@ -8,6 +8,11 @@ import {
   type SessionItemResultInput,
   type SessionSearch,
 } from "@/domain/session/schema";
+import {
+  buildPlanningSnapshot,
+  snapshotLoadCategory,
+  type SessionPlanningEvaluationInput,
+} from "@/domain/running/persistence/sessionSnapshot";
 
 const sessionDetailInclude = {
   items: {
@@ -131,8 +136,20 @@ export async function deleteSession(id: string) {
  *
  * exerciseId は「後から辿れると便利」なので残すが、
  * 記録の正しさはこの参照に依存しない（onDelete: SetNull で切れても平気）。
+ *
+ * Running v2（§17）:
+ *   - v2 の計画列もコピーするだけ。prescriptionJson / provenanceJson / rationale は
+ *     文字列をそのまま渡す（JSON.parse / stringify / 再レンダリングをしない）
+ *   - ここではルールセットを読まない・plan() を呼ばない・値を再計算しない。
+ *     集計・週次評価もしない（RuleSet が必要な domain policy は R10 の application layer が行い、
+ *     結果を `planningEvaluation` として渡す。渡されなければ NOT_EVALUATED として保存する）
+ *   - コピーする前に、RuleSet に依存しない検証結果（壊れた JSON など）を planningSnapshotJson に残す。
+ *     検証に失敗してもコピーは止めない
  */
-export async function createSessionFromMenu(input: SessionFromMenuInput) {
+export async function createSessionFromMenu(
+  input: SessionFromMenuInput,
+  planningEvaluation?: SessionPlanningEvaluationInput,
+) {
   const menu = await prisma.menuTemplate.findUnique({
     where: { id: input.menuTemplateId },
     include: {
@@ -141,7 +158,7 @@ export async function createSessionFromMenu(input: SessionFromMenuInput) {
         include: {
           items: {
             orderBy: { sortOrder: "asc" },
-            include: { exercise: { select: { name: true } } },
+            include: { exercise: { select: { name: true, category: true } } },
           },
         },
       },
@@ -166,8 +183,47 @@ export async function createSessionFromMenu(input: SessionFromMenuInput) {
       plannedIntensityPercent: item.intensityPercent,
       plannedLoadKg: item.loadKg,
       plannedNote: item.note,
+      // --- Running v2 の計画スナップショット（§17.2。値をそのままコピー） ---
+      prescriptionKind: item.prescriptionKind,
+      runningMethod: item.runningMethod,
+      sessionTemplateId: item.sessionTemplateId,
+      recoveryStructure: item.recoveryStructure,
+      plannedBuildUpDistanceMeters: item.buildUpDistanceMeters,
+      plannedFlyZoneDistanceMeters: item.flyZoneDistanceMeters,
+      plannedSetRestSeconds: item.setRestSeconds,
+      plannedIntraRepRestSeconds: item.intraRepRestSeconds,
+      plannedIntensityReferenceKind: item.intensityReferenceKind,
+      plannedPrescriptionConfidence: item.prescriptionConfidence,
+      ruleSetVersion: item.ruleSetVersion,
+      ruleSetContentHash: item.ruleSetContentHash,
+      plannedPrescriptionJson: item.prescriptionJson,
+      plannedProvenanceJson: item.provenanceJson,
+      plannedRationale: item.rationale,
+      // v2 は plan 時点の loadSnapshot（処方 JSON 内）から。RuleSet には問い合わせない
+      loadCategory: snapshotLoadCategory({
+        prescriptionKind: item.prescriptionKind,
+        prescriptionJson: item.prescriptionJson,
+        exerciseCategory: item.exercise?.category ?? null,
+      }),
     })),
   );
+  const sourceMenuItemIds = menu.blocks.flatMap((block) => block.items.map((item) => item.id));
+
+  // 作成前の読み取り専用の検証（書込みはこの後の 1 回の nested create だけ）
+  const planningSnapshot = buildPlanningSnapshot({
+    sessionDateInput: input.date,
+    evaluation: planningEvaluation,
+    items: items.map((i, index) => ({
+      menuItemId: sourceMenuItemIds[index],
+      sortOrder: i.sortOrder,
+      prescriptionKind: i.prescriptionKind,
+      prescriptionJson: i.plannedPrescriptionJson,
+      provenanceJson: i.plannedProvenanceJson,
+      ruleSetVersion: i.ruleSetVersion,
+      ruleSetContentHash: i.ruleSetContentHash,
+      loadCategory: i.loadCategory,
+    })),
+  });
 
   return prisma.trainingSession.create({
     data: {
@@ -179,6 +235,7 @@ export async function createSessionFromMenu(input: SessionFromMenuInput) {
       groupName: input.groupName,
       location: input.location,
       status: "PLANNED",
+      planningSnapshotJson: JSON.stringify(planningSnapshot),
       items: { create: items },
     },
   });

@@ -216,6 +216,9 @@ function checkOkPrescription(p: RunningPrescriptionValue, label: string, req: Pl
   expect(runningPrescriptionSchema.safeParse(p).success, label).toBe(true);
   expect(validatePrescriptionAgainstRuleSet(p, ruleSet, CONTENT_HASH), label).toEqual([]);
   expect(p.ruleSet, label).toEqual({ version: "rs-2026.09.0", contentHash: CONTENT_HASH, status: "DRAFT" });
+  // [R9] loadSnapshot は plan 時点の MethodMeta のコピー（metadata のみ）
+  const methodMeta = ruleSet.methods.find((m) => m.method === p.method)!;
+  expect(p.loadSnapshot, label).toEqual({ loadClass: methodMeta.loadClass, weeklyLoadCategory: methodMeta.weeklyLoadCategory });
 
   const codes = p.findings.map((f) => f.code);
   const records = collectFieldValues(p);

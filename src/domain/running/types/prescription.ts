@@ -26,6 +26,7 @@ import { envelopeTierSchema } from "./subject";
 import { findingSchema, rationaleLineSchema } from "./findings";
 import { readinessActionCodeSchema, safetyOutcomeSchema } from "./readiness";
 import { generationRecordSchema } from "./actor";
+import { loadSnapshotSchema, type LoadSnapshot } from "./load";
 import { runtimeSafetyPolicySnapshotSchema, stopPolicyRuntimeIssues, stopPolicyRuntimeSchema } from "./monitoring";
 
 // ---------------------------------------------------------------------------
@@ -380,6 +381,13 @@ const runningPrescriptionCommonFields = {
   rationale: z.array(rationaleLineSchema),
   ruleSet: ruleSetRefSchema,
   generatedBy: generationRecordSchema,
+  /**
+   * [R9] plan 時点の MethodMeta.loadClass / weeklyLoadCategory のコピー（§12.2 の週次文脈用。量・強度の値ではない）。
+   * schemaVersion=1 のまま **backward-compatible な optional**: R8 までに作られた処方 JSON には無く、読込では欠落を許す。
+   * `planRunningPrescription` の成功結果は必ず持ち（validatePrescription が検証）、R9 以降の RUNNING_V2 保存では必須
+   * （persistence/runningItem.ts が書込み前に要求する）。
+   */
+  loadSnapshot: loadSnapshotSchema.optional(),
 };
 
 const noRecoveryStructure = z.null();
@@ -533,4 +541,5 @@ export type RunningPrescription<M extends z.infer<typeof runningTrainingMethodSc
   rationale: z.infer<typeof rationaleLineSchema>[];
   ruleSet: z.infer<typeof ruleSetRefSchema>;
   generatedBy: z.infer<typeof generationRecordSchema>;
+  loadSnapshot?: LoadSnapshot;
 };

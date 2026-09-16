@@ -183,6 +183,9 @@ model MenuTemplate {
   /// 想定所要時間（分）。null の場合は blocks から概算する。
   estimatedMinutes Int?
 
+  /// [Running v2] RunningMenuContext（Zod・schemaVersion 付き）。健康情報は保存しない。
+  runningContextJson String?
+
   /// ReviewStatus — DRAFT / REVIEWED / ARCHIVED
   status String @default("DRAFT")
 
@@ -250,11 +253,34 @@ model MenuItem {
   /// この項目だけの指示・補足。
   note             String?
 
+  // --- Running Prescription Engine v2（prescriptionKind=RUNNING_V2 の項目だけが使う）---
+  /// LEGACY | RUNNING_V2
+  prescriptionKind       String  @default("LEGACY")
+  runningMethod          String?
+  sessionTemplateId      String?
+  /// FULL | INCOMPLETE（LONG のみ）
+  recoveryStructure      String?
+  buildUpDistanceMeters  Float?
+  flyZoneDistanceMeters  Float?
+  setRestSeconds         Int?
+  intraRepRestSeconds    Int?
+  intensityReferenceKind String?
+  prescriptionConfidence String?
+  ruleSetVersion         String?
+  ruleSetContentHash     String?
+  /// RunningPrescription（≤32KB）
+  prescriptionJson       String?
+  /// Provenance（≤16KB）
+  provenanceJson         String?
+  /// 生成時点の日本語テキスト（≤4000字）
+  rationale              String?
+
   menuBlock MenuBlock @relation(fields: [menuBlockId], references: [id], onDelete: Cascade)
   exercise  Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
 
   @@index([menuBlockId, sortOrder])
   @@index([exerciseId])
+  @@index([prescriptionKind, runningMethod])
 }
 
 // ----------------------------------------------------------------------------
@@ -289,14 +315,23 @@ model TrainingSession {
   /// 実施後のコーチ所感。
   coachNote String?
 
+  // --- Running Prescription Engine v2 ---
+  /// TRAINING | COMPETITION
+  sessionKind          String  @default("TRAINING")
+  competitionId        String?
+  /// 作成時の集計・週次評価・スナップショット検証結果
+  planningSnapshotJson String?
+
   sourceMenuTemplate MenuTemplate? @relation(fields: [sourceMenuTemplateId], references: [id], onDelete: SetNull)
   items              SessionItem[]
+  competition        Competition?  @relation(fields: [competitionId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([ownerId, date])
   @@index([ownerId, status])
+  @@index([ownerId, sessionKind, date])
 }
 
 /// セッション内の 1 項目。
@@ -334,11 +369,55 @@ model SessionItem {
   /// 実施時のメモ（フォーム、選手の反応など）。
   actualNote            String?
 
+  // --- Running Prescription Engine v2（計画スナップショット・実施ログ）---
+  prescriptionKind              String  @default("LEGACY")
+  runningMethod                 String?
+  sessionTemplateId             String?
+  recoveryStructure             String?
+  plannedBuildUpDistanceMeters  Float?
+  plannedFlyZoneDistanceMeters  Float?
+  plannedSetRestSeconds         Int?
+  plannedIntraRepRestSeconds    Int?
+  plannedIntensityReferenceKind String?
+  plannedPrescriptionConfidence String?
+  ruleSetVersion                String?
+  ruleSetContentHash            String?
+  plannedPrescriptionJson       String?
+  plannedProvenanceJson         String?
+  plannedRationale              String?
+  /// 週次文脈用スナップショット（legacy 項目にも入れる）
+  loadCategory                  String?
+  /// RepLogEntry[]（痛みの部位は含めない）
+  actualRepLogJson              String?
+  /// QuantityInterval（source 付き）
+  actualHighSpeedExposureJson   String?
+  stopReason                    String?
+  safetyOutcome                 String?
+  readinessActionsJson          String?
+
   trainingSession TrainingSession @relation(fields: [trainingSessionId], references: [id], onDelete: Cascade)
   exercise        Exercise?       @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
 
   @@index([trainingSessionId, sortOrder])
   @@index([exerciseId])
+  @@index([trainingSessionId, loadCategory])
+}
+
+/// 大会カレンダー（日付・優先度）。計画用であり、Running Prescription Engine の第4層ではない。
+model Competition {
+  id        String            @id @default(cuid())
+  ownerId   String            @default("default-coach")
+  name      String
+  date      DateTime
+  endDate   DateTime?
+  /// TRAINING_MEET | NORMAL | IMPORTANT | PEAK
+  priority  String            @default("NORMAL")
+  note      String?
+  sessions  TrainingSession[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([ownerId, date])
 }
 
 // ----------------------------------------------------------------------------

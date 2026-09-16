@@ -38,7 +38,7 @@ import {
   stopPolicyIdSchema,
 } from "../types/primitives";
 import { ageBandSchema, ENVELOPE_TIERS, envelopeTierSchema, trainingAgeTierSchema } from "../types/subject";
-import { loadCategorySchema } from "../types/load";
+import { loadCategorySchema, loadClassSchema } from "../types/load";
 import { TRAINING_PHASES } from "../../menu/constants";
 import { rangePositionSchema } from "../types/prescription";
 import { INTENSITY_REFERENCE_KINDS, TIMED_MARK_EVENTS, timedMarkEventSchema, timingMethodSchema } from "../types/intensity";
@@ -70,9 +70,8 @@ const runningTrainingMethodSet = new Set<string>(RUNNING_TRAINING_METHODS);
 // MethodMeta（§3.2）
 // ---------------------------------------------------------------------------
 
-export const LOAD_CLASSES = ["HIGH_NEURAL", "HIGH_METABOLIC", "MODERATE", "LOW"] as const;
-export const loadClassSchema = z.enum(LOAD_CLASSES);
-export type LoadClass = z.infer<typeof loadClassSchema>;
+// [R9] 列挙値の定義は types/load.ts（処方の loadSnapshot と共有するため。値は変更していない）
+export { LOAD_CLASSES, loadClassSchema, type LoadClass } from "../types/load";
 
 export const PRIMARY_DOSE_UNITS = ["DISTANCE", "DURATION", "ATTEMPTS"] as const;
 export const primaryDoseUnitSchema = z.enum(PRIMARY_DOSE_UNITS);
