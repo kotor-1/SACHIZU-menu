@@ -1742,6 +1742,40 @@ export type WeeklyContextResult = {
 };
 ```
 
+### 12.6 [R7 representation errata]（R7 実装で確定した表現）
+
+- **`menuContext.plannedAt: IsoDateTime | null` を追加する。** 48h/72h の厳密な時間窓は「計画された正確な時刻」が無いと評価できない。
+  `plannedDate`（暦日）だけでも §14（大会近接・taper・新規刺激）は評価できるが、§12 の48h/72h 窓だけは
+  `plannedAt` が無いと `NOT_EVALUATED`（中立。ACTIVE と推測しない）になる。制約: `plannedDate === null` ⇒ `plannedAt` は必ず
+  `null`。`plannedDate !== null && plannedAt !== null` のときは `plannedAt` の暦日が `plannedDate` と一致しなければならない。
+  `plannedDate !== null && plannedAt === null` は明示的に許可する（大会の「何日前」は評価できるが週次窓だけ NOT_EVALUATED）。
+  OS 時刻や 00:00/12:00/23:59 を補って `plannedAt` を捏造することは一切しない。
+- **`WeeklyContextResult` に `weeklyPositionCap: RangePosition | null` を追加する。** §12.4 の
+  「readiness が無いときの USE_LOWER_BOUND 相当」は `ReadinessDecision` を捏造せず、この weekly 由来の位置上限として表現する
+  （§9.3 の他の位置上限候補と同じ `lowestPosition()` で合成する）。
+- **`LoadEvent` を完成させる。** `templateId`（v2 のイベントは Method に対応する厳密な template id を持つ。legacy/大会/外部記録は
+  `null` を許可）と `sessionKey: string`（本数ではなく「セッション数」で数えるための識別子。§12.4 の7日ガードに使う）を追加する。
+- **`DailyActivitySummary` / `WeeklyHistoryInput` を新設し、`history: LoadEvent[] | null` を置き換える。**
+  `{ date, hadActivity, trainingMinutes }`（`hadActivity=false` のときだけ `trainingMinutes=0` を許可。「記録が無い」を
+  「休養日」と推測しない）と `{ events, coverage72h, coverage7d, coverage28d, dailyActivity7d }`
+  （`coverage* : "COMPLETE" | "PARTIAL" | "NONE"`）。`COMPLETE` = 「記録に無いイベントは無かったと確認できている」、
+  `PARTIAL` = 「記録はあるが完全性は確認できていない」、`NONE` = 「履歴が渡されていない」。`history = null` は
+  `coverage72h = NONE` 相当として扱うが、呼び出し側が渡した `WeeklyHistoryInput` オブジェクトが実際には不完全なのに
+  `COMPLETE` を自称することまでは防げないため、`coverage7d = COMPLETE` を主張する入力は `dailyActivity7d` の7日分の暦日が
+  重複なく期待した窓と厳密に一致するかを検証し、一致しなければ `PARTIAL` へ格下げする（`WEEKLY_COVERAGE7D_INCONSISTENT`）。
+  - **[R7 pre-commit correction] 対象7 calendar dates の契約を明示する。** `coverage7d = COMPLETE` が要求する7日は
+    **`plannedDate` を含み、そこから遡って6日（`plannedDate - 6日` 〜 `plannedDate`）の計7日**。`plannedDate` 自身が
+    欠けている窓（例: `plannedDate-7`〜`plannedDate-1`）は COMPLETE と認めない。`DailyActivitySummary.date` は
+    文字列の暦日境界としてそのまま使い、`evaluatedAt`（`plannedAt`）の時刻・タイムゾーンから変換しない
+    （`calendarDateOf` と同じ「先頭10文字」規約）。「その日の記録が無い」ことを「休養日」とは絶対に推測しない
+    （`DailyActivitySummary` 自体が該当日に無ければ、その日の活動有無は不明のまま）。
+- **U15 の休養日数・週間時間ガードは `coverage7d = COMPLETE` のときだけ評価する。** 不完全なら「安全」と結論せず、
+  専用の「判定不能」Finding を出す（0 埋めしない）。
+- **48h/72h の窓は Method 別の固定時間を持たない。** 判定は「経過時間」と MethodMeta.loadClass（HIGH_NEURAL /
+  HIGH_METABOLIC）だけで行い、ACC=48h・SES=72h のような Method 別定数は実装しない（`weekly/` 配下の grep テストで
+  数値の複製が無いことを検証する）。TEMPO_EXTENSIVE / STRIDE は48h ロックの対象外（他の週次表示・7日ガードの対象からは
+  除外しない）。
+
 ---
 
 ## 13. Readiness
@@ -1939,8 +1973,24 @@ export type ReadinessDecision = {
 | Phase | `MenuTemplate.phase`（既存） | 数週間 | methodPriority（候補の並び）、TRANSITION の自動生成可否、volume の位置上限（§9.3）、種目特異性の優先 | hard stop、pain gate、rest を短くすること、tier、**fatigueTolerance（phase の属性として存在させない）** |
 | CompetitionPriority | `Competition.priority`（新規 §16） | 大会の前後数日 | 大会ウィンドウ規則、近接時の eligibility、位置上限、taper ガイダンス、race の負荷イベント化 | 同上 |
 
-- 優先: 計画日が優先度 NORMAL 以上の大会ウィンドウ内にあるとき、**eligibility と位置は大会規則が phase より優先**。phase は候補の並び順だけに効く。
-- 日本の中高（4–10月にほぼ毎月大会）への対応: 毎回の記録会は `TRAINING_MEET` / `NORMAL` として登録し、**14日 taper を自動適用しない**。[SOURCE-BACKED 方針: ChatGPT DR / Fable M-10]
+- 日本の中高（4–10月にほぼ毎月大会）への対応: 毎回の記録会は `TRAINING_MEET` / `NORMAL` として登録し、**14日 taper を自動適用しない**（T-PH-02）。[SOURCE-BACKED 方針: ChatGPT DR / Fable M-10]
+
+#### [R7 correction] Phase × Competition の合成規則（旧「大会規則が phase より優先」の記述を撤回）
+
+初版の「計画日が優先度 NORMAL 以上の大会ウィンドウ内にあるとき、eligibility と位置は大会規則が phase より優先」という
+表現は、**上書き（override）**と読める点で不正確だった。実装（R7）で確定した規則は次のとおり:
+
+- **Competition は Phase を時間的に局所化したものであり、Phase を上書き（override）しない。両者は dose position の
+  上限として交差（intersection）する。** 最終的な dose position cap は phase の cap・competition window の cap・
+  confidence・readiness・weekly context・コーチの preference のうち、**最も低い（制約が強い）位置**を採る
+  （既存の `lowestPosition()` が全候補をまとめて合成する。「大会が来たら phase を無視する」処理ではない）。
+- **大会側の例外（exception）は、その大会規則自身が課す autogen block からの除外にすぎず、他レイヤー
+  （phase の TRANSITION ブロック・weekly の48h/72hガード・confidence 由来の制限・readiness・pain gate・
+  plausibility）を一切解除しない。** 例: NORMAL n=1 の STRIDE / ACC≤20m 例外は「NORMAL n=1 の autogen block」
+  からの例外であり、TRANSITION 期の HIGH_* autogen block や readiness の STOP を解除しない。
+- **methodPriority（候補の並び順）だけは Competition context を候補選定の参考情報として優先的に使ってよい。**
+  これは `selection`（実際に何を処方するか）を自動で変えるものではなく、AI-safe context 側の候補提示にのみ効く。
+- pain gate・hardSafety・rest の下限は phase からも competition からも一切緩められない（T-PH-01）。
 
 ### 14.2 Phase ごとの methodPriority
 
@@ -1975,6 +2025,53 @@ export type ReadinessDecision = {
   - 基準週の量（直近4週の週平均）が履歴カバレッジ不足で計算できない場合は、数値を出さず文章のみ。
 - [ENGINE-POLICY] PRE / CIRCA / EFFECTIVE_UNKNOWN / DEVELOPMENTAL に **% の量削減を自動適用しない**。§14.3 の「新規刺激を入れない・大きな解糖系負荷を近接させない」で代替する。
 - Charlie Francis 型 10日 taper 等の個別コーチ実践はテンプレートとしても実装しない（v2 範囲外、OPEN-18）。
+
+### 14.5 [R7 representation errata]（R7 実装で確定した表現）
+
+- **§14 は一貫して暦日（`plannedDate`）ベースで動く。** `n = D − d` の大会近接判定・新規刺激判定・taper の4週基準値は
+  いずれも `plannedAt`（時刻）を要求しない。`plannedAt` を必須にするのは §12 の厳密な48h/72h 窓だけであり、
+  `plannedAt` が無いメニューでも §14 のガイダンス・自動生成停止・dose position 上限は評価できる。
+- **`dosePositionCap` という新しい概念は作らない。** `position` 変数（sets/reps/rep distance-or-duration など「量」
+  フィールドの位置）は既存の `placement.ts` の `lowestPosition()` にそのまま合流させ、`intensityPercent` /
+  intensity reference / target race pace / Vmax reference には一切触れない（元から `position` はこれらの解決に
+  使われていない構造だったため、既存の合成ロジックを再利用するだけで dose と intensity の分離が保証される）。
+  Taper の 41–60% も同様に「dose position の上限」としてだけ反映し、`RunningPrescription` の数値へ倍率を
+  掛けることは一切しない（`volume *= 0.5` のようなコードは存在しない）。
+- **`ELIG_SES_POST` の OR 条件（[R7 pre-commit correction] §4.5 の自然文どおり正確に表現する）。**
+  §4.5 の条件「tier=ADVANCED、または (POST & tier≥DEVELOPING & phase≠TRANSITION)」は論理和（OR）であり、
+  `EligibilityConditions` の単一 AND では表現できない。当初 R7 は「TRANSITION を tier に関わらず一律で
+  ブロックする」単純化（`requiresPhaseNotIn: ["TRANSITION"]` を無条件に適用）を採用したが、レビューで
+  **「最終結果（phase gate 込み）が同じに見えても、population eligibility そのものの意味を変えてしまう」**
+  という指摘を受けて撤回した。population eligibility（この行の条件を満たすか）と、phase 由来の自動生成停止
+  （TRANSITION の `blockedAutogenLoadClasses`）は別レイヤーであり、片方の結果を理由にもう片方を書き換えない。
+  - 正しい表現: `EligibilityConditions.anyOf: EligibilityConditionBranch[] | null`。非 null のときは平坦な
+    `requires*` を使わず、branch のどれか1つを満たせば行の条件は満たされる（OR）。ELIG_SES_POST は
+    `anyOf: [{requiresEnvelopeTier: "ADVANCED"}, {requiresTrainingAgeTiers: ["DEVELOPING","TRAINED","ADVANCED"], requiresPhaseNotIn: ["TRANSITION"]}]`。
+    行自体が `maturityCategory: "POST"` に紐づいているため、branch 側に POST 条件を重複させない。
+  - generic evaluator（`planning/eligibility.ts` の `evaluateEligibilityConditionVerdict`）は branch ごとに
+    `"MET" | "UNMET" | "PHASE_UNRESOLVED"` を判定し、**どれか1つの branch が MET ならその時点で行全体が MET**
+    （他の branch が UNMET でも PHASE_UNRESOLVED でも関係ない）。phase に依存しない branch（ADVANCED tier）は、
+    phase が未評価（null）でも独立に MET/UNMET が決まる — 「phase 条件がどれか1つでもある行は phase が
+    無ければ全体が未評価」という扱いはしない。SES 専用の TS 分岐・conditionNote / ruleId のテキスト解析は
+    一切持たない（method・ruleId に依存しない generic な OR 評価器）。
+  - 結果として、ADVANCED tier の被験者は phase の値・評価有無に関わらず population eligibility は常に
+    MET（真の AUTO へ昇格しうる）。TRANSITION 期にそれでも AI/SYSTEM の自動生成が止まるのは、population
+    eligibility とは独立な phase の autogen block レイヤー（`PHASE_AUTOGEN_BLOCKED` finding。COACH は
+    manual + review で継続可）によるものであり、population 側を MANUAL に落として実現しているのではない。
+  - 数値・科学的データは変えていない（`conditionNote` の文言も変更していない。既存の PRE/CIRCA/
+    EFFECTIVE_UNKNOWN の SES 行、および他63行の eligibility outcome/overrideAllowed/conditionNote は不変）。
+- **`CompetitionRef` は R9 まで DB モデルを持たない。** `menuContext.competitions: CompetitionRef[]` として
+  domain 型だけを受け取る（id 重複は拒否）。
+- **`competitionRules` はフラットな行（`priority | null`, `tier | null`, `dayMin`, `dayMax`, ...）として持ち、
+  優先度文字列の巨大な switch は書かない。** 複数の大会ウィンドウが重なる場合はマッチした全行を集め、
+  `blockedAutogenLoadClasses` は和集合、`dosePositionCap` は最も制約の強い（LOWER_BOUND 側の）値を採用する
+  「最も制約の強い結果が勝つ」合成（configuration の配列順序に依存しない）。
+- **新規刺激（new stimulus）は `LoadEvent.templateId` の完全一致だけで判定する。** Method 名だけの一致や表示名の
+  一致では判定しない。`coverage28d` が `COMPLETE` でない場合は「新規ではない」と結論せず `NOT_DETERMINABLE`
+  （AI/SYSTEM は自動生成不可、COACH は手動 + REVIEW）を返す。
+- **Taper ガイダンスは `tier=ADVANCED` かつ `priority=PEAK` かつ `n∈[8,14]` のときだけ**存在する。
+  DEVELOPMENTAL（および PRE/CIRCA/EFFECTIVE_UNKNOWN のような ADVANCED に解決されない成熟度）には
+  taper の % ガイダンス行自体を RuleSet に用意しない（phase の position 規則だけが適用される）。
 
 ---
 

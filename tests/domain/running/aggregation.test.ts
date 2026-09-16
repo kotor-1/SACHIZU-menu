@@ -89,6 +89,7 @@ function makeRequest(method: string, templateId: string, o: RequestOptions = {})
     menuContext: {
       phase: null,
       plannedDate: null,
+      plannedAt: null,
       competitions: [],
       otherItems: o.otherItems ?? [],
       availableMinutes: o.availableMinutes ?? null,

@@ -17,6 +17,7 @@
 import {
   eligibilityConditionsHaveRequirement,
   type Complexity,
+  type EligibilityConditionBranch,
   type EligibilityConditions,
   type EligibilityRule,
   type MethodMeta,
@@ -27,6 +28,7 @@ import type { Finding } from "../types/findings";
 import type { Confidence } from "../types/primitives";
 import type { RangePosition } from "../types/prescription";
 import { resolveEligibility, type EligibilityDecision } from "../context/constraints";
+import type { TrainingPhase } from "../../menu/constants";
 import { isAssistedManualCandidate, resolveSubjectEligibility, type SubjectProfile } from "../context/subject";
 import { itemFinding, type EligibilityReason, type EligibilityReasonCode, type PlanRequest } from "./schema";
 
@@ -65,26 +67,74 @@ export type EligibilityInput = {
   vmaxConfidence: Confidence | null;
 };
 
-/** EligibilityRule.conditions をすべて満たすか（requires* が無ければ true）。 */
-export function eligibilityConditionsMet(
-  conditions: EligibilityConditions,
-  ctx: { profile: SubjectProfile; coachReference: PlanRequest["coachReference"]; vmaxConfidence: Confidence | null },
-): boolean {
+export type EligibilityConditionCtx = {
+  profile: SubjectProfile;
+  coachReference: PlanRequest["coachReference"];
+  vmaxConfidence: Confidence | null;
+};
+
+/**
+ * [R7 correction] 1つの branch（AND 条件束）の判定。phase 以外の requires* を先に評価し、
+ * それらが1つでも不成立なら（phase の状態に関わらず）"UNMET" を返す。phase 以外がすべて
+ * 成立していて、この branch に `requiresPhaseNotIn` が無ければ phase を問わず "MET"。
+ * `requiresPhaseNotIn` があるときだけ phase を見る（phase=null は「未評価」であって
+ * 「満たした」でも「満たさない」でもない ="PHASE_UNRESOLVED"）。
+ */
+export type EligibilityConditionVerdict = "MET" | "UNMET" | "PHASE_UNRESOLVED";
+
+function branchVerdict(branch: EligibilityConditionBranch, ctx: EligibilityConditionCtx, phase: TrainingPhase | null): EligibilityConditionVerdict {
   const { profile, coachReference, vmaxConfidence } = ctx;
-  if (conditions.requiresEnvelopeTier !== null && profile.envelopeTier !== conditions.requiresEnvelopeTier) return false;
-  if (conditions.requiresTrainingAgeTiers !== null && !conditions.requiresTrainingAgeTiers.includes(profile.trainingAgeTier)) return false;
-  if (conditions.requiresPrimaryEvents !== null) {
-    const allowed = new Set<string>(conditions.requiresPrimaryEvents);
-    if (profile.primaryEvents.length === 0 || !profile.primaryEvents.every((e) => allowed.has(e))) return false;
+  if (branch.requiresEnvelopeTier !== null && profile.envelopeTier !== branch.requiresEnvelopeTier) return "UNMET";
+  if (branch.requiresTrainingAgeTiers !== null && !branch.requiresTrainingAgeTiers.includes(profile.trainingAgeTier)) return "UNMET";
+  if (branch.requiresPrimaryEvents !== null) {
+    const allowed = new Set<string>(branch.requiresPrimaryEvents);
+    if (profile.primaryEvents.length === 0 || !profile.primaryEvents.every((e) => allowed.has(e))) return "UNMET";
   }
-  if (conditions.requiresAllowAdvancedMethods && !profile.allowAdvancedMethods) return false;
-  if (conditions.requiresMeasuredVelocityDecrement && !(coachReference?.kind === "VELOCITY_DECREMENT" && coachReference.measured)) {
-    return false;
+  if (branch.requiresAllowAdvancedMethods && !profile.allowAdvancedMethods) return "UNMET";
+  if (branch.requiresMeasuredVelocityDecrement && !(coachReference?.kind === "VELOCITY_DECREMENT" && coachReference.measured)) return "UNMET";
+  if (branch.requiresVmaxConfidenceAtLeast !== null) {
+    if (vmaxConfidence === null || CONFIDENCE_ORDER[vmaxConfidence] < CONFIDENCE_ORDER[branch.requiresVmaxConfidenceAtLeast]) return "UNMET";
   }
-  if (conditions.requiresVmaxConfidenceAtLeast !== null) {
-    if (vmaxConfidence === null || CONFIDENCE_ORDER[vmaxConfidence] < CONFIDENCE_ORDER[conditions.requiresVmaxConfidenceAtLeast]) return false;
-  }
-  return true;
+  if (branch.requiresPhaseNotIn === null) return "MET";
+  if (phase === null) return "PHASE_UNRESOLVED";
+  return branch.requiresPhaseNotIn.includes(phase) ? "UNMET" : "MET";
+}
+
+/**
+ * [R7 correction] `EligibilityConditions` 全体の判定（generic OR-of-AND evaluator）。
+ * `anyOf` が無ければ既存の flat 条件を1つの branch とみなす（後方互換）。**どれか1つの branch が
+ * "MET" ならその時点で行全体は "MET"**（他の branch が UNMET でも PHASE_UNRESOLVED でも関係ない
+ * — 「phase を必要としない branch」は phase の有無に関わらず独立に判定できる）。MET が無く、
+ * 少なくとも1つ PHASE_UNRESOLVED があれば全体も PHASE_UNRESOLVED（まだ判定を確定できない）。
+ * すべて UNMET のときだけ全体も UNMET。SES 専用などの method 分岐は一切持たない。
+ */
+export function evaluateEligibilityConditionVerdict(
+  conditions: EligibilityConditions,
+  ctx: EligibilityConditionCtx,
+  phase: TrainingPhase | null,
+): EligibilityConditionVerdict {
+  const branches: readonly EligibilityConditionBranch[] =
+    conditions.anyOf ??
+    [
+      {
+        requiresEnvelopeTier: conditions.requiresEnvelopeTier,
+        requiresTrainingAgeTiers: conditions.requiresTrainingAgeTiers,
+        requiresPrimaryEvents: conditions.requiresPrimaryEvents,
+        requiresAllowAdvancedMethods: conditions.requiresAllowAdvancedMethods,
+        requiresMeasuredVelocityDecrement: conditions.requiresMeasuredVelocityDecrement,
+        requiresVmaxConfidenceAtLeast: conditions.requiresVmaxConfidenceAtLeast,
+        requiresPhaseNotIn: conditions.requiresPhaseNotIn,
+      },
+    ];
+  const verdicts = branches.map((b) => branchVerdict(b, ctx, phase));
+  if (verdicts.includes("MET")) return "MET";
+  if (verdicts.includes("PHASE_UNRESOLVED")) return "PHASE_UNRESOLVED";
+  return "UNMET";
+}
+
+/** EligibilityRule.conditions をすべて満たすか（requires* が無ければ true）。phase には依存しない行専用。 */
+export function eligibilityConditionsMet(conditions: EligibilityConditions, ctx: EligibilityConditionCtx): boolean {
+  return evaluateEligibilityConditionVerdict(conditions, ctx, null) === "MET";
 }
 
 export function evaluateEligibility(input: EligibilityInput): EligibilityEvaluation {
@@ -136,10 +186,15 @@ export function evaluateEligibility(input: EligibilityInput): EligibilityEvaluat
     };
   }
 
-  // 構造化条件（MANUAL 行など whenUnmet=INELIGIBLE_NON_OVERRIDABLE）
+  // 構造化条件（MANUAL 行など whenUnmet=INELIGIBLE_NON_OVERRIDABLE）。
+  // CONDITIONAL_AUTO の行（phase 依存の branch を持ちうる）は、この一律 boolean 判定ではなく
+  // 下の CONDITIONAL_AUTO 分岐で MET/UNMET/PHASE_UNRESOLVED を区別して扱う（population eligibility
+  // と phase autogen gate を混同しないため。§4.5 の OR 条件もそちらで正しく解決する）。
   let downgradeToManual = false;
   for (const [i, row] of rows.entries()) {
-    if (perCategory[i].mode === "INELIGIBLE" || !eligibilityConditionsHaveRequirement(row.conditions)) continue;
+    if (perCategory[i].mode === "INELIGIBLE" || perCategory[i].mode === "CONDITIONAL_AUTO" || !eligibilityConditionsHaveRequirement(row.conditions)) {
+      continue;
+    }
     if (eligibilityConditionsMet(row.conditions, conditionCtx)) continue;
     if (row.conditions.whenUnmet === "INELIGIBLE_NON_OVERRIDABLE") {
       blocking.push({ code: "ELIGIBILITY_CONDITIONS_UNMET", ruleId: row.ruleId, overrideAllowed: false });
@@ -217,10 +272,34 @@ export function evaluateEligibility(input: EligibilityInput): EligibilityEvaluat
   const autoBlockers: EligibilityReasonCode[] = [];
 
   if (combined.mode === "CONDITIONAL_AUTO") {
-    // requiresPhaseEvaluation=true の行（SES POST 等）。R4 は phase を評価しないため AUTO にしない。
-    mode = "MANUAL";
-    requiresReview = true;
-    autoBlockers.push("CONDITIONAL_AUTO_REQUIRES_PHASE");
+    // requiresPhaseEvaluation=true の行（SES POST 等）。[R7 correction] `conditions`（`anyOf` の
+    // OR も含む） を generic evaluator で判定する。**population eligibility（この行の条件を満たすか）
+    // と phase の自動生成停止（TRANSITION 等。別レイヤー）を混同しない** — ここで判定するのは前者だけ。
+    // ADVANCED tier のような phase に依存しない branch は、phase の評価有無に関わらず独立に MET/UNMET
+    // が決まる（「phase 条件がどれか1つでもある → 行全体が未評価」にはしない）。GROUP は該当する
+    // 全 member 行のうち最も制約が強い判定（UNMET > PHASE_UNRESOLVED > MET）を採用する。
+    const phase = request.menuContext.phase;
+    const verdicts = rows.map((row, i) =>
+      perCategory[i].mode === "CONDITIONAL_AUTO" ? evaluateEligibilityConditionVerdict(row.conditions, conditionCtx, phase) : ("MET" as const),
+    );
+    const worst: EligibilityConditionVerdict = verdicts.includes("UNMET") ? "UNMET" : verdicts.includes("PHASE_UNRESOLVED") ? "PHASE_UNRESOLVED" : "MET";
+    if (worst !== "MET") {
+      mode = "MANUAL";
+      requiresReview = true;
+      autoBlockers.push(worst === "PHASE_UNRESOLVED" ? "CONDITIONAL_AUTO_REQUIRES_PHASE" : "CONDITIONAL_AUTO_NOT_MET");
+    } else {
+      mode = "AUTO";
+      if (downgradeToManual) {
+        mode = "MANUAL";
+        requiresReview = true;
+        autoBlockers.push("CONDITIONAL_AUTO_NOT_MET");
+      }
+      if (COMPLEXITY_ORDER[template.complexity] > COMPLEXITY_ORDER[profile.resolvedConstraints.maxAutoComplexity]) {
+        mode = "MANUAL";
+        requiresReview = true;
+        autoBlockers.push("COMPLEXITY_ABOVE_AUTO_CAP");
+      }
+    }
   } else if (combined.mode === "MANUAL") {
     mode = "MANUAL";
     autoBlockers.push("AUTOGEN_NOT_ALLOWED_FOR_MANUAL_MODE");

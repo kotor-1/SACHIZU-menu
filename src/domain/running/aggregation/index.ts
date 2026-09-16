@@ -4,7 +4,8 @@
  * `evaluateSessionAggregation(items, ctx)` は **メニュー全体**を評価する。
  * 1項目だけを見て終わらせない（監査 C-1 / H-5）。
  *
- * R6 の責務外（ここでは評価しない）: 48h/72h・履歴・大会日・phase・taper・実測 rep・週次負荷。
+ * R7 で `competitionDay`（§14.3 n=0）の実値を受け取れるようになった。48h/72h・履歴・phase・taper・
+ * 週次負荷そのものの評価は weekly/ と competition/ の責務であり、ここでは行わない（実測 rep は R8/R9）。
  */
 import type { Finding } from "../types/findings";
 import type { QuantityInterval } from "../types/primitives";
@@ -59,6 +60,8 @@ export function evaluateSessionAggregation(items: readonly AggregationItem[], ct
   let mandatoryRestS = 0;
   let knownRunningS = 0;
   let missingAccelInterval = false;
+  /** [R7] 大会当日に race 以外の HIGH_* 項目があるか（§14.3 n=0 / R6 AGG_COMPETITION_DAY_EXTRA）。 */
+  let hasNonRaceHighIntensityItem = false;
 
   for (const item of parsedItems) {
     if (item.kind === "LEGACY") {
@@ -85,6 +88,7 @@ export function evaluateSessionAggregation(items: readonly AggregationItem[], ct
       continue;
     }
     const template = ruleSet.templates.find((t) => t.id === p.templateId);
+    if (meta.loadClass === "HIGH_NEURAL" || meta.loadClass === "HIGH_METABOLIC") hasNonRaceHighIntensityItem = true;
 
     totalRunning.push(itemTotalRunningDistanceM(p));
     if (accel === null && meta.highSpeedExposureModel !== "NONE") missingAccelInterval = true;
@@ -120,6 +124,12 @@ export function evaluateSessionAggregation(items: readonly AggregationItem[], ct
 
   if (missingAccelInterval) {
     findings.push(sessionFinding("AGG_ACCEL_INTERVAL_MISSING", "WARN", { metric: tier }));
+  }
+  // [R7] §14.3 n=0: 大会当日のセッションに race 以外の HIGH_* 項目があれば確認を求める。
+  // race 自体は RUNNING_V2 の AggregationItem として表現されない（CompetitionRef は別 metadata）ため、
+  // 「HIGH_* item が1つでもあれば race 以外」という判定でよい。
+  if (ctx.competitionDay === true && hasNonRaceHighIntensityItem) {
+    findings.push(sessionFinding("AGG_COMPETITION_DAY_EXTRA", "REQUIRE_COACH_REVIEW"));
   }
   findings.push(...evaluateMethodVolume({ items: budgetItems }));
   const budget = evaluateHighIntensityBudget({ ruleSet, items: budgetItems });

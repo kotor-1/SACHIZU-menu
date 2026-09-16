@@ -62,7 +62,7 @@ function makeRequest(method: string, templateId: string, o: RequestOptions = {})
     planningDate: iso(PLANNING_DATE),
     selection: { method, templateId },
     subject: o.subject ?? athlete(),
-    menuContext: { phase: null, plannedDate: null, competitions: [], otherItems: o.otherItems ?? [], availableMinutes: null },
+    menuContext: { phase: null, plannedDate: null, plannedAt: null, competitions: [], otherItems: o.otherItems ?? [], availableMinutes: null },
     history: null,
     readiness: null,
     positionPreference: null,

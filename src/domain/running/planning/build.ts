@@ -1,9 +1,7 @@
 /**
  * Running Prescription Engine v2 — planning pipeline の配線と §9.2 step 15: PRESCRIPTION OUTPUT。
  *
- * 接続している step: 1・2・3・6・7・8・9・10・11・12・13・14・15。
- * 未接続（R6 のスコープ外）:
- *   - step 4 / 5（competition・phase・weekly）: NOT_EVALUATED。menuContext.phase は値の配置に使わない
+ * 接続している step: 1・2・3・4・5・6・7・8・9・10・11・12・13・14・15（全 step 接続完了）。
  *
  * 出力前に Zod（構造）と RuleSet-aware 検証の両方を通し、通らないものは OK として返さない。
  */
@@ -55,6 +53,9 @@ import type { RationaleCode } from "../rationale/codes";
 import { validatePrescriptionAgainstRuleSet } from "./validatePrescription";
 import { evaluateSessionAggregation } from "../aggregation";
 import { checkOutputPlausibility, checkSessionPlausibility } from "../plausibility/output";
+import { resolveCompetitionAndPhase } from "../competition";
+import { evaluateWeeklyContext } from "../weekly";
+import { hasUsedTemplateWithinDays } from "../weekly/events";
 import { itemFinding, type EligibilityReason, type PlanRequest, type PlanResult } from "./schema";
 
 export type ResolvedRuleSet = {
@@ -710,9 +711,6 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
   const plausibility = checkInputPlausibility(request, ruleSet);
   const contextFindings: Finding[] = [
     ...(ruleSet.status === "DRAFT" ? [itemFinding("RULESET_DRAFT", "INFO", { metric: ruleSet.ruleSetVersion })] : []),
-    // ---- step 4 / 5: 未接続 ----
-    itemFinding("PHASE_COMPETITION_NOT_EVALUATED", "INFO"),
-    itemFinding("WEEKLY_CONTEXT_NOT_EVALUATED", "INFO"),
     ...plausibility.findings,
   ];
   const blocked = (extra: Finding[]): PlanResult => ({ status: "BLOCKED", findings: [...contextFindings, ...extra] });
@@ -743,8 +741,6 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     }
   }
 
-  const findings: Finding[] = [...contextFindings];
-
   // ---- step 7（RuleSet 照合）: template / MethodMeta / recoveryStructure ----
   const selection = validateSelection(request.selection, ruleSet);
   if (!selection.ok) return blocked(selection.findings);
@@ -752,6 +748,57 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
 
   // ---- step 3: subject profile（asOf = planningDate） ----
   const profile: SubjectProfile = resolveSubjectProfile({ subject: request.subject, asOf: request.planningDate, ruleSet });
+
+  // ---- step 4: competition priority / phase（§14）----
+  // §14 は一貫して暦日（plannedDate）で動く。plannedAt（時刻）は §12 の 48h/72h window だけが必要とする。
+  const coverage28d = request.history?.coverage28d ?? "NONE";
+  const templateUsedWithin28d =
+    request.menuContext.plannedDate !== null && request.history !== null
+      ? hasUsedTemplateWithinDays(request.history.events, request.menuContext.plannedDate, 28, request.selection.templateId)
+      : false;
+  const phaseCompetition = resolveCompetitionAndPhase({
+    ruleSet,
+    phase: request.menuContext.phase,
+    competitions: request.menuContext.competitions,
+    plannedDate: request.menuContext.plannedDate,
+    tier: profile.envelopeTier,
+    method,
+    loadClass: methodMeta.loadClass,
+    template,
+    coverage28d,
+    templateUsedWithin28d,
+    history: request.history?.events ?? [],
+  });
+  if (recoveryStructure === "INCOMPLETE" && phaseCompetition.longIncompleteBlocked !== null) {
+    // §14.3 PEAK×ADVANCED n5-7: LONG の INCOMPLETE を明示的に不適格にする（override 可）。
+    return ineligible([
+      { code: "COMPETITION_LONG_INCOMPLETE_BLOCKED", ruleId: phaseCompetition.longIncompleteBlocked.ruleId, overrideAllowed: true },
+    ]);
+  }
+  if (request.menuContext.phase === null && request.menuContext.competitions.length === 0) {
+    contextFindings.push(itemFinding("PHASE_COMPETITION_NOT_EVALUATED", "INFO"));
+  }
+
+  // ---- step 5: recent training / weekly context（§12）----
+  const weekly = evaluateWeeklyContext(request.history, {
+    ruleSet,
+    evaluatedAt: request.menuContext.plannedAt,
+    method,
+    loadClass: methodMeta.loadClass,
+    ageBand: profile.ageBand,
+    hasExistingReadinessDecision: readiness !== null,
+  });
+  const historyCoverage72h = weekly.evaluatedAt === null ? "NOT_EVALUATED" : weekly.coverage72h;
+  contextFindings.push(...phaseCompetition.findings, ...weekly.findings);
+
+  // §14/§12 由来の自動生成ブロック（hard ineligible ではない。COACH は手動 + REVIEW で継続できる）。
+  const contextAutogenBlocked =
+    (phaseCompetition.autogenBlockedLoadClasses as readonly string[]).includes(methodMeta.loadClass) ||
+    weekly.autogenBlockedMethods.includes(method);
+
+  // contextFindings は BLOCKED / INELIGIBLE の横断情報。findings は OK まで到達したときの
+  // prescription.findings。ここで初めて分岐するため、step 4/5 の finding は両方に反映される。
+  const findings: Finding[] = [...contextFindings];
 
   // ---- step 6: eligibility（advancedOnly / complexity / actor） ----
   const velocities = resolveAthleteVelocities(request, profile, ruleSet);
@@ -792,7 +839,7 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
   const usedFields = (Object.keys(envelope.fields) as EnvelopeField[]).filter((f) =>
     f === "intensityPercent" ? targetUsesIntensityPercent : f === "vdecPercent" ? plan.reference.kind === "VELOCITY_DECREMENT" : true,
   );
-  const confidence = derivePlanningConfidence({ ruleSet, envelope, usedFields, request, profile, inputData: plan.inputData });
+  const confidence = derivePlanningConfidence({ ruleSet, envelope, usedFields, request, profile, inputData: plan.inputData, historyCoverage72h });
   findings.push(...confidence.findings);
   if (
     request.actor.kind !== "COACH" &&
@@ -800,6 +847,10 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     methodMeta.loadClass === "HIGH_METABOLIC"
   ) {
     return ineligible([{ code: "LOW_CONFIDENCE_HIGH_METABOLIC_AUTOGEN_BLOCKED", ruleId: null, overrideAllowed: null }]);
+  }
+  if (request.actor.kind !== "COACH" && contextAutogenBlocked) {
+    // §12.3 / §14.3 由来の自動生成停止（hard ineligible ではない。COACH は手動 + REVIEW で継続できる）。
+    return ineligible([{ code: "WEEKLY_PHASE_COMPETITION_AUTOGEN_BLOCKED", ruleId: null, overrideAllowed: null }]);
   }
 
   // ---- step 11: readiness action（§13.3）----
@@ -816,13 +867,16 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
 
   // ---- step 12: value placement ----
   const preferenceCap = request.positionPreference === "LOWER" ? positionFromPreference("LOWER") : null;
-  // 位置の制約は順序に依存せず積み重なる（最も低いものが勝つ）。
+  // 位置の制約は順序に依存せず積み重なる（最も低いものが勝つ）。dose field だけに効く
+  // （§14.2 の Phase / §14.3 の Competition / §12.3 の weekly fallback は intensity reference に触れない）。
   const position = lowestPosition(
     BASE_POSITION,
     preferenceCap,
     confidence.positionCap,
     eligibility.modifiers.positionCap,
     readinessPlan.positionCap,
+    phaseCompetition.dosePositionCap,
+    weekly.weeklyPositionCap,
   );
   const inputs = createCoachInputs(request);
   const repBuild = buildRep(
@@ -1039,7 +1093,8 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     ruleSet,
     tier: profile.envelopeTier,
     availableMinutes: request.menuContext.availableMinutes,
-    competitionDay: "NOT_EVALUATED",
+    // [R7] plannedDate が無ければ大会当日かどうか評価できない（false と推測しない）。
+    competitionDay: phaseCompetition.competitionDay ?? "NOT_EVALUATED",
     mode: "PLANNING",
   });
   const sessionPlausibility = checkSessionPlausibility(aggregate.totalRunningDistanceM, ruleSet);

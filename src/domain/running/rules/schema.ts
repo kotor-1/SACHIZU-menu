@@ -37,8 +37,10 @@ import {
   raceEventSchema,
   stopPolicyIdSchema,
 } from "../types/primitives";
-import { ENVELOPE_TIERS, envelopeTierSchema, trainingAgeTierSchema } from "../types/subject";
+import { ageBandSchema, ENVELOPE_TIERS, envelopeTierSchema, trainingAgeTierSchema } from "../types/subject";
 import { loadCategorySchema } from "../types/load";
+import { TRAINING_PHASES } from "../../menu/constants";
+import { rangePositionSchema } from "../types/prescription";
 import { INTENSITY_REFERENCE_KINDS, TIMED_MARK_EVENTS, timedMarkEventSchema, timingMethodSchema } from "../types/intensity";
 import { RED_FLAGS, bodyRegionSchema, readinessActionCodeSchema, redFlagSchema, safetyOutcomeSchema } from "../types/readiness";
 import { evidenceRecordSchema } from "../evidence/schema";
@@ -285,6 +287,63 @@ export const eligibilityOutcomeSchema = z.enum(ELIGIBILITY_OUTCOMES);
  */
 export const ELIGIBILITY_UNMET_ACTIONS = ["MANUAL_WITH_REVIEW", "INELIGIBLE_NON_OVERRIDABLE"] as const;
 
+export const trainingPhaseSchema = z.enum(TRAINING_PHASES);
+
+/**
+ * [R7 correction] 1つの AND 条件束（disjunction の1枝）。§4.5 には
+ * 「tier=ADVANCED、または (POST & tier≥DEVELOPING & phase≠TRANSITION)」のように
+ * OR で書かれた条件があり、単一の AND では正しく表現できない
+ * （PASS WITH CHANGES 指摘: TRANSITION を一律ブロックする単純化は population eligibility
+ * の意味を変えてしまうため不採用）。`eligibilityConditionsSchema.anyOf` はこの branch の
+ * 配列を持ち、**どれか1つの branch を満たせば行の条件は満たされる**（OR）。branch 内部は
+ * 引き続き AND。conditionNote / ruleId のテキスト解析は一切しない。
+ */
+export const eligibilityConditionBranchSchema = z
+  .object({
+    requiresEnvelopeTier: envelopeTierSchema.nullable(),
+    requiresTrainingAgeTiers: z.array(trainingAgeTierSchema).min(1).nullable(),
+    requiresPrimaryEvents: z.array(raceEventSchema).min(1).nullable(),
+    requiresAllowAdvancedMethods: z.boolean(),
+    requiresMeasuredVelocityDecrement: z.boolean(),
+    requiresVmaxConfidenceAtLeast: z.enum(["MEDIUM", "HIGH"]).nullable(),
+    /**
+     * [R7 structured metadata] §4.5 の phase 依存条件（例: SES の「phase≠TRANSITION」）。
+     * 満たさない phase の集合。`requiresPhaseEvaluation=true` の行の branch だけが持てる
+     * （conditionNote の自由文を解析しない。phase=null（未評価）のときは **この branch は**
+     * 条件を満たしたと仮定しない — ただし他の branch が phase に依存していなければ、その
+     * branch は phase の有無に関わらず独立に判定できる。「どれか1つの phase 条件がある
+     * → 行全体が未評価」という扱いはしない）。
+     */
+    requiresPhaseNotIn: z.array(trainingPhaseSchema).min(1).nullable(),
+  })
+  .strict();
+export type EligibilityConditionBranch = z.infer<typeof eligibilityConditionBranchSchema>;
+
+function branchHasRequirement(b: EligibilityConditionBranch): boolean {
+  return (
+    b.requiresEnvelopeTier !== null ||
+    b.requiresTrainingAgeTiers !== null ||
+    b.requiresPrimaryEvents !== null ||
+    b.requiresAllowAdvancedMethods ||
+    b.requiresMeasuredVelocityDecrement ||
+    b.requiresVmaxConfidenceAtLeast !== null ||
+    b.requiresPhaseNotIn !== null
+  );
+}
+
+/**
+ * [R4 structured metadata] EligibilityRule の追加条件（§4.5）。`conditionNote` は説明専用で、
+ * planning は conditionNote を読まずにこの構造だけで判定する。
+ *   - requires*: すべて満たしたときだけ行の outcome をそのまま使う（`anyOf` が null のとき）
+ *   - anyOf: [R7 correction] 非 null なら上の flat な requires* は使わず（すべて既定値でなければ
+ *     ならない）、branch のどれか1つを満たせばよい（OR）。1行に複数の独立した資格経路がある
+ *     ケース（例: SES POST の tier=ADVANCED 経路 と POST&tier≥DEVELOPING&phase≠TRANSITION 経路）
+ *     を、SES 専用の TS 分岐を書かずに generic evaluator だけで扱うための最小限の disjunction 表現。
+ *   - whenUnmet: 条件を満たさないときの扱い。`MANUAL_WITH_REVIEW`（AUTO 行: 自動生成しない・コーチ手動+REVIEW）/
+ *     `INELIGIBLE_NON_OVERRIDABLE`（MANUAL 行: 選択不可・override 不可）。requires* / anyOf が
+ *     1つも無ければ null
+ * phase に依存する条件は `requiresPhaseEvaluation` で表し、ここには置かない（R7）。
+ */
 export const eligibilityConditionsSchema = z
   .object({
     requiresEnvelopeTier: envelopeTierSchema.nullable(),
@@ -293,20 +352,60 @@ export const eligibilityConditionsSchema = z
     requiresAllowAdvancedMethods: z.boolean(),
     requiresMeasuredVelocityDecrement: z.boolean(),
     requiresVmaxConfidenceAtLeast: z.enum(["MEDIUM", "HIGH"]).nullable(),
+    /**
+     * [R7 structured metadata] §4.5 の phase 依存条件（例: SES の「phase≠TRANSITION」）。
+     * 満たさない phase の集合。`requiresPhaseEvaluation=true` の行だけが持てる（conditionNote の
+     * 自由文を解析しない。phase=null（未評価）のときは条件を満たしたと仮定しない — 別途
+     * `requiresPhaseEvaluation` 側で「phase が無ければ AUTO へ昇格しない」を担保する）。
+     */
+    requiresPhaseNotIn: z.array(trainingPhaseSchema).min(1).nullable(),
+    /** [R7 correction] OR（§4.5 のような disjunction）。非 null のときは他の requires* は使わない。 */
+    anyOf: z.array(eligibilityConditionBranchSchema).min(2).nullable(),
     whenUnmet: z.enum(ELIGIBILITY_UNMET_ACTIONS).nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((c, ctx) => {
+    if (c.anyOf === null) return;
+    const flatHasRequirement =
+      c.requiresEnvelopeTier !== null ||
+      c.requiresTrainingAgeTiers !== null ||
+      c.requiresPrimaryEvents !== null ||
+      c.requiresAllowAdvancedMethods ||
+      c.requiresMeasuredVelocityDecrement ||
+      c.requiresVmaxConfidenceAtLeast !== null ||
+      c.requiresPhaseNotIn !== null;
+    if (flatHasRequirement) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "anyOf を指定する行は、平坦な requires*/requiresPhaseNotIn を同時に持てません（OR は anyOf の branch だけで表す）",
+        path: ["anyOf"],
+      });
+    }
+    c.anyOf.forEach((branch, i) => {
+      if (!branchHasRequirement(branch)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "anyOf の branch は何らかの requires* を持つ必要があります", path: ["anyOf", i] });
+      }
+    });
+  });
 export type EligibilityConditions = z.infer<typeof eligibilityConditionsSchema>;
 
 export function eligibilityConditionsHaveRequirement(c: EligibilityConditions): boolean {
+  if (c.anyOf !== null) return true;
   return (
     c.requiresEnvelopeTier !== null ||
     c.requiresTrainingAgeTiers !== null ||
     c.requiresPrimaryEvents !== null ||
     c.requiresAllowAdvancedMethods ||
     c.requiresMeasuredVelocityDecrement ||
-    c.requiresVmaxConfidenceAtLeast !== null
+    c.requiresVmaxConfidenceAtLeast !== null ||
+    c.requiresPhaseNotIn !== null
   );
+}
+
+/** 条件が（flat または anyOf のどの branch であれ）phase に依存する行かどうか。 */
+export function eligibilityConditionsReferencePhase(c: EligibilityConditions): boolean {
+  if (c.anyOf !== null) return c.anyOf.some((b) => b.requiresPhaseNotIn !== null);
+  return c.requiresPhaseNotIn !== null;
 }
 
 /**
@@ -380,6 +479,13 @@ export const eligibilityRuleSchema = z
         code: z.ZodIssueCode.custom,
         message: "requiresPhaseEvaluation は outcome=AUTO の行にのみ意味があります",
         path: ["requiresPhaseEvaluation"],
+      });
+    }
+    if (eligibilityConditionsReferencePhase(rule.conditions) && !rule.requiresPhaseEvaluation) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "phase に依存する requiresPhaseNotIn（flat または anyOf の branch）は requiresPhaseEvaluation=true の行にのみ指定できます",
+        path: ["conditions"],
       });
     }
   });
@@ -805,6 +911,219 @@ export const aggregationRuleSchema = z.discriminatedUnion("kind", [
 export type AggregationRule = z.infer<typeof aggregationRuleSchema>;
 
 // ---------------------------------------------------------------------------
+// WeeklyRule（§12。R7で正式化。R6までは z.array(z.never()) で空配列固定していた）
+//
+// 48h/72h・7日 guard の**しきい値と対象カテゴリだけ**をここに置く。Method 別の回復時間は
+// 絶対に持たない（§12.3「Method 別に 48h/72h を分けない」）。
+// ---------------------------------------------------------------------------
+
+export const weeklyRuleSchema = z.discriminatedUnion("kind", [
+  /** §12.3 の 48h / 72h window（Method に依らず単一の時間）。 */
+  z
+    .object({
+      kind: z.literal("WINDOW_HOURS"),
+      id: z.string().min(1),
+      highWindowHours: z.number().positive().finite(),
+      readinessWindowHours: z.number().positive().finite(),
+      evidenceIds: z.array(evidenceIdSchema),
+    })
+    .strict(),
+  /** §12.3 の対象カテゴリ（走 vs 非走）。 */
+  z
+    .object({
+      kind: z.literal("RELEVANT_CATEGORIES"),
+      id: z.string().min(1),
+      runningCategories: z.array(loadCategorySchema).min(1),
+      nonRunningCategories: z.array(loadCategorySchema).min(1),
+    })
+    .strict(),
+  /** §12.4 WEEKLY_HIGH_SESSIONS。 */
+  z
+    .object({
+      kind: z.literal("HIGH_SESSIONS_7D"),
+      id: z.string().min(1),
+      threshold: z.number().int().positive(),
+      findingCode: z.string().min(1),
+    })
+    .strict(),
+  /** §12.4 WEEKLY_JHS_REST_DAYS。対象 ageBand は RuleSet データ（TS に "U15" を書かない）。 */
+  z
+    .object({
+      kind: z.literal("YOUTH_REST_DAYS"),
+      id: z.string().min(1),
+      ageBand: ageBandSchema,
+      minRestDays: z.number().int().nonnegative(),
+      findingCode: z.string().min(1),
+    })
+    .strict(),
+  /** §12.4 WEEKLY_JHS_HOURS。 */
+  z
+    .object({
+      kind: z.literal("YOUTH_MAX_MINUTES_7D"),
+      id: z.string().min(1),
+      ageBand: ageBandSchema,
+      maxMinutes: z.number().positive(),
+      findingCode: z.string().min(1),
+    })
+    .strict(),
+  /** §12.3 HISTORY_UNKNOWN（coverage72h=NONE 時の loadClass 別扱い）。 */
+  z
+    .object({
+      kind: z.literal("HISTORY_UNKNOWN_POLICY"),
+      id: z.string().min(1),
+      affectedLoadClasses: z.array(loadClassSchema).min(1),
+      findingCode: z.string().min(1),
+    })
+    .strict(),
+])
+  .superRefine((rule, ctx) => {
+    if (rule.kind === "WINDOW_HOURS" && rule.highWindowHours > rule.readinessWindowHours) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "highWindowHours は readinessWindowHours 以下である必要があります",
+        path: ["highWindowHours"],
+      });
+    }
+  });
+export type WeeklyRule = z.infer<typeof weeklyRuleSchema>;
+
+// ---------------------------------------------------------------------------
+// PhaseRule（§14.1〜§14.2。R7で正式化）
+//
+// Phase が変えるのは methodPriority（候補の並び。selection は変えない）と dose の位置上限だけ。
+// hard stop・pain gate・rest 短縮には一切関与しない（§14.1）。
+// ---------------------------------------------------------------------------
+
+export const phaseRuleSchema = z
+  .object({
+    phase: trainingPhaseSchema,
+    /** 候補の優先順（先頭ほど優先）。R7 では selection を自動で並べ替えない（将来 candidate ordering 用）。 */
+    methodPriority: z.array(runningTrainingMethodSchema),
+    /** §9.3 の位置上限（dose field だけに効く。intensity reference には触れない）。 */
+    dosePositionCap: rangePositionSchema,
+    /** この phase では自動生成しない loadClass（手動は可）。 */
+    blockedAutogenLoadClasses: z.array(loadClassSchema),
+    /** PRE_COMPETITION の障害切替期 INFO 等、数値制限を伴わない案内。null = 無し。 */
+    infoFindingCode: z.string().min(1).nullable(),
+    infoEvidenceIds: z.array(evidenceIdSchema),
+  })
+  .strict()
+  .superRefine((rule, ctx) => {
+    if (new Set(rule.methodPriority).size !== rule.methodPriority.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "methodPriority に重複があります", path: ["methodPriority"] });
+    }
+    if (rule.infoFindingCode === null && rule.infoEvidenceIds.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "infoEvidenceIds は infoFindingCode があるときだけ指定します",
+        path: ["infoEvidenceIds"],
+      });
+    }
+  });
+export type PhaseRule = z.infer<typeof phaseRuleSchema>;
+
+// ---------------------------------------------------------------------------
+// CompetitionRule（§14.3〜§14.4。R7で正式化）
+//
+// 1行 = 1つの (priority × tier × 日範囲) バケット。generic resolver（competition/windows.ts）が
+// 該当する全行を集めて「最も制約の強い結果」に合成する。priority 文字列の巨大 switch は持たない。
+// ---------------------------------------------------------------------------
+
+export const COMPETITION_PRIORITIES = ["TRAINING_MEET", "NORMAL", "IMPORTANT", "PEAK"] as const;
+export const competitionPrioritySchema = z.enum(COMPETITION_PRIORITIES);
+export type CompetitionPriority = z.infer<typeof competitionPrioritySchema>;
+
+export const NEW_STIMULUS_POLICIES = ["NONE", "REVIEW_BLOCK_AUTOGEN"] as const;
+export const newStimulusPolicySchema = z.enum(NEW_STIMULUS_POLICIES);
+
+export const taperGuidanceSchema = z
+  .object({
+    reductionPercentLower: z.number().positive().max(100),
+    reductionPercentUpper: z.number().positive().max(100),
+    evidenceId: evidenceIdSchema,
+    applicabilityNotes: z.string().min(1),
+  })
+  .strict()
+  .refine((t) => t.reductionPercentLower <= t.reductionPercentUpper, {
+    message: "reductionPercentLower は reductionPercentUpper 以下である必要があります",
+    path: ["reductionPercentLower"],
+  });
+export type TaperGuidance = z.infer<typeof taperGuidanceSchema>;
+
+export const competitionRuleSchema = z
+  .object({
+    id: z.string().min(1),
+    /** null = 全 priority 共通（n=0 の行だけが使う）。 */
+    priority: competitionPrioritySchema.nullable(),
+    /** null = tier を問わない。PEAK だけ ADVANCED / DEVELOPMENTAL で行を分ける。 */
+    tier: envelopeTierSchema.nullable(),
+    dayMin: z.number().int().min(0).max(14),
+    dayMax: z.number().int().min(0).max(14),
+    /** n=0 専用: race を負荷イベント化する。 */
+    raceIsLoadEvent: z.boolean(),
+    /** n=0 専用: race 以外の HIGH_* に REQUIRE_COACH_REVIEW を付ける。 */
+    nonRaceHighReviewOnRaceDay: z.boolean(),
+    blockedAutogenLoadClasses: z.array(loadClassSchema),
+    /** blockedAutogenLoadClasses の例外になる Method（STRIDE 等。無条件で例外）。 */
+    autogenExceptionMethods: z.array(runningTrainingMethodSchema),
+    /** ACCELERATION だけの例外条件（template.displayDistanceM <= この値のときだけ例外）。 */
+    autogenExceptionAccMaxDistanceM: z.number().positive().nullable(),
+    /** 例外に該当した item へ適用する位置上限（ブロックの代わりに使う）。 */
+    autogenExceptionPositionCap: rangePositionSchema.nullable(),
+    dosePositionCap: rangePositionSchema.nullable(),
+    newStimulusPolicy: newStimulusPolicySchema,
+    /** false = この window では LONG の recoveryStructure=INCOMPLETE を不適格にする。 */
+    longIncompleteAllowed: z.boolean(),
+    taperGuidance: taperGuidanceSchema.nullable(),
+  })
+  .strict()
+  .superRefine((rule, ctx) => {
+    if (rule.dayMin > rule.dayMax) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "dayMin は dayMax 以下である必要があります", path: ["dayMin"] });
+    }
+    if (rule.dayMin !== 0 && rule.raceIsLoadEvent) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "raceIsLoadEvent は dayMin=0 の行にだけ指定できます", path: ["raceIsLoadEvent"] });
+    }
+    if (rule.dayMin !== 0 && rule.nonRaceHighReviewOnRaceDay) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "nonRaceHighReviewOnRaceDay は dayMin=0 の行にだけ指定できます",
+        path: ["nonRaceHighReviewOnRaceDay"],
+      });
+    }
+    const hasException = rule.autogenExceptionMethods.length > 0 || rule.autogenExceptionAccMaxDistanceM !== null;
+    if (hasException && (rule.blockedAutogenLoadClasses.length === 0 || rule.autogenExceptionPositionCap === null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "autogenException* は blockedAutogenLoadClasses と autogenExceptionPositionCap があるときだけ指定します",
+        path: ["autogenExceptionMethods"],
+      });
+    }
+    if (!hasException && rule.autogenExceptionPositionCap !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "autogenExceptionPositionCap は例外条件があるときだけ指定します",
+        path: ["autogenExceptionPositionCap"],
+      });
+    }
+    if (rule.taperGuidance !== null && (rule.priority !== "PEAK" || rule.tier !== "ADVANCED")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "taperGuidance は priority=PEAK かつ tier=ADVANCED の行にだけ指定できます（§14.4）",
+        path: ["taperGuidance"],
+      });
+    }
+    if (rule.taperGuidance !== null && rule.dayMin < 8) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "taperGuidance は大会 8–14 日前の行にだけ指定できます（§14.4）",
+        path: ["taperGuidance"],
+      });
+    }
+  });
+export type CompetitionRule = z.infer<typeof competitionRuleSchema>;
+
+// ---------------------------------------------------------------------------
 // ConstraintRule（§8.2, §7.5。R3で正式化。R2では z.array(z.never()) で空配列固定していた）
 // ---------------------------------------------------------------------------
 
@@ -900,10 +1219,10 @@ export const ruleSetSchema = z
     timingTolerances: z.array(timingToleranceRuleSchema),
     stopPolicies: z.array(stopPolicySchema),
     aggregationRules: z.array(aggregationRuleSchema),
-    weeklyRules: notYetImplementedArraySchema,
+    weeklyRules: z.array(weeklyRuleSchema),
     readinessRules: z.array(readinessRuleSchema),
-    phaseRules: notYetImplementedArraySchema,
-    competitionRules: notYetImplementedArraySchema,
+    phaseRules: z.array(phaseRuleSchema),
+    competitionRules: z.array(competitionRuleSchema),
     plausibility: z.array(plausibilityRuleSchema),
     vmaxEstimationModels: notYetImplementedArraySchema,
     eventDefinitions: eventDefinitionsSchema,
@@ -1321,6 +1640,69 @@ export const ruleSetSchema = z
       });
     }
 
+    // ---- WeeklyRule（R7）----------------------------------------------------------
+    const weeklyIdsSeen = new Set<string>();
+    const weeklyKindsSeen = new Set<string>();
+    for (const [i, rule] of rs.weeklyRules.entries()) {
+      if (weeklyIdsSeen.has(rule.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `WeeklyRule.id が重複しています: ${rule.id}`, path: ["weeklyRules", i, "id"] });
+      }
+      weeklyIdsSeen.add(rule.id);
+      if (weeklyKindsSeen.has(rule.kind) && rule.kind !== "HISTORY_UNKNOWN_POLICY") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `WeeklyRule.kind=${rule.kind} は複数指定できません`,
+          path: ["weeklyRules", i, "kind"],
+        });
+      }
+      weeklyKindsSeen.add(rule.kind);
+    }
+
+    // ---- PhaseRule（R7）------------------------------------------------------------
+    const phasesSeen = new Set<string>();
+    for (const [i, rule] of rs.phaseRules.entries()) {
+      if (phasesSeen.has(rule.phase)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `PhaseRule.phase が重複しています: ${rule.phase}`, path: ["phaseRules", i, "phase"] });
+      }
+      phasesSeen.add(rule.phase);
+    }
+
+    // ---- CompetitionRule（R7）-------------------------------------------------------
+    const competitionIdsSeen = new Set<string>();
+    for (const [i, rule] of rs.competitionRules.entries()) {
+      if (competitionIdsSeen.has(rule.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `CompetitionRule.id が重複しています: ${rule.id}`,
+          path: ["competitionRules", i, "id"],
+        });
+      }
+      competitionIdsSeen.add(rule.id);
+      // 同じ (priority, tier) の日範囲が重なっていないこと（誤って同じバケットを二重登録しない）。
+      for (const [j, other] of rs.competitionRules.entries()) {
+        if (j <= i) continue;
+        if (other.priority !== rule.priority || other.tier !== rule.tier) continue;
+        const overlaps = rule.dayMin <= other.dayMax && other.dayMin <= rule.dayMax;
+        if (overlaps) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `CompetitionRule の日範囲が重複しています: ${rule.id} と ${other.id}`,
+            path: ["competitionRules", i, "dayMin"],
+          });
+        }
+      }
+      if (rule.autogenExceptionAccMaxDistanceM !== null) {
+        const hasAccTemplate = rs.templates.some((t) => t.method === "ACCELERATION" && t.fixedDistanceField === "repDistanceM");
+        if (!hasAccTemplate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "autogenExceptionAccMaxDistanceM を判定できる ACCELERATION template（fixedDistanceField=repDistanceM）がありません",
+            path: ["competitionRules", i, "autogenExceptionAccMaxDistanceM"],
+          });
+        }
+      }
+    }
+
     // ---- ConstraintRule ---------------------------------------------------------
     const constraintIdsSeen = new Set<string>();
     for (const [i, c] of rs.constraints.entries()) {
@@ -1439,6 +1821,31 @@ export function checkRuleSetCompleteness(rs: RuleSet): string[] {
     if (!rs.aggregationRules.some((r) => r.kind === "RELAY_ALLOWANCE")) {
       problems.push("AggregationRule に RELAY_ALLOWANCE がありません");
     }
+  }
+
+  // [R7] §12: WeeklyRule の必須 kind、§14: 全 TrainingPhase に PhaseRule、全 priority に
+  // CompetitionRule の n=1 行があること。
+  if (rs.weeklyRules.length > 0) {
+    const weeklyKinds = new Set(rs.weeklyRules.map((r) => r.kind));
+    for (const kind of ["WINDOW_HOURS", "RELEVANT_CATEGORIES", "HIGH_SESSIONS_7D", "YOUTH_REST_DAYS", "YOUTH_MAX_MINUTES_7D", "HISTORY_UNKNOWN_POLICY"] as const) {
+      if (!weeklyKinds.has(kind)) problems.push(`WeeklyRule に kind=${kind} がありません`);
+    }
+  }
+  if (rs.phaseRules.length > 0) {
+    const phasesSeen = new Set(rs.phaseRules.map((r) => r.phase));
+    for (const phase of TRAINING_PHASES) {
+      if (!phasesSeen.has(phase)) problems.push(`PhaseRule に phase=${phase} がありません`);
+    }
+  }
+  if (rs.competitionRules.length > 0) {
+    for (const priority of COMPETITION_PRIORITIES) {
+      const hasDayOne = rs.competitionRules.some((r) => (r.priority === priority || r.priority === null) && r.dayMin <= 1 && r.dayMax >= 1);
+      if (!hasDayOne) problems.push(`CompetitionRule に priority=${priority} の n=1 行がありません`);
+    }
+    const hasDayZero = rs.competitionRules.some((r) => r.dayMin === 0 && r.raceIsLoadEvent);
+    if (!hasDayZero) problems.push("CompetitionRule に n=0（raceIsLoadEvent）の行がありません");
+    const hasTaper = rs.competitionRules.some((r) => r.taperGuidance !== null);
+    if (!hasTaper) problems.push("CompetitionRule に taperGuidance（ADVANCED×PEAK）の行がありません");
   }
 
   const markEvents = new Set(rs.eventDefinitions.timedMarks.map((d) => d.event));

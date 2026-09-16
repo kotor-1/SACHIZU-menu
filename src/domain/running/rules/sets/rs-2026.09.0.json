@@ -203,9 +203,267 @@
     "R3: added versioned constraints (U12 hard constraints, U15 ASSISTED_SPRINT non-overridable, maturity/training-age auto-complexity caps), SessionTemplate complexity (§7.5) and EligibilityRule.requiresPhaseEvaluation metadata. methods/envelopes/evidence/timingTolerances/stopPolicies/plausibility values unchanged. Status remains DRAFT.",
     "R4: added structured machine-readable metadata so planning never parses human-readable text or identifier names: EligibilityRule.conditions / autoGenerationLimits (previously only described in conditionNote), SessionTemplate.approachType / resistanceBand / fixedDistanceField, StopPolicy.appliesToEligibilityPath, PlausibilityRule.inputTarget, and eventDefinitions (timed-mark and race-event distances). conditionNote is now explanatory only. methods/envelopes/evidence/timingTolerances/constraints and all stop-policy/plausibility/envelope numeric values unchanged. Status remains DRAFT.",
     "R5: added versioned readinessRules (§13 pain red flag groups, pain PRESENT / NOT_ASKED gates, growth-period guidance regions, wellness thresholds and signal counts, readiness-window rule, SWAP target map). No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/plausibility/eventDefinitions are byte-identical. Status remains DRAFT.",
-    "R6: added versioned aggregationRules (§11 accel interval A per tier, relay allowance, per-Method aggregation metadata, high-intensity budget, tempo/stride session limits, legacy category semantics) and plausibility outputTarget metadata. No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/readinessRules/eventDefinitions and every plausibility threshold are unchanged. Status remains DRAFT."
+    "R6: added versioned aggregationRules (§11 accel interval A per tier, relay allowance, per-Method aggregation metadata, high-intensity budget, tempo/stride session limits, legacy category semantics) and plausibility outputTarget metadata. No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/readinessRules/eventDefinitions and every plausibility threshold are unchanged. Status remains DRAFT.",
+    "R7: added versioned weeklyRules (§12 48h/72h window hours, relevant categories, high-sessions-7d threshold, U15 rest-days/hours guards, history-unknown policy), phaseRules (§14.2 per-phase method priority, dose position cap, blocked autogen load classes, PRE_COMPETITION injury-transition info), and competitionRules (§14.3 day-0..14 windows per priority/tier, autogen-exception metadata for STRIDE/ACC<=20m, new-stimulus policy, LONG-INCOMPLETE eligibility, §14.4 taper guidance for ADVANCED x PEAK x day 8-14 only). Added EligibilityConditions.requiresPhaseNotIn and set it on ELIG_SES_POST (blocks AUTO during TRANSITION; behaviorally redundant with TRANSITION's own blockedAutogenLoadClasses for HIGH_METABOLIC, kept as a single AND condition for representability). No numeric or scientific data changed: methods/templates/envelopes/evidence/constraints/timingTolerances/stopPolicies/readinessRules/aggregationRules/plausibility thresholds/eventDefinitions and all pre-existing eligibility outcomes/overrideAllowed/conditionNote text are unchanged. Status remains DRAFT."
   ],
-  "competitionRules": [],
+  "competitionRules": [
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [
+        "HIGH_NEURAL",
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 0,
+      "dayMin": 0,
+      "dosePositionCap": null,
+      "id": "COMP_DAY0",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": true,
+      "priority": null,
+      "raceIsLoadEvent": true,
+      "taperGuidance": null,
+      "tier": null
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 1,
+      "dayMin": 1,
+      "dosePositionCap": null,
+      "id": "COMP_TRAINING_MEET_N1",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "TRAINING_MEET",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": null
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": 20,
+      "autogenExceptionMethods": [
+        "STRIDE"
+      ],
+      "autogenExceptionPositionCap": "LOWER_BOUND",
+      "blockedAutogenLoadClasses": [
+        "HIGH_NEURAL",
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 1,
+      "dayMin": 1,
+      "dosePositionCap": null,
+      "id": "COMP_NORMAL_N1",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "NORMAL",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": null
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": 20,
+      "autogenExceptionMethods": [
+        "STRIDE"
+      ],
+      "autogenExceptionPositionCap": "LOWER_BOUND",
+      "blockedAutogenLoadClasses": [
+        "HIGH_NEURAL",
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 1,
+      "dayMin": 1,
+      "dosePositionCap": null,
+      "id": "COMP_IMPORTANT_N1",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "IMPORTANT",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": null
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": 20,
+      "autogenExceptionMethods": [
+        "STRIDE"
+      ],
+      "autogenExceptionPositionCap": "LOWER_BOUND",
+      "blockedAutogenLoadClasses": [
+        "HIGH_NEURAL",
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 1,
+      "dayMin": 1,
+      "dosePositionCap": null,
+      "id": "COMP_PEAK_N1",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "PEAK",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": null
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 2,
+      "dayMin": 2,
+      "dosePositionCap": null,
+      "id": "COMP_NORMAL_N2",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "NORMAL",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": null
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 4,
+      "dayMin": 2,
+      "dosePositionCap": "LOWER_HALF",
+      "id": "COMP_IMPORTANT_N2_4",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "IMPORTANT",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": null
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [],
+      "dayMax": 7,
+      "dayMin": 5,
+      "dosePositionCap": null,
+      "id": "COMP_IMPORTANT_N5_7",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "REVIEW_BLOCK_AUTOGEN",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "IMPORTANT",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": null
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 4,
+      "dayMin": 2,
+      "dosePositionCap": "LOWER_BOUND",
+      "id": "COMP_PEAK_ADV_N2_4",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "PEAK",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": "ADVANCED"
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [],
+      "dayMax": 7,
+      "dayMin": 5,
+      "dosePositionCap": null,
+      "id": "COMP_PEAK_ADV_N5_7",
+      "longIncompleteAllowed": false,
+      "newStimulusPolicy": "REVIEW_BLOCK_AUTOGEN",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "PEAK",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": "ADVANCED"
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [],
+      "dayMax": 14,
+      "dayMin": 8,
+      "dosePositionCap": "LOWER_HALF",
+      "id": "COMP_PEAK_ADV_N8_14",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "PEAK",
+      "raceIsLoadEvent": false,
+      "taperGuidance": {
+        "applicabilityNotes": "Bosquet 2007 は持久系種目中心のメタ分析であり、短距離特異的な taper 研究ではない。目安として参照する。",
+        "evidenceId": "EV_BOSQUET_2007_TAPER",
+        "reductionPercentLower": 41,
+        "reductionPercentUpper": 60
+      },
+      "tier": "ADVANCED"
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 4,
+      "dayMin": 2,
+      "dosePositionCap": null,
+      "id": "COMP_PEAK_DEV_N2_4",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "NONE",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "PEAK",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": "DEVELOPMENTAL"
+    },
+    {
+      "autogenExceptionAccMaxDistanceM": null,
+      "autogenExceptionMethods": [],
+      "autogenExceptionPositionCap": null,
+      "blockedAutogenLoadClasses": [
+        "HIGH_METABOLIC"
+      ],
+      "dayMax": 7,
+      "dayMin": 5,
+      "dosePositionCap": null,
+      "id": "COMP_PEAK_DEV_N5_7",
+      "longIncompleteAllowed": true,
+      "newStimulusPolicy": "REVIEW_BLOCK_AUTOGEN",
+      "nonRaceHighReviewOnRaceDay": false,
+      "priority": "PEAK",
+      "raceIsLoadEvent": false,
+      "taperGuidance": null,
+      "tier": "DEVELOPMENTAL"
+    }
+  ],
   "constraints": [
     {
       "disallowedMethods": [
@@ -289,10 +547,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "ACCELERATION",
@@ -319,10 +579,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "ACCELERATION",
@@ -349,10 +611,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "ACCELERATION",
@@ -379,10 +643,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "ACCELERATION",
@@ -409,10 +675,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "ACCELERATION",
@@ -436,10 +704,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "ACCELERATION",
@@ -463,10 +733,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "ACCELERATION",
@@ -490,10 +762,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "ACCELERATION",
@@ -517,10 +791,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "MAX_VELOCITY",
@@ -543,10 +819,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "MAX_VELOCITY",
@@ -569,10 +847,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "MAX_VELOCITY",
@@ -595,10 +875,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "MAX_VELOCITY",
@@ -621,10 +903,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "MAX_VELOCITY",
@@ -648,10 +932,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "MAX_VELOCITY",
@@ -675,10 +961,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "MAX_VELOCITY",
@@ -702,10 +990,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "MAX_VELOCITY",
@@ -729,10 +1019,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "STRIDE",
@@ -757,10 +1049,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "STRIDE",
@@ -785,10 +1079,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "STRIDE",
@@ -813,10 +1109,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "STRIDE",
@@ -841,10 +1139,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "TEMPO_EXTENSIVE",
@@ -869,10 +1169,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "TEMPO_EXTENSIVE",
@@ -897,10 +1199,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "TEMPO_EXTENSIVE",
@@ -925,10 +1229,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "TEMPO_EXTENSIVE",
@@ -953,10 +1259,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "SPRINT_ENDURANCE_SHORT",
@@ -982,10 +1290,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "SPRINT_ENDURANCE_SHORT",
@@ -1011,10 +1321,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "SPRINT_ENDURANCE_SHORT",
@@ -1040,10 +1352,37 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "anyOf": [
+          {
+            "requiresEnvelopeTier": "ADVANCED",
+            "requiresTrainingAgeTiers": null,
+            "requiresPrimaryEvents": null,
+            "requiresAllowAdvancedMethods": false,
+            "requiresMeasuredVelocityDecrement": false,
+            "requiresVmaxConfidenceAtLeast": null,
+            "requiresPhaseNotIn": null
+          },
+          {
+            "requiresEnvelopeTier": null,
+            "requiresTrainingAgeTiers": [
+              "DEVELOPING",
+              "TRAINED",
+              "ADVANCED"
+            ],
+            "requiresPrimaryEvents": null,
+            "requiresAllowAdvancedMethods": false,
+            "requiresMeasuredVelocityDecrement": false,
+            "requiresVmaxConfidenceAtLeast": null,
+            "requiresPhaseNotIn": [
+              "TRANSITION"
+            ]
+          }
+        ],
+        "whenUnmet": "MANUAL_WITH_REVIEW"
       },
       "maturityCategory": "POST",
       "method": "SPRINT_ENDURANCE_SHORT",
@@ -1069,10 +1408,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -1097,10 +1438,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -1125,10 +1468,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -1153,6 +1498,7 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": [
           "200m",
           "400m",
@@ -1163,7 +1509,8 @@
           "ADVANCED"
         ],
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": "MANUAL_WITH_REVIEW"
+        "whenUnmet": "MANUAL_WITH_REVIEW",
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -1188,10 +1535,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -1216,10 +1565,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -1244,10 +1595,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -1272,6 +1625,7 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": "ADVANCED",
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": [
           "200m",
           "400m",
@@ -1279,7 +1633,8 @@
         ],
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": "MANUAL_WITH_REVIEW"
+        "whenUnmet": "MANUAL_WITH_REVIEW",
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "LONG_SPRINT_RACE_SPECIFIC",
@@ -1304,10 +1659,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "TEMPO_INTENSIVE",
@@ -1331,10 +1688,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "TEMPO_INTENSIVE",
@@ -1358,10 +1717,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "TEMPO_INTENSIVE",
@@ -1385,10 +1746,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "TEMPO_INTENSIVE",
@@ -1412,10 +1775,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "RESISTED_SPRINT",
@@ -1439,10 +1804,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "RESISTED_SPRINT",
@@ -1466,10 +1833,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "RESISTED_SPRINT",
@@ -1493,10 +1862,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "RESISTED_SPRINT",
@@ -1520,10 +1891,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "RESISTED_SPRINT",
@@ -1546,10 +1919,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "RESISTED_SPRINT",
@@ -1572,10 +1947,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "RESISTED_SPRINT",
@@ -1598,10 +1975,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": "ADVANCED",
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": "MANUAL_WITH_REVIEW"
+        "whenUnmet": "MANUAL_WITH_REVIEW",
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "RESISTED_SPRINT",
@@ -1624,10 +2003,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "RESISTED_SPRINT",
@@ -1650,10 +2031,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "RESISTED_SPRINT",
@@ -1676,10 +2059,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "RESISTED_SPRINT",
@@ -1702,10 +2087,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": "ADVANCED",
         "requiresMeasuredVelocityDecrement": true,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": "INELIGIBLE_NON_OVERRIDABLE"
+        "whenUnmet": "INELIGIBLE_NON_OVERRIDABLE",
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "RESISTED_SPRINT",
@@ -1728,10 +2115,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "ASSISTED_SPRINT",
@@ -1755,10 +2144,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "ASSISTED_SPRINT",
@@ -1782,10 +2173,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "ASSISTED_SPRINT",
@@ -1809,10 +2202,12 @@
         "requiresAllowAdvancedMethods": true,
         "requiresEnvelopeTier": "ADVANCED",
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": "MEDIUM",
-        "whenUnmet": "INELIGIBLE_NON_OVERRIDABLE"
+        "whenUnmet": "INELIGIBLE_NON_OVERRIDABLE",
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "ASSISTED_SPRINT",
@@ -1836,10 +2231,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "EVENT_APPROACH_SPEED",
@@ -1863,10 +2260,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "EVENT_APPROACH_SPEED",
@@ -1890,10 +2289,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "EVENT_APPROACH_SPEED",
@@ -1917,10 +2318,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "EVENT_APPROACH_SPEED",
@@ -1944,10 +2347,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "PRE",
       "method": "EVENT_APPROACH_SPEED",
@@ -1971,10 +2376,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "EFFECTIVE_UNKNOWN",
       "method": "EVENT_APPROACH_SPEED",
@@ -1998,10 +2405,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "CIRCA",
       "method": "EVENT_APPROACH_SPEED",
@@ -2025,10 +2434,12 @@
         "requiresAllowAdvancedMethods": false,
         "requiresEnvelopeTier": null,
         "requiresMeasuredVelocityDecrement": false,
+        "requiresPhaseNotIn": null,
         "requiresPrimaryEvents": null,
         "requiresTrainingAgeTiers": null,
         "requiresVmaxConfidenceAtLeast": null,
-        "whenUnmet": null
+        "whenUnmet": null,
+        "anyOf": null
       },
       "maturityCategory": "POST",
       "method": "EVENT_APPROACH_SPEED",
@@ -5271,7 +5682,66 @@
       "weeklyLoadCategory": "RUNNING_LOW_INTENSITY"
     }
   ],
-  "phaseRules": [],
+  "phaseRules": [
+    {
+      "blockedAutogenLoadClasses": [],
+      "dosePositionCap": "UPPER_HALF",
+      "infoEvidenceIds": [],
+      "infoFindingCode": null,
+      "methodPriority": [
+        "ACCELERATION",
+        "RESISTED_SPRINT",
+        "TEMPO_EXTENSIVE",
+        "MAX_VELOCITY",
+        "STRIDE"
+      ],
+      "phase": "PREPARATION"
+    },
+    {
+      "blockedAutogenLoadClasses": [],
+      "dosePositionCap": "MIDDLE",
+      "infoEvidenceIds": [
+        "EV_HAUGEN_2019_REVIEW"
+      ],
+      "infoFindingCode": "PHASE_PRE_COMPETITION_INJURY_TRANSITION",
+      "methodPriority": [
+        "MAX_VELOCITY",
+        "SPRINT_ENDURANCE_SHORT",
+        "EVENT_APPROACH_SPEED",
+        "LONG_SPRINT_RACE_SPECIFIC",
+        "ACCELERATION"
+      ],
+      "phase": "PRE_COMPETITION"
+    },
+    {
+      "blockedAutogenLoadClasses": [],
+      "dosePositionCap": "LOWER_HALF",
+      "infoEvidenceIds": [],
+      "infoFindingCode": null,
+      "methodPriority": [
+        "MAX_VELOCITY",
+        "ACCELERATION",
+        "EVENT_APPROACH_SPEED",
+        "SPRINT_ENDURANCE_SHORT",
+        "STRIDE"
+      ],
+      "phase": "COMPETITION"
+    },
+    {
+      "blockedAutogenLoadClasses": [
+        "HIGH_NEURAL",
+        "HIGH_METABOLIC"
+      ],
+      "dosePositionCap": "LOWER_BOUND",
+      "infoEvidenceIds": [],
+      "infoFindingCode": null,
+      "methodPriority": [
+        "STRIDE",
+        "TEMPO_EXTENSIVE"
+      ],
+      "phase": "TRANSITION"
+    }
+  ],
   "plausibility": [
     {
       "appliesToMethods": [
@@ -6703,5 +7173,58 @@
   ],
   "validFrom": "2026-09-15",
   "vmaxEstimationModels": [],
-  "weeklyRules": []
+  "weeklyRules": [
+    {
+      "evidenceIds": [
+        "EV_HAUGEN_2019_48H"
+      ],
+      "highWindowHours": 48,
+      "id": "WK_WINDOW_HOURS",
+      "kind": "WINDOW_HOURS",
+      "readinessWindowHours": 72
+    },
+    {
+      "id": "WK_RELEVANT_CATEGORIES",
+      "kind": "RELEVANT_CATEGORIES",
+      "nonRunningCategories": [
+        "PLYOMETRIC",
+        "STRENGTH",
+        "JUMPS",
+        "HURDLES"
+      ],
+      "runningCategories": [
+        "RUNNING_HIGH_INTENSITY",
+        "RACE",
+        "RELAY"
+      ]
+    },
+    {
+      "findingCode": "WEEKLY_HIGH_SESSIONS",
+      "id": "WK_HIGH_SESSIONS_7D",
+      "kind": "HIGH_SESSIONS_7D",
+      "threshold": 3
+    },
+    {
+      "ageBand": "U15",
+      "findingCode": "WEEKLY_JHS_REST_DAYS",
+      "id": "WK_YOUTH_REST_DAYS",
+      "kind": "YOUTH_REST_DAYS",
+      "minRestDays": 2
+    },
+    {
+      "ageBand": "U15",
+      "findingCode": "WEEKLY_JHS_HOURS",
+      "id": "WK_YOUTH_MAX_MINUTES_7D",
+      "kind": "YOUTH_MAX_MINUTES_7D",
+      "maxMinutes": 960
+    },
+    {
+      "affectedLoadClasses": [
+        "HIGH_METABOLIC"
+      ],
+      "findingCode": "HISTORY_UNKNOWN_HIGH_METABOLIC",
+      "id": "WK_HISTORY_UNKNOWN_POLICY",
+      "kind": "HISTORY_UNKNOWN_POLICY"
+    }
+  ]
 }

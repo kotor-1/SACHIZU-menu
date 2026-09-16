@@ -8,7 +8,8 @@
  * [R6 representation errata]（§11 に記載）:
  *   - `AggregationItem` は **完成した処方のスナップショット**（RUNNING_V2）か、legacy 項目の
  *     **最小限の要約**（LEGACY）だけを受け取る。生の PlanRequest や Prisma の Exercise 行は渡さない。
- *   - `competitionDay` は R7 まで `"NOT_EVALUATED"`。false として扱わない（大会日を推測しない）。
+ *   - `competitionDay` は `boolean | "NOT_EVALUATED"`。plannedDate が無ければ NOT_EVALUATED
+ *     （false と推測しない。§14 の `resolveCompetitionAndPhase` が渡す）。
  */
 import { z } from "zod";
 import { anyUnitQuantityIntervalSchema, quantityIntervalSchema } from "../types/primitives";
@@ -52,9 +53,11 @@ export type AggregationItem = z.infer<typeof aggregationItemSchema>;
 // AggregationContext
 // ---------------------------------------------------------------------------
 
-/** R7（大会・週次）を先取りしないための明示的な状態。R6 では常に NOT_EVALUATED。 */
-export const COMPETITION_DAY_STATES = ["NOT_EVALUATED"] as const;
-export const competitionDayStateSchema = z.enum(COMPETITION_DAY_STATES);
+/**
+ * [R7] plannedDate が無ければ大会当日かどうか評価できない（"NOT_EVALUATED"。false と推測しない）。
+ * R7 で `resolveCompetitionAndPhase` が実際の true/false を渡せるようになった。
+ */
+export const competitionDayStateSchema = z.union([z.boolean(), z.literal("NOT_EVALUATED")]);
 export type CompetitionDayState = z.infer<typeof competitionDayStateSchema>;
 
 export const aggregationContextInputSchema = z
@@ -62,7 +65,7 @@ export const aggregationContextInputSchema = z
     tier: envelopeTierSchema,
     /** null = 練習時間が未入力（AGG_REST_INFEASIBLE を評価しない）。 */
     availableMinutes: z.number().positive().finite().nullable(),
-    /** [R6] 大会当日の判定は R7。false 扱いにも true 扱いにもしない。 */
+    /** [R7] 大会当日かどうか（§14.3 n=0）。評価できないときだけ NOT_EVALUATED。 */
     competitionDay: competitionDayStateSchema,
     /** PLANNING = 計画時（実測なし）。ACTUAL は R8/R9 の実測評価用（R6 では planned を使う）。 */
     mode: z.enum(["PLANNING", "ACTUAL"]),

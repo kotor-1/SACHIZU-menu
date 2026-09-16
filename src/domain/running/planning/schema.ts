@@ -25,12 +25,13 @@ import { TRAINING_PHASES } from "../../menu/constants";
 import { isoDateSchema, isoDateTimeSchema, unitSchema } from "../types/primitives";
 import { runningSelectionSchema, type RunningSelection } from "../types/template";
 import { subjectSchema } from "../types/subject";
-import { loadEventSchema } from "../types/load";
+import { weeklyHistoryInputSchema } from "../types/load";
 import { aiPlannerActorSchema, coachActorSchema, systemActorSchema } from "../types/actor";
 import { intensityReferenceSchema, type IntensityReference } from "../types/intensity";
 import { envelopeFieldSchema } from "../rules/schema";
 import { readinessDecisionSchema } from "../readiness/schema";
 import { aggregationItemSchema } from "../aggregation/schema";
+import { competitionRefSchema } from "../competition/schema";
 import type { Finding, FindingSeverity } from "../types/findings";
 import type { EvidenceId } from "../types/primitives";
 import type { RunningPrescriptionValue } from "../types/prescription";
@@ -192,8 +193,15 @@ export const menuContextSchema = z
   .object({
     phase: z.enum(TRAINING_PHASES).nullable(),
     plannedDate: isoDateSchema.nullable(),
-    /** [R4 errata] CompetitionRef は R7。R4 では空配列のみ受け付ける。 */
-    competitions: z.array(z.never()),
+    /**
+     * [R7] 48h/72h を厳密に計算するための時刻。`plannedDate` が null なら必須で null。
+     * `plannedDate` が非 null のとき、`plannedAt` は null（大会の「何日前」は date で評価できるが
+     * 厳密な 48h/72h window は NOT_EVALUATED にする）か、`plannedDate` と同じ暦日でなければならない。
+     * OS 時刻や 00:00/12:00/23:59 を補わない（§9.1・§12 [R7 errata]）。
+     */
+    plannedAt: isoDateTimeSchema.nullable(),
+    /** [R7] §14 の大会近接ウィンドウ評価に使う。id の重複は拒否する。 */
+    competitions: z.array(competitionRefSchema),
     /**
      * [R6] このメニューの**他の**項目（§11 の集計対象）。現在計画中の項目は含めない。
      * v2 の項目は完成した処方のスナップショット、legacy の項目は最小限の要約だけを渡す。
@@ -201,7 +209,26 @@ export const menuContextSchema = z
     otherItems: z.array(aggregationItemSchema),
     availableMinutes: z.number().positive().finite().nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((menu, ctx) => {
+    if (menu.plannedDate === null && menu.plannedAt !== null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "plannedDate が無い場合 plannedAt も null である必要があります", path: ["plannedAt"] });
+    }
+    if (menu.plannedAt !== null && menu.plannedDate !== null && menu.plannedAt.slice(0, 10) !== menu.plannedDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "plannedAt の暦日は plannedDate と一致する必要があります",
+        path: ["plannedAt"],
+      });
+    }
+    const ids = new Set<string>();
+    for (const [i, c] of menu.competitions.entries()) {
+      if (ids.has(c.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `CompetitionRef.id が重複しています: ${c.id}`, path: ["competitions", i, "id"] });
+      }
+      ids.add(c.id);
+    }
+  });
 
 export const planRequestSchema = z
   .object({
@@ -209,7 +236,8 @@ export const planRequestSchema = z
     selection: runningSelectionSchema,
     subject: subjectSchema,
     menuContext: menuContextSchema,
-    history: z.array(loadEventSchema).nullable(),
+    /** [R7 errata] §12 の正式 contract。coverage を明示させ、NONE を COMPLETE と取り違えない。 */
+    history: weeklyHistoryInputSchema.nullable(),
     /** [R5] `resolveReadinessAction()` が返した判断のみ。生の ReadinessReport は `.strict()` が拒否する。 */
     readiness: readinessDecisionSchema.nullable(),
     positionPreference: z.enum(["LOWER", "MIDDLE"]).nullable(),
@@ -317,6 +345,10 @@ export const ELIGIBILITY_REASON_CODES = [
   "READINESS_HIGH_INTENSITY_CANCELLED",
   /** [R5] §13.3 SWAP_TO_LOWER_LOAD_METHOD。黙って別 Method へ変換せず substitutes を返す（override 不可）。 */
   "READINESS_SWAP_RECOMMENDED",
+  /** [R7] §14.3 PEAK×ADVANCED n5-7: LONG の recoveryStructure=INCOMPLETE を明示的に不適格にする。override 可。 */
+  "COMPETITION_LONG_INCOMPLETE_BLOCKED",
+  /** [R7] §12.3 / §14.3 由来の自動生成停止（hard ineligible ではない。COACH は手動 + REVIEW で継続可）。 */
+  "WEEKLY_PHASE_COMPETITION_AUTOGEN_BLOCKED",
 ] as const;
 export type EligibilityReasonCode = (typeof ELIGIBILITY_REASON_CODES)[number];
 

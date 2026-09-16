@@ -131,8 +131,18 @@ export {
   type RedFlag,
 } from "./types/readiness";
 
-// --- Load（型のみ。導出・週次判定は R7） -------------------------------------
-export { loadCategorySchema, loadEventSchema, type LoadCategory, type LoadEvent } from "./types/load";
+// --- Load / Weekly history 入力型（§12.1・[R7 errata]） -----------------------
+export {
+  loadCategorySchema,
+  loadEventSchema,
+  weeklyHistoryInputSchema,
+  dailyActivitySummarySchema,
+  type LoadCategory,
+  type LoadEvent,
+  type WeeklyHistoryInput,
+  type DailyActivitySummary,
+  type HistoryCoverageLevel,
+} from "./types/load";
 
 // --- Actor / AI boundary の基礎型 --------------------------------------------
 export {
@@ -247,3 +257,19 @@ export {
   type SessionAggregate,
 } from "./aggregation";
 export { checkOutputPlausibility, type OutputPlausibilityResult } from "./plausibility/output";
+
+// --- Weekly context（R7） ------------------------------------------------------
+// §1.5 の R7 公開 API は `evaluateWeeklyContext` と入出力型だけ。内部ロジック
+// （event 分類・window 計算・guard 評価）は root から export しない
+// （必要なら `src/domain/running/weekly/*` を直接 import する）。
+export {
+  evaluateWeeklyContext,
+  type WeeklyContextResult,
+  type WeeklyEvaluationContext,
+} from "./weekly";
+
+// --- Competition（R7） ---------------------------------------------------------
+// §1.5 の R7 公開 API は `CompetitionRef` 型だけ。phase / competition window の内部 resolver
+// （evaluatePhase / resolveCompetitionAndPhase / taper 計算等）は root から export しない
+// （§14 は planning pipeline の内部ステップであり、直接呼び出す公開 API を持たない）。
+export { competitionRefSchema, type CompetitionRef } from "./competition";

@@ -18,7 +18,7 @@ import type { Directness, InputDataConfidence, PrescriptionConfidence } from "..
 import { AGE_BANDS, type AgeBand, type MaturityStatus, type TrainingAgeTier } from "../types/subject";
 import type { PerformanceLevel } from "../evidence/schema";
 import { deriveDirectness } from "../evidence/directness";
-import { derivePrescriptionConfidence, type UsedEvidenceSummary } from "../evidence/confidence";
+import { derivePrescriptionConfidence, type HistoryCoverage, type UsedEvidenceSummary } from "../evidence/confidence";
 import { resolveAgeBand, type ResolvedAgeBand } from "../context/ageBand";
 import { deriveTrainingAgeTier } from "../context/trainingAge";
 import type { MaturityConstraintCategory } from "../context/maturity";
@@ -96,8 +96,10 @@ export function derivePlanningConfidence(args: {
   request: PlanRequest;
   profile: SubjectProfile;
   inputData: InputDataConfidence;
+  /** [R7] §9.2 step 5（weekly context）が接続された後の実測値。未接続時のみ NOT_EVALUATED。 */
+  historyCoverage72h: HistoryCoverage;
 }): PlanningConfidence {
-  const { ruleSet, envelope, usedFields, request, profile, inputData } = args;
+  const { ruleSet, envelope, usedFields, request, profile, inputData, historyCoverage72h } = args;
 
   const evidenceIds: EvidenceId[] = [];
   const seen = new Set<string>();
@@ -135,7 +137,7 @@ export function derivePlanningConfidence(args: {
   const prescription = derivePrescriptionConfidence({
     usedEvidence,
     inputDataConfidence: inputData,
-    historyCoverage72h: "NOT_EVALUATED",
+    historyCoverage72h,
   });
 
   const findings: Finding[] = [];

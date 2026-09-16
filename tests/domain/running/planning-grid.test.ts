@@ -35,6 +35,7 @@ import { selectEnvelope } from "@/domain/running/planning/envelope";
 import { placeValue, positionPoint } from "@/domain/running/planning/placement";
 import { validatePrescriptionAgainstRuleSet } from "@/domain/running/planning/validatePrescription";
 import { resolveEligibility } from "@/domain/running/context/constraints";
+import { evaluateEligibilityConditionVerdict, type EligibilityConditionCtx } from "@/domain/running/planning/eligibility";
 import { resolveSubjectProfile } from "@/domain/running/context/subject";
 import { getActiveRuleSet, getRuleSet } from "@/domain/running/rules/loader";
 import type { RuleSetSessionTemplate } from "@/domain/running/rules/schema";
@@ -164,7 +165,7 @@ function request(
     planningDate: iso("2026-09-15"),
     selection: { method, templateId },
     subject,
-    menuContext: { phase, plannedDate: null, competitions: [], otherItems: [], availableMinutes: null },
+    menuContext: { phase, plannedDate: null, plannedAt: null, competitions: [], otherItems: [], availableMinutes: null },
     history: null,
     readiness: null,
     positionPreference: preference,
@@ -311,10 +312,24 @@ function checkOkPrescription(p: RunningPrescriptionValue, label: string, req: Pl
     if (methodMeta.loadClass === "HIGH_METABOLIC") {
       expect(["LOW", "POLICY_ONLY"], label).not.toContain(p.confidence.prescription);
     }
-    // AI が OK なら、その選手のカテゴリで R2 の eligibility は AUTO の行でなければならない
+    // AI が OK なら、その選手のカテゴリで eligibility の population 条件（§4.5 の OR も含む）が
+    // 満たされていなければならない。`resolveEligibility` の mode は行レベルの粗い分類
+    // （`requiresPhaseEvaluation=true` の行は tier に関わらず常に CONDITIONAL_AUTO）なので、
+    // CONDITIONAL_AUTO の行は generic evaluator で実際に MET かどうかまで確認する
+    // （[R7 correction] ADVANCED tier のように phase に依存しない branch は phase の有無に
+    // 関わらず独立に判定できるため、CONDITIONAL_AUTO のまま「未評価」と決めつけない）。
     const profile = resolveSubjectProfile({ subject: req.subject, asOf: req.planningDate, ruleSet });
     for (const category of profile.effectiveMaturityCategories) {
-      expect(resolveEligibility(ruleSet, p.method, p.templateId, category).mode, label).toBe("AUTO");
+      const decision = resolveEligibility(ruleSet, p.method, p.templateId, category);
+      if (decision.mode === "AUTO") continue;
+      if (decision.mode === "CONDITIONAL_AUTO") {
+        const row = ruleSet.eligibility.find((r) => r.ruleId === decision.sourceRuleId)!;
+        // このグリッドの CONDITIONAL_AUTO 行（SES POST）は vmaxConfidence を条件に使わない。
+        const ctx: EligibilityConditionCtx = { profile, coachReference: req.coachReference, vmaxConfidence: null };
+        expect(evaluateEligibilityConditionVerdict(row.conditions, ctx, req.menuContext.phase), label).toBe("MET");
+        continue;
+      }
+      throw new Error(`${label}: AI/SYSTEM が OK なのに eligibility mode=${decision.mode}（category=${category}）`);
     }
   } else {
     expect(p.generatedBy, label).toEqual({ proposer: { kind: "ENGINE" }, createdByCoach: true, acceptedByCoachAt: null });
@@ -384,12 +399,30 @@ describe("R4 planning grid（§20.1 PROPERTY / BOUNDARY）", () => {
                 grid.basePlans += 1;
                 grid.phasesSeen.add("null");
 
-                // phase は値に影響しない（R7 未接続）
+                // [R7] phase は dose の位置と TRANSITION の autogen 可否だけを動かす。
+                // status が変わること自体は正しい副作用（低い位置での ENVELOPE_INFEASIBLE、
+                // TRANSITION での HIGH_* autogen 停止 等）なので、値の完全一致は要求しない。
+                // 不変なのは: intensity reference・rest フィールド・stopPolicyId・tier・
+                // recoveryStructure、そして Method 別回復時間定数が存在しないこと（別 grep test）。
                 for (const phase of TRAINING_PHASES) {
                   const withPhase = planRunningPrescription(request(template.method, template.id, subject, actor, preference, phase));
                   grid.phaseReplans += 1;
                   grid.phasesSeen.add(phase);
-                  expect(withPhase, `${label}/phase=${phase}`).toEqual(result);
+                  if (result.status === "OK" && withPhase.status === "OK") {
+                    const a = result.prescription;
+                    const b = withPhase.prescription;
+                    expect(b.intensity.reference, `${label}/phase=${phase}`).toEqual(a.intensity.reference);
+                    // rest は「短くしない」だけが不変条件（位置は常に MIDDLE 以上）。setRestS の
+                    // 有無は sets 数（dose）に従属するため、dose が動けば一緒に変わってよい。
+                    if (a.rest.repRestS.origin === "ENGINE_POSITIONED") {
+                      expect(b.rest.repRestS.position, `${label}/phase=${phase}`).not.toBe("LOWER_HALF");
+                      expect(b.rest.repRestS.position, `${label}/phase=${phase}`).not.toBe("LOWER_BOUND");
+                    }
+                    expect(b.rest.repRestS.value, `${label}/phase=${phase}`).toBeGreaterThanOrEqual(a.rest.repRestS.recommended?.min ?? 0);
+                    expect(b.stopPolicyId, `${label}/phase=${phase}`).toBe(a.stopPolicyId);
+                    expect(b.tier, `${label}/phase=${phase}`).toBe(a.tier);
+                    expect(b.recoveryStructure, `${label}/phase=${phase}`).toEqual(a.recoveryStructure);
+                  }
                 }
 
                 grid.byStatus[result.status] += 1;
@@ -437,7 +470,11 @@ describe("R4 planning grid（§20.1 PROPERTY / BOUNDARY）", () => {
     for (const method of ["ACCELERATION", "MAX_VELOCITY", "TEMPO_EXTENSIVE", "RESISTED_SPRINT", "STRIDE"]) {
       expect(grid.byMethodActorOk[`${method}/AI_PLANNER`] ?? 0, method).toBeGreaterThan(0);
     }
-    for (const method of ["ASSISTED_SPRINT", "EVENT_APPROACH_SPEED", "TEMPO_INTENSIVE", "SPRINT_ENDURANCE_SHORT"]) {
+    // [R7 correction] SES POST は tier=ADVANCED の branch が phase に依存しないため、confidence が
+    // 十分な ADVANCED tier の被験者では AI/SYSTEM でも自動生成できる（population eligibility が
+    // 正しく OR で解決されるようになった証跡。0件のままなら OR 修正が壊れている）。
+    expect(grid.byMethodActorOk["SPRINT_ENDURANCE_SHORT/AI_PLANNER"] ?? 0).toBeGreaterThan(0);
+    for (const method of ["ASSISTED_SPRINT", "EVENT_APPROACH_SPEED", "TEMPO_INTENSIVE"]) {
       expect(grid.byMethodActorOk[`${method}/AI_PLANNER`] ?? 0, method).toBe(0);
       expect(grid.byMethodActorOk[`${method}/SYSTEM`] ?? 0, method).toBe(0);
     }

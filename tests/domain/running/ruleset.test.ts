@@ -545,10 +545,7 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
     expect(80000).toBeGreaterThan(rule!.blockThreshold!.max!);
   });
 
-  it("weeklyRules / phaseRules / competitionRules / vmaxEstimationModels はすべて空配列（R7ではまだ実装しない）", () => {
-    expect(rs.weeklyRules).toEqual([]);
-    expect(rs.phaseRules).toEqual([]);
-    expect(rs.competitionRules).toEqual([]);
+  it("vmaxEstimationModels は空配列（R7ではまだ実装しない）", () => {
     expect(rs.vmaxEstimationModels).toEqual([]);
   });
 
@@ -558,6 +555,12 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
 
   it("[R6] aggregationRules は空ではない（§11 の判定データはすべて RuleSet 側にある）", () => {
     expect(rs.aggregationRules.length).toBeGreaterThan(0);
+  });
+
+  it("[R7] weeklyRules / phaseRules / competitionRules は空ではない（§12/§14 の判定データはすべて RuleSet 側にある）", () => {
+    expect(rs.weeklyRules.length).toBeGreaterThan(0);
+    expect(rs.phaseRules.length).toBeGreaterThan(0);
+    expect(rs.competitionRules.length).toBeGreaterThan(0);
   });
 
   it("constraints は R3 で正式化され、4件のConstraintRuleを持つ（§8.2 U12 hard / U15 ASSISTED + §7.5 complexity cap ×2）", () => {
@@ -988,7 +991,18 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
     requiresAllowAdvancedMethods: false,
     requiresMeasuredVelocityDecrement: false,
     requiresVmaxConfidenceAtLeast: null,
+    requiresPhaseNotIn: null,
+    anyOf: null,
     whenUnmet: null,
+  };
+  const eligibilityConditionBranchDefaults = {
+    requiresEnvelopeTier: null,
+    requiresTrainingAgeTiers: null,
+    requiresPrimaryEvents: null,
+    requiresAllowAdvancedMethods: false,
+    requiresMeasuredVelocityDecrement: false,
+    requiresVmaxConfidenceAtLeast: null,
+    requiresPhaseNotIn: null,
   };
 
   function canonical(value: unknown): string {
@@ -1040,7 +1054,7 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
     expect(r4).toContain("unchanged");
   });
 
-  it("EligibilityRule.conditions: conditionNote が機械判定を含んでいた5行だけが requires* を持つ", () => {
+  it("EligibilityRule.conditions: conditionNote が機械判定を含んでいた5行 + [R7] phase 条件を持つ1行だけが requires* を持つ", () => {
     const withConditions = rs.eligibility.filter((r) => r.conditions.whenUnmet !== null);
     expect(Object.fromEntries(withConditions.map((r) => [r.ruleId, r.conditions]))).toEqual({
       ELIG_LONG_FULL_POST: { ...emptyConditions, requiresTrainingAgeTiers: ["TRAINED", "ADVANCED"], requiresPrimaryEvents: ["200m", "400m", "400mH"], whenUnmet: "MANUAL_WITH_REVIEW" },
@@ -1053,6 +1067,18 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
         requiresAllowAdvancedMethods: true,
         requiresVmaxConfidenceAtLeast: "MEDIUM",
         whenUnmet: "INELIGIBLE_NON_OVERRIDABLE",
+      },
+      // [R7 correction] requiresPhaseEvaluation=true 行の唯一の実データ（§4.5 の SES POST の OR 条件:
+      // tier=ADVANCED、または (POST & tier≥DEVELOPING & phase≠TRANSITION)）。POST 条件自体はこの
+      // 行が maturityCategory="POST" のときだけ評価される既存の仕組みで担保されるため、branch には
+      // 重複させない。
+      ELIG_SES_POST: {
+        ...emptyConditions,
+        anyOf: [
+          { ...eligibilityConditionBranchDefaults, requiresEnvelopeTier: "ADVANCED" },
+          { ...eligibilityConditionBranchDefaults, requiresTrainingAgeTiers: ["DEVELOPING", "TRAINED", "ADVANCED"], requiresPhaseNotIn: ["TRANSITION"] },
+        ],
+        whenUnmet: "MANUAL_WITH_REVIEW",
       },
     });
     for (const r of rs.eligibility.filter((row) => row.conditions.whenUnmet === null)) {
@@ -1175,6 +1201,63 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
     expect(eligibilityRuleSchema.safeParse(row).success).toBe(true);
     expect(eligibilityRuleSchema.safeParse({ ...row, conditions: { ...emptyConditions, whenUnmet: "MANUAL_WITH_REVIEW" } }).success).toBe(false);
     expect(eligibilityRuleSchema.safeParse({ ...row, conditions: { ...emptyConditions, requiresEnvelopeTier: "ADVANCED" } }).success).toBe(false);
+
+    // [R7 correction] anyOf（OR）と平坦な requires* は同時に指定できない。
+    expect(
+      eligibilityRuleSchema.safeParse({
+        ...row,
+        conditions: {
+          ...emptyConditions,
+          requiresEnvelopeTier: "ADVANCED",
+          anyOf: [
+            { ...eligibilityConditionBranchDefaults, requiresEnvelopeTier: "ADVANCED" },
+            { ...eligibilityConditionBranchDefaults, requiresAllowAdvancedMethods: true },
+          ],
+          whenUnmet: "MANUAL_WITH_REVIEW",
+        },
+      }).success,
+    ).toBe(false);
+    // anyOf の branch は何か requires* を持たなければならない（空の branch は禁止）。
+    expect(
+      eligibilityRuleSchema.safeParse({
+        ...row,
+        conditions: {
+          ...emptyConditions,
+          anyOf: [eligibilityConditionBranchDefaults, { ...eligibilityConditionBranchDefaults, requiresEnvelopeTier: "ADVANCED" }],
+          whenUnmet: "MANUAL_WITH_REVIEW",
+        },
+      }).success,
+    ).toBe(false);
+    // anyOf の branch が phase に依存するなら requiresPhaseEvaluation=true が必須（flat と同じ規律）。
+    expect(
+      eligibilityRuleSchema.safeParse({
+        ...row,
+        requiresPhaseEvaluation: false,
+        conditions: {
+          ...emptyConditions,
+          anyOf: [
+            { ...eligibilityConditionBranchDefaults, requiresEnvelopeTier: "ADVANCED" },
+            { ...eligibilityConditionBranchDefaults, requiresPhaseNotIn: ["TRANSITION"] },
+          ],
+          whenUnmet: "MANUAL_WITH_REVIEW",
+        },
+      }).success,
+    ).toBe(false);
+    // 正常系: outcome=AUTO + requiresPhaseEvaluation=true + anyOf は通る。
+    expect(
+      eligibilityRuleSchema.safeParse({
+        ...row,
+        requiresPhaseEvaluation: true,
+        conditions: {
+          ...emptyConditions,
+          anyOf: [
+            { ...eligibilityConditionBranchDefaults, requiresEnvelopeTier: "ADVANCED" },
+            { ...eligibilityConditionBranchDefaults, requiresPhaseNotIn: ["TRANSITION"] },
+          ],
+          whenUnmet: "MANUAL_WITH_REVIEW",
+        },
+      }).success,
+    ).toBe(true);
     expect(
       eligibilityRuleSchema.safeParse({ ...row, outcome: "INELIGIBLE", overrideAllowed: true, autoGenerationLimits: { maxTotalReps: 3, positionCap: null } }).success,
     ).toBe(false);

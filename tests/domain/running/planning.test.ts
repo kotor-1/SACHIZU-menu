@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import * as runningApi from "@/domain/running";
 import { planRunningPrescription, planRunningPrescriptionWithRuleSet } from "@/domain/running/planning";
 import { planRequestSchema, coachOverrideSchema, type PlanRequest, type PlanResult } from "@/domain/running/planning/schema";
-import { eligibilityConditionsMet } from "@/domain/running/planning/eligibility";
+import { eligibilityConditionsMet, evaluateEligibilityConditionVerdict, type EligibilityConditionCtx } from "@/domain/running/planning/eligibility";
 import { selectEnvelope } from "@/domain/running/planning/envelope";
 import { recheckHardSafety } from "@/domain/running/planning/hardSafety";
 import { directnessContexts, performanceLevelForTrainingAge } from "@/domain/running/planning/confidence";
@@ -35,7 +35,7 @@ import type { Unit } from "@/domain/running/types/primitives";
 // ---------------------------------------------------------------------------
 
 const ruleSet = getRuleSet("rs-2026.09.0")!;
-const EXPECTED_HASH = "35aaa4eb1272f7a36d1fd44b9b0084344a29d48ee50948e11e628cd90bf70b42";
+const EXPECTED_HASH = "e45816ae715dbe545ba52707a53f3eed3afcd459416391b3e3ca842a7591701c";
 const PLANNING_DATE = "2026-09-15";
 
 function iso(value: string): IsoDate {
@@ -103,6 +103,7 @@ function makeRequest(method: string, templateId: string, o: RequestOptions = {})
     menuContext: {
       phase: o.phase ?? null,
       plannedDate: o.plannedDate ?? null,
+      plannedAt: null,
       competitions: [],
       otherItems: [],
       availableMinutes: o.availableMinutes ?? null,
@@ -215,10 +216,19 @@ describe("PlanRequestSchema", () => {
     expect(planRequestSchema.safeParse({ ...base(), selection: { method: "MAX_VELOCITY", templateId: "ACC_BLOCK_20" } }).success).toBe(false);
   });
 
-  it("readiness は R4 では null 固定（R5 未接続）、competitions / otherItems は空配列のみ", () => {
+  it("readiness は ReadinessDecision 以外の形を拒否する（生の ReadinessReport 等）", () => {
     expect(planRequestSchema.safeParse({ ...base(), readiness: { painNow: false } }).success).toBe(false);
+  });
+
+  it("[R7] competitions は正式な CompetitionRef を受け付ける（不完全な形は拒否）", () => {
     expect(
       planRequestSchema.safeParse({ ...base(), menuContext: { ...(base().menuContext as object), competitions: [{ date: PLANNING_DATE }] } }).success,
+    ).toBe(false);
+    const valid = [{ id: "meet-1", date: PLANNING_DATE, priority: "NORMAL" }];
+    expect(planRequestSchema.safeParse({ ...base(), menuContext: { ...(base().menuContext as object), competitions: valid } }).success).toBe(true);
+    // id の重複は拒否
+    expect(
+      planRequestSchema.safeParse({ ...base(), menuContext: { ...(base().menuContext as object), competitions: [...valid, ...valid] } }).success,
     ).toBe(false);
   });
 
@@ -482,12 +492,113 @@ describe("step 6: eligibility", () => {
     );
   });
 
-  it("CONDITIONAL_AUTO（SES POST: requiresPhaseEvaluation）は phase に関わらず AUTO に昇格しない", () => {
-    for (const phase of [null, "PREPARATION", "PRE_COMPETITION", "COMPETITION", "TRANSITION"]) {
-      expectIneligible(plan("SPRINT_ENDURANCE_SHORT", "SES_100", { actor: AI, phase }), "CONDITIONAL_AUTO_REQUIRES_PHASE");
-      const coach = expectOk(plan("SPRINT_ENDURANCE_SHORT", "SES_100", { phase }));
-      expect(findingCodes(coach)).toContain("ELIGIBILITY_MANUAL_REVIEW");
+  // [R7 correction — PASS WITH CHANGES 対応] §4.5 の SES POST 条件は OR:
+  //   tier=ADVANCED  OR  (POST & tier≥DEVELOPING & phase≠TRANSITION)
+  // を `EligibilityConditions.anyOf` で正確に表現する。population eligibility（この行の条件を
+  // 満たすか）と phase の自動生成停止（TRANSITION の blockedAutogenLoadClasses）は別レイヤーであり、
+  // 「最終結果が同じに見える」ことを理由に population 側を MANUAL へ落とす実装は禁止（PASS WITH
+  // CHANGES 指摘）。
+  describe("[R7 correction] SES conditional eligibility（§4.5 OR: tier=ADVANCED または POST&tier≥DEVELOPING&phase≠TRANSITION）", () => {
+    function sesConditions() {
+      return ruleSet.eligibility.find((r) => r.ruleId === "ELIG_SES_POST")!.conditions;
     }
+    function verdictFor(subject: Subject, phase: string | null): ReturnType<typeof evaluateEligibilityConditionVerdict> {
+      const profile = resolveSubjectProfile({ subject, asOf: iso(PLANNING_DATE), ruleSet });
+      const ctx: EligibilityConditionCtx = { profile, coachReference: null, vmaxConfidence: null };
+      return evaluateEligibilityConditionVerdict(sesConditions(), ctx, phase as never);
+    }
+
+    it("Case A: POST・tier=ADVANCED・phase=PREPARATION → ADVANCED branch で population condition 成立（MET）", () => {
+      expect(verdictFor(adultAdvanced(), "PREPARATION")).toBe("MET");
+      // mode=AUTO の証拠: COACH に MANUAL 系 finding が出ない。
+      const coach = expectOk(plan("SPRINT_ENDURANCE_SHORT", "SES_100", { subject: adultAdvanced(), phase: "PREPARATION" }));
+      expect(findingCodes(coach)).not.toContain("ELIGIBILITY_MANUAL_REVIEW");
+      expect(findingCodes(coach)).not.toContain("ELIGIBILITY_MANUAL_SELECTION");
+    });
+
+    it("Case B: POST・tier=ADVANCED・phase=TRANSITION → population は ADVANCED branch で成立したまま（MET）。ただし Phase HIGH_* gate が別レイヤーで自動生成を止める", () => {
+      // population eligibility は phase に関わらず MET（ADVANCED branch は phase を見ない）。
+      expect(verdictFor(adultAdvanced(), "TRANSITION")).toBe("MET");
+      expect(verdictFor(adultAdvanced(), null)).toBe("MET");
+
+      // AI/SYSTEM: 自動生成不可（理由は既存の低 confidence gate が先に発火することもあるが、
+      // いずれにせよ AUTO ではない）。
+      for (const actor of [AI, SYSTEM]) {
+        const r = plan("SPRINT_ENDURANCE_SHORT", "SES_100", { subject: adultAdvanced(), actor, phase: "TRANSITION" });
+        expect(r.status, actor.kind).toBe("INELIGIBLE");
+        // population eligibility 由来（CONDITIONAL_AUTO_NOT_MET/CONDITIONAL_AUTO_REQUIRES_PHASE）
+        // が理由になっていないこと（population は満たしているので、そこを理由に止めていない）。
+        if (r.status === "INELIGIBLE") {
+          expect(r.reasons.map((x) => x.code), actor.kind).not.toContain("CONDITIONAL_AUTO_NOT_MET");
+          expect(r.reasons.map((x) => x.code), actor.kind).not.toContain("CONDITIONAL_AUTO_REQUIRES_PHASE");
+        }
+      }
+      // COACH: manual + review で継続可能。review は phase 由来（PHASE_AUTOGEN_BLOCKED）であり、
+      // population eligibility 由来の ELIGIBILITY_MANUAL_REVIEW/SELECTION ではない
+      // （population eligibility を落として phase block と同じ結果に見せてはいけない）。
+      const coach = expectOk(plan("SPRINT_ENDURANCE_SHORT", "SES_100", { subject: adultAdvanced(), phase: "TRANSITION" }));
+      expect(findingCodes(coach)).toContain("PHASE_AUTOGEN_BLOCKED");
+      expect(findingCodes(coach)).not.toContain("ELIGIBILITY_MANUAL_REVIEW");
+      expect(findingCodes(coach)).not.toContain("ELIGIBILITY_MANUAL_SELECTION");
+    });
+
+    it("Case C: POST・tier=DEVELOPMENTAL・trainingAge=DEVELOPING・phase=PREPARATION → 第2 branch で成立（MET）。conditional auto 可能", () => {
+      expect(verdictFor(u18PostDeveloping(), "PREPARATION")).toBe("MET");
+      const coach = expectOk(plan("SPRINT_ENDURANCE_SHORT", "SES_80", { subject: u18PostDeveloping(), phase: "PREPARATION" }));
+      expect(findingCodes(coach)).not.toContain("ELIGIBILITY_MANUAL_REVIEW");
+      expect(findingCodes(coach)).not.toContain("ELIGIBILITY_MANUAL_SELECTION");
+    });
+
+    it("Case D: POST・tier=DEVELOPMENTAL・trainingAge=DEVELOPING・phase=TRANSITION → 第2 branch不成立（UNMET）。ADVANCED branch も不成立なので population 全体が UNMET + Phase HIGH_* gate も重なる", () => {
+      expect(verdictFor(u18PostDeveloping(), "TRANSITION")).toBe("UNMET");
+      for (const actor of [AI, SYSTEM]) {
+        const r = plan("SPRINT_ENDURANCE_SHORT", "SES_100", { subject: u18PostDeveloping(), actor, phase: "TRANSITION" });
+        expect(r.status, actor.kind).toBe("INELIGIBLE");
+      }
+      const coach = expectOk(plan("SPRINT_ENDURANCE_SHORT", "SES_100", { subject: u18PostDeveloping(), phase: "TRANSITION" }));
+      // 今度こそ population 側も MANUAL（UNMET の whenUnmet=MANUAL_WITH_REVIEW）。
+      expect(findingCodes(coach)).toContain("ELIGIBILITY_MANUAL_REVIEW");
+      expect(findingCodes(coach)).toContain("PHASE_AUTOGEN_BLOCKED");
+    });
+
+    it("phase=null（未評価）: phase に依存しない branch（ADVANCED tier）は MET のまま。phase 依存の branch しか無ければ PHASE_UNRESOLVED のまま（楽観昇格しない）", () => {
+      // ADVANCED tier: phase を必要としない branch だけで成立するので、phase=null でも MET。
+      expect(verdictFor(adultAdvanced(), null)).toBe("MET");
+      const coachAdvancedNull = expectOk(plan("SPRINT_ENDURANCE_SHORT", "SES_100", { subject: adultAdvanced(), phase: null }));
+      expect(findingCodes(coachAdvancedNull)).not.toContain("ELIGIBILITY_MANUAL_REVIEW");
+
+      // DEVELOPMENTAL tier: 唯一使える branch（第2branch）が phase に依存するので、phase=null は
+      // 「未評価」のまま（PREPARATION 等と推測して MET にしない）。
+      expect(verdictFor(u18PostDeveloping(), null)).toBe("PHASE_UNRESOLVED");
+      const aiDevNull = plan("SPRINT_ENDURANCE_SHORT", "SES_80", { subject: u18PostDeveloping(), actor: AI, phase: null });
+      expect(aiDevNull.status).toBe("INELIGIBLE");
+      if (aiDevNull.status === "INELIGIBLE") expect(aiDevNull.reasons.map((r) => r.code)).toContain("CONDITIONAL_AUTO_REQUIRES_PHASE");
+      const coachDevNull = expectOk(plan("SPRINT_ENDURANCE_SHORT", "SES_80", { subject: u18PostDeveloping(), phase: null }));
+      expect(findingCodes(coachDevNull)).toContain("ELIGIBILITY_MANUAL_REVIEW");
+    });
+
+    it("Case E: PRE / CIRCA / EFFECTIVE_UNKNOWN は R3 の既存 eligibility matrix のまま不変（SES POST 行の対象外）", () => {
+      for (const ruleId of ["ELIG_SES_PRE", "ELIG_SES_EFFECTIVE_UNKNOWN", "ELIG_SES_CIRCA"]) {
+        const row = ruleSet.eligibility.find((r) => r.ruleId === ruleId);
+        expect(row, ruleId).toBeDefined();
+        expect(row!.conditions.anyOf, ruleId).toBeNull();
+        expect(row!.requiresPhaseEvaluation, ruleId).toBe(false);
+      }
+    });
+
+    it("generic evaluator は SES 専用の分岐を持たない（conditionNote / ruleId のテキスト解析禁止）", () => {
+      const source = fs
+        .readFileSync(path.resolve(__dirname, "../../../src/domain/running/planning/eligibility.ts"), "utf-8")
+        .split("\n")
+        .filter((l) => {
+          const t = l.trim();
+          return !t.startsWith("*") && !t.startsWith("//") && !t.startsWith("/*");
+        })
+        .join("\n");
+      expect(source).not.toMatch(/SPRINT_ENDURANCE_SHORT/);
+      expect(source).not.toMatch(/ELIG_SES_POST/);
+      expect(source).not.toMatch(/\.conditionNote\b/);
+    });
   });
 
   it("T-AI-04: AI が TI_VITTORI_SE を DEVELOPMENTAL に提案 → INELIGIBLE", () => {
@@ -985,7 +1096,9 @@ describe("rest（§9.4）", () => {
       expect(code, file).not.toMatch(/\*\s*60\b/);
       expect(code, file).not.toMatch(/\*\s*0\.\d/); // ×0.6 / ×0.8 等の範囲・量への係数
       expect(code, file).not.toMatch(/sexForNorms/);
-      expect(code, file).not.toMatch(/\bmenuContext\.phase\b/);
+      // [R7] phase は正式に接続されたが、build.ts は文字列比較の switch を持たず
+      // resolveCompetitionAndPhase（competition/phase.ts の generic resolver）へ丸ごと渡すだけ。
+      expect(code, file).not.toMatch(/phase\s*===\s*"(PREPARATION|PRE_COMPETITION|COMPETITION|TRANSITION)"/);
     }
   });
 
@@ -1132,18 +1245,28 @@ describe("step 10: confidence", () => {
     expect(p.confidence.prescription).toBe("MODERATE");
   });
 
-  it("history は NOT_EVALUATED（中立）: null と提供済みで confidence が変わらない", () => {
-    const history = [
-      {
-        at: "2026-09-13T10:00:00+09:00",
-        category: "RUNNING_HIGH_INTENSITY",
-        method: "MAX_VELOCITY",
-        intensityTag: "HIGH",
-        magnitude: {},
-        source: "SESSION_RECORD",
-        completion: "DONE",
-      },
-    ];
+  it("[R7] plannedAt が無ければ history の中身に関わらず NOT_EVALUATED（中立）", () => {
+    // plannedAt が無いので、history の内容（48h 以内の HIGH event 等）があっても weekly は評価しない
+    // （厳密な 48h/72h window を計算できないため。§12 [R7 errata]）。
+    const history = {
+      events: [
+        {
+          at: "2026-09-13T10:00:00+09:00",
+          category: "RUNNING_HIGH_INTENSITY",
+          method: "MAX_VELOCITY",
+          templateId: null,
+          sessionKey: "s1",
+          intensityTag: "HIGH",
+          magnitude: {},
+          source: "SESSION_RECORD",
+          completion: "DONE",
+        },
+      ],
+      coverage72h: "COMPLETE",
+      coverage7d: "COMPLETE",
+      coverage28d: "COMPLETE",
+      dailyActivity7d: [],
+    };
     const withNull = expectOk(plan("ACCELERATION", "ACC_BLOCK_20", { subject: u18PostDeveloping() }));
     const withHistory = expectOk(plan("ACCELERATION", "ACC_BLOCK_20", { subject: u18PostDeveloping(), history }));
     expect(withHistory).toEqual(withNull);
@@ -1348,11 +1471,20 @@ describe("AI boundary / generatedBy", () => {
     expect(r.prescription.readinessApplied).toEqual([]);
   });
 
-  it("phase は値に影響しない（R7 未接続）", () => {
-    const results = [null, "PREPARATION", "PRE_COMPETITION", "COMPETITION", "TRANSITION"].map((phase) =>
-      plan("TEMPO_EXTENSIVE", "TE_100", { subject: adultAdvanced({ marks: [FLY20_PHOTO] }), phase }),
-    );
-    for (const r of results) expect(r).toEqual(results[0]);
+  it("[R7] phase は dose の位置だけを動かす。intensity reference・rest 下限・hard stop 系は不変", () => {
+    const results = ["PREPARATION", "PRE_COMPETITION", "COMPETITION", "TRANSITION"].map((phase) => ({
+      phase,
+      r: plan("TEMPO_EXTENSIVE", "TE_200", { subject: adultAdvanced({ marks: [FLY20_PHOTO] }), phase }),
+    }));
+    const baseline = plan("TEMPO_EXTENSIVE", "TE_200", { subject: adultAdvanced({ marks: [FLY20_PHOTO] }), phase: null });
+    if (baseline.status !== "OK") throw new Error("setup");
+    for (const { phase, r } of results) {
+      if (r.status !== "OK") continue; // 低い位置で ENVELOPE_INFEASIBLE になるのは正しい副作用（別途 competition.test.ts で検証）
+      expect(r.prescription.intensity.reference, phase).toEqual(baseline.prescription.intensity.reference);
+      expect(r.prescription.rest.repRestS.value, phase).toBeGreaterThanOrEqual(baseline.prescription.rest.repRestS.recommended!.min);
+      expect(r.prescription.stopPolicyId, phase).toBe(baseline.prescription.stopPolicyId);
+      expect(r.prescription.tier, phase).toBe(baseline.prescription.tier);
+    }
   });
 });
 
