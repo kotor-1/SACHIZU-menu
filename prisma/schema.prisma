@@ -55,6 +55,9 @@ model Exercise {
   metricType String @default("REPS")
   /// 1(易) 〜 5(難)
   difficulty Int    @default(3)
+  /// EnergySystem — 主として使うエネルギー供給系。処方ロジック（レスト・総量上限）の判定軸。
+  /// 未設定でも category / targets から推定できるため nullable。
+  energySystem String?
 
   // --- 推奨負荷（あくまで既定値。メニューに追加する際の初期値として使われる）---
   defaultSets            Int?
@@ -360,6 +363,8 @@ model VideoAsset {
   sizeBytes       Int?
   durationSeconds Int?
   thumbnailKey    String?
+  /// 元動画の参照URL（YouTube 等）。
+  sourceUrl       String?
 
   /// 解析結果として紐付いた種目（未解析の間は null）。
   exerciseId String?
