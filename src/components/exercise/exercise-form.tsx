@@ -7,6 +7,8 @@ import { SubmitButton } from "@/components/submit-button";
 import {
   DIFFICULTY_LABEL,
   DIFFICULTY_LEVELS,
+  ENERGY_SYSTEMS,
+  ENERGY_SYSTEM_LABEL,
   EXERCISE_CATEGORIES,
   EXERCISE_CATEGORY_LABEL,
   EXERCISE_PURPOSES,
@@ -32,6 +34,7 @@ export type ExerciseFormValues = {
   category: string;
   metricType: string;
   difficulty: number;
+  energySystem: string;
   defaultSets: string;
   defaultReps: string;
   defaultDistanceMeters: string;
@@ -57,6 +60,7 @@ export const EMPTY_EXERCISE_FORM: ExerciseFormValues = {
   category: "DRILL",
   metricType: "REPS",
   difficulty: 3,
+  energySystem: "",
   defaultSets: "",
   defaultReps: "",
   defaultDistanceMeters: "",
@@ -175,6 +179,29 @@ export function ExerciseForm({
                 {DIFFICULTY_LEVELS.map((d) => (
                   <option key={d} value={d}>
                     {"★".repeat(d)} {DIFFICULTY_LABEL[d]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {/*
+              処方（レスト・総量の目安）を決めるための軸。
+              未設定でもカテゴリ・対象能力から推定するため必須にしない。
+            */}
+            <Field
+              label="エネルギー系"
+              hint="レストと総量の自動計算に使う。未設定ならカテゴリから推定"
+              errors={errors.energySystem}
+            >
+              <select
+                name="energySystem"
+                defaultValue={initial.energySystem}
+                className={selectClass}
+              >
+                <option value="">未設定（自動で推定）</option>
+                {ENERGY_SYSTEMS.map((e) => (
+                  <option key={e} value={e}>
+                    {ENERGY_SYSTEM_LABEL[e]}
                   </option>
                 ))}
               </select>

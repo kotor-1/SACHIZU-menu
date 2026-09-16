@@ -31,6 +31,7 @@ export default async function EditExercisePage({
     category: exercise.category,
     metricType: exercise.metricType,
     difficulty: exercise.difficulty,
+    energySystem: exercise.energySystem ?? "",
     defaultSets: str(exercise.defaultSets),
     defaultReps: str(exercise.defaultReps),
     defaultDistanceMeters: str(exercise.defaultDistanceMeters),

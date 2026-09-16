@@ -85,6 +85,20 @@ describe("exercise repository", () => {
       expect(created.events.map((e) => e.event).sort()).toEqual(["HURDLE", "SPRINT"].sort());
     });
 
+    it("stores energySystem, and leaves it null when the form sends an empty value", async () => {
+      const set = await createExercise(
+        exerciseInput({ name: "30m加速走", energySystem: "ALACTIC" }),
+      );
+      expect(set.energySystem).toBe("ALACTIC");
+
+      // 「未設定」を選んだときは空文字が届く。null に落ちて、
+      // 処方側がカテゴリから推定できる状態になること。
+      const unset = await createExercise(
+        exerciseInput({ name: "未設定の種目", energySystem: "" }),
+      );
+      expect(unset.energySystem).toBeNull();
+    });
+
     it("defaults isFavorite to false", async () => {
       const created = await createExercise(exerciseInput({ name: "新規種目" }));
       expect(created.isFavorite).toBe(false);

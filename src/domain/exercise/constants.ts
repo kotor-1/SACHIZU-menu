@@ -138,6 +138,37 @@ export const TRACK_FIELD_EVENT_LABEL: Record<TrackFieldEvent, string> = {
   COMMON: "共通",
 };
 
+// --- 主として使うエネルギー供給系 -------------------------------------------
+// category / targets だけでは「30m 加速走」と「300m」を処方上で区別できない。
+// レスト（完全回復か不完全回復か）と 1 回の総量上限は、どのエネルギー系に
+// 効かせたい種目なのかで決まるため、処方ロジックに必要な最小の 1 軸として持つ。
+// 1 種目 1 値なのでスカラー（中間テーブルにしない）。
+export const ENERGY_SYSTEMS = [
+  "ALACTIC",
+  "GLYCOLYTIC",
+  "AEROBIC",
+  "NEURAL",
+  "NONE",
+] as const;
+export type EnergySystem = (typeof ENERGY_SYSTEMS)[number];
+
+export const ENERGY_SYSTEM_LABEL: Record<EnergySystem, string> = {
+  ALACTIC: "非乳酸系（ATP-CP）",
+  GLYCOLYTIC: "乳酸系（解糖）",
+  AEROBIC: "有酸素系",
+  NEURAL: "神経系・技術",
+  NONE: "負荷管理の対象外",
+};
+
+/** 一覧バッジ用。カテゴリと同じく Tailwind クラスを直接持つ。 */
+export const ENERGY_SYSTEM_COLOR: Record<EnergySystem, string> = {
+  ALACTIC: "bg-rose-100 text-rose-800 border-rose-200",
+  GLYCOLYTIC: "bg-amber-100 text-amber-800 border-amber-200",
+  AEROBIC: "bg-teal-100 text-teal-800 border-teal-200",
+  NEURAL: "bg-sky-100 text-sky-800 border-sky-200",
+  NONE: "bg-slate-100 text-slate-700 border-slate-200",
+};
+
 // --- 負荷の測り方（入力 UI の出し分けに使う）-------------------------------
 export const METRIC_TYPES = ["REPS", "DISTANCE", "TIME"] as const;
 export type MetricType = (typeof METRIC_TYPES)[number];

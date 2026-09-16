@@ -13,6 +13,7 @@ import { SubmitButton } from "@/components/submit-button";
 import {
   CategoryBadge,
   DifficultyBadge,
+  EnergySystemBadge,
   EventBadge,
   PurposeBadge,
   StatusBadge,
@@ -80,6 +81,7 @@ export default async function ExerciseDetailPage({
           <span className="flex flex-wrap items-center gap-1.5">
             <CategoryBadge category={exercise.category} />
             <DifficultyBadge level={exercise.difficulty} />
+            <EnergySystemBadge energySystem={exercise.energySystem} />
             {exercise.nameKana && (
               <span className="text-xs text-slate-400">{exercise.nameKana}</span>
             )}

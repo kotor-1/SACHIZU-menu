@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  ENERGY_SYSTEMS,
   EXERCISE_CATEGORIES,
   EXERCISE_PURPOSES,
   METRIC_TYPES,
@@ -24,6 +25,16 @@ export const exerciseInputSchema = z.object({
   category: z.enum(EXERCISE_CATEGORIES),
   metricType: z.enum(METRIC_TYPES),
   difficulty: z.coerce.number().int().min(1).max(5),
+  /**
+   * 主として使うエネルギー供給系。未設定（""）は null に落とす。
+   * 既存種目には値が入っていないため、処方ロジック側は null を許容して
+   * category / targets から推定する。
+   */
+  energySystem: z
+    .union([z.enum(ENERGY_SYSTEMS), z.literal("")])
+    .optional()
+    .default("")
+    .transform((v) => (v === "" ? null : v)),
 
   defaultSets: optionalNumber({ min: 1, max: 99, int: true }),
   defaultReps: optionalNumber({ min: 1, max: 999, int: true }),
@@ -70,6 +81,10 @@ export const exerciseSearchSchema = z.object({
     .default(""),
   event: z
     .union([z.enum(TRACK_FIELD_EVENTS), z.literal("")])
+    .optional()
+    .default(""),
+  energySystem: z
+    .union([z.enum(ENERGY_SYSTEMS), z.literal("")])
     .optional()
     .default(""),
   /** タグ ID。複数指定は AND 条件。 */

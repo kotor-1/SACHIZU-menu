@@ -47,6 +47,7 @@ function buildWhere(search: ExerciseSearch): Prisma.ExerciseWhereInput {
   if (search.target) and.push({ targets: { some: { target: search.target } } });
   if (search.purpose) and.push({ purposes: { some: { purpose: search.purpose } } });
   if (search.event) and.push({ events: { some: { event: search.event } } });
+  if (search.energySystem) and.push({ energySystem: search.energySystem });
   if (search.favorite === "1") and.push({ isFavorite: true });
 
   // タグは AND 条件（「ハードル」かつ「初心者向け」で絞りたいため）

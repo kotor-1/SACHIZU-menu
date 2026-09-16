@@ -1,11 +1,14 @@
 import { Badge } from "@/components/ui";
 import {
   DIFFICULTY_LABEL,
+  ENERGY_SYSTEM_COLOR,
+  ENERGY_SYSTEM_LABEL,
   EXERCISE_CATEGORY_COLOR,
   EXERCISE_CATEGORY_LABEL,
   EXERCISE_PURPOSE_LABEL,
   TRACK_FIELD_EVENT_LABEL,
   TRAINING_TARGET_LABEL,
+  type EnergySystem,
   type ExerciseCategory,
   type ExercisePurposeValue,
   type TrackFieldEvent,
@@ -42,6 +45,17 @@ export function EventBadge({ event }: { event: string }) {
   return (
     <Badge className="border-purple-200 bg-purple-50 text-purple-700">
       {TRACK_FIELD_EVENT_LABEL[event as TrackFieldEvent] ?? event}
+    </Badge>
+  );
+}
+
+/** 未設定なら出さない（処方側で推定するため、空欄自体は異常ではない）。 */
+export function EnergySystemBadge({ energySystem }: { energySystem: string | null }) {
+  if (!energySystem) return null;
+  const key = energySystem as EnergySystem;
+  return (
+    <Badge className={ENERGY_SYSTEM_COLOR[key] ?? undefined}>
+      {ENERGY_SYSTEM_LABEL[key] ?? energySystem}
     </Badge>
   );
 }

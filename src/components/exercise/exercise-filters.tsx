@@ -4,6 +4,8 @@ import { INPUT_CLASS, buttonClass, cn } from "@/components/ui";
 import {
   DIFFICULTY_LABEL,
   DIFFICULTY_LEVELS,
+  ENERGY_SYSTEMS,
+  ENERGY_SYSTEM_LABEL,
   EXERCISE_CATEGORIES,
   EXERCISE_CATEGORY_LABEL,
   EXERCISE_PURPOSES,
@@ -40,6 +42,7 @@ export function ExerciseFilters({
     Boolean(search.target) ||
     Boolean(search.purpose) ||
     Boolean(search.event) ||
+    Boolean(search.energySystem) ||
     Boolean(search.status) ||
     Boolean(search.favorite) ||
     search.difficulty !== "" ||
@@ -105,6 +108,20 @@ export function ExerciseFilters({
           {TRACK_FIELD_EVENTS.map((ev) => (
             <option key={ev} value={ev}>
               {TRACK_FIELD_EVENT_LABEL[ev]}
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="energySystem"
+          defaultValue={search.energySystem}
+          className={selectClass}
+          aria-label="エネルギー系"
+        >
+          <option value="">エネルギー系：すべて</option>
+          {ENERGY_SYSTEMS.map((e) => (
+            <option key={e} value={e}>
+              {ENERGY_SYSTEM_LABEL[e]}
             </option>
           ))}
         </select>
