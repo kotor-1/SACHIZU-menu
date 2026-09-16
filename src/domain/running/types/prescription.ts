@@ -26,6 +26,7 @@ import { envelopeTierSchema } from "./subject";
 import { findingSchema, rationaleLineSchema } from "./findings";
 import { readinessActionCodeSchema, safetyOutcomeSchema } from "./readiness";
 import { generationRecordSchema } from "./actor";
+import { runtimeSafetyPolicySnapshotSchema, stopPolicyRuntimeIssues, stopPolicyRuntimeSchema } from "./monitoring";
 
 // ---------------------------------------------------------------------------
 // Directness / PrescriptionConfidence（§2.2, §5.3, §5.4）
@@ -305,8 +306,15 @@ export const stopPolicySnapshotSchema = z
     ruleDescriptionJa: z.string().min(1),
     consecutiveFailuresToStop: z.number().int().positive().nullable(),
     numericStopAvailable: z.boolean(),
+    /** [R8 structured metadata] §10.3 の実行時挙動（monitor はこれだけを読む。id / 説明文を解析しない）。 */
+    runtime: stopPolicyRuntimeSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((policy, ctx) => {
+    for (const message of stopPolicyRuntimeIssues(policy)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: ["runtime"] });
+    }
+  });
 export type StopPolicySnapshot = z.infer<typeof stopPolicySnapshotSchema>;
 
 export const timingToleranceSnapshotSchema = z
@@ -327,6 +335,11 @@ export const monitoringSnapshotSchema = z
   .object({
     stopPolicy: stopPolicySnapshotSchema,
     timingTolerances: z.array(timingToleranceSnapshotSchema).min(1),
+    /**
+     * [R8] §13.2 の red flag グループ等、実施中の safety 判定に必要な最小限の versioned policy のコピー
+     * （monitor は RuleSet を読めないため）。健康情報そのものではない。
+     */
+    safetyPolicy: runtimeSafetyPolicySnapshotSchema,
   })
   .strict()
   .refine((m) => new Set(m.timingTolerances.map((t) => t.timing)).size === m.timingTolerances.length, {

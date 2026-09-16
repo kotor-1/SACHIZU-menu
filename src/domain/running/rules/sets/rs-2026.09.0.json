@@ -204,7 +204,8 @@
     "R4: added structured machine-readable metadata so planning never parses human-readable text or identifier names: EligibilityRule.conditions / autoGenerationLimits (previously only described in conditionNote), SessionTemplate.approachType / resistanceBand / fixedDistanceField, StopPolicy.appliesToEligibilityPath, PlausibilityRule.inputTarget, and eventDefinitions (timed-mark and race-event distances). conditionNote is now explanatory only. methods/envelopes/evidence/timingTolerances/constraints and all stop-policy/plausibility/envelope numeric values unchanged. Status remains DRAFT.",
     "R5: added versioned readinessRules (§13 pain red flag groups, pain PRESENT / NOT_ASKED gates, growth-period guidance regions, wellness thresholds and signal counts, readiness-window rule, SWAP target map). No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/plausibility/eventDefinitions are byte-identical. Status remains DRAFT.",
     "R6: added versioned aggregationRules (§11 accel interval A per tier, relay allowance, per-Method aggregation metadata, high-intensity budget, tempo/stride session limits, legacy category semantics) and plausibility outputTarget metadata. No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/readinessRules/eventDefinitions and every plausibility threshold are unchanged. Status remains DRAFT.",
-    "R7: added versioned weeklyRules (§12 48h/72h window hours, relevant categories, high-sessions-7d threshold, U15 rest-days/hours guards, history-unknown policy), phaseRules (§14.2 per-phase method priority, dose position cap, blocked autogen load classes, PRE_COMPETITION injury-transition info), and competitionRules (§14.3 day-0..14 windows per priority/tier, autogen-exception metadata for STRIDE/ACC<=20m, new-stimulus policy, LONG-INCOMPLETE eligibility, §14.4 taper guidance for ADVANCED x PEAK x day 8-14 only). Added EligibilityConditions.requiresPhaseNotIn and set it on ELIG_SES_POST (blocks AUTO during TRANSITION; behaviorally redundant with TRANSITION's own blockedAutogenLoadClasses for HIGH_METABOLIC, kept as a single AND condition for representability). No numeric or scientific data changed: methods/templates/envelopes/evidence/constraints/timingTolerances/stopPolicies/readinessRules/aggregationRules/plausibility thresholds/eventDefinitions and all pre-existing eligibility outcomes/overrideAllowed/conditionNote text are unchanged. Status remains DRAFT."
+    "R7: added versioned weeklyRules (§12 48h/72h window hours, relevant categories, high-sessions-7d threshold, U15 rest-days/hours guards, history-unknown policy), phaseRules (§14.2 per-phase method priority, dose position cap, blocked autogen load classes, PRE_COMPETITION injury-transition info), and competitionRules (§14.3 day-0..14 windows per priority/tier, autogen-exception metadata for STRIDE/ACC<=20m, new-stimulus policy, LONG-INCOMPLETE eligibility, §14.4 taper guidance for ADVANCED x PEAK x day 8-14 only). Added EligibilityConditions.requiresPhaseNotIn and set it on ELIG_SES_POST (blocks AUTO during TRANSITION; behaviorally redundant with TRANSITION's own blockedAutogenLoadClasses for HIGH_METABOLIC, kept as a single AND condition for representability). No numeric or scientific data changed: methods/templates/envelopes/evidence/constraints/timingTolerances/stopPolicies/readinessRules/aggregationRules/plausibility thresholds/eventDefinitions and all pre-existing eligibility outcomes/overrideAllowed/conditionNote text are unchanged. Status remains DRAFT.",
+    "R8: added StopPolicy.runtime structured metadata (§10.3 machine-readable runtime behavior: timingEvaluation, reference strategy, first/consecutive failure actions, TE too-fast warning threshold, ACC/MV poor-start threshold, technique/vdec/effort actions, planned count unit) so that monitorRunningPrescription never parses stop policy ids or ruleDescriptionJa. The values restate the existing §10.3 table only; existing consecutiveFailuresToStop / numericStopAvailable / descriptions and all timingTolerances are unchanged. No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/readinessRules/aggregationRules/weeklyRules/phaseRules/competitionRules/plausibility/eventDefinitions are unchanged. Status remains DRAFT."
   ],
   "competitionRules": [
     {
@@ -6349,7 +6350,21 @@
       "method": "ACCELERATION",
       "numericStopAvailable": true,
       "referenceDescription": "セッション内の同距離ベスト",
-      "ruleDescriptionJa": "1回目FAIL→EXTEND_REST（1回まで）。2回連続FAIL→END_SESSION_QUALITY。startQuality=POOR 2回連続→COACH_REVIEW"
+      "ruleDescriptionJa": "1回目FAIL→EXTEND_REST（1回まで）。2回連続FAIL→END_SESSION_QUALITY。startQuality=POOR 2回連続→COACH_REVIEW",
+      "runtime": {
+        "consecutiveFailureAction": "END_SESSION_QUALITY",
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": "EXTEND_REST",
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": 2,
+        "reference": "PRIOR_SESSION_BEST",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "SLOWER_THAN_REFERENCE_FAILS",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6359,7 +6374,21 @@
       "method": "MAX_VELOCITY",
       "numericStopAvailable": true,
       "referenceDescription": "セッション内 fly ベスト",
-      "ruleDescriptionJa": "SP_ACC と同じ判定"
+      "ruleDescriptionJa": "SP_ACC と同じ判定",
+      "runtime": {
+        "consecutiveFailureAction": "END_SESSION_QUALITY",
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": "EXTEND_REST",
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": 2,
+        "reference": "PRIOR_SESSION_BEST",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "SLOWER_THAN_REFERENCE_FAILS",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6369,7 +6398,21 @@
       "method": "SPRINT_ENDURANCE_SHORT",
       "numericStopAvailable": true,
       "referenceDescription": "目標区間の上端（無ければセッション内ベスト）",
-      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY"
+      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY",
+      "runtime": {
+        "consecutiveFailureAction": "END_SESSION_QUALITY",
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "TARGET_UPPER_ELSE_PRIOR_SESSION_BEST",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "SLOWER_THAN_REFERENCE_FAILS",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6379,7 +6422,21 @@
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "numericStopAvailable": true,
       "referenceDescription": "目標スプリット上端",
-      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY"
+      "ruleDescriptionJa": "2回連続FAIL→END_SESSION_QUALITY",
+      "runtime": {
+        "consecutiveFailureAction": "END_SESSION_QUALITY",
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "TARGET_UPPER",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "SLOWER_THAN_REFERENCE_FAILS",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "AUTO_CONDITIONS_MET",
@@ -6389,7 +6446,21 @@
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "numericStopAvailable": true,
       "referenceDescription": "目標スプリット上端（POST+ADVANCEDのみ）",
-      "ruleDescriptionJa": "分割走内の低下では止めない。2回連続で目標超過→COACH_REVIEW。共通hard stopは有効"
+      "ruleDescriptionJa": "分割走内の低下では止めない。2回連続で目標超過→COACH_REVIEW。共通hard stopは有効",
+      "runtime": {
+        "consecutiveFailureAction": "COACH_REVIEW",
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "TARGET_UPPER",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "SLOWER_THAN_REFERENCE_FAILS",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "MANUAL_OR_OVERRIDE",
@@ -6399,7 +6470,21 @@
       "method": "LONG_SPRINT_RACE_SPECIFIC",
       "numericStopAvailable": true,
       "referenceDescription": "目標スプリット上端（override経由でPOST+ADVANCED以外に処方した場合）",
-      "ruleDescriptionJa": "SP_LSR_FULL と同じ（疲労許容ロジックを適用しない）"
+      "ruleDescriptionJa": "SP_LSR_FULL と同じ（疲労許容ロジックを適用しない）",
+      "runtime": {
+        "consecutiveFailureAction": "END_SESSION_QUALITY",
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "TARGET_UPPER",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "SLOWER_THAN_REFERENCE_FAILS",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6409,7 +6494,21 @@
       "method": "TEMPO_EXTENSIVE",
       "numericStopAvailable": false,
       "referenceDescription": "目標区間（あれば）",
-      "ruleDescriptionJa": "数値stopなし（COACH_ONLY）。目標下端より速すぎが2回→WARN「テンポの目的外」"
+      "ruleDescriptionJa": "数値stopなし（COACH_ONLY）。目標下端より速すぎが2回→WARN「テンポの目的外」",
+      "runtime": {
+        "consecutiveFailureAction": null,
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "TARGET_LOWER",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "FASTER_THAN_TARGET_LOWER_WARNS",
+        "tooFastConsecutiveThreshold": 2,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6419,7 +6518,21 @@
       "method": "TEMPO_INTENSIVE",
       "numericStopAvailable": true,
       "referenceDescription": "目標区間",
-      "ruleDescriptionJa": "2回連続FAIL→END_SET"
+      "ruleDescriptionJa": "2回連続FAIL→END_SET",
+      "runtime": {
+        "consecutiveFailureAction": "END_SET",
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "TARGET_UPPER",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "SLOWER_THAN_REFERENCE_FAILS",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6429,7 +6542,21 @@
       "method": "RESISTED_SPRINT",
       "numericStopAvailable": false,
       "referenceDescription": "実測vdec（あれば）",
-      "ruleDescriptionJa": "band外→COACH_REVIEW（負荷調整）"
+      "ruleDescriptionJa": "band外→COACH_REVIEW（負荷調整）",
+      "runtime": {
+        "consecutiveFailureAction": null,
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "NONE",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "NONE",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": "COACH_REVIEW"
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6439,7 +6566,21 @@
       "method": "ASSISTED_SPRINT",
       "numericStopAvailable": false,
       "referenceDescription": "—",
-      "ruleDescriptionJa": "technique≠GOOD→STOP_SAFETY"
+      "ruleDescriptionJa": "technique≠GOOD→STOP_SAFETY",
+      "runtime": {
+        "consecutiveFailureAction": null,
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "NONE",
+        "techniqueDeterioratingAction": null,
+        "techniqueMissingAction": "COACH_REVIEW",
+        "techniqueNotGoodAction": "STOP_SAFETY",
+        "timingEvaluation": "NONE",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6449,7 +6590,21 @@
       "method": "EVENT_APPROACH_SPEED",
       "numericStopAvailable": false,
       "referenceDescription": "—",
-      "ruleDescriptionJa": "COACH_ONLY。attempts上限到達→END_SESSION_QUALITY"
+      "ruleDescriptionJa": "COACH_ONLY。attempts上限到達→END_SESSION_QUALITY",
+      "runtime": {
+        "consecutiveFailureAction": null,
+        "effortBecameMaximalAction": null,
+        "firstFailureAction": null,
+        "plannedCountUnit": "ATTEMPTS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "NONE",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "NONE",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     },
     {
       "appliesToEligibilityPath": "ANY",
@@ -6459,7 +6614,21 @@
       "method": "STRIDE",
       "numericStopAvailable": false,
       "referenceDescription": "—",
-      "ruleDescriptionJa": "数値stopなし。コーチの「全力化」判定→COACH_REVIEW"
+      "ruleDescriptionJa": "数値stopなし。コーチの「全力化」判定→COACH_REVIEW",
+      "runtime": {
+        "consecutiveFailureAction": null,
+        "effortBecameMaximalAction": "COACH_REVIEW",
+        "firstFailureAction": null,
+        "plannedCountUnit": "REPS",
+        "poorStartConsecutiveThreshold": null,
+        "reference": "NONE",
+        "techniqueDeterioratingAction": "COACH_REVIEW",
+        "techniqueMissingAction": null,
+        "techniqueNotGoodAction": null,
+        "timingEvaluation": "NONE",
+        "tooFastConsecutiveThreshold": null,
+        "velocityDecrementOutOfBandAction": null
+      }
     }
   ],
   "supersedes": null,

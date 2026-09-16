@@ -273,3 +273,17 @@ export {
 // （evaluatePhase / resolveCompetitionAndPhase / taper 計算等）は root から export しない
 // （§14 は planning pipeline の内部ステップであり、直接呼び出す公開 API を持たない）。
 export { competitionRefSchema, type CompetitionRef } from "./competition";
+
+// --- Runtime monitoring（R8） --------------------------------------------------
+// §1.5 の R8 公開 API は `monitorRunningPrescription` と入出力型だけ。正規化・safety gate・tolerance 解決・
+// stop policy 評価（normalize / safety / timing / stopPolicies / decision）は root から export しない。
+export {
+  monitorRunningPrescription,
+  repObservationSchema,
+  type MonitorAction,
+  type MonitorDecision,
+  type MonitorState,
+  type RepLogEntry,
+  type RepObservation,
+  type StopReason,
+} from "./monitoring";

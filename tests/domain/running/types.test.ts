@@ -485,6 +485,38 @@ describe("RunningPrescription", () => {
           ruleDescriptionJa: "test",
           consecutiveFailuresToStop: 2,
           numericStopAvailable: true,
+          runtime: {
+            timingEvaluation: "SLOWER_THAN_REFERENCE_FAILS" as const,
+            reference: "PRIOR_SESSION_BEST" as const,
+            firstFailureAction: "EXTEND_REST" as const,
+            consecutiveFailureAction: "END_SESSION_QUALITY" as const,
+            tooFastConsecutiveThreshold: null,
+            poorStartConsecutiveThreshold: 2,
+            techniqueDeterioratingAction: "COACH_REVIEW" as const,
+            techniqueNotGoodAction: null,
+            techniqueMissingAction: null,
+            velocityDecrementOutOfBandAction: null,
+            effortBecameMaximalAction: null,
+            plannedCountUnit: "REPS" as const,
+          },
+        },
+        safetyPolicy: {
+          redFlagGroups: [
+            {
+              redFlags: [
+                "PAIN_AT_REST_OR_NIGHT" as const,
+                "SWELLING" as const,
+                "LIMPING" as const,
+                "NUMBNESS_TINGLING" as const,
+                "DIZZINESS_OR_BREATHING_DIFFICULTY" as const,
+                "PAIN_PERSISTING_OVER_DAYS" as const,
+              ],
+              safetyOutcome: "MEDICAL_EVALUATION_RECOMMENDED" as const,
+              severityRank: 2,
+            },
+            { redFlags: ["SUDDEN_SHARP_PAIN" as const, "PAIN_WORSENING_DURING_SESSION" as const], safetyOutcome: "COACH_REVIEW" as const, severityRank: 1 },
+          ],
+          painPresentOutcome: "COACH_REVIEW" as const,
         },
         timingTolerances: [
           {

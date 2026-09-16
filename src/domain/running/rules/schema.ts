@@ -44,6 +44,7 @@ import { rangePositionSchema } from "../types/prescription";
 import { INTENSITY_REFERENCE_KINDS, TIMED_MARK_EVENTS, timedMarkEventSchema, timingMethodSchema } from "../types/intensity";
 import { RED_FLAGS, bodyRegionSchema, readinessActionCodeSchema, redFlagSchema, safetyOutcomeSchema } from "../types/readiness";
 import { evidenceRecordSchema } from "../evidence/schema";
+import { stopPolicyRuntimeIssues, stopPolicyRuntimeSchema } from "../types/monitoring";
 
 // ---------------------------------------------------------------------------
 // Template id 名前空間チェック（§3.3, §22 R2 完了条件）
@@ -639,6 +640,16 @@ export const stopPolicySchema = z.object({
    *   MANUAL_OR_OVERRIDE: 手動選択・override 経由の処方。planning は policy id の文字列で選ばない。
    */
   appliesToEligibilityPath: z.enum(["ANY", "AUTO_CONDITIONS_MET", "MANUAL_OR_OVERRIDE"]),
+  /**
+   * [R8 structured metadata] §10.3 の表の実行時挙動（参照の決め方・1回目/連続 FAIL の action・startQuality・
+   * technique・vdec・全力化・予定数の単位）。`ruleDescriptionJa` は説明専用で、monitor は id も説明文も解析しない。
+   * 既存の `consecutiveFailuresToStop` / `numericStopAvailable` の値は変えず、矛盾しないことだけを検証する。
+   */
+  runtime: stopPolicyRuntimeSchema,
+}).superRefine((policy, ctx) => {
+  for (const message of stopPolicyRuntimeIssues(policy)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: ["runtime"] });
+  }
 });
 export type StopPolicy = z.infer<typeof stopPolicySchema>;
 

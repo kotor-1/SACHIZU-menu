@@ -31,7 +31,16 @@ import { ruleSetSchema, type RuleSet } from "@/domain/running/rules/schema";
 import { resolveSubjectProfile } from "@/domain/running/context/subject";
 import { renderRationaleJa } from "@/domain/running/rationale/render-ja";
 import { createCoachActor } from "@/domain/running/types/actor";
-import { READINESS_ACTION_CODES, readinessReportSchema, type PainReport, type ReadinessReport } from "@/domain/running/types/readiness";
+import {
+  BODY_REGIONS,
+  READINESS_ACTION_CODES,
+  RED_FLAGS,
+  SAFETY_OUTCOMES,
+  readinessReportSchema,
+  type PainReport,
+  type ReadinessReport,
+} from "@/domain/running/types/readiness";
+import { runtimeSafetyPolicySnapshotSchema } from "@/domain/running/types/monitoring";
 import type { IsoDate, Unit } from "@/domain/running/types/primitives";
 import type { FieldValue, RunningPrescriptionValue } from "@/domain/running/types/prescription";
 import type { AthleteProfile, Subject } from "@/domain/running/types/subject";
@@ -665,14 +674,97 @@ const FORBIDDEN_KEYS = [
 describe("T-AI-06 / §13.5: 健康情報を持ち出さない", () => {
   const present = report({ pain: { status: "PRESENT", regions: ["KNEE", "HAMSTRING"], redFlags: [] }, soreness: 4, fatigue: 5, sleepQuality: 1 });
 
-  it("処方（JSON）に痛み・尺度・報告者・生年月日・成熟度が現れない", () => {
+  // [R8 scope correction — privacy を弱める変更ではない]
+  // R5 のこのテストは「処方 JSON 全体に "pain" が1文字でもあってはならない」という文字列走査で §13.5 を近似していた。
+  // R8 で monitor 用に `monitoringSnapshot.safetyPolicy`（RuleSet からコピーした全選手共通の red flag → safetyOutcome の
+  // versioned runtime policy）を処方へ保存するようになり、その定義に含まれる RedFlag の enum 名（PAIN_AT_REST_OR_NIGHT 等）
+  // まで誤検出する。§13.5 が禁じるのは **選手本人の health observation**（報告された BodyRegion・選択された RedFlag・
+  // pain/soreness/fatigue/sleep の値・reporter 等）であり、static policy 定義ではない（§13.5 / §17.1 [R8 errata]）。
+  // そこで検査を2層に分ける:
+  //   A. 個人 health data の走査 — safetyPolicy を除いた処方全体（既存 R5 invariant をそのまま維持）
+  //   B. safetyPolicy 専用の検証 — strict・RuleSet と完全一致・自由記述/部位/報告者/尺度/選択値/rule id を含まない
+  //   C. safetyPolicy は選手・readiness 入力・action・safetyOutcome から独立（個人入力が混入していない）
+  it("A: safetyPolicy を除いた処方全体に、個人の health data（痛み・部位・尺度・報告者・生年月日・成熟度）が現れない", () => {
     const decision = resolveReadinessAction(present, context({ method: "STRIDE", ageBand: "U15" }));
     const p = expectOk(plan("STRIDE", "ST_RELAXED", { readiness: decision, subject: u18PostDeveloping() }));
-    const json = JSON.stringify(p);
-    for (const key of FORBIDDEN_KEYS) expect(json.toLowerCase(), key).not.toContain(key.toLowerCase());
+    const individualScope = JSON.stringify({ ...p, monitoringSnapshot: { ...p.monitoringSnapshot, safetyPolicy: null } }).toLowerCase();
+    for (const key of [...FORBIDDEN_KEYS, "athleteReport", "readinessReport", "painNow", "painRegion"]) {
+      expect(individualScope, key).not.toContain(key.toLowerCase());
+    }
     // 残ってよいのは「適用した action」と safetyOutcome だけ
     expect(p.readinessApplied.length).toBeGreaterThan(0);
     expect(p.safetyOutcome).toBe("COACH_REVIEW");
+    // 選手が報告した部位の値・尺度の名前は、safetyPolicy を含む処方全体のどこにも現れない
+    const fullJson = JSON.stringify(p);
+    for (const region of present.pain.regions) expect(fullJson, region).not.toContain(region);
+    for (const word of ["region", "soreness", "fatigue", "sleep", "reporter"]) expect(fullJson.toLowerCase(), word).not.toContain(word);
+  });
+
+  it("B: safetyPolicy は strict な static policy — RuleSet の red flag グループと完全一致し、自由記述・部位・報告者・尺度・rule id を持たない", () => {
+    const decision = resolveReadinessAction(present, context({ method: "STRIDE", ageBand: "U15" }));
+    const policy = expectOk(plan("STRIDE", "ST_RELAXED", { readiness: decision, subject: u18PostDeveloping() })).monitoringSnapshot.safetyPolicy;
+
+    // RuleSet の PAIN_RED_FLAG_GROUP 行（redFlags / safetyOutcome / severityRank）と PAIN_PRESENT 行の safetyOutcome のコピーだけ
+    expect(policy).toEqual({
+      redFlagGroups: ruleSet.readinessRules.flatMap((r) =>
+        r.kind === "PAIN_RED_FLAG_GROUP" ? [{ redFlags: r.redFlags, safetyOutcome: r.safetyOutcome, severityRank: r.severityRank }] : [],
+      ),
+      painPresentOutcome: ruleSet.readinessRules.find((r) => r.kind === "PAIN_PRESENT")!.safetyOutcome,
+    });
+
+    // 構造: 許されるキーだけ・文字列は RedFlag / SafetyOutcome の enum 値だけ（自由記述・BodyRegion を含まない）・数値は severityRank だけ
+    const ALLOWED_KEYS = new Set(["redFlagGroups", "redFlags", "safetyOutcome", "severityRank", "painPresentOutcome"]);
+    const ALLOWED_STRINGS = new Set<string>([...RED_FLAGS, ...SAFETY_OUTCOMES]);
+    const walk = (value: unknown, key: string | null): void => {
+      if (Array.isArray(value)) return value.forEach((v) => walk(v, key));
+      if (value !== null && typeof value === "object") {
+        for (const [k, v] of Object.entries(value)) {
+          expect(ALLOWED_KEYS.has(k), k).toBe(true);
+          walk(v, k);
+        }
+        return;
+      }
+      if (typeof value === "string") {
+        expect(ALLOWED_STRINGS.has(value), value).toBe(true);
+        expect((BODY_REGIONS as readonly string[]).includes(value), value).toBe(false);
+      } else {
+        expect(key, String(value)).toBe("severityRank");
+        expect(Number.isInteger(value)).toBe(true);
+      }
+    };
+    walk(policy, null);
+    const policyJson = JSON.stringify(policy);
+    expect(policyJson).not.toContain("RDN_");
+    for (const word of ["reporter", "reportedAt", "soreness", "fatigue", "sleep", "region"]) expect(policyJson.toLowerCase(), word).not.toContain(word.toLowerCase());
+
+    // strict: 選手の値や rule id・自由記述を混ぜた snapshot は schema が拒否する
+    const group0 = policy.redFlagGroups[0];
+    const rejects = [
+      { ...policy, regions: ["KNEE"] },
+      { ...policy, reporter: "ATHLETE" },
+      { ...policy, selectedRedFlags: ["LIMPING"] },
+      { ...policy, note: "膝が痛い" },
+      { ...policy, redFlagGroups: [{ ...group0, sourceRuleId: "RDN_RED_FLAG_MEDICAL" }, ...policy.redFlagGroups.slice(1)] },
+      { ...policy, redFlagGroups: [{ ...group0, soreness: 4 }, ...policy.redFlagGroups.slice(1)] },
+    ];
+    expect(runtimeSafetyPolicySnapshotSchema.safeParse(policy).success).toBe(true);
+    for (const bad of rejects) expect(runtimeSafetyPolicySnapshotSchema.safeParse(bad).success, JSON.stringify(Object.keys(bad))).toBe(false);
+  });
+
+  it("C: safetyPolicy は選手・readiness 入力・readiness action・safetyOutcome から独立（個人入力が混入しない）", () => {
+    const variants: [string, RunningPrescriptionValue][] = [
+      ["readiness なし・ADULT", expectOk(plan("ACCELERATION", "ACC_BLOCK_20", { subject: adultAdvanced() }))],
+      ["痛みあり（部位2つ・尺度高）・U18", expectOk(plan("STRIDE", "ST_RELAXED", { readiness: resolveReadinessAction(present, context({ method: "STRIDE", ageBand: "U15" })), subject: u18PostDeveloping() }))],
+      ["疲労のみ（USE_LOWER_BOUND 等・safetyOutcome NONE）", expectOk(plan("TEMPO_EXTENSIVE", "TE_200", { readiness: resolveReadinessAction(report({ fatigue: 4 }), context({ method: "TEMPO_EXTENSIVE" })) }))],
+      ["痛みなし・NO_CHANGE", expectOk(plan("ACCELERATION", "ACC_BLOCK_20", { readiness: resolveReadinessAction(report(), context()) }))],
+      ["別部位の痛み", expectOk(plan("STRIDE", "ST_RELAXED", { readiness: resolveReadinessAction(report({ pain: { status: "PRESENT", regions: ["HEEL"], redFlags: [] } }), context({ method: "STRIDE" })) }))],
+    ];
+    const outcomes = new Set(variants.map(([, p]) => p.safetyOutcome));
+    const actions = new Set(variants.map(([, p]) => JSON.stringify(p.readinessApplied)));
+    expect(outcomes.size).toBeGreaterThan(1);
+    expect(actions.size).toBeGreaterThan(1);
+    const [, first] = variants[0];
+    for (const [label, p] of variants) expect(p.monitoringSnapshot.safetyPolicy, label).toEqual(first.monitoringSnapshot.safetyPolicy);
   });
 
   it("rationale の日本語も、行った調整だけを述べて入力内容を述べない", () => {

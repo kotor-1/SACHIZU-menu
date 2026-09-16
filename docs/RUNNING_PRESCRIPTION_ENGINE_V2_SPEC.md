@@ -1456,6 +1456,74 @@ export function monitorRunningPrescription(state: MonitorState, obs: RepObservat
 - `EXTEND_REST` は1本につき1回まで。延長後の rest は `repRestS.coachEditable.max` を超えない。
 - 実測露出: `actualHighSpeedExposureM` が MEASURED で来たら採用。来なければ **planned の区間を `source: "PLANNED"` でコピー**（完了した本数分のみ）。null を 0 にしない。
 
+### 10.6 [R8 representation errata]（R8 実装で確定した表現）
+
+§10.1〜§10.5 の意味は変えず、実装上の表現だけを次のとおり確定する（`src/domain/running/monitoring/` と
+`src/domain/running/types/monitoring.ts` の Zod が正）。
+
+- **monitor は RuleSet を読まない。** `MonitorState = { prescription, priorLogs }`。判定に使う policy は
+  `prescription.monitoringSnapshot`（`stopPolicy` / `timingTolerances` / `safetyPolicy`）だけで、RuleSet の version / hash を
+  別に受け取らない。処方の再生成・Envelope の再選択・athlete context / weekly / competition / readiness / phase の再評価をしない。
+  永続化もしない（`actualRepLogJson` 等への保存は R11）。
+- **StopPolicy の機械可読化（`StopPolicy.runtime`）。** R2〜R7 の StopPolicy は挙動を `ruleDescriptionJa`（自然文）にしか
+  持たず、policy id やテキストを解析しないと判定できなかった。R8 で次を追加する（値は §10.3 の表の言い換えのみ。既存の
+  `consecutiveFailuresToStop` / `numericStopAvailable` / 説明文 / 全 TimingTolerance は不変）:
+  `timingEvaluation`（SLOWER_THAN_REFERENCE_FAILS / FASTER_THAN_TARGET_LOWER_WARNS / NONE）、`reference`
+  （PRIOR_SESSION_BEST / TARGET_UPPER / TARGET_UPPER_ELSE_PRIOR_SESSION_BEST / TARGET_LOWER / NONE）、`firstFailureAction`、
+  `consecutiveFailureAction`、`tooFastConsecutiveThreshold`（TE）、`poorStartConsecutiveThreshold`（ACC/MV）、
+  `techniqueDeterioratingAction`、`techniqueNotGoodAction` / `techniqueMissingAction`（AS）、`velocityDecrementOutOfBandAction`（RS）、
+  `effortBecameMaximalAction`（STRIDE）、`plannedCountUnit`（REPS / ATTEMPTS）。`numericStopAvailable` などとの矛盾は schema で拒否する。
+  SP_LSR_INCOMPLETE_ADV と SP_LSR_INCOMPLETE_STRICT の差は `consecutiveFailureAction`（COACH_REVIEW / END_SESSION_QUALITY）だけで表す。
+- **Safety gate（最優先）と safetyOutcome。** `painNow` / `redFlags` / `requestsStop` / `technique=UNSAFE` / `environmentUnsafe`
+  のどれかで STOP_SAFETY（timeS=null でも）。safetyOutcome は、red flag なら snapshot の `safetyPolicy.redFlagGroups` の
+  該当グループのうち最大 severityRank、red flag なしの痛みは `safetyPolicy.painPresentOutcome`、本人の中止要請・UNSAFE・環境・
+  ASSISTED の技術は健康情報に由来しない中止として **COACH_REVIEW**（対応する RuleSet 行が無く、readinessRules は変更しない
+  ため contract として固定）。複数該当は最も重い outcome。
+- **RepObservation の追加フィールド。** `measuredVelocityDecrementPercent`（0–100）: RS の vdec。処方 snapshot に無抵抗時の
+  基準速度が無いため `measuredVelocityMps` から計算しない。`coachJudgment.effortBecameMaximal`: STRIDE の「全力化」判定
+  （DETERIORATING 等を全力化と読み替えない）。setIndex / repIndex は 1 始まり。1つの観測は「実施した1本」を表す。
+- **VIDEO の fps 矛盾の解消。** §19.1 の「VIDEO なら fps 必須」を撤回し T-TIM-05 を採用: fps が無い / null の VIDEO は
+  schema で拒否せず、正規化で effective timing を UNKNOWN に落として COACH_ONLY。fps があれば tolerance = `toleranceSPerFps / fps`。
+- **参照タイムと参照候補。** 2つの概念を1つの boolean に潰さない:
+  - **isReferenceCandidate**（その本のタイムが time-domain で有効な計測か）: 数値 tolerance が定義される effective timing
+    （HAND / PHOTO_CELL / FAT / fps のある VIDEO）でタイムがあり、**STOP_SAFETY の本ではない**こと。quality とは独立で、
+    **比率条件で COACH_ONLY になった本も候補に含める**（例: HAND fly10 の真のベスト 1.10 秒を候補から外すと、後の遅い 2.6 秒が
+    参照になり突然数値 stop が効いてしまう）。`effectiveTiming=UNKNOWN`（timing=UNKNOWN・fps 無し VIDEO）、時間 tolerance が
+    定義されない RADAR_LASER（速度 policy とは別）、STOP_SAFETY の本は候補にしない。FAIL の本も候補（ベストを更新しないだけ）。
+  - **isNumericStopEvaluable**（今回の本を参照と数値比較して PASS / FAIL を出してよいか）: 今回の本が time-domain の計測であり、
+    `tolerance / 参照 ≤ coachOnlyRatioThreshold`。
+  - `PRIOR_SESSION_BEST` = 同じ処方のこれまでのログのうち、同じ effective timing の参照候補のタイムの最小値（今回の本は含めない。
+    HAND と PHOTO_CELL を混ぜない）。候補が無い最初の本は **「参照の確立」**（quality=PASS、reason REFERENCE_ESTABLISHED、
+    referenceTimeS=null）であり、自分自身に対して架空のベストを作って FAIL 判定しない。ただし自分のタイムに対する比率条件を
+    満たさなければ COACH_ONLY（それでも以降の参照候補にはなる）。`TARGET_UPPER` = snapshot の `intensity.target`（秒）の上端。目標が無ければ
+  COACH_ONLY（NO_NUMERIC_REFERENCE。PB 等から再推定しない）。`tolerance / 参照 > coachOnlyRatioThreshold` は COACH_ONLY
+  （ちょうど等しいのは数値評価）。FAIL = `timeS > 参照 + tolerance`（等しいのは PASS）。
+- **連続判定。** 連続 FAIL は PASS で途切れ、**NOT_EVALUATED_COACH_ONLY の本でも途切れる**（FAIL→COACH_ONLY→FAIL は2回連続に
+  しない）。action=END_SET で終わった本より前の FAIL は次の set に持ち越さない。`firstFailureAction`（EXTEND_REST）は連続 FAIL が
+  ちょうど1回目のときだけ。startQuality=POOR の連続は GOOD でも未入力でも途切れる。SP_TE の「速すぎ」
+  （`timeS < 目標下端 − tolerance`）は評価できない本で途切れ、連続しても action は CONTINUE のまま reason
+  `TEMPO_FASTER_THAN_TARGET_REPEATED`（WARN 相当）だけを出す。
+- **action の優先順位。** STOP_SAFETY > END_SESSION_QUALITY > END_SET > EXTEND_REST > COACH_REVIEW > CONTINUE（順位表は1か所）。
+  reason は全 trigger 分を残す。
+- **EXTEND_REST の休息。** 延長量の式（+30秒・割合）を作らない。`nextRepRestS = { min: 計画の repRestS.value, max:
+  repRestS.coachEditable.max }`（最低でも現行の休息を確保し、延長量はコーチが決める）。計画値 ≥ coachEditable.max で延長の
+  余地が無ければ EXTEND_REST を返さず COACH_REVIEW（REST_EXTENSION_UNAVAILABLE）。EXTEND_REST 以外では `nextRepRestS=null`。
+  同じ (setIndex, repIndex) の再判定は拒否（priorLogs は昇順・重複なし、観測は最後のログより後）するため、同じ本で EXTEND_REST
+  が二重に出ない。`restTakenS` はログに残すだけで判定に使わない。
+- **予定数への到達。** 完了本数（ログ件数 + 今回）≥ `sets × repsPerSet` で END_SESSION_QUALITY。reason は
+  `PLANNED_REPS_COMPLETE`（EA は `ATTEMPTS_COMPLETE`）とし、品質低下による終了と区別する。
+- **RepLogEntry（正式化）。** `stopPolicyId, setIndex, repIndex, timeS, timing, effectiveTiming, toleranceS, referenceTimeS,
+  referenceSource, quality, fasterThanTargetLower, startQuality, measuredVelocityDecrementPercent, action, safetyOutcome,
+  restTakenS, highSpeedExposureM, reasons`。痛み・部位・red flag・athleteReport の生値・自由記述・RuleSet object は保存しない。
+  reason（StopReason）は永続化・日本語レンダリング可能な enum で、athlete 由来の中止は `SAFETY_STOP_ATHLETE` の1コードに
+  まとめる（痛み・red flag・中止要請を区別して保存しない）。
+- **実測露出。** 観測の `actualHighSpeedExposureM` は `source: "MEASURED"` だけを受け付ける。無ければ計画の項目合計
+  （全本同一の積算）を `sets × repsPerSet` で割った1本分を `source: "PLANNED"` でコピー（null bound は null）。累積は完了した本数分
+  だけを R6 の `sumIntervals`（null 伝播・弱い source / confidence を採る）で合計し、未来の予定本数を足さない。
+- **[R8 deviation] セッション全体の曝露上限。** §10.4 step 6 の「実測露出が集計上限超過」は、1項目の処方 snapshot から R6 の
+  セッション単位の予算を再構成できないため **評価しない**（`exposureLimitEvaluation: "NOT_EVALUATED"`。「上限内」と楽観しない）。
+  planned exposure の上端や flyVolume の上限を安全上限と読み替えない。R9 / R11 でセッション単位の snapshot を接続する。
+
 ---
 
 ## 11. Session Aggregation
@@ -1854,6 +1922,19 @@ export type AiSafeSubjectContext = {
 
 - 保存: v2 で永続化するのは `readinessActions`（enum 配列）と `safetyOutcome`（enum）だけ。**部位・red flag・尺度値は保存しない**（その場の判定にだけ使う）。傷害履歴として残すかは [OPEN-15]。
 - テスト: `AiSafeSubjectContext` を JSON 化した文字列に `pain` `region` `redFlag` `soreness` `fatigue` `sleep` `birth` `sex` `maturity` のキーが含まれないこと（§20 T-AI-06）。
+- **[R8 errata]「部位・red flag・尺度値は保存しない」の意味の明確化。** 保存を禁じるのは **選手本人の health observation**
+  — 報告された `BodyRegion`、選択された `RedFlag`、pain / soreness / fatigue / sleep の値、reporter / reportedAt、
+  athleteReport / ReadinessReport の生値 — である。RuleSet から plan 時にコピーした **全選手共通の runtime safety policy
+  定義**（`monitoringSnapshot.safetyPolicy` = RedFlag → safetyOutcome のグループ表。RedFlag の enum 名を含む）は health
+  observation ではなく、snapshot の再現性（§17.1-5）のために `plannedPrescriptionJson` へ保存してよい。ただし policy snapshot へ
+  **選手の選択値・部位・尺度・報告者・rule id を混入してはならない**（schema は `.strict()` で拒否し、テストで「選手・readiness
+  入力に依存せず RuleSet の行と完全一致」を検証する）。
+  - これに合わせ、R5 の「処方 JSON 全体に `pain` が1文字でもあってはならない」という文字列走査テストは、static policy 名
+    （`PAIN_AT_REST_OR_NIGHT` 等）まで誤検出するため、**privacy を弱める変更ではなく「個人 health data」と「static runtime
+    policy」を区別する scope correction** として2層に分けた: A. safetyPolicy を除いた処方全体の個人 health data 走査（R5 invariant
+    を維持）、B. safetyPolicy 専用の検証（strict・RuleSet と完全一致・自由記述 / BodyRegion / reporter / 尺度 / 選択値 / rule id 無し）、
+    C. safetyPolicy が選手・readiness 入力・action・safetyOutcome から独立であること。
+  - RepLogEntry（§10.6）にも painNow / painRegion / RedFlag / athleteReport / BodyRegion / 症状の詳細を保存しない。
 
 ### 13.6 [R5 representation errata]（R5 実装で確定した表現）
 
@@ -2275,6 +2356,14 @@ export type Provenance = {
    - **[R4 errata]** 埋め込み先は `RunningPrescription.monitoringSnapshot`（`stopPolicy` = 選ばれた StopPolicy の行のコピー、
      `timingTolerances` = plan 時点の全 TimingMethod の行のコピー）。`stopPolicyId` は検索・表示用。RuleSet を後から変更しても
      既存処方の snapshot は変わらないことを R4 のテストで保証する（monitor 本体は R8）。
+   - **[R8 errata]** snapshot に次を追加する: `stopPolicy.runtime`（§10.3 の実行時挙動の構造化 metadata。§10.6）と
+     `safetyPolicy`（§13.2 の red flag グループと「痛みあり」の safetyOutcome を R5 readinessRules からコピーした
+     versioned policy。選手の健康情報ではない）。monitor は RuleSet loader・manifest・production JSON を一切 import しない。
+   - **[R8 errata]** `safetyPolicy` も `stopPolicy` / `timingTolerances` と同じ snapshot 不変条件に従う: RuleSet A で計画した処方は、
+     RuleSet を B に変更（例: medical red flag のグループ変更）しても A の policy で monitor する。全選手共通の policy 定義であり
+     §13.5 の保存禁止対象（選手本人の health observation）ではないため `plannedPrescriptionJson` に保存してよいが、選手の選択値・
+     部位・尺度・報告者・rule id を含めてはならない（readinessRules の rule id もコピーしない。monitor に必要なのは RedFlag →
+     SafetyOutcome のグループだけ）。
 6. 理由文は plan 時に**レンダリング済みテキスト**で保存する（コードも保存するが、後から再レンダリングしない）。
 
 ### 17.2 コピー対応表（MenuItem → SessionItem）
@@ -2376,7 +2465,7 @@ export function proposalToPlanRequests(
 | `ProvenanceSchema` | 保存前 | 健康情報キーの不在 |
 | `RunningMenuContextSchema` | MenuTemplate 保存前 | `.strict()`。pain/soreness/sleep/sex/birthDate の詳細を持てない |
 | `ReadinessReportSchema` | 当日入力（保存しない） | 選択式のみ |
-| `RepObservationSchema` | monitor 入力 | timing=VIDEO なら fps 必須 |
+| `RepObservationSchema` | monitor 入力 | `.strict()`。index は 1 始まり整数、timeS / fps / 速度は finite > 0、restTakenS ≥ 0、vdec 0–100、実測露出は `source: "MEASURED"`・finite ≥ 0・lower ≤ upper。**[R8 errata] timing=VIDEO で fps が無くても拒否しない**（§20 T-TIM-05 を採用。正規化で UNKNOWN 扱い → COACH_ONLY） |
 | `CoachOverrideSchema` | override Action | reason ≥ 10文字、HARD_SAFETY/ELIGIBILITY は confirmedTwice=true |
 | `CompetitionInputSchema` | 大会登録 | priority enum、date 必須 |
 | `aiRunningItemProposalSchema` | MenuPlanner 出力の受け取り | `.strict()`、templateId の実在 |

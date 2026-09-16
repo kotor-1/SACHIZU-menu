@@ -110,7 +110,21 @@
       "ruleDescriptionJa": "test fixture: no numeric stop",
       "consecutiveFailuresToStop": null,
       "numericStopAvailable": false,
-      "appliesToEligibilityPath": "ANY"
+      "appliesToEligibilityPath": "ANY",
+      "runtime": {
+        "timingEvaluation": "NONE",
+        "reference": "NONE",
+        "firstFailureAction": null,
+        "consecutiveFailureAction": null,
+        "tooFastConsecutiveThreshold": null,
+        "poorStartConsecutiveThreshold": null,
+        "techniqueDeterioratingAction": null,
+        "techniqueNotGoodAction": null,
+        "techniqueMissingAction": null,
+        "velocityDecrementOutOfBandAction": null,
+        "effortBecameMaximalAction": null,
+        "plannedCountUnit": "REPS"
+      }
     }
   ],
   "aggregationRules": [],

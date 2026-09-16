@@ -10,6 +10,7 @@ import type { Finding, RationaleLine } from "../types/findings";
 import type { QuantityInterval } from "../types/primitives";
 import type { RunningPrescriptionValue } from "../types/prescription";
 import { runningPrescriptionSchema, stopPolicySnapshotSchema, timingToleranceSnapshotSchema } from "../types/prescription";
+import { runtimeSafetyPolicySnapshotSchema, type RuntimeSafetyPolicySnapshot } from "../types/monitoring";
 import type { GenerationRecord } from "../types/actor";
 import { resolveSubjectProfile, type SubjectProfile } from "../context/subject";
 import { rationaleLine } from "../rationale/codes";
@@ -697,6 +698,23 @@ function applyReadinessActions(args: {
 // pipeline
 // ---------------------------------------------------------------------------
 
+/**
+ * [R8] §13.2 の red flag グループと「痛みあり（red flag なし）」の safetyOutcome を、実施中の safety 判定用に
+ * 処方へコピーする（monitor は RuleSet を読めない）。R5 readinessRules の行をそのまま写すだけで、グループや
+ * outcome を TS に複製しない。必要な行が RuleSet に無ければ null（計画を BLOCKED にする）。
+ */
+function buildRuntimeSafetyPolicySnapshot(ruleSet: RuleSet): RuntimeSafetyPolicySnapshot | null {
+  const redFlagGroups = ruleSet.readinessRules.flatMap((r) =>
+    r.kind === "PAIN_RED_FLAG_GROUP"
+      ? [{ redFlags: [...r.redFlags], safetyOutcome: r.safetyOutcome, severityRank: r.severityRank }]
+      : [],
+  );
+  const painPresent = ruleSet.readinessRules.find((r) => r.kind === "PAIN_PRESENT");
+  if (redFlagGroups.length === 0 || !painPresent || painPresent.kind !== "PAIN_PRESENT") return null;
+  const parsed = runtimeSafetyPolicySnapshotSchema.safeParse({ redFlagGroups, painPresentOutcome: painPresent.safetyOutcome });
+  return parsed.success ? parsed.data : null;
+}
+
 export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet, depth = 0): PlanResult {
   const { ruleSet, contentHash } = resolved;
 
@@ -959,9 +977,14 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
   const stopPolicyId = stopPolicy.id;
   // §17.1 / [R4 errata]: monitor が RuleSet を再読込しないよう、plan 時点の StopPolicy と全 TimingTolerance の
   // データをコピーして処方に埋め込む（RuleSet の object への参照を持たない）。
+  const safetyPolicy = buildRuntimeSafetyPolicySnapshot(ruleSet);
+  if (safetyPolicy === null) {
+    return blocked([itemFinding("MONITORING_SAFETY_POLICY_UNRESOLVED", "BLOCK")]);
+  }
   const monitoringSnapshot = {
     stopPolicy: stopPolicySnapshotSchema.parse(structuredClone(stopPolicy)),
     timingTolerances: ruleSet.timingTolerances.map((t) => timingToleranceSnapshotSchema.parse(structuredClone(t))),
+    safetyPolicy,
   };
 
   // ---- step 15: rationale / output ----

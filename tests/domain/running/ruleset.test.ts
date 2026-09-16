@@ -1022,7 +1022,7 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
     const NEW_KEYS: Record<string, string[]> = {
       templates: ["approachType", "resistanceBand", "fixedDistanceField"],
       eligibility: ["conditions", "autoGenerationLimits"],
-      stopPolicies: ["appliesToEligibilityPath"],
+      stopPolicies: ["appliesToEligibilityPath", "runtime"],
       plausibility: ["inputTarget", "outputTarget"],
     };
     const EXPECTED: Record<string, string> = {
@@ -1045,6 +1045,60 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
     expect(rs.status).toBe("DRAFT");
     expect(rs.validFrom).toBe("2026-09-15");
     expect(rs.ruleSetVersion).toBe("rs-2026.09.0");
+  });
+
+  // [R8] 上の byte freeze は StopPolicy.runtime を除外する（R8 で追加した metadata のため）。除外した領域を
+  // 未検証のまま残さないよう、runtime は §10.3 の表と全件・全フィールドを明示的に照合する。
+  it("[R8] StopPolicy.runtime は全 policy に存在し、§10.3 の表と全フィールド一致（freeze 除外の未検証領域にしない）", () => {
+    const none = {
+      firstFailureAction: null,
+      consecutiveFailureAction: null,
+      tooFastConsecutiveThreshold: null,
+      poorStartConsecutiveThreshold: null,
+      techniqueDeterioratingAction: "COACH_REVIEW",
+      techniqueNotGoodAction: null,
+      techniqueMissingAction: null,
+      velocityDecrementOutOfBandAction: null,
+      effortBecameMaximalAction: null,
+      plannedCountUnit: "REPS",
+    };
+    const EXPECTED: Record<string, { consecutiveFailuresToStop: number | null; numericStopAvailable: boolean; runtime: Record<string, unknown> }> = {
+      // 1回目 FAIL → EXTEND_REST（1回まで）。2回連続 FAIL → END_SESSION_QUALITY。startQuality=POOR 2回連続 → COACH_REVIEW
+      SP_ACC: { consecutiveFailuresToStop: 2, numericStopAvailable: true, runtime: { ...none, timingEvaluation: "SLOWER_THAN_REFERENCE_FAILS", reference: "PRIOR_SESSION_BEST", firstFailureAction: "EXTEND_REST", consecutiveFailureAction: "END_SESSION_QUALITY", poorStartConsecutiveThreshold: 2 } },
+      // SP_ACC と同じ（参照はセッション内 fly ベスト）
+      SP_MV: { consecutiveFailuresToStop: 2, numericStopAvailable: true, runtime: { ...none, timingEvaluation: "SLOWER_THAN_REFERENCE_FAILS", reference: "PRIOR_SESSION_BEST", firstFailureAction: "EXTEND_REST", consecutiveFailureAction: "END_SESSION_QUALITY", poorStartConsecutiveThreshold: 2 } },
+      // 目標区間の上端（無ければセッション内ベスト）。2回連続 FAIL → END_SESSION_QUALITY
+      SP_SES: { consecutiveFailuresToStop: 2, numericStopAvailable: true, runtime: { ...none, timingEvaluation: "SLOWER_THAN_REFERENCE_FAILS", reference: "TARGET_UPPER_ELSE_PRIOR_SESSION_BEST", consecutiveFailureAction: "END_SESSION_QUALITY" } },
+      // 目標スプリット上端。2回連続 FAIL → END_SESSION_QUALITY
+      SP_LSR_FULL: { consecutiveFailuresToStop: 2, numericStopAvailable: true, runtime: { ...none, timingEvaluation: "SLOWER_THAN_REFERENCE_FAILS", reference: "TARGET_UPPER", consecutiveFailureAction: "END_SESSION_QUALITY" } },
+      // 分割走内の低下では止めない。2回連続で目標超過 → COACH_REVIEW
+      SP_LSR_INCOMPLETE_ADV: { consecutiveFailuresToStop: 2, numericStopAvailable: true, runtime: { ...none, timingEvaluation: "SLOWER_THAN_REFERENCE_FAILS", reference: "TARGET_UPPER", consecutiveFailureAction: "COACH_REVIEW" } },
+      // SP_LSR_FULL と同じ
+      SP_LSR_INCOMPLETE_STRICT: { consecutiveFailuresToStop: 2, numericStopAvailable: true, runtime: { ...none, timingEvaluation: "SLOWER_THAN_REFERENCE_FAILS", reference: "TARGET_UPPER", consecutiveFailureAction: "END_SESSION_QUALITY" } },
+      // 数値 stop なし（COACH_ONLY）。目標下端より速すぎが2回 → WARN
+      SP_TE: { consecutiveFailuresToStop: null, numericStopAvailable: false, runtime: { ...none, timingEvaluation: "FASTER_THAN_TARGET_LOWER_WARNS", reference: "TARGET_LOWER", tooFastConsecutiveThreshold: 2 } },
+      // 2回連続 FAIL → END_SET
+      SP_TI: { consecutiveFailuresToStop: 2, numericStopAvailable: true, runtime: { ...none, timingEvaluation: "SLOWER_THAN_REFERENCE_FAILS", reference: "TARGET_UPPER", consecutiveFailureAction: "END_SET" } },
+      // band 外 → COACH_REVIEW
+      SP_RS: { consecutiveFailuresToStop: null, numericStopAvailable: false, runtime: { ...none, timingEvaluation: "NONE", reference: "NONE", velocityDecrementOutOfBandAction: "COACH_REVIEW" } },
+      // technique ≠ GOOD → STOP_SAFETY（未入力は GOOD と推測しない）
+      SP_AS: { consecutiveFailuresToStop: null, numericStopAvailable: false, runtime: { ...none, timingEvaluation: "NONE", reference: "NONE", techniqueDeterioratingAction: null, techniqueNotGoodAction: "STOP_SAFETY", techniqueMissingAction: "COACH_REVIEW" } },
+      // COACH_ONLY。attempts 上限到達 → END_SESSION_QUALITY
+      SP_EA: { consecutiveFailuresToStop: null, numericStopAvailable: false, runtime: { ...none, timingEvaluation: "NONE", reference: "NONE", plannedCountUnit: "ATTEMPTS" } },
+      // 数値 stop なし。コーチの「全力化」判定 → COACH_REVIEW
+      SP_STRIDE: { consecutiveFailuresToStop: null, numericStopAvailable: false, runtime: { ...none, timingEvaluation: "NONE", reference: "NONE", effortBecameMaximalAction: "COACH_REVIEW" } },
+    };
+    expect(rs.stopPolicies.map((sp) => sp.id).sort()).toEqual(Object.keys(EXPECTED).sort());
+    for (const sp of rs.stopPolicies) {
+      const expected = EXPECTED[sp.id];
+      expect(sp.runtime, sp.id).toBeDefined();
+      expect(sp.runtime, sp.id).toEqual(expected.runtime);
+      expect(sp.consecutiveFailuresToStop, sp.id).toBe(expected.consecutiveFailuresToStop);
+      expect(sp.numericStopAvailable, sp.id).toBe(expected.numericStopAvailable);
+    }
+    const r8 = rs.changelog.find((line) => line.startsWith("R8:"));
+    expect(r8).toBeDefined();
+    expect(r8).toContain("timingTolerances are unchanged");
   });
 
   it("changelog に R4 の metadata 追加が記録され、数値は不変と明記されている", () => {
