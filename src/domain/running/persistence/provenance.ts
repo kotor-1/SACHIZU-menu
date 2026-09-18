@@ -12,7 +12,7 @@
 import { z } from "zod";
 import { TRAINING_PHASES } from "../../menu/constants";
 import { envelopeFieldSchema } from "../rules/schema";
-import { coachOverrideTargetSchema } from "../planning/schema";
+import { coachOverrideTargetSchema, findingCodeSchema } from "../planning/schema";
 import { generationRecordSchema } from "../types/actor";
 import { INTENSITY_REFERENCE_KINDS } from "../types/intensity";
 import { historyCoverageLevelSchema } from "../types/load";
@@ -24,7 +24,19 @@ import {
 } from "../types/prescription";
 import { evidenceIdSchema, isoDateSchema, isoDateTimeSchema, type EvidenceId } from "../types/primitives";
 import { readinessActionCodeSchema } from "../types/readiness";
-import { ageBandSchema, envelopeTierSchema, trainingAgeTierSchema } from "../types/subject";
+import { resolvedAgeBandSchema } from "../readiness/schema";
+import { envelopeTierSchema, trainingAgeTierSchema, type TrainingAgeTier } from "../types/subject";
+
+/**
+ * [R10-B1.1] Provenance 監査ログ専用の最小型。**core の `TrainingAgeTier` へ "UNKNOWN" を追加しない**
+ * （eligibility・range lookup 等の通常利用で "UNKNOWN" を実在の tier と誤用させないため。
+ * `ResolvedAgeBand`（`../context/ageBand.ts`）と同じ設計判断）。
+ * `resolveSubjectProfile()` の `trainingAgeKnown=false`（トレーニング歴が実際には分からず、
+ * エンジンが保守的な既定値へ倒した状態）を、Provenance では偽装せず正直に "UNKNOWN" として記録するために使う。
+ */
+export const PROVENANCE_TRAINING_AGE_TIER_UNKNOWN = "UNKNOWN" as const;
+export const provenanceTrainingAgeTierSchema = z.union([trainingAgeTierSchema, z.literal(PROVENANCE_TRAINING_AGE_TIER_UNKNOWN)]);
+export type ProvenanceTrainingAgeTier = TrainingAgeTier | typeof PROVENANCE_TRAINING_AGE_TIER_UNKNOWN;
 
 export const provenanceSchema = z
   .object({
@@ -43,10 +55,18 @@ export const provenanceSchema = z
     inputsDigest: z
       .object({
         tier: envelopeTierSchema,
-        /** [R5 errata] 観測できない年齢帯は UNKNOWN のまま（U12 等へ偽装しない）。 */
-        ageBand: z.union([ageBandSchema, z.literal("UNKNOWN")]),
+        /**
+         * [R5 errata] 観測できない年齢帯は UNKNOWN のまま（U12 等へ偽装しない）。
+         * [R10-B1.1] `ResolvedAgeBand`（`context/ageBand.ts` の resolveSubjectProfile が返す型）と
+         * 同じ union をそのまま再利用する（`resolvedAgeBandSchema`。専用の別名は作らない）。
+         */
+        ageBand: resolvedAgeBandSchema,
         maturityEffective: z.string().min(1).max(64),
-        trainingAgeTier: trainingAgeTierSchema,
+        /**
+         * [R10-B1.1] トレーニング歴が実際に入力されていた場合は解決済みの `TrainingAgeTier`、
+         * 分からない場合は `"UNKNOWN"`（エンジン内部の保守的な既定値 BEGINNER 等へは偽装しない）。
+         */
+        trainingAgeTier: provenanceTrainingAgeTierSchema,
         phase: z.enum(TRAINING_PHASES).nullable(),
         plannedDate: isoDateSchema.nullable(),
         competitionWindows: z.array(z.string().min(1).max(64)),
@@ -81,16 +101,35 @@ export const provenanceSchema = z
           from: z.number().finite().optional(),
           to: z.number().finite().optional(),
           reason: z.string().trim().min(1).max(1000),
+          /**
+           * [R10-B4A] コーチが Action で実際に送った二重確認の値（backward-compatible optional）。
+           * 再計画でこの override を CoachOverride として再構築するときに使い、true へ自動昇格しない。
+           * 欠落（R10-B4A より前の記録）は「確認の記録なし」= false として扱う。
+           */
+          confirmedTwice: z.boolean().optional(),
         })
         .strict(),
     ),
     /** AI の説明文（数値・出典除去済み §18.3）。 */
     aiReason: z.string().max(300).nullable(),
+    /**
+     * [R10-B4A] コーチが明示確認した REQUIRE_CONFIRMATION の監査記録（backward-compatible optional。schemaVersion=1 のまま）。
+     * その保存時の plan 結果に実在した code だけを記録する（client が送った任意文字列は保存しない）。
+     * 実際に確認した Finding が無い保存では key 自体を持たない。edit / override / recalculate では引き継がない。
+     */
+    findingConfirmations: z
+      .array(z.object({ code: findingCodeSchema, at: isoDateTimeSchema }).strict())
+      .max(50)
+      .optional(),
   })
   .strict()
   .superRefine((p, ctx) => {
     if (new Set(p.evidenceIds).size !== p.evidenceIds.length) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "evidenceIds に重複があります", path: ["evidenceIds"] });
+    }
+    const confirmedCodes = (p.findingConfirmations ?? []).map((c) => c.code);
+    if (new Set(confirmedCodes).size !== confirmedCodes.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "findingConfirmations に code の重複があります", path: ["findingConfirmations"] });
     }
   });
 export type Provenance = z.infer<typeof provenanceSchema>;
@@ -127,6 +166,8 @@ export function buildProvenance(args: {
   coachEdits: Provenance["coachEdits"];
   overrides: Provenance["overrides"];
   aiReason: string | null;
+  /** [R10-B4A] 今回の plan 結果に対してコーチが明示確認した code（空なら key を持たない）。 */
+  findingConfirmations?: NonNullable<Provenance["findingConfirmations"]>;
 }): Provenance {
   const { prescription } = args;
   return provenanceSchema.parse({
@@ -140,6 +181,7 @@ export function buildProvenance(args: {
     coachEdits: args.coachEdits,
     overrides: args.overrides,
     aiReason: args.aiReason,
+    ...(args.findingConfirmations !== undefined && args.findingConfirmations.length > 0 ? { findingConfirmations: args.findingConfirmations } : {}),
   });
 }
 

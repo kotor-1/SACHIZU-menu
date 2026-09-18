@@ -17,6 +17,10 @@ import {
   moveMenuItemAction,
 } from "@/actions/menu-actions";
 import { updateMenuItemAction } from "@/actions/menu-actions";
+import { RunningItemCreateForm } from "@/components/running/running-item-create-form";
+import { RunningItemPanel } from "@/components/running/running-item-panel";
+import type { TemplatePickerProviderResult } from "@/actions/_running-template-options";
+import type { SavedRunningItemPresentation } from "@/presentation/running/server";
 import { formatPrescription } from "@/domain/shared/prescription";
 import type { TrainingPhase } from "@/domain/menu/constants";
 import type { MenuBlockDetail } from "@/infra/repositories/menu-repository";
@@ -70,6 +74,16 @@ function IconForm({
   );
 }
 
+/**
+ * [R10-B4B] 走トレーニング（Running v2）の表示に必要な DTO。
+ * `null` = feature flag OFF。そのとき、このコンポーネントは B4B 前とまったく同じ表示・操作になる。
+ */
+export type MenuBlockRunningView = {
+  /** MenuItem.id → 保存済み走項目の表示。 */
+  items: Record<string, SavedRunningItemPresentation>;
+  picker: TemplatePickerProviderResult;
+};
+
 export function MenuBlockEditor({
   menuId,
   block,
@@ -77,6 +91,7 @@ export function MenuBlockEditor({
   isFirst,
   isLast,
   phase = null,
+  running = null,
 }: {
   menuId: string;
   block: MenuBlockDetail;
@@ -85,8 +100,11 @@ export function MenuBlockEditor({
   isLast: boolean;
   /** メニューの期分け。推奨処方の計算に渡す。 */
   phase?: TrainingPhase | null;
+  /** [R10-B4B] Running v2 の表示 DTO（flag OFF なら null）。 */
+  running?: MenuBlockRunningView | null;
 }) {
   const [adding, setAdding] = useState(false);
+  const [addingRunning, setAddingRunning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   /**
@@ -166,6 +184,42 @@ export function MenuBlockEditor({
           {block.items.map((item, index) => {
             const prescription = formatPrescription(item);
             const name = item.exercise?.name ?? item.displayName ?? "（名称未設定）";
+            const runningItem = running?.items[item.id] ?? null;
+
+            // [R10-B4B] 走トレーニングの項目は専用の表示・編集で出す（legacy の汎用編集は使えない）。
+            if (runningItem !== null) {
+              return (
+                <li key={item.id} className="flex items-start gap-2">
+                  <span className="mt-2 w-5 shrink-0 text-xs font-medium text-slate-400">{index + 1}.</span>
+                  <div className="min-w-0 flex-1">
+                    <RunningItemPanel menuId={menuId} presentation={runningItem} />
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1 no-print">
+                    <IconForm
+                      action={moveMenuItemAction}
+                      fields={{ menuId, itemId: item.id, direction: "up" }}
+                      label="↑"
+                      title="上へ"
+                      disabled={index === 0}
+                    />
+                    <IconForm
+                      action={moveMenuItemAction}
+                      fields={{ menuId, itemId: item.id, direction: "down" }}
+                      label="↓"
+                      title="下へ"
+                      disabled={index === block.items.length - 1}
+                    />
+                    <form action={deleteMenuItemAction}>
+                      <input type="hidden" name="menuId" value={menuId} />
+                      <input type="hidden" name="itemId" value={item.id} />
+                      <ConfirmSubmitButton variant="ghost" size="sm" message={`「${name}」を削除します。よろしいですか？`}>
+                        ✕
+                      </ConfirmSubmitButton>
+                    </form>
+                  </div>
+                </li>
+              );
+            }
 
             if (editingId === item.id) {
               return (
@@ -273,6 +327,7 @@ export function MenuBlockEditor({
             resetOnSuccess
             compact
             phase={phase}
+            runningV2Enabled={running !== null}
           />
         ) : (
           <button
@@ -280,6 +335,7 @@ export function MenuBlockEditor({
             onClick={() => {
               setAdding(true);
               setEditingId(null);
+              setAddingRunning(false);
             }}
             className={cn(
               buttonClass("secondary", "sm"),
@@ -289,6 +345,29 @@ export function MenuBlockEditor({
             ＋ このブロックに種目を追加
           </button>
         )}
+
+        {running !== null &&
+          (addingRunning ? (
+            <RunningItemCreateForm
+              menuId={menuId}
+              blockId={block.id}
+              picker={running.picker}
+              onCancel={() => setAddingRunning(false)}
+              onCreated={() => setAddingRunning(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setAddingRunning(true);
+                setAdding(false);
+                setEditingId(null);
+              }}
+              className={cn(buttonClass("secondary", "sm"), "w-full border-dashed no-print")}
+            >
+              ＋ 走トレーニングを追加
+            </button>
+          ))}
       </CardBody>
     </Card>
   );

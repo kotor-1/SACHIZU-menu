@@ -9,6 +9,7 @@ import type { CompetitionRule, RuleSet, RuleSetSessionTemplate } from "../rules/
 import type { Finding } from "../types/findings";
 import type { RangePosition } from "../types/prescription";
 import type { RunningTrainingMethod } from "../types/method";
+import type { IsoDate } from "../types/primitives";
 import type { EnvelopeTier } from "../types/subject";
 import { calendarDayDiff } from "../weekly/windows";
 import type { CompetitionRef } from "./schema";
@@ -21,9 +22,38 @@ function lowestOf(candidates: readonly (RangePosition | null)[]): RangePosition 
   return present.reduce((lowest, c) => (POSITION_ORDER[c] < POSITION_ORDER[lowest] ? c : lowest));
 }
 
-/** n = D − d（暦日差）。0..14 の範囲だけを大会ウィンドウの対象にする（負値 = 大会後、対象外）。 */
+/**
+ * n = D − d（暦日差）。D は登録された大会開催期間 [date, endDate]（両端 inclusive）:
+ *   - 開催前: date − d（正）
+ *   - 開催期間中: 0（2日目以降を「開始日から見て大会後」の負値にしない）
+ *   - 終了後: endDate − d（負。大会ウィンドウ対象外）
+ * endDate 無し（null / 省略）は date の1日開催で、R7 の `date − d` と完全に一致する。
+ * endDate < date は swap せず例外にする（schema 経由なら到達しない）。
+ */
 export function daysUntilCompetition(plannedDate: string, competition: CompetitionRef): number {
-  return calendarDayDiff(plannedDate as never, competition.date);
+  const endDate = competition.endDate ?? competition.date;
+  if (calendarDayDiff(competition.date, endDate) < 0) {
+    throw new Error(`CompetitionRef.endDate は date 以降である必要があります: ${competition.id}`);
+  }
+  const untilStart = calendarDayDiff(plannedDate as IsoDate, competition.date);
+  if (untilStart >= 0) return untilStart;
+  return Math.min(0, calendarDayDiff(plannedDate as IsoDate, endDate));
+}
+
+/**
+ * plannedDate が登録された大会開催期間 [date, endDate] 内か（両端 inclusive）。
+ * 「その日に実際に出場種目がある」とは推測しない、保守的な calendar context。
+ */
+export function isWithinCompetitionPeriod(plannedDate: IsoDate, competition: CompetitionRef): boolean {
+  return daysUntilCompetition(plannedDate, competition) === 0;
+}
+
+/**
+ * R6 `AggregationContext.competitionDay`（§14.3 n=0）の唯一の定義: いずれかの大会の開催期間中なら true。
+ * 不正な range の検出が大会の並び順に依存しないよう、全件を評価してから判定する。
+ */
+export function resolveCompetitionDay(plannedDate: IsoDate, competitions: readonly CompetitionRef[]): boolean {
+  return competitions.map((c) => isWithinCompetitionPeriod(plannedDate, c)).includes(true);
 }
 
 function matchesRule(rule: CompetitionRule, priority: string, tier: EnvelopeTier, n: number): boolean {

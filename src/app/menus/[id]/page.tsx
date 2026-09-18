@@ -11,6 +11,9 @@ import { SubmitButton } from "@/components/submit-button";
 import { MenuBlockEditor } from "@/components/menu/menu-block-editor";
 import { AddBlockForm } from "@/components/menu/add-block-form";
 import { StartSessionForm } from "@/components/session/start-session-form";
+import { RunningMenuPanel } from "@/components/running/running-menu-panel";
+import { buildRunningMenuView } from "@/actions/_running-menu-view";
+import { isRunningV2UiEnabled } from "@/lib/feature-flags";
 import { deleteMenuAction, duplicateMenuAction } from "@/actions/menu-actions";
 import { findMenu } from "@/infra/repositories/menu-repository";
 import { listExercisesForPicker } from "@/infra/repositories/exercise-repository";
@@ -27,6 +30,10 @@ export default async function MenuDetailPage({
   const { id } = await params;
   const [menu, exercises] = await Promise.all([findMenu(id), listExercisesForPicker()]);
   if (!menu) notFound();
+
+  // [R10-B4B] feature flag が OFF なら Running v2 の読み込み・評価を一切行わない
+  // （ここが null のあいだ、この画面は B4B 前とまったく同じ表示・操作になる）。
+  const running = isRunningV2UiEnabled() ? await buildRunningMenuView(menu) : null;
 
   const allItems = menu.blocks.flatMap((b) => b.items);
   const estimatedFromItems = Math.round(
@@ -109,6 +116,7 @@ export default async function MenuDetailPage({
               isFirst={index === 0}
               isLast={index === menu.blocks.length - 1}
               phase={menu.phase as TrainingPhase | null}
+              running={running === null ? null : { items: running.items, picker: running.picker }}
             />
           ))}
           <AddBlockForm menuId={menu.id} />
@@ -116,6 +124,8 @@ export default async function MenuDetailPage({
 
         <div className="space-y-4 no-print">
           <StartSessionForm menuId={menu.id} menuName={menu.name} />
+
+          {running !== null && <RunningMenuPanel menuId={menu.id} view={running} />}
 
           <Card>
             <CardBody className="space-y-2 text-xs text-slate-500">

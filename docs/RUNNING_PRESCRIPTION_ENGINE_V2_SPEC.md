@@ -412,6 +412,30 @@ export type MethodMeta<M extends RunningTrainingMethod> = {
 | MAX_VELOCITY | HIGH_NEURAL | MEASURED_VMAX, FLY_SPLIT, MAX_INTENT | MAX_INTENT（confidence LOW） | FLY_ZONE（+ build-up 後半の区間推定） |
 | SPRINT_ENDURANCE_SHORT | HIGH_METABOLIC | SAME_DISTANCE_BEST, MEASURED_VMAX, MAX_INTENT | MAX_INTENT（LOW） | WHOLE_REP（区間推定） |
 | LONG_SPRINT_RACE_SPECIFIC | HIGH_METABOLIC | RACE_PACE, TARGET_SPLIT, SAME_DISTANCE_BEST | **null（欠損時不適格）** | DISTANCE_MINUS_ACCEL_INTERVAL |
+
+**[R10-B4A.2] コーチ手入力の強度基準（Coach manual reference）**
+
+- **入力 contract**: `CoachManualReferenceInput`（`planning/coachReference.ts`）。R10 では `{ kind: "TARGET_SPLIT"; segments: Array<{ distanceM; targetTimeS }> }` のみ
+  （RACE_PACE の入力 UI は R10 では追加しない）。`toCoachReferenceInput()` が正式な `IntensityReference` へ正規化し、
+  `targetS` は **`lower = upper = 入力値`**（中央値・推定値を作らない）、`source = "COACH_ENTERED"`、confidence は既存慣習の `MEDIUM`。
+- **actor**: `PlanRequest.coachReference` は **COACH actor だけ**が持てる（AI / SYSTEM は `planRequestSchema` が拒否。§18）。
+- **Method 互換性**: 使えるかどうかは RuleSet の `MethodMeta.allowedIntensityReferences` が source of truth（Method 名の TS 分岐で判定しない）。
+  許可されていない Method に渡されたら `COACH_REFERENCE_INVALID`（BLOCK）で**明示的に拒否**し、参照を無視して処方を作らない。
+- **優先順位**: 既存実装どおり `allowedIntensityReferences` の並び順で解決する（rs-2026.09.0 では TARGET_SPLIT を許可するどの Method でも、
+  実測参照が TARGET_SPLIT より先に並んでいないため、明示的なコーチ入力が黙って無視されることはない）。
+- **記録に変換しない**: TimedMark / PB / Vmax / SAME_DISTANCE_BEST へ変換せず、コーチの予定値は予定値のまま保持する。
+- **GROUP**: `intensity.target`（個別の目標タイム）は従来どおり ATHLETE のときだけ生成する。GROUP では null のままで、
+  `intensity.reference` にコーチが入力した値を exact な snapshot として保存するだけ（エンジンが GROUP へ個別目標を作ったのではない）。
+- **confidence**: コーチ入力の基準は「入力された計画値」であり performance evidence ではない。Subject の data confidence 上限（GROUP は LOW）・
+  `EnvelopeTier`・`prescriptionConfidence` / `directness` をこの入力を理由に引き上げない。
+- **永続化**: `prescriptionJson` の `intensity.reference` に保存する（新しい列・migration は不要）。`planningControls` へ二重保存しない。
+  Provenance は `inputsDigest.referenceKinds` に `TARGET_SPLIT` を記録するだけで、区間の数値を複製しない（コーチ入力であることは
+  `source = COACH_ENTERED` と `generatedBy.createdByCoach` で分かる）。
+- **編集・再計算**: 通常の数値編集では保存済みの参照を exact に維持する。`editRunningItemAction` は `coachReferenceJson` で基準の明示更新を受け取り、
+  新しい値で再計画する（基準の変更を `coachEdits`（EnvelopeField の編集履歴）へ偽装しない）。現行 RuleSet での再計算では保存済みの
+  参照を**計画入力として再利用**してよい（override とは違い、RuleSet の方針を破る例外承認ではない）。新しい RuleSet がその kind を
+  許可しなくなった場合は fail closed（別の参照へ黙って変換しない）。override 後の再計画でも参照を維持する。
+- **R10 UI**: LONG FULL の追加導線は目標スプリットの入力を含む（`components/running/target-split-editor.tsx`。距離・タイムを自動補完しない）。
 | TEMPO_EXTENSIVE | LOW | MEASURED_VMAX, SAME_DISTANCE_BEST | RELAXED_SUBMAX（LOW・数値目標なし） | NONE |
 | TEMPO_INTENSIVE | MODERATE | MEASURED_VMAX, SAME_DISTANCE_BEST | **null** | NONE（≥95% 実測時のみ計上） |
 | RESISTED_SPRINT | HIGH_NEURAL | VELOCITY_DECREMENT, MAX_INTENT(hill) | MAX_INTENT（heavy は不適格） | NONE（無抵抗 HSR と別） |
@@ -1727,6 +1751,11 @@ DEV の ACC を3項目並べる従来ケース（全 item が同じ cap）は `�
 12. **[R6 integration policy] `REQUIRE_CONFIRMATION`**: 確認済みを表現する contract（確認 UI）がまだ無いため、
     最終出力（item / session）に `REQUIRE_CONFIRMATION` が残る場合は **全 actor で `PlanResult.BLOCKED`** として返す。
     `CoachOverride` では突破できない。確認 contract を追加した時点でこの暫定方針を解除できる。
+    **[R10-B4A] 確認 contract を追加し、次のとおり置き換えた**: `PlanRequest.confirmedFindingCodes: string[]`（既定 `[]`、
+    COACH 以外の actor は持てない）に、出力 plausibility（item / session）の `REQUIRE_CONFIRMATION` の code が**すべて**
+    含まれるときだけ OK を返す（code 単位。override では突破できないのは従来どおり）。足りなければ BLOCKED で、
+    そのときだけ `PlanResult.BLOCKED.confirmationRequired = { requiredFindingCodes }`（現在の結果の REQUIRE_CONFIRMATION の
+    code 全体）を付ける。確認済みでも Finding は消さない（item は `prescription.findings`、session は `sessionFindings`）。
     `BLOCK` は当然すべての actor で BLOCKED。session の `BLOCK_AUTOGEN` は AI / SYSTEM のみ BLOCKED とし、
     COACH は `REQUIRE_COACH_REVIEW` を保ったまま手動で継続できる（hard BLOCK と区別する）。
 
@@ -2168,6 +2197,20 @@ export type ReadinessDecision = {
     EFFECTIVE_UNKNOWN の SES 行、および他63行の eligibility outcome/overrideAllowed/conditionNote は不変）。
 - **`CompetitionRef` は R9 まで DB モデルを持たない。** `menuContext.competitions: CompetitionRef[]` として
   domain 型だけを受け取る（id 重複は拒否）。
+- **[R10-B2.1 errata] `CompetitionRef.endDate?: IsoDate | null`（登録された大会開催期間）。**
+  `CompetitionRef = { id: string; date: IsoDate; endDate?: IsoDate | null; priority: CompetitionPriority }`。
+  - `endDate` が null / 省略なら `date` の1日開催（`plannedDate === date` だけが大会当日）。R7 までの single-day の結果と完全に同じ。
+  - `endDate` があれば **`date <= plannedDate <= endDate`（両端 inclusive）を大会期間内**とし、§14.3 の `n = 0`
+    （大会当日の行。R6 の `AggregationContext.competitionDay = true`）として扱う。「その日に実際に出場種目がある」と
+    推測する意味ではなく、登録された開催期間という保守的な calendar context。
+  - 大会ウィンドウの距離は開催期間を1つの区間として計算する: 開催前 `n = date − d`、期間中 `n = 0`、終了後
+    `n = endDate − d`（負。対象外）。開催2日目以降が「開始日から見て大会後」の負値になり制限が外れる事故を防ぐ。
+  - `endDate < date` は swap せず validation error（`competitionRefSchema` と Competition 書込みの `competitionInputSchema` の両方）。
+  - 判定は competition domain（`competition/windows.ts` の `daysUntilCompetition` / `isWithinCompetitionPeriod` /
+    `resolveCompetitionDay`）だけが持ち、application layer は日付比較を書かない。Competition repository → CompetitionRef の
+    adapter（`listCompetitionRefs`）は planner（R10-B1）と session 評価（R10-B2）で共有する。
+  - [B5 cleanup 候補] `competition/windows.ts` の旧 helper `isCompetitionDay(matched)`（RuleSet の `raceIsLoadEvent` を見る）は
+    現在どこからも呼ばれていない。R10-B3 では削除しない（presentation phase に domain cleanup を混ぜない）。
 - **`competitionRules` はフラットな行（`priority | null`, `tier | null`, `dayMin`, `dayMax`, ...）として持ち、
   優先度文字列の巨大な switch は書かない。** 複数の大会ウィンドウが重なる場合はマッチした全行を集め、
   `blockedAutogenLoadClasses` は和集合、`dosePositionCap` は最も制約の強い（LOWER_BOUND 側の）値を採用する
@@ -2355,7 +2398,10 @@ export type Provenance = {
     acceptedByCoachAt: IsoDateTime | null;
   };
   inputsDigest: {                              // 健康情報を含めない
-    tier: EnvelopeTier; ageBand: AgeBand; maturityEffective: string; trainingAgeTier: TrainingAgeTier;
+    tier: EnvelopeTier;
+    ageBand: ResolvedAgeBand;                  // = AgeBand | "UNKNOWN"（[R10-B1.1] core の AgeBand は変えない）
+    maturityEffective: string;
+    trainingAgeTier: TrainingAgeTier | "UNKNOWN"; // = ProvenanceTrainingAgeTier（[R10-B1.1] core の TrainingAgeTier は変えない）
     phase: TrainingPhase | null; plannedDate: IsoDate | null; competitionWindows: string[];
     referenceKinds: string[]; historyCoverage72h: "COMPLETE" | "PARTIAL" | "NONE";
     readinessActions: ReadinessActionCode[];
@@ -2363,10 +2409,37 @@ export type Provenance = {
   evidenceIds: EvidenceId[];
   confidence: { prescription: PrescriptionConfidence; directness: Directness; inputData: Confidence };
   coachEdits: Array<{ at: IsoDateTime; field: EnvelopeField; from: number; to: number }>;
-  overrides: Array<{ at: IsoDateTime; target: CoachOverride["target"]; from?: number; to?: number; reason: string }>;
+  overrides: Array<{ at: IsoDateTime; target: CoachOverride["target"]; from?: number; to?: number; reason: string; confirmedTwice?: boolean }>;
   aiReason: string | null;                     // AI の説明文（数値・出典除去済み §18）
+  findingConfirmations?: Array<{ code: string; at: IsoDateTime }>; // [R10-B4A] 明示確認の監査記録（optional）
 };
 ```
+
+- **[R10-B1.1 errata] `inputsDigest.ageBand` / `trainingAgeTier` の正確な型。** 当初のコードブロックは `AgeBand` /
+  `TrainingAgeTier` という簡略表記だった（[R10-B3] 上記コードブロックを正確な型へ更新済み）。実際は次のとおり:
+  - `ageBand: ResolvedAgeBand`（= `AgeBand | "UNKNOWN"`。`resolveSubjectProfile()` の出力型をそのまま再利用する。
+    GROUP が空、または member の年齢帯を確定できない場合は `"UNKNOWN"`）。
+  - `trainingAgeTier: TrainingAgeTier | "UNKNOWN"`（Provenance 専用の最小型 `ProvenanceTrainingAgeTier`。
+    トレーニング歴が実際に入力されていれば解決済みの tier、`resolveSubjectProfile().trainingAgeKnown` が
+    false のときは `"UNKNOWN"`）。
+  - **core の `AgeBand` / `TrainingAgeTier` 自体には `"UNKNOWN"` を追加しない**（eligibility・range lookup 等の
+    通常利用で `"UNKNOWN"` を実在の値として誤用させないため）。
+  - Provenance は監査ログである。エンジンが安全側に倒すために内部で使う保守的な既定値（例: トレーニング歴
+    不明のときの `BEGINNER` 扱い）と、実際に「入力が分かっていたか」は別の事実であり、Provenance は後者を
+    正直に記録する（前者で上書きしない。§13.5 と同じ「エンジン内部の判断」と「入力状態の記録」の分離）。
+- **[R10-B4A] `findingConfirmations?`（backward-compatible optional。schemaVersion=1 のまま）。** コーチが
+  `confirmedFindingCodes` で明示確認した `REQUIRE_CONFIRMATION` の監査記録。**その保存時の plan 結果に実在した code だけ**を
+  `{ code, at }` で記録し（client が送った任意の文字列は保存しない）、確認した Finding が無い保存では key 自体を持たない。
+  edit / override / recalculate では**引き継がない**（毎回、現在の結果に対して記録し直す）。旧 provenance（key 無し）はそのまま読める。
+- **[R10-B4A] `overrides[].confirmedTwice?`（backward-compatible optional）。** override Action でコーチが実際に送った
+  `confirmedTwice` の値。再計画でこの override を `CoachOverride` として再構築するときは**この記録値をそのまま**使い、
+  `true` へ自動昇格しない（記録の無い R10-B4A より前の履歴は `false` として domain schema に渡し、ELIGIBILITY /
+  HARD_SAFETY なら再構築を拒否して例外設定のやり直しを求める）。
+- **[R10-B1.1 errata] `competitionWindows` の意味。** 「その plan 呼び出しへ供給された、登録済み大会 context の
+  安定した digest」を意味する。**「実際に大会近接ウィンドウの判定にマッチした大会だけ」を意味しない**
+  （どの大会が実際にマッチしたかは `PlanResult` から公開されておらず、application 層が §14 の window 判定
+  ロジックを再実装することもしない）。エンコードは `${id}:${priority}` を大会の登録順に並べたもので、
+  決定的（同じ入力なら同じ digest）・個人情報や大会名を含まない・大会 window ポリシーの再構築には使わない。
 
 ---
 
@@ -2448,6 +2521,8 @@ export type Provenance = {
 | 禁止 | coachEditableRange の拡張 | 拡張 API が存在しない（ルールセット改版のみ） |
 | 禁止 | Evidence の捏造 | proposal に evidenceIds が無い。reason から出典らしき記述を除去 |
 | 禁止 | ruleSetVersion の変更 | PlanRequest に版指定が無い（サーバーが決める） |
+| 禁止 | コーチ手入力の強度基準（目標スプリット等）の生成 | [R10-B4A.2] `PlanRequest.coachReference` は COACH actor だけが持てる（AI / SYSTEM は schema が拒否）。proposal schema に数値 field を追加しない |
+| 禁止 | Coach 専用 Action の流用（CoachActor 権限の間接利用） | [R10-B4A.1] AI モジュールは `src/actions/running-actions.ts`・`_running-plan-service.ts`・`_actor.ts` を**モジュールごと** import できない（alias / 相対パス / 拡張子付き / re-export / 型 import を eslint で拒否。dynamic import はソース監査） |
 
 ### 18.2 型
 
@@ -2486,6 +2561,26 @@ export function proposalToPlanRequests(
 ### 18.4 自動生成制限の適用範囲
 - `BLOCK_AUTOGEN` Finding は **actor が AI_PLANNER / SYSTEM のときに適用**（その項目を生成しない）。コーチの手動選択では表示のみ（eligibility と override 規則は別途適用）。
 - AI 由来の項目は `provenance.generatedBy.proposer = AI_PLANNER`、メニューは `status = "DRAFT"`。コーチが確認すると `acceptedByCoachAt` を記録。以後もすべて編集可能（要件F）。
+
+### 18.5 [R10-B4A.1] Coach 専用 application module の AI 境界
+
+- **AI モジュール**（`src/domain/ai/**`・`src/infra/ai/**`・`src/app/ai/**`・`src/actions/ai/**`・`src/actions/ai-*`・`src/actions/_ai-*`）は、
+  次を import できない（`eslint.config.mjs` の AI ブロック。alias だけでなく相対パス・拡張子付きの迂回も patterns の regex で拒否）:
+  - `src/actions/_actor.ts`（`getCoachActorForServer`。CoachActor 生成の唯一の server boundary）
+  - `createCoachActor` / `coachActorSchema` / `CoachActor` 型（`@/domain/running/types/actor` と root re-export `@/domain/running`。相対パスも）
+  - **`src/actions/running-actions.ts` のモジュール全体**（`planRunningItemAction` / `editRunningItemAction` / `overrideRunningItemAction` /
+    `recalculateWithActiveRuleSetAction` / `updateRunningMenuContextAction` と、将来この module に追加される export すべて）
+  - `src/actions/_running-plan-service.ts`（内部で CoachActor を生成する Coach 専用 service）
+- 理由: `running-actions.ts` は CoachActor・coachEdits・overrides・`confirmedTwice`・`confirmedFindingCodes`・`allowAdvancedMethods`
+  （`updateRunningMenuContextAction`）を扱う **Coach の信頼境界**であり、AI がこれを呼べると Coach 専用の権限を間接的に使えてしまう。
+  関数名の denylist ではなく module import 自体を禁止し、将来の export 追加で穴が開かないようにする。
+- `src/actions/**` 全体は禁止しない。CoachActor を扱わない安全な port（例: `_running-template-options.ts` の template 候補 provider）や、
+  R12 で作る AI actor 専用の application path は AI から使ってよい。Coach 側（Menu UI → `running-actions`）の import は制限しない。
+- **[R12 formal requirement] AI の Running 処方生成は Coach Action を再利用しない。** 経路は
+  `AI proposal → sanitize → aiRunningItemProposalSchema（.strict()）→ AI actor 専用 application path（actor = AiPlannerActor）→ domain planner`
+  とし、`running-actions.ts` / `_running-plan-service.ts` へショートカットしない。R10-B4A.1 ではこの経路を作らない。
+- **`aiRunningItemProposalSchema` は `.strict()` のまま**で、数値・overrides・coachEdits・`allowAdvancedMethods`・`confirmedTwice`・
+  `confirmedFindingCodes` の field を追加しない（§18.2 の5フィールドのみ）。R10-B4A.1 時点では未実装（R12）。
 
 ---
 
@@ -2820,13 +2915,16 @@ export function proposalToPlanRequests(
 | 項目 | 内容 |
 | --- | --- |
 | 目的 | コーチが v2 の走トレーニングをメニューに追加・編集・override できる |
-| 新規ファイル | `src/actions/{running-actions,competition-actions,_actor}.ts`、`src/components/running/{method-template-picker,running-item-editor,findings-list,confidence-badge,provenance-panel}.tsx`、`tests/actions/running/*.test.ts` |
+| 新規ファイル | `src/actions/{running-actions,competition-actions,_actor}.ts`、`src/actions/{_running-plan-service,_running-template-options,_running-menu-evaluation,_running-menu-view}.ts`、`src/presentation/running/*.ts`、`src/components/running/{method-template-picker,running-item-editor,findings-list,confidence-badge,provenance-panel,target-split-editor,running-context-editor,running-item-create-form,running-item-panel,running-menu-panel}.tsx`、`tests/actions/running/*.test.ts`、`tests/presentation/running/*.test.ts` |
 | 変更ファイル | `src/components/menu/menu-block-editor.tsx`（RUNNING_V2 項目の表示）、`src/components/menu/menu-item-form.tsx`（legacy 走系 Kind の推奨処方を無効化し v2 導線）、`src/actions/menu-actions.ts`（`updateMenuItemAction` に RUNNING_V2 ガード、add/move/delete 後の集計再評価）、`src/app/menus/[id]/page.tsx` |
 | schema / migration | なし / 不要 |
 | UI 規則 | enum キーを表示しない（L-4）／タップ領域 `h-8 w-8` 以上（CLAUDE.md）／「暫定ルール」「確信度」「根拠の出典種類」を表示／`RUNNING_V2_UI_ENABLED` で表示切替 |
 | tests | Action の3ステップ、override に CoachActor 必須、T-AI-07、ガード |
 | [R9 で確定した requirement] セッション作成 | RUNNING_V2 を含むメニューからセッションを作る application path は、`SessionPlanningEvaluationInput` を**必ず**生成して `createSessionFromMenu()` に渡す。評価に RuleSet が必要なときは、MenuItem の `ruleSetVersion` + `ruleSetContentHash` に一致する保存済み RuleSet を**明示的に**読む（`getActiveRuleSet` 等の active selector による silent upgrade 禁止。一致する版が読めなければ `RULESET_VERSION_UNAVAILABLE`）。同じメニューの RUNNING_V2 項目で version / hash が混在する場合は1版に統一せず、`MIXED_RULESET_VERSIONS`（NOT_EVALUATED）+ Finding `MIXED_RULESET_VERSIONS`（REQUIRE_COACH_REVIEW）で明示的に扱う。plannedAt が無ければ週次は `PLANNED_AT_UNAVAILABLE` |
 | [R9 note] 編集面 | `Provenance.coachEdits.field` は formal どおり `EnvelopeField` のため、`approachDistanceM`（EVENT_APPROACH_SPEED の手入力）の編集履歴を記録できない。override / edit surface の設計時に再確認する。汎用 `updateMenuItem` 経路の RUNNING_V2 ガード（§15.3）もここで実装する |
+| [R10-B4A] Action contract | **(1) override の `confirmedTwice`**: Action の必須入力（`"true"` / `"false"` の明示値。未送信は入力エラー）で、そのまま domain の `coachOverrideSchema` に渡す（どの target で二重確認が必要かを Action / service に複製しない。service 内で true に固定・補完しない）。**(2) REQUIRE_CONFIRMATION の明示確認**: plan / edit / override / recalculate の4 Action は `confirmedFindingCodes[]` を受け取る。確認は CoachOverride ではない（reason・confirmedTwice を持たない）。service は**現在の入力で plan を再実行した結果**の REQUIRE_CONFIRMATION の code 集合（`requiredCodes`）と照合し、現在の結果に無い code が含まれていれば `CONFIRMATION_STATE_STALE`、不足があれば `CONFIRMATION_REQUIRED` で保存しない。確認は **Finding code 単位**（同じ code の Finding が複数あっても1回の明示確認でその code 群を確認した扱い）。以前の確認（保存済みの `findingConfirmations`）を edit / recalculate / override の新しい結果へ流用しない。override したこと自体を Finding の確認とみなさない。Session 作成時（B2）の aggregation REQUIRE_CONFIRMATION とはまだ混ぜない（B5 で判断）。**(3) result**: 失敗は `kind`（`INVALID_INPUT` / `REJECTED` / `CONFIRMATION_REQUIRED` / `CONFIRMATION_STATE_STALE` / `PLAN_INELIGIBLE` / `PLAN_BLOCKED`）付き。Finding と不適格理由は B3 の presentation mapper で日本語化して返し、code は内部 payload だけに持つ。**(4) aggregate EnvelopeField**: EnvelopeField に存在することと直接編集できることは同義ではない。直接 edit できるのは `RunningPrescription` 内に一意に対応する一次 `FieldValue` だけで、`totalReps` / `sessionVolumeM` / `flyVolumeM` / `attempts` / `vdecPercent`（`AGGREGATE_ENVELOPE_FIELDS`）は Action が拒否し、UI は read-only（現在値・範囲の表示のみ。値から sets や距離を逆算しない）。**(5) approachDistanceM**: RuleSet に編集用の EnvelopeCell（recommended / coachEditable）が存在しない（手入力 + plausibility のみ）ため編集可能にしない。UI は read-only（spec gap: `APPROACH_DISTANCE_EDIT_SOURCE_MISSING`。Provenance.coachEdits も記録できない）。**(6) RunningMenuContext Action**: `updateRunningMenuContextAction` は実装済み `runningMenuContextSchema`（strict）の JSON だけを受け付け、健康情報キーを拒否し、`plannedDate` / `plannedAt` は明示値のまま保存する（当日で補わない）。flag OFF で拒否。**(7) picker**: `plannedDate` 基準の active RuleSet から template 候補 DTO を作る server provider（`_running-template-options.ts`）。一覧は候補であり eligibility の判定ではない（`canAttemptSelection`）。最終的な可否は `planRunningItemAction` の plan 結果 |
+| [R10-B3] presentation layer | `src/presentation/running/` に表示用 DTO・日本語ラベル registry・Finding message registry・dose / confidence / provenance / template presenter を置く（表示専用。量の上限・rest の式・eligibility・大会 window・RuleSet 選択は持たない）。`components/running/*` は DTO だけを props で受け取り、RuleSet JSON / Prisma model / Server Action を import しない（`"use client"` は picker と editor だけ）。保存済み item の題名は `TEMPLATE_SELECTED.params.templateLabelJa` → `displayName` → exact RuleSet の `labelJa` の順、理由本文は保存済み `MenuItem.rationale`（再レンダリングしない）。Evidence の出典種類と aggregate field の範囲は、保存時の `ruleSetVersion + ruleSetContentHash` と完全一致した RuleSet だけから引く（不一致なら「根拠の詳細を確認できません」。active 版で代用しない）。editor は controlled component で、Action・`confirmedFindingCodes[]` への接続と `RUNNING_V2_UI_ENABLED` による切替は B4 の integration boundary |
+| [R10-B4B] Menu UI integration | **(1) flag boundary**: `src/app/menus/[id]/page.tsx` は `isRunningV2UiEnabled()` が true のときだけ `buildRunningMenuView(menu)` を呼ぶ。OFF のときは Running v2 の読み込み・評価・DTO 生成を**一度も実行しない**（CSS で隠すのではない）。`MenuBlockEditor` / `MenuItemForm` は `running` / `runningV2Enabled` が未指定なら B4B 前と同一の描画（golden: `tests/presentation/running/legacy-menu-ui.test.ts`）。**(2) server 境界**: 画面へ渡すのは DTO だけ（`_running-menu-view.ts`）。RuleSet オブジェクト・Prisma モデル・処方 JSON を client へ渡さない。統合 component（`running-context-editor` / `running-item-create-form` / `running-item-panel` / `running-menu-panel`）は server 側へ **`"use server"` の Action か型 import 経由でしか**触らない。**(3) メニュー集計**: B2 が session 作成時に行っていた保存済みメニューの R6 評価を `src/actions/_running-menu-evaluation.ts` の `evaluateStoredRunningMenu()` として抽出し、B2（セッション日で `competitionDay` を判定）と B4B（メニューの `plannedDate` で判定。未設定なら `NOT_EVALUATED`）で共有する。policy を複製しない。版が混在していれば合計を出さず `MIXED_RULESET_VERSIONS` の説明（現行ルールで再計算すると揃う）を出す。**(4) context 編集**: 入力欄は `runningMenuContextSchema` にある項目だけ。**痛み・soreness・睡眠・疲労・体調・性別・生年月日などの健康 / 個人情報の入力欄を作らない**。計画日は必須で、今日の日付で補わない。`plannedAt` の暦日が計画日と違えばエラーにして**自動で直さない**（タイムゾーン offset は入力端末の値を明示的に付ける）。**(5) 走系 legacy 種目**: 走系かどうかは既存の分類 API（`src/domain/prescription/classify.ts` + `HIGH_INTENSITY_RUN_KINDS` + `TEMPO_AEROBIC`）で判定し、種目名の文字列リストを作らない。flag ON のとき legacy の「推奨処方を入れる」を出さず、走トレーニングの導線を案内する（legacy 入力自体は従来どおり保存できる。§R13 まで legacy ロジックは変更しない）。**(6) 保存済み項目**: 表示・編集は保存時の exact RuleSet のまま。版が現行へ動くのは「現行ルールで再計算」を押したときだけ。壊れた処方 JSON は題名だけ出し、数値を出さず合計も計算しない |
 | 既存互換 | フラグ OFF で従来画面と同一 |
 | 完了条件 | 手動で ACC・MV・STRIDE・LONG FULL を追加し、集計 Finding と provenance が表示・保存される |
 | rollback | フラグ OFF。追加ファイルを削除 |
@@ -2852,6 +2950,7 @@ export function proposalToPlanRequests(
 | --- | --- |
 | 前提 | Mobile Menu Builder v1 の MenuPlanner port（別設計 M7）が存在すること。無ければ本フェーズは着手しない |
 | 目的 | AI の提案を §18 の境界で v2 項目に変換する |
+| [R10-B4A.1 requirement] 経路 | AI 処方は `AI proposal → sanitize → aiRunningItemProposalSchema（strict）→ AI actor 専用 application path → domain planner`。Coach 専用の `running-actions.ts` / `_running-plan-service.ts` を経由しない（§18.5。eslint で import 禁止） |
 | 新規ファイル | `src/domain/running/ai/{proposal-schema,sanitize,proposal-to-plan}.ts`、`tests/domain/running/ai-boundary.test.ts` |
 | 変更ファイル | MenuPlanner 実装側（running 提案を受け取る部分のみ） |
 | schema / migration | なし / 不要 |

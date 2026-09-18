@@ -15,6 +15,7 @@ import { addMenuItem, duplicateMenu } from "@/infra/repositories/menu-repository
 import { createRunningMenuItem, saveMenuRunningContext, updateRunningMenuItem } from "@/infra/repositories/running-item-repository";
 import { createSessionFromMenu } from "@/infra/repositories/session-repository";
 import { planningSnapshotSchema, weeklyContextResultSchema, type SessionPlanningEvaluationInput } from "@/domain/running/persistence/sessionSnapshot";
+import { buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "@/infra/repositories/session-fingerprint";
 import * as aggregation from "@/domain/running/aggregation";
 import * as weekly from "@/domain/running/weekly";
 import type { WeeklyContextResult } from "@/domain/running/weekly";
@@ -456,8 +457,36 @@ describe("SessionPlanningEvaluationInput（R10 application layer → repository 
     expectTypeOf<z.output<typeof weeklyContextResultSchema>>().toEqualTypeOf<WeeklyContextResult>();
   });
 
+  /** [R10-B2] `createSessionFromMenu` が実際にコピーする直前の menu と同じ形・同じ計算で指紋を作る（テスト側の模擬）。 */
+  async function fingerprintOfMenu(menuId: string): Promise<string> {
+    const menu = await prisma.menuTemplate.findUnique({
+      where: { id: menuId },
+      include: { blocks: { orderBy: { sortOrder: "asc" }, include: { items: { orderBy: { sortOrder: "asc" }, include: { exercise: { select: { category: true } } } } } } },
+    });
+    if (!menu) throw new Error("menu not found");
+    const items: FingerprintMenuItemInput[] = menu.blocks.flatMap((block) =>
+      block.items.map((item) => ({
+        id: item.id,
+        sortOrder: item.sortOrder,
+        prescriptionKind: item.prescriptionKind,
+        ruleSetVersion: item.ruleSetVersion,
+        ruleSetContentHash: item.ruleSetContentHash,
+        prescriptionJson: item.prescriptionJson,
+        sets: item.sets,
+        reps: item.reps,
+        distanceMeters: item.distanceMeters,
+        durationSeconds: item.durationSeconds,
+        restSeconds: item.restSeconds,
+        intensityPercent: item.intensityPercent,
+        loadKg: item.loadKg,
+        exerciseCategory: item.exercise?.category ?? null,
+      })),
+    );
+    return buildSourceMenuFingerprint(items);
+  }
+
   /** application layer（R10）の模擬: 保存済み ruleSetVersion の RuleSet を明示的に読み、domain で評価する（テスト側で実行）。 */
-  function evaluateLikeApplicationLayer(entries: { menuItemId: string; prescription: RunningPrescriptionValue }[]) {
+  async function evaluateLikeApplicationLayer(menuId: string, entries: { menuItemId: string; prescription: RunningPrescriptionValue }[]) {
     const [first] = entries;
     const ruleSet = getRuleSet(first.prescription.ruleSet.version)!;
     const ref = { version: first.prescription.ruleSet.version, contentHash: first.prescription.ruleSet.contentHash };
@@ -480,6 +509,7 @@ describe("SessionPlanningEvaluationInput（R10 application layer → repository 
       aggregation: { status: "EVALUATED", ruleSet: ref, result: aggregate },
       weeklyContext: { status: "EVALUATED", ruleSet: ref, items },
       findings: aggregate.findings,
+      sourceMenuFingerprint: await fingerprintOfMenu(menuId),
     };
     return { evaluation, ref, aggregate, items };
   }
@@ -491,7 +521,7 @@ describe("SessionPlanningEvaluationInput（R10 application layer → repository 
     const itemA = await createRunningMenuItem(block.id, persistInputFor(acc));
     await addMenuItem(block.id, menuItemInputSchema.parse({ displayName: "補強", reps: "10" }));
     const itemB = await createRunningMenuItem(block.id, persistInputFor(mv));
-    const { evaluation, ref, aggregate, items } = evaluateLikeApplicationLayer([
+    const { evaluation, ref, aggregate, items } = await evaluateLikeApplicationLayer(menu.id, [
       { menuItemId: itemA.id, prescription: acc },
       { menuItemId: itemB.id, prescription: mv },
     ]);
@@ -522,7 +552,7 @@ describe("SessionPlanningEvaluationInput（R10 application layer → repository 
     const acc = planAcc();
     const itemA = await createRunningMenuItem(block.id, persistInputFor(acc));
     const legacy = await addMenuItem(block.id, menuItemInputSchema.parse({ displayName: "補強", reps: "10" }));
-    const { evaluation, ref } = evaluateLikeApplicationLayer([{ menuItemId: itemA.id, prescription: acc }]);
+    const { evaluation, ref } = await evaluateLikeApplicationLayer(menu.id, [{ menuItemId: itemA.id, prescription: acc }]);
     const input = sessionFromMenuSchema.parse({ menuTemplateId: menu.id, date: "2026-09-20" });
     const weeklyItems = evaluation.weeklyContext.status === "EVALUATED" ? evaluation.weeklyContext.items : [];
 
@@ -550,7 +580,7 @@ describe("SessionPlanningEvaluationInput（R10 application layer → repository 
     await createRunningMenuItem(block.id, persistInputFor(olderStride));
     const input = sessionFromMenuSchema.parse({ menuTemplateId: menu.id, date: "2026-09-20" });
 
-    const { evaluation } = evaluateLikeApplicationLayer([{ menuItemId: itemA.id, prescription: acc }]);
+    const { evaluation } = await evaluateLikeApplicationLayer(menu.id, [{ menuItemId: itemA.id, prescription: acc }]);
     await expect(createSessionFromMenu(input, { ...evaluation, weeklyContext: { status: "NOT_EVALUATED", reasons: ["MIXED_RULESET_VERSIONS"] } })).rejects.toThrow(
       /aggregation の RuleSet/,
     );
@@ -559,6 +589,7 @@ describe("SessionPlanningEvaluationInput（R10 application layer → repository 
       aggregation: { status: "NOT_EVALUATED", reasons: ["MIXED_RULESET_VERSIONS"] },
       weeklyContext: { status: "NOT_EVALUATED", reasons: ["MIXED_RULESET_VERSIONS"] },
       findings: [{ code: "MIXED_RULESET_VERSIONS", severity: "REQUIRE_COACH_REVIEW", scope: "SESSION", evidenceIds: [] }],
+      sourceMenuFingerprint: await fingerprintOfMenu(menu.id),
     };
     const session = await createSessionFromMenu(input, mixed);
     const snapshot = planningSnapshotSchema.parse(JSON.parse(session.planningSnapshotJson!));

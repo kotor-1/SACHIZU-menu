@@ -80,6 +80,85 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // Running Prescription Engine v2 — CoachActor / Coach 専用 Server Action の AI 境界（R10-B1 §7・R10-B4A.1）:
+  // AI 経路（動画解析・下書き生成・将来の MenuPlanner）は CoachActor を生成できず、CoachActor を内部で生成する
+  // Coach 専用の application module（running-actions.ts / _running-plan-service.ts）も**モジュールごと** import できない。
+  // 認可判定の唯一の server boundary は src/actions/_actor.ts の getCoachActorForServer()。
+  // - paths: alias（@/...）での import を名前付きで禁止（R10-B1）
+  // - patterns（regex）: alias・相対パス（../../actions/running-actions 等）・拡張子付きの迂回も同じく禁止（R10-B4A.1）
+  // src/actions/** 全体は禁止しない（AI が将来使う安全な proposal / application port を壊さない）。
+  // dynamic import() はこのルールの対象外のため、tests/actions/running/ai-coach-boundary.test.ts のソース監査で補う。
+  {
+    files: [
+      "src/domain/ai/**/*.ts",
+      "src/domain/ai/**/*.tsx",
+      "src/infra/ai/**/*.ts",
+      "src/infra/ai/**/*.tsx",
+      "src/app/ai/**/*.ts",
+      "src/app/ai/**/*.tsx",
+      "src/actions/ai/**/*.ts",
+      "src/actions/ai/**/*.tsx",
+      "src/actions/ai-*.ts",
+      "src/actions/ai-*.tsx",
+      "src/actions/_ai-*.ts",
+      "src/actions/_ai-*.tsx",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/actions/_actor",
+              message:
+                "AI モジュールは CoachActor を生成できません（R10-B1 §7 の server boundary）。",
+            },
+            {
+              name: "@/domain/running/types/actor",
+              importNames: ["createCoachActor", "coachActorSchema"],
+              message:
+                "AI モジュールは CoachActor を生成できません（createCoachActor / coachActorSchema は禁止）。",
+            },
+            {
+              name: "@/domain/running",
+              importNames: ["createCoachActor", "coachActorSchema"],
+              message:
+                "AI モジュールは CoachActor を生成できません（createCoachActor / coachActorSchema は禁止。root からの re-export 経由も禁止）。",
+            },
+          ],
+          patterns: [
+            {
+              regex: "(^|/)running-actions(\\.[cm]?[jt]sx?)?$",
+              message:
+                "AI モジュールは Coach 専用の running-actions を import できません（R10-B4A.1。CoachActor・coachEdits・overrides・allowAdvancedMethods を扱う Coach の信頼境界。R12 の AI 処方は AI actor 専用の application path を使う）。",
+            },
+            {
+              regex: "(^|/)_running-plan-service(\\.[cm]?[jt]sx?)?$",
+              message:
+                "AI モジュールは Coach 専用の _running-plan-service を import できません（内部で CoachActor を生成する。R10-B4A.1）。",
+            },
+            {
+              regex: "(^|/)_actor(\\.[cm]?[jt]sx?)?$",
+              message:
+                "AI モジュールは CoachActor を生成できません（_actor は相対パスでも import 禁止。R10-B1 §7・R10-B4A.1）。",
+            },
+            {
+              regex: "(^|/)types/actor(\\.[cm]?[jt]sx?)?$",
+              importNames: ["createCoachActor", "coachActorSchema", "CoachActor"],
+              message:
+                "AI モジュールは CoachActor の生成関数・schema・型を import できません（相対パスでも禁止。R10-B4A.1）。",
+            },
+            {
+              regex: "(^|/)running(/index(\\.[cm]?[jt]sx?)?)?$",
+              importNames: ["createCoachActor", "coachActorSchema", "CoachActor"],
+              message:
+                "AI モジュールは CoachActor の生成関数・schema・型を root re-export 経由でも import できません（相対パスでも禁止。R10-B4A.1）。",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

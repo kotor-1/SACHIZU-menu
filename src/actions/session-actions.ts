@@ -7,7 +7,7 @@ import {
   sessionInputSchema,
   sessionItemResultSchema,
 } from "@/domain/session/schema";
-import { actionOk, type ActionResult } from "@/domain/shared/result";
+import { actionError, actionOk, type ActionResult } from "@/domain/shared/result";
 import { parseForm, toActionError } from "@/lib/form";
 import {
   addSessionItem,
@@ -20,8 +20,16 @@ import {
   updateSessionItemResult,
 } from "@/infra/repositories/session-repository";
 import { prisma } from "@/infra/db/prisma";
+import { buildSessionPlanningEvaluation } from "./_session-planning-service";
 
-/** テンプレートを展開して 1 回分の練習を作る（最も使われる導線）。 */
+/**
+ * テンプレートを展開して 1 回分の練習を作る（最も使われる導線）。
+ *
+ * [R10-B2] RUNNING_V2 項目を含むメニューは、実際にコピーする前に `_session-planning-service.ts` が
+ * メニュー全体の集計（R6）・週次文脈（R7）を評価する。集計に BLOCK / REQUIRE_CONFIRMATION があれば
+ * ここで拒否し、`createSessionFromMenu()` を一切呼ばない（Session row を作らない）。
+ * legacy-only のメニューは評価をスキップし、これまでどおりの挙動のまま `createSessionFromMenu()` を呼ぶ。
+ */
 export async function createSessionFromMenuAction(
   _prev: ActionResult<{ id: string }> | null,
   formData: FormData,
@@ -29,9 +37,12 @@ export async function createSessionFromMenuAction(
   const parsed = parseForm(sessionFromMenuSchema, formData);
   if (!parsed.ok) return parsed.result;
 
+  const decision = await buildSessionPlanningEvaluation(parsed.data);
+  if (decision.kind === "REJECT") return actionError(decision.message);
+
   let id: string;
   try {
-    const created = await createSessionFromMenu(parsed.data);
+    const created = await createSessionFromMenu(parsed.data, decision.kind === "EVALUATED" ? decision.evaluation : undefined);
     id = created.id;
   } catch (e) {
     return toActionError(e);

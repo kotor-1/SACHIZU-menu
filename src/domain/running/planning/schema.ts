@@ -109,6 +109,14 @@ export const coachReferenceInputSchema = intensityReferenceSchema
  * EVENT_APPROACH_SPEED の手入力値としてだけ CoachFieldEdit で受け付ける。
  */
 export const COACH_EDIT_NON_ENVELOPE_FIELDS = ["approachDistanceM"] as const;
+
+/**
+ * [R10-B4A] aggregate / constraint 型の EnvelopeField。RunningPrescription の中に一意に対応する一次 FieldValue が無く、
+ * 一次入力から導出される（または一次入力を制約する）値。Coach 向けの Action / UI では**直接 edit の対象にしない**
+ * （EnvelopeField に存在することと直接編集できることは同義ではない。変更後の値から sets や距離を逆算しない）。
+ * planner 自体の CoachFieldEdit / FIELD override の扱いはこの定数では変えない。
+ */
+export const AGGREGATE_ENVELOPE_FIELDS = ["totalReps", "sessionVolumeM", "flyVolumeM", "attempts", "vdecPercent"] as const;
 export const coachEditFieldSchema = z.union([envelopeFieldSchema, z.enum(COACH_EDIT_NON_ENVELOPE_FIELDS)]);
 export type CoachEditField = z.infer<typeof coachEditFieldSchema>;
 
@@ -230,6 +238,12 @@ export const menuContextSchema = z
     }
   });
 
+/**
+ * [R10-B4A] Finding code の形（UPPER_SNAKE）。確認状態として受け取るのは code 文字列だけで、
+ * 自由文字列・健康情報を含む値は受け取らない。
+ */
+export const findingCodeSchema = z.string().regex(/^[A-Z][A-Z0-9_]{0,79}$/, "Finding code の形式が正しくありません");
+
 export const planRequestSchema = z
   .object({
     planningDate: isoDateSchema,
@@ -245,6 +259,13 @@ export const planRequestSchema = z
     overrides: z.array(coachOverrideSchema),
     coachReference: coachReferenceInputSchema.nullable(),
     actor: planRequestActorSchema,
+    /**
+     * [R10-B4A] コーチが明示的に確認した `REQUIRE_CONFIRMATION` Finding の code（**code 単位**。同じ code の
+     * Finding が複数あっても1回の確認でその code 群を確認した扱い）。CoachOverride ではなく、reason も
+     * confirmedTwice も持たない。Finding 自体は消さない。COACH 以外の actor は持てない（§18）。
+     * 「現在の結果に無い code が含まれていないか」（stale）の検査は、結果を知っている application layer が行う。
+     */
+    confirmedFindingCodes: z.array(findingCodeSchema).max(50).default([]),
   })
   .strict()
   .superRefine((req, ctx) => {
@@ -279,6 +300,13 @@ export const planRequestSchema = z
           code: z.ZodIssueCode.custom,
           message: `actor=${req.actor.kind} は coachReference を持てません（[R4 errata]）`,
           path: ["coachReference"],
+        });
+      }
+      if (req.confirmedFindingCodes.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `actor=${req.actor.kind} は confirmedFindingCodes を持てません（[R10-B4A] 確認はコーチの明示操作だけ）`,
+          path: ["confirmedFindingCodes"],
         });
       }
     }
@@ -369,7 +397,15 @@ export type EligibilityReason = {
 export type PlanResult =
   | { status: "OK"; prescription: RunningPrescriptionValue; sessionFindings: Finding[] }
   | { status: "INELIGIBLE"; reasons: EligibilityReason[]; substitutes: RunningSelection[]; findings: Finding[] }
-  | { status: "BLOCKED"; findings: Finding[] };
+  | {
+      status: "BLOCKED";
+      findings: Finding[];
+      /**
+       * [R10-B4A] 確認 contract だけが理由で止まったとき（BLOCK 等の他の停止理由が無いとき）にだけ付く。
+       * `requiredFindingCodes` は現在の結果に存在する REQUIRE_CONFIRMATION の code 全体（未確認分だけではない）。
+       */
+      confirmationRequired?: { requiredFindingCodes: string[] };
+    };
 
 // ---------------------------------------------------------------------------
 // Finding helper（ITEM scope 固定。SESSION/WEEK は R6/R7）

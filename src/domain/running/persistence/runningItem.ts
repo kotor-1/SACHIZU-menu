@@ -289,6 +289,9 @@ export function validateRunningMenuItemRecord(
     if (mode === "WRITE" && prescription.loadSnapshot === undefined) {
       issues.push("prescriptionJson に loadSnapshot がありません（R9 以降の RUNNING_V2 保存では必須）");
     }
+    if (mode === "WRITE" && prescription.planningControls === undefined) {
+      issues.push("prescriptionJson に planningControls がありません（R10 以降の RUNNING_V2 保存では必須）");
+    }
     const expected = projectRunningPrescription(prescription);
     for (const column of CONSISTENCY_COLUMNS) {
       if (!Object.is(record[column] ?? null, expected[column])) {

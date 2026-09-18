@@ -332,6 +332,22 @@ export const timingToleranceSnapshotSchema = z
   .strict();
 export type TimingToleranceSnapshot = z.infer<typeof timingToleranceSnapshotSchema>;
 
+// ---------------------------------------------------------------------------
+// planningControls（R10-B1）
+// ---------------------------------------------------------------------------
+
+/**
+ * [R10-B1] `PlanRequest.positionPreference` の versioned snapshot。他の PlanRequest 入力と違い
+ * DB の他の場所から復元できない唯一のフィールドなので、これだけを最小限コピーする
+ * （PlanRequest 全体を JSON コピーしない）。
+ */
+export const planningControlsSchema = z
+  .object({
+    positionPreference: z.enum(["LOWER", "MIDDLE"]).nullable(),
+  })
+  .strict();
+export type PlanningControls = z.infer<typeof planningControlsSchema>;
+
 export const monitoringSnapshotSchema = z
   .object({
     stopPolicy: stopPolicySnapshotSchema,
@@ -388,6 +404,17 @@ const runningPrescriptionCommonFields = {
    * （persistence/runningItem.ts が書込み前に要求する）。
    */
   loadSnapshot: loadSnapshotSchema.optional(),
+  /**
+   * [R10-B1] PlanRequest.positionPreference のコピー（§9.1）。他の PlanRequest フィールド
+   * （selection / subject / menuContext / history / coachEdits / overrides 等）は保存済みの
+   * MenuItem 列・runningContextJson・Competition・load-history・Provenance から正確に再導出できるが、
+   * `positionPreference` だけは他の入力から復元できない（§9.3 の複数の位置上限と合成された後の
+   * `FieldValue.position` からは元の希望を逆算できない）。schemaVersion=1 のまま
+   * **backward-compatible な optional**（R8/R9 までの処方 JSON には無く、読込では欠落を許す）。
+   * `planRunningPrescription` の成功結果は必ず持ち（validatePrescription が検証）、R10 以降の
+   * RUNNING_V2 保存では必須（persistence/runningItem.ts が書込み前に要求する）。
+   */
+  planningControls: planningControlsSchema.optional(),
 };
 
 const noRecoveryStructure = z.null();
@@ -542,4 +569,5 @@ export type RunningPrescription<M extends z.infer<typeof runningTrainingMethodSc
   ruleSet: z.infer<typeof ruleSetRefSchema>;
   generatedBy: z.infer<typeof generationRecordSchema>;
   loadSnapshot?: LoadSnapshot;
+  planningControls?: PlanningControls;
 };

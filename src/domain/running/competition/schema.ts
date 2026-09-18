@@ -13,14 +13,26 @@ import type { RangePosition } from "../types/prescription";
 import type { EnvelopeTier } from "../types/subject";
 import type { TrainingPhase } from "../../menu/constants";
 
-/** §14: DB モデルは R9。ここでは domain 型として受け取るだけ。 */
+/**
+ * §14: DB モデルは R9。ここでは domain 型として受け取るだけ。
+ *
+ * [R10-B2.1] `endDate` は登録された大会開催期間の最終日（両端 inclusive）。null / 省略は `date` の1日開催
+ * （R7 以前の single-day と完全に同じ扱い）。`endDate < date` は swap せず validation error にする
+ * （Competition 書込み側の `competitionInputSchema` と同じ制約）。
+ */
 export const competitionRefSchema = z
   .object({
     id: z.string().min(1),
     date: isoDateSchema,
+    endDate: isoDateSchema.nullable().optional(),
     priority: competitionPrioritySchema,
   })
-  .strict();
+  .strict()
+  .superRefine((c, ctx) => {
+    if (c.endDate != null && c.endDate < c.date) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CompetitionRef.endDate は date 以降である必要があります", path: ["endDate"] });
+    }
+  });
 export type CompetitionRef = z.infer<typeof competitionRefSchema>;
 
 export function assertNoDuplicateCompetitionIds(refs: readonly CompetitionRef[]): void {

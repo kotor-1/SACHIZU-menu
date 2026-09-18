@@ -15,11 +15,11 @@ import type { TrainingPhase } from "../../menu/constants";
 import { evaluatePhase } from "./phase";
 import {
   combinedDosePositionCap,
-  daysUntilCompetition,
   longIncompleteBlockedBy,
   matchedCompetitionWindows,
   nonRaceHighReviewFindings,
   resolveAutogenBlock,
+  resolveCompetitionDay,
   resolveNewStimulus,
   taperGuidanceOf,
 } from "./windows";
@@ -28,6 +28,9 @@ import type { CompetitionRef, PhaseCompetitionResult } from "./schema";
 
 export type { CompetitionRef, PhaseCompetitionContext, PhaseCompetitionResult } from "./schema";
 export { competitionRefSchema, assertNoDuplicateCompetitionIds } from "./schema";
+// [R10-B2.1] 「大会開催期間中か」は competition policy。application layer（session 評価）は日付比較を
+// 自前で書かず、この helper だけを呼ぶ。
+export { isWithinCompetitionPeriod, resolveCompetitionDay } from "./windows";
 export type { TaperGuidance } from "../rules/schema";
 
 const POSITION_ORDER: Record<RangePosition, number> = { LOWER_BOUND: 0, LOWER_HALF: 1, MIDDLE: 2, UPPER_HALF: 3 };
@@ -108,7 +111,7 @@ export function resolveCompetitionAndPhase(args: {
     dosePositionCap,
     autogenBlockedLoadClasses: [...autogenBlockedLoadClasses] as RuleSet["methods"][number]["loadClass"][],
     autogenException,
-    competitionDay: plannedDate === null ? null : competitions.some((c) => daysUntilCompetition(plannedDate, c) === 0),
+    competitionDay: plannedDate === null ? null : resolveCompetitionDay(plannedDate as IsoDate, competitions),
     longIncompleteBlocked: longIncompleteBlockedBy(matched),
     findings,
   };

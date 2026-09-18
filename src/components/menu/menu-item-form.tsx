@@ -17,6 +17,10 @@ import {
   ATHLETE_LEVEL_LABEL,
   BASELINE_LEVEL,
 } from "@/domain/prescription/constants";
+import {
+  LEGACY_RUNNING_SUGGESTION_NOTICE_JA,
+  isRunningExerciseForV2,
+} from "@/presentation/running/legacy-routing";
 import type { ExercisePickerItem } from "@/infra/repositories/exercise-repository";
 import type { ActionResult } from "@/domain/shared/result";
 
@@ -69,6 +73,7 @@ export function MenuItemForm({
   resetOnSuccess = false,
   compact = false,
   phase = null,
+  runningV2Enabled = false,
 }: {
   action: Action;
   exercises: ExercisePickerItem[];
@@ -82,6 +87,11 @@ export function MenuItemForm({
   compact?: boolean;
   /** このメニューの期分け。推奨処方の計算に使う。 */
   phase?: TrainingPhase | null;
+  /**
+   * [R10-B4B] Running v2 が有効か（既定は false ＝ B4B 前とまったく同じ表示・操作）。
+   * true のとき、走系の種目では legacy の「推奨処方を入れる」を出さず、走トレーニングの導線を案内する。
+   */
+  runningV2Enabled?: boolean;
 }) {
   const [state, formAction] = useActionState(action, null);
   const [values, setValues] = useState<MenuItemFormValues>(initial);
@@ -109,6 +119,17 @@ export function MenuItemForm({
   const errors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
   const selected = exercises.find((e) => e.id === values.exerciseId);
   const metric = (selected?.metricType ?? "REPS") as MetricType;
+
+  // [R10-B4B] 走系かどうかは既存の分類（classify）で決める。種目名の一覧をここで持たない。
+  const routedToRunningV2 =
+    runningV2Enabled &&
+    selected !== undefined &&
+    isRunningExerciseForV2({
+      category: selected.category,
+      energySystem: selected.energySystem,
+      difficulty: selected.difficulty,
+      targets: selected.targets.map((t) => t.target),
+    });
 
   /** 種目を選び直したら、その種目の推奨値でフォームを埋め直す。 */
   function pickExercise(id: string) {
@@ -234,7 +255,13 @@ export function MenuItemForm({
         </Field>
       </div>
 
-      {selected && (
+      {selected && routedToRunningV2 && (
+        <p className="rounded border border-indigo-200 bg-white px-2.5 py-2 text-xs leading-relaxed text-slate-600">
+          {LEGACY_RUNNING_SUGGESTION_NOTICE_JA}
+        </p>
+      )}
+
+      {selected && !routedToRunningV2 && (
         <div className="space-y-1.5">
           <button
             type="button"

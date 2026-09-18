@@ -204,7 +204,7 @@ describe("T-PLA-02: sets/reps 取り違え疑い", () => {
     expect(metrics(findings)).toContain("PLA_SETS_REPS_MIXUP");
   });
 
-  it("[R6 integration policy] REQUIRE_CONFIRMATION は確認 contract が無いので全 actor で BLOCKED にする", () => {
+  it("[R10-B4A] REQUIRE_CONFIRMATION は未確認なら BLOCKED（override では突破しない）", () => {
     const base = {
       coachEdits: [
         { field: "sets", value: 3, unit: "sets" },
@@ -213,6 +213,32 @@ describe("T-PLA-02: sets/reps 取り違え疑い", () => {
       overrides: [fieldOverride("sessionVolumeM", 480), fieldOverride("totalReps", 24)],
     };
     expect(planRunningPrescription(makeRequest("ACCELERATION", "ACC_BLOCK_20", base)).status).toBe("BLOCKED");
+    // 別の code を確認しても通らない（code 単位）
+    const wrong = { ...makeRequest("ACCELERATION", "ACC_BLOCK_20", base), confirmedFindingCodes: ["AGG_TOTAL_RUNNING_CONFIRM"] };
+    expect(planRunningPrescription(wrong).status).toBe("BLOCKED");
+  });
+
+  it("[R10-B4A] COACH がその code を明示確認すれば OK。Finding は処方に残る（確認しても消さない）", () => {
+    const base = {
+      coachEdits: [
+        { field: "sets", value: 3, unit: "sets" },
+        { field: "repsPerSet", value: 8, unit: "reps" },
+      ],
+      overrides: [fieldOverride("sessionVolumeM", 480), fieldOverride("totalReps", 24)],
+    };
+    const r = planRunningPrescription({ ...makeRequest("ACCELERATION", "ACC_BLOCK_20", base), confirmedFindingCodes: ["PLAUSIBILITY_REQUIRE_CONFIRMATION"] });
+    expect(r.status).toBe("OK");
+    if (r.status !== "OK") throw new Error("unreachable");
+    expect(r.prescription.findings).toContainEqual(expect.objectContaining({ code: "PLAUSIBILITY_REQUIRE_CONFIRMATION", severity: "REQUIRE_CONFIRMATION" }));
+  });
+
+  it("[R10-B4A] AI / SYSTEM は confirmedFindingCodes を持てない（§18。確認はコーチの明示操作だけ）", () => {
+    for (const actor of [AI, SYSTEM]) {
+      const r = planRunningPrescription({ ...makeRequest("STRIDE", "ST_RELAXED", { actor }), confirmedFindingCodes: ["AGG_TOTAL_RUNNING_CONFIRM"] });
+      expect(r.status, actor.kind).toBe("BLOCKED");
+      if (r.status !== "BLOCKED") throw new Error("unreachable");
+      expect(r.findings.map((f) => f.code), actor.kind).toContain("PLAN_REQUEST_INVALID");
+    }
   });
 
   it("ratioMultiplier は RuleSet から読む（TS に 3 を持たない）", () => {

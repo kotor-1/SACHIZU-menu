@@ -10,9 +10,11 @@ import {
 } from "@/domain/session/schema";
 import {
   buildPlanningSnapshot,
+  PlanningEvaluationStaleError,
   snapshotLoadCategory,
   type SessionPlanningEvaluationInput,
 } from "@/domain/running/persistence/sessionSnapshot";
+import { buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "./session-fingerprint";
 
 const sessionDetailInclude = {
   items: {
@@ -145,99 +147,130 @@ export async function deleteSession(id: string) {
  *     結果を `planningEvaluation` として渡す。渡されなければ NOT_EVALUATED として保存する）
  *   - コピーする前に、RuleSet に依存しない検証結果（壊れた JSON など）を planningSnapshotJson に残す。
  *     検証に失敗してもコピーは止めない
+ *
+ * [R10-B2] stale evaluation protection（§30〜§37）:
+ *   - application layer が評価した時点の menu と、ここが実際にコピーする直前の menu がズレていたら
+ *     古い評価を保存しない。読み込み〜書込みを1つの transaction にして、その間の書換えからも守る。
+ *   - 指紋は DB の生値だけで計算する（RuleSet loader を持ち込まない。`buildSourceMenuFingerprint`）。
  */
 export async function createSessionFromMenu(
   input: SessionFromMenuInput,
   planningEvaluation?: SessionPlanningEvaluationInput,
 ) {
-  const menu = await prisma.menuTemplate.findUnique({
-    where: { id: input.menuTemplateId },
-    include: {
-      blocks: {
-        orderBy: { sortOrder: "asc" },
-        include: {
-          items: {
-            orderBy: { sortOrder: "asc" },
-            include: { exercise: { select: { name: true, category: true } } },
+  return prisma.$transaction(async (tx) => {
+    const menu = await tx.menuTemplate.findUnique({
+      where: { id: input.menuTemplateId },
+      include: {
+        blocks: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            items: {
+              orderBy: { sortOrder: "asc" },
+              include: { exercise: { select: { name: true, category: true } } },
+            },
           },
         },
       },
-    },
-  });
-  if (!menu) throw new Error("メニューが見つかりません");
+    });
+    if (!menu) throw new Error("メニューが見つかりません");
 
-  // ブロックをまたいで通し番号を振り直す（セッションは 1 本のリストとして扱う）
-  let sortOrder = 0;
-  const items = menu.blocks.flatMap((block) =>
-    block.items.map((item) => ({
-      exerciseId: item.exerciseId,
-      exerciseNameSnapshot:
-        item.exercise?.name ?? item.displayName ?? "（名称未設定）",
-      blockNameSnapshot: block.name,
-      sortOrder: sortOrder++,
-      plannedSets: item.sets,
-      plannedReps: item.reps,
-      plannedDistanceMeters: item.distanceMeters,
-      plannedDurationSeconds: item.durationSeconds,
-      plannedRestSeconds: item.restSeconds,
-      plannedIntensityPercent: item.intensityPercent,
-      plannedLoadKg: item.loadKg,
-      plannedNote: item.note,
-      // --- Running v2 の計画スナップショット（§17.2。値をそのままコピー） ---
-      prescriptionKind: item.prescriptionKind,
-      runningMethod: item.runningMethod,
-      sessionTemplateId: item.sessionTemplateId,
-      recoveryStructure: item.recoveryStructure,
-      plannedBuildUpDistanceMeters: item.buildUpDistanceMeters,
-      plannedFlyZoneDistanceMeters: item.flyZoneDistanceMeters,
-      plannedSetRestSeconds: item.setRestSeconds,
-      plannedIntraRepRestSeconds: item.intraRepRestSeconds,
-      plannedIntensityReferenceKind: item.intensityReferenceKind,
-      plannedPrescriptionConfidence: item.prescriptionConfidence,
-      ruleSetVersion: item.ruleSetVersion,
-      ruleSetContentHash: item.ruleSetContentHash,
-      plannedPrescriptionJson: item.prescriptionJson,
-      plannedProvenanceJson: item.provenanceJson,
-      plannedRationale: item.rationale,
-      // v2 は plan 時点の loadSnapshot（処方 JSON 内）から。RuleSet には問い合わせない
-      loadCategory: snapshotLoadCategory({
+    if (planningEvaluation !== undefined) {
+      const fingerprintItems: FingerprintMenuItemInput[] = menu.blocks.flatMap((block) =>
+        block.items.map((item) => ({
+          id: item.id,
+          sortOrder: item.sortOrder,
+          prescriptionKind: item.prescriptionKind,
+          ruleSetVersion: item.ruleSetVersion,
+          ruleSetContentHash: item.ruleSetContentHash,
+          prescriptionJson: item.prescriptionJson,
+          sets: item.sets,
+          reps: item.reps,
+          distanceMeters: item.distanceMeters,
+          durationSeconds: item.durationSeconds,
+          restSeconds: item.restSeconds,
+          intensityPercent: item.intensityPercent,
+          loadKg: item.loadKg,
+          exerciseCategory: item.exercise?.category ?? null,
+        })),
+      );
+      if (buildSourceMenuFingerprint(fingerprintItems) !== planningEvaluation.sourceMenuFingerprint) {
+        throw new PlanningEvaluationStaleError();
+      }
+    }
+
+    // ブロックをまたいで通し番号を振り直す（セッションは 1 本のリストとして扱う）
+    let sortOrder = 0;
+    const items = menu.blocks.flatMap((block) =>
+      block.items.map((item) => ({
+        exerciseId: item.exerciseId,
+        exerciseNameSnapshot:
+          item.exercise?.name ?? item.displayName ?? "（名称未設定）",
+        blockNameSnapshot: block.name,
+        sortOrder: sortOrder++,
+        plannedSets: item.sets,
+        plannedReps: item.reps,
+        plannedDistanceMeters: item.distanceMeters,
+        plannedDurationSeconds: item.durationSeconds,
+        plannedRestSeconds: item.restSeconds,
+        plannedIntensityPercent: item.intensityPercent,
+        plannedLoadKg: item.loadKg,
+        plannedNote: item.note,
+        // --- Running v2 の計画スナップショット（§17.2。値をそのままコピー） ---
         prescriptionKind: item.prescriptionKind,
-        prescriptionJson: item.prescriptionJson,
-        exerciseCategory: item.exercise?.category ?? null,
-      }),
-    })),
-  );
-  const sourceMenuItemIds = menu.blocks.flatMap((block) => block.items.map((item) => item.id));
+        runningMethod: item.runningMethod,
+        sessionTemplateId: item.sessionTemplateId,
+        recoveryStructure: item.recoveryStructure,
+        plannedBuildUpDistanceMeters: item.buildUpDistanceMeters,
+        plannedFlyZoneDistanceMeters: item.flyZoneDistanceMeters,
+        plannedSetRestSeconds: item.setRestSeconds,
+        plannedIntraRepRestSeconds: item.intraRepRestSeconds,
+        plannedIntensityReferenceKind: item.intensityReferenceKind,
+        plannedPrescriptionConfidence: item.prescriptionConfidence,
+        ruleSetVersion: item.ruleSetVersion,
+        ruleSetContentHash: item.ruleSetContentHash,
+        plannedPrescriptionJson: item.prescriptionJson,
+        plannedProvenanceJson: item.provenanceJson,
+        plannedRationale: item.rationale,
+        // v2 は plan 時点の loadSnapshot（処方 JSON 内）から。RuleSet には問い合わせない
+        loadCategory: snapshotLoadCategory({
+          prescriptionKind: item.prescriptionKind,
+          prescriptionJson: item.prescriptionJson,
+          exerciseCategory: item.exercise?.category ?? null,
+        }),
+      })),
+    );
+    const sourceMenuItemIds = menu.blocks.flatMap((block) => block.items.map((item) => item.id));
 
-  // 作成前の読み取り専用の検証（書込みはこの後の 1 回の nested create だけ）
-  const planningSnapshot = buildPlanningSnapshot({
-    sessionDateInput: input.date,
-    evaluation: planningEvaluation,
-    items: items.map((i, index) => ({
-      menuItemId: sourceMenuItemIds[index],
-      sortOrder: i.sortOrder,
-      prescriptionKind: i.prescriptionKind,
-      prescriptionJson: i.plannedPrescriptionJson,
-      provenanceJson: i.plannedProvenanceJson,
-      ruleSetVersion: i.ruleSetVersion,
-      ruleSetContentHash: i.ruleSetContentHash,
-      loadCategory: i.loadCategory,
-    })),
-  });
+    // 作成前の読み取り専用の検証（書込みはこの後の 1 回の nested create だけ）
+    const planningSnapshot = buildPlanningSnapshot({
+      sessionDateInput: input.date,
+      evaluation: planningEvaluation,
+      items: items.map((i, index) => ({
+        menuItemId: sourceMenuItemIds[index],
+        sortOrder: i.sortOrder,
+        prescriptionKind: i.prescriptionKind,
+        prescriptionJson: i.plannedPrescriptionJson,
+        provenanceJson: i.plannedProvenanceJson,
+        ruleSetVersion: i.ruleSetVersion,
+        ruleSetContentHash: i.ruleSetContentHash,
+        loadCategory: i.loadCategory,
+      })),
+    });
 
-  return prisma.trainingSession.create({
-    data: {
-      ownerId: DEFAULT_OWNER_ID,
-      title: input.title ?? menu.name,
-      date: new Date(input.date),
-      sourceMenuTemplateId: menu.id,
-      sourceMenuNameSnapshot: menu.name,
-      groupName: input.groupName,
-      location: input.location,
-      status: "PLANNED",
-      planningSnapshotJson: JSON.stringify(planningSnapshot),
-      items: { create: items },
-    },
+    return tx.trainingSession.create({
+      data: {
+        ownerId: DEFAULT_OWNER_ID,
+        title: input.title ?? menu.name,
+        date: new Date(input.date),
+        sourceMenuTemplateId: menu.id,
+        sourceMenuNameSnapshot: menu.name,
+        groupName: input.groupName,
+        location: input.location,
+        status: "PLANNED",
+        planningSnapshotJson: JSON.stringify(planningSnapshot),
+        items: { create: items },
+      },
+    });
   });
 }
 

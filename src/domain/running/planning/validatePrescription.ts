@@ -100,6 +100,10 @@ export function validatePrescriptionAgainstRuleSet(
   } else if (p.loadSnapshot.loadClass !== methodMeta.loadClass || p.loadSnapshot.weeklyLoadCategory !== methodMeta.weeklyLoadCategory) {
     problems.push("loadSnapshot が plan 時点の RuleSet の MethodMeta と一致しません");
   }
+  // [R10-B1] 新しい plan の出力は planningControls 必須（positionPreference の snapshot）
+  if (p.planningControls === undefined) {
+    problems.push("planningControls がありません");
+  }
 
   const stopPolicy = ruleSet.stopPolicies.find((sp) => sp.id === p.stopPolicyId);
   if (

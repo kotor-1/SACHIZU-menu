@@ -216,6 +216,14 @@ export {
 } from "./rules/schema";
 
 export { getRuleSet, getActiveRuleSet, type ActiveRuleSetResult } from "./rules/loader";
+// [R10-B1] 保存済み version + contentHash の完全一致でだけ RuleSet を取得する production API
+// （§9・§16。active 版へのフォールバックはしない。通常編集・override が使う）。
+export {
+  getRuleSetByIdentity,
+  RULE_SET_IDENTITY_ISSUES,
+  type RuleSetIdentityIssue,
+  type RuleSetIdentityResult,
+} from "./rules/loader";
 
 // --- Athlete context（R3） -----------------------------------------------------
 // §1.5 の R3 公開 API は `resolveSubjectProfile` だけ。eligibility 解決・LONG/ASSISTED
@@ -224,11 +232,14 @@ export { getRuleSet, getActiveRuleSet, type ActiveRuleSetResult } from "./rules/
 // `src/domain/running/context/*` を直接 import する）。
 export { resolveSubjectProfile, type ResolveSubjectProfileInput, type SubjectProfile } from "./context/subject";
 
-// --- Planning engine（R4） ----------------------------------------------------
-// §1.5 の R4 公開 API は `planRunningPrescription` と入出力型だけ。selectEnvelope / placeValue /
-// individualize / derivePlanningConfidence / validateSelection / buildPrescription 等の各 step と、
-// RuleSet 差し替え用の `planRunningPrescriptionWithRuleSet`（テスト専用）は root から export しない。
-export { planRunningPrescription, type PlanRequest, type PlanResult } from "./planning";
+// --- Planning engine（R4・R10-B1） ---------------------------------------------
+// §1.5 の R4 公開 API は `planRunningPrescription` と入出力型。selectEnvelope / placeValue /
+// individualize / derivePlanningConfidence / validateSelection / buildPrescription 等の各内部 step は
+// root から export しない。[R10-B1] `planRunningPrescriptionWithRuleSet` と `ResolvedRuleSet` は
+// テスト専用から application layer 向けの production API へ昇格した（§16。保存済み版を固定して
+// 再計画するために使う。`getRuleSetByIdentity` / `getActiveRuleSet` で解決した結果を渡す）。
+export { planRunningPrescription, planRunningPrescriptionWithRuleSet, type PlanRequest, type PlanResult } from "./planning";
+export type { ResolvedRuleSet } from "./planning";
 
 // --- Readiness / Pain gate（R5） ----------------------------------------------
 // §1.5 の R5 公開 API は `resolveReadinessAction` と入出力型だけ。内部ロジック

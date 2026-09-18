@@ -114,6 +114,15 @@ export async function findMenu(id: string): Promise<MenuDetail | null> {
   return prisma.menuTemplate.findUnique({ where: { id }, include: menuDetailInclude });
 }
 
+/** [R10-B1] MenuItem から親の MenuTemplate.id を辿る（running-plan-service が「この項目のメニュー」を読むため）。 */
+export async function findMenuIdForItem(itemId: string): Promise<string | null> {
+  const row = await prisma.menuItem.findUnique({
+    where: { id: itemId },
+    select: { menuBlock: { select: { menuTemplateId: true } } },
+  });
+  return row?.menuBlock.menuTemplateId ?? null;
+}
+
 export async function listMenusForPicker() {
   return prisma.menuTemplate.findMany({
     where: { ownerId: DEFAULT_OWNER_ID, status: { not: "ARCHIVED" } },
@@ -276,7 +285,22 @@ export async function addMenuItem(menuBlockId: string, input: MenuItemInput) {
   });
 }
 
+/** [R10-B1 §37] Action 層の事前ガード用。項目が無ければ null。 */
+export async function findMenuItemPrescriptionKind(id: string): Promise<string | null> {
+  const row = await prisma.menuItem.findUnique({ where: { id }, select: { prescriptionKind: true } });
+  return row?.prescriptionKind ?? null;
+}
+
+/**
+ * [R10-B1 §37] RUNNING_V2 の行はこの汎用 update では編集できない（専用の running-item-repository /
+ * running-actions を使う）。ここでの guard は Action 層のガード（menu-actions.ts）とは独立した
+ * 二重の守り ―― repository を直接呼ぶ経路（テスト・将来の別 Action）でも同じ保護を保証する。
+ */
 export async function updateMenuItem(id: string, input: MenuItemInput) {
+  const current = await prisma.menuItem.findUnique({ where: { id }, select: { prescriptionKind: true } });
+  if (current?.prescriptionKind === "RUNNING_V2") {
+    throw new Error("この項目は RUNNING_V2 の処方です。専用の編集操作を使用してください。");
+  }
   return prisma.menuItem.update({ where: { id }, data: input });
 }
 

@@ -158,3 +158,38 @@ export function getActiveRuleSet(at: string): ActiveRuleSetResult {
 export function listRuleSetVersions(): string[] {
   return allRuleSets().map((rs) => rs.ruleSetVersion);
 }
+
+// ---------------------------------------------------------------------------
+// getRuleSetByIdentity（R10-B1 §9）
+// ---------------------------------------------------------------------------
+
+export const RULE_SET_IDENTITY_ISSUES = ["VERSION_NOT_FOUND", "RULESET_IDENTITY_MISMATCH"] as const;
+export type RuleSetIdentityIssue = (typeof RULE_SET_IDENTITY_ISSUES)[number];
+
+export type RuleSetIdentityResult =
+  | { status: "OK"; ruleSet: RuleSet; contentHash: string }
+  | { status: "REJECTED"; issue: RuleSetIdentityIssue };
+
+/**
+ * `version` + `contentHash` の完全一致でだけ RuleSet を返す（保存済み MenuItem の
+ * `ruleSetVersion` / `ruleSetContentHash` に一致する版を明示的に読むための production API）。
+ *
+ * - `version` が存在しない → `VERSION_NOT_FOUND`
+ * - `version` は存在するが、検証済み manifest の contentHash と一致しない → `RULESET_IDENTITY_MISMATCH`
+ * - どちらの場合も **current / active 版へフォールバックしない**（fail closed）。
+ *
+ * `getActiveRuleSet()` とは独立した経路。通常編集・override が「保存時の版」を
+ * 維持するために使う（§16。silent upgrade を防ぐ）。
+ */
+export function getRuleSetByIdentity(input: { version: string; contentHash: string }): RuleSetIdentityResult {
+  const ruleSet = getRuleSet(input.version);
+  if (!ruleSet) return { status: "REJECTED", issue: "VERSION_NOT_FOUND" };
+
+  // allRuleSets() でロードされた RuleSet は validatedManifest() と version/status/validFrom が
+  // 1対1で一致することが module load 時に保証されている（§6.2）ため、entry は必ず見つかる。
+  const entry = validatedManifest().find((e) => e.version === input.version);
+  if (!entry || entry.contentHash !== input.contentHash) {
+    return { status: "REJECTED", issue: "RULESET_IDENTITY_MISMATCH" };
+  }
+  return { status: "OK", ruleSet, contentHash: entry.contentHash };
+}

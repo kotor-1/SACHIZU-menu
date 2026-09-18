@@ -54,6 +54,7 @@ import type { RationaleCode } from "../rationale/codes";
 import { validatePrescriptionAgainstRuleSet } from "./validatePrescription";
 import { evaluateSessionAggregation } from "../aggregation";
 import { checkOutputPlausibility, checkSessionPlausibility } from "../plausibility/output";
+import { requiredConfirmationCodes } from "./confirmation";
 import { resolveCompetitionAndPhase } from "../competition";
 import { evaluateWeeklyContext } from "../weekly";
 import { hasUsedTemplateWithinDays } from "../weekly/events";
@@ -1089,6 +1090,8 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     generatedBy: generationRecordFor(request.actor),
     // [R9] 週次文脈用の MethodMeta のコピー（metadata のみ。量・強度の計算には使わない）
     loadSnapshot: { loadClass: methodMeta.loadClass, weeklyLoadCategory: methodMeta.weeklyLoadCategory },
+    // [R10-B1] PlanRequest.positionPreference のコピー（他の入力から復元できない唯一のフィールド）
+    planningControls: { positionPreference: request.positionPreference },
   };
 
   const parsed = runningPrescriptionSchema.safeParse(candidate);
@@ -1128,12 +1131,18 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
   if (itemPlausibility.blocked) return blocked(itemPlausibility.findings.filter((f) => f.severity === "BLOCK"));
   if (sessionPlausibility.blocked) return blocked(sessionFindings);
   if (itemPlausibility.requiresConfirmation || sessionPlausibility.requiresConfirmation) {
-    // [R6 integration policy] 確認済みを表現する contract がまだ無いため、REQUIRE_CONFIRMATION は
-    // 全 actor で BLOCKED として返す（override では突破させない）。確認 UI の contract 追加時に解除する。
-    return blocked([
+    // [R10-B4A] 確認 contract（R6 integration policy の置き換え）: REQUIRE_CONFIRMATION は、COACH が
+    // その code を `confirmedFindingCodes` で明示確認したときだけ通す（code 単位）。override では突破させない。
+    // 確認済みでも Finding は消さない（item は prescription.findings、session は sessionFindings に残る）。
+    const confirmationFindings = [
       ...itemPlausibility.findings.filter((f) => f.severity === "REQUIRE_CONFIRMATION"),
       ...sessionPlausibility.findings.filter((f) => f.severity === "REQUIRE_CONFIRMATION"),
-    ]);
+    ];
+    const confirmed = new Set(request.actor.kind === "COACH" ? request.confirmedFindingCodes : []);
+    if (!confirmationFindings.every((f) => confirmed.has(f.code))) {
+      const findings = [...contextFindings, ...confirmationFindings];
+      return { status: "BLOCKED", findings, confirmationRequired: { requiredFindingCodes: requiredConfirmationCodes(findings) } };
+    }
   }
   if (request.actor.kind !== "COACH" && sessionFindings.some((f) => f.severity === "BLOCK_AUTOGEN")) {
     // AI / SYSTEM はメニュー全体の合計が上限を超えた状態で自動生成できない（コーチは手動で継続可能）。

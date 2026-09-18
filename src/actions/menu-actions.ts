@@ -8,7 +8,7 @@ import {
   menuItemInputSchema,
 } from "@/domain/menu/schema";
 import { parseCsvInput } from "@/domain/shared/zod-helpers";
-import { actionOk, type ActionResult } from "@/domain/shared/result";
+import { actionError, actionOk, type ActionResult } from "@/domain/shared/result";
 import { parseForm, toActionError } from "@/lib/form";
 import {
   addBlock,
@@ -18,6 +18,7 @@ import {
   deleteMenu,
   deleteMenuItem,
   duplicateMenu,
+  findMenuItemPrescriptionKind,
   moveBlock,
   moveMenuItem,
   updateBlock,
@@ -174,6 +175,12 @@ export async function updateMenuItemAction(
   _prev: ActionResult<null> | null,
   formData: FormData,
 ): Promise<ActionResult<null>> {
+  // [R10-B1 §37] RUNNING_V2 は汎用（legacy）編集の対象外。専用の running-actions を使う。
+  // repository の updateMenuItem も独立に同じ guard を持つ（二重の守り）。
+  const kind = await findMenuItemPrescriptionKind(itemId);
+  if (kind === "RUNNING_V2") {
+    return actionError("この項目は走トレーニング（RUNNING_V2）の処方です。専用の編集操作を使用してください。");
+  }
   const parsed = parseForm(menuItemInputSchema, formData);
   if (!parsed.ok) return parsed.result;
   try {

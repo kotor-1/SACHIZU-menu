@@ -83,6 +83,12 @@ export const PLANNING_NOT_EVALUATED_REASONS = [
   "MIXED_RULESET_VERSIONS",
   /** [R10] 保存済みの ruleSetVersion + contentHash に一致する RuleSet を読めない（active 版で代用しない）。 */
   "RULESET_VERSION_UNAVAILABLE",
+  /** [R10-B2] `MenuTemplate.runningContextJson` が無い・壊れている（policy 入力を捏造しない）。 */
+  "RUNNING_CONTEXT_UNAVAILABLE",
+  /** [R10-B2] `RunningMenuContext.plannedAt` の暦日が、実際にセッションを作成する日付と一致しない。 */
+  "SESSION_DATE_CONTEXT_MISMATCH",
+  /** [R10-B2] RUNNING_V2 項目の prescriptionJson が壊れていて、メニュー全体の集計を安全に計算できない。 */
+  "SNAPSHOT_JSON_INVALID",
 ] as const;
 
 const notEvaluatedSchema = z
@@ -132,9 +138,96 @@ export const sessionPlanningEvaluationInputSchema = z
     aggregation: aggregationEvaluationInputSchema,
     weeklyContext: weeklyEvaluationInputSchema,
     findings: z.array(findingSchema),
+    /**
+     * [R10-B2] application layer が評価に使ったメニュー内容の指紋（§30〜§37 stale evaluation protection）。
+     * `createSessionFromMenu()` が実際にコピーする直前の menu から同じ指紋を再計算し、一致しなければ
+     * 保存全体を中止する。RuleSet を読まずに DB の生値だけで計算する（`buildSourceMenuFingerprint`）。
+     */
+    sourceMenuFingerprint: z.string().min(1),
   })
   .strict();
 export type SessionPlanningEvaluationInput = z.input<typeof sessionPlanningEvaluationInputSchema>;
+
+// ---------------------------------------------------------------------------
+// sourceMenuFingerprint（R10-B2 stale evaluation protection）
+// ---------------------------------------------------------------------------
+
+/** 指紋の対象になる MenuItem の生値。実際に aggregation / weekly / legacy adapter が読む列だけを持つ。 */
+export type FingerprintMenuItemInput = {
+  id: string;
+  sortOrder: number;
+  prescriptionKind: string;
+  ruleSetVersion: string | null;
+  ruleSetContentHash: string | null;
+  prescriptionJson: string | null;
+  sets: number | null;
+  reps: number | null;
+  distanceMeters: number | null;
+  durationSeconds: number | null;
+  restSeconds: number | null;
+  intensityPercent: number | null;
+  loadKg: number | null;
+  /** LEGACY 項目の Exercise.category（削除済み・自由入力なら null）。RUNNING_V2 は null。 */
+  exerciseCategory: string | null;
+};
+
+export type FingerprintCanonicalItem = {
+  id: string;
+  sortOrder: number;
+  prescriptionKind: string;
+  ruleSetVersion: string | null;
+  ruleSetContentHash: string | null;
+  prescriptionJson: string | null;
+  sets: number | null;
+  reps: number | null;
+  distanceMeters: number | null;
+  durationSeconds: number | null;
+  restSeconds: number | null;
+  intensityPercent: number | null;
+  loadKg: number | null;
+  exerciseCategory: string | null;
+};
+
+/**
+ * evaluation に影響しうる値だけを、決定的な順序・キーで並べた払い出し値にする（§31〜§34）。
+ *   - 呼び出し側は「実際にセッションへコピーする順序」（block.sortOrder → item.sortOrder）で items を渡す。
+ *     配列の順序自体が「項目の並び替え」の変化を検出する。sortOrder はさらに個々の値のズレも検出するための冗長な保険。
+ *   - rationale・表示専用ラベルなど evaluation に影響しない値は含めない。
+ *   - RuleSet loader を読まない・DB の生値だけで計算する（application service と repository の両方で
+ *     同じ結果になることを保証するため）。
+ *   - ここでは hash 計算をしない（`src/domain/running/**` は Node.js 組み込みモジュールに依存できない。
+ *     §1.6）。呼び出し側（infra / actions）が `JSON.stringify` + SHA-256 で `sourceMenuFingerprint` にする。
+ */
+export function canonicalSourceMenuFingerprintPayload(items: readonly FingerprintMenuItemInput[]): FingerprintCanonicalItem[] {
+  return items.map((i) => ({
+    id: i.id,
+    sortOrder: i.sortOrder,
+    prescriptionKind: i.prescriptionKind,
+    ruleSetVersion: i.ruleSetVersion,
+    ruleSetContentHash: i.ruleSetContentHash,
+    prescriptionJson: i.prescriptionJson,
+    sets: i.sets,
+    reps: i.reps,
+    distanceMeters: i.distanceMeters,
+    durationSeconds: i.durationSeconds,
+    restSeconds: i.restSeconds,
+    intensityPercent: i.intensityPercent,
+    loadKg: i.loadKg,
+    exerciseCategory: i.exerciseCategory,
+  }));
+}
+
+/**
+ * [R10-B2 §35・§36] application service が評価した時点の menu と、`createSessionFromMenu()` が
+ * 実際にコピーする直前の menu とで `sourceMenuFingerprint` が一致しないときに投げる。
+ * transaction 全体を中止する（Session row を作らない）。メッセージはそのまま Action の表示に使える。
+ */
+export class PlanningEvaluationStaleError extends Error {
+  constructor() {
+    super("メニュー内容が更新されたため、もう一度開始してください");
+    this.name = "PlanningEvaluationStaleError";
+  }
+}
 
 // ---------------------------------------------------------------------------
 // planningSnapshotJson（保存形式 v1）
@@ -168,6 +261,8 @@ export const planningSnapshotSchema = z
      * 「generic competition running load fallback」として使う（個人種目だったと推定する意味ではない）。
      */
     competitionLoadCategory: z.enum(COMPETITION_LOAD_CATEGORIES).optional(),
+    /** [R10-B2] 保存時点の監査用（stale check 自体は書込み前に完了済み）。評価が無ければ持たない。 */
+    sourceMenuFingerprint: z.string().min(1).optional(),
   })
   .strict();
 export type PlanningSnapshot = z.infer<typeof planningSnapshotSchema>;
@@ -297,5 +392,6 @@ export function buildPlanningSnapshot(args: {
           }
         : evaluation.weeklyContext,
     findings: [...evaluation.findings, ...snapshotFindings],
+    sourceMenuFingerprint: evaluation.sourceMenuFingerprint,
   });
 }

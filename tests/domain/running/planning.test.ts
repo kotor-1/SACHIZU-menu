@@ -1493,11 +1493,12 @@ describe("AI boundary / generatedBy", () => {
 // ---------------------------------------------------------------------------
 
 describe("public API", () => {
-  it("root index は planRunningPrescription だけを追加し、各 step の内部関数を export しない", () => {
+  it("root index は planRunningPrescription と [R10-B1] planRunningPrescriptionWithRuleSet だけを追加し、各 step の内部関数を export しない", () => {
     const api = runningApi as Record<string, unknown>;
     expect(typeof api.planRunningPrescription).toBe("function");
+    // [R10-B1] RuleSet を明示して計画する production API（§16）へ昇格した（テスト専用から変更）。
+    expect(typeof api.planRunningPrescriptionWithRuleSet).toBe("function");
     for (const internal of [
-      "planRunningPrescriptionWithRuleSet",
       "selectEnvelope",
       "placeValue",
       "individualize",

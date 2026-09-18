@@ -18,9 +18,11 @@ import { evaluatePhase } from "@/domain/running/competition/phase";
 import {
   combinedDosePositionCap,
   daysUntilCompetition,
+  isWithinCompetitionPeriod,
   longIncompleteBlockedBy,
   matchedCompetitionWindows,
   resolveAutogenBlock,
+  resolveCompetitionDay,
   resolveNewStimulus,
 } from "@/domain/running/competition/windows";
 import { computeTaperBaseline } from "@/domain/running/competition/taper";
@@ -34,6 +36,7 @@ import { createCoachActor } from "@/domain/running/types/actor";
 import { loadEventSchema, type LoadEvent } from "@/domain/running/types/load";
 import type { IsoDate, IsoDateTime } from "@/domain/running/types/primitives";
 import type { AthleteProfile, Subject } from "@/domain/running/types/subject";
+import { calendarDayDiff } from "@/domain/running/weekly/windows";
 
 const ruleSet = getRuleSet("rs-2026.09.0")!;
 const PLANNING_DATE = "2026-09-15";
@@ -276,12 +279,133 @@ describe("大会ウィンドウの n 計算", () => {
 });
 
 // ---------------------------------------------------------------------------
+// [R10-B2.1] 大会開催期間（CompetitionRef.endDate）と competitionDay
+// ---------------------------------------------------------------------------
+
+describe("[R10-B2.1] 大会開催期間（endDate）", () => {
+  const single = (endDate?: string | null) =>
+    competitionRefSchema.parse({ id: "single", date: "2026-09-20", ...(endDate === undefined ? {} : { endDate }), priority: "NORMAL" });
+  const multi = () => competitionRefSchema.parse({ id: "multi", date: "2026-09-20", endDate: "2026-09-22", priority: "PEAK" });
+
+  it("CompetitionRef schema: endDate は省略 / null / date 以降を受け付け、date より前は swap せず拒否（strict も維持）", () => {
+    expect(single().endDate).toBeUndefined();
+    expect(single(null).endDate).toBeNull();
+    expect(single("2026-09-20").endDate).toBe("2026-09-20");
+    expect(multi().endDate).toBe("2026-09-22");
+    const inverted = competitionRefSchema.safeParse({ id: "x", date: "2026-09-22", endDate: "2026-09-20", priority: "NORMAL" });
+    expect(inverted.success).toBe(false);
+    if (inverted.success) throw new Error("unreachable");
+    expect(inverted.error.issues[0]!.path).toEqual(["endDate"]);
+    expect(competitionRefSchema.safeParse({ id: "x", date: "2026-09-20", endDate: "2026/09/22", priority: "NORMAL" }).success).toBe(false);
+    expect(competitionRefSchema.safeParse({ id: "x", date: "2026-09-20", priority: "NORMAL", extra: 1 }).success).toBe(false);
+  });
+
+  it("single day（endDate=null / 省略）: 当日だけが competition day", () => {
+    for (const ref of [single(null), single()]) {
+      expect(isWithinCompetitionPeriod(iso("2026-09-19"), ref)).toBe(false);
+      expect(isWithinCompetitionPeriod(iso("2026-09-20"), ref)).toBe(true);
+      expect(isWithinCompetitionPeriod(iso("2026-09-21"), ref)).toBe(false);
+    }
+  });
+
+  it("multi day（2026-09-20〜22）: 開催期間の両端を含む全日が competition day", () => {
+    const ref = multi();
+    expect(isWithinCompetitionPeriod(iso("2026-09-19"), ref)).toBe(false);
+    expect(isWithinCompetitionPeriod(iso("2026-09-20"), ref)).toBe(true);
+    expect(isWithinCompetitionPeriod(iso("2026-09-21"), ref)).toBe(true);
+    expect(isWithinCompetitionPeriod(iso("2026-09-22"), ref)).toBe(true);
+    expect(isWithinCompetitionPeriod(iso("2026-09-23"), ref)).toBe(false);
+  });
+
+  it("resolveCompetitionDay: いずれかの大会の開催期間中なら true（大会が無ければ false）", () => {
+    const other = competitionRefSchema.parse({ id: "other", date: "2026-10-01", endDate: null, priority: "NORMAL" });
+    expect(resolveCompetitionDay(iso("2026-09-21"), [other, multi()])).toBe(true);
+    expect(resolveCompetitionDay(iso("2026-09-23"), [other, multi()])).toBe(false);
+    expect(resolveCompetitionDay(iso("2026-09-21"), [])).toBe(false);
+  });
+
+  it("daysUntilCompetition は開催期間を1つの interval として扱う（開催前=開始日まで / 期間中=0 / 終了後=終了日から）", () => {
+    const ref = multi();
+    expect(daysUntilCompetition("2026-09-13", ref)).toBe(7);
+    expect(daysUntilCompetition("2026-09-19", ref)).toBe(1);
+    expect(daysUntilCompetition("2026-09-20", ref)).toBe(0);
+    expect(daysUntilCompetition("2026-09-21", ref)).toBe(0);
+    expect(daysUntilCompetition("2026-09-22", ref)).toBe(0);
+    expect(daysUntilCompetition("2026-09-23", ref)).toBe(-1);
+    expect(daysUntilCompetition("2026-09-25", ref)).toBe(-3);
+  });
+
+  it("single-day 互換: endDate 無し / endDate=date は R7 の `date − d` と全オフセットで完全一致", () => {
+    for (let offset = -20; offset <= 20; offset++) {
+      const plannedDate = addDaysStr("2026-09-20", offset);
+      const r7 = calendarDayDiff(iso(plannedDate), iso("2026-09-20")); // R7 の実装そのもの（n = D − d）
+      expect(daysUntilCompetition(plannedDate, single()), plannedDate).toBe(r7);
+      expect(daysUntilCompetition(plannedDate, single(null)), plannedDate).toBe(r7);
+      expect(daysUntilCompetition(plannedDate, single("2026-09-20")), plannedDate).toBe(r7);
+      expect(isWithinCompetitionPeriod(iso(plannedDate), single(null)), plannedDate).toBe(r7 === 0);
+    }
+  });
+
+  it("endDate < date の CompetitionRef（schema を通していない入力）は swap も無視もせず例外", () => {
+    const inverted = { id: "bad", date: iso("2026-09-22"), endDate: iso("2026-09-20"), priority: "NORMAL" } as CompetitionRef;
+    expect(() => daysUntilCompetition("2026-09-21", inverted)).toThrow(/endDate は date 以降/);
+    expect(() => isWithinCompetitionPeriod(iso("2026-09-21"), inverted)).toThrow(/endDate は date 以降/);
+    // 並び順に依存しない（先に true になる大会があっても不正 range を見逃さない）
+    expect(() => resolveCompetitionDay(iso("2026-09-21"), [multi(), inverted])).toThrow(/endDate は date 以降/);
+  });
+
+  it("R7 window: 開催2日目以降も n=0 の行に match する（開始日との差で負値＝対象外にならない）。終了後は対象外のまま", () => {
+    const rowsAt = (d: string) =>
+      matchedCompetitionWindows({ ruleSet, competitions: [multi()], plannedDate: d, tier: "ADVANCED" }).map((m) => `${m.rule.id}@${m.n}`);
+    const dayOne = rowsAt("2026-09-20");
+    expect(dayOne.length).toBeGreaterThan(0);
+    expect(rowsAt("2026-09-21")).toEqual(dayOne);
+    expect(rowsAt("2026-09-22")).toEqual(dayOne);
+    expect(rowsAt("2026-09-23")).toEqual([]);
+    // 開催前の window は endDate の有無で変わらない
+    const singlePeak = competitionRefSchema.parse({ id: "multi", date: "2026-09-20", endDate: null, priority: "PEAK" });
+    for (const d of ["2026-09-06", "2026-09-13", "2026-09-17", "2026-09-19"]) {
+      expect(rowsAt(d), d).toEqual(
+        matchedCompetitionWindows({ ruleSet, competitions: [singlePeak], plannedDate: d, tier: "ADVANCED" }).map((m) => `${m.rule.id}@${m.n}`),
+      );
+    }
+  });
+
+  it("resolveCompetitionAndPhase: 開催2日目でも competitionDay=true / 終了翌日は false", () => {
+    const base = {
+      ruleSet,
+      phase: null,
+      competitions: [multi()],
+      tier: "ADVANCED" as const,
+      method: "ACCELERATION" as const,
+      loadClass: "HIGH_NEURAL" as const,
+      template: null,
+      coverage28d: "COMPLETE" as const,
+      templateUsedWithin28d: true,
+      history: [],
+    };
+    expect(resolveCompetitionAndPhase({ ...base, plannedDate: "2026-09-21" }).competitionDay).toBe(true);
+    expect(resolveCompetitionAndPhase({ ...base, plannedDate: "2026-09-23" }).competitionDay).toBe(false);
+    expect(resolveCompetitionAndPhase({ ...base, plannedDate: null }).competitionDay).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // n=0（大会当日）
 // ---------------------------------------------------------------------------
 
 describe("§14.3 n=0（大会当日）", () => {
   it("race は負荷イベント化（R6 competitionDay=true）、他の HIGH_* は REQUIRE_COACH_REVIEW", () => {
     const r = plan("ACCELERATION", "ACC_BLOCK_20", { competitions: [competition(0, "NORMAL")] });
+    expect(r.status, describeResult(r)).toBe("OK");
+    if (r.status !== "OK") throw new Error("unreachable");
+    expect(r.prescription.findings.map((f) => f.code)).toContain("COMPETITION_DAY_NON_RACE_HIGH");
+    expect(r.sessionFindings.map((f) => f.code)).toContain("AGG_COMPETITION_DAY_EXTRA");
+  });
+
+  it("[R10-B2.1] 複数日開催（endDate あり）の2日目も大会当日として扱う（開始日だけを当日扱いしない）", () => {
+    const multiDay = competitionRefSchema.parse({ id: "multi", date: addDaysStr(PLANNING_DATE, -1), endDate: addDaysStr(PLANNING_DATE, 1), priority: "NORMAL" });
+    const r = plan("ACCELERATION", "ACC_BLOCK_20", { competitions: [multiDay] });
     expect(r.status, describeResult(r)).toBe("OK");
     if (r.status !== "OK") throw new Error("unreachable");
     expect(r.prescription.findings.map((f) => f.code)).toContain("COMPETITION_DAY_NON_RACE_HIGH");
@@ -817,7 +941,7 @@ describe("root public API", () => {
   it("CompetitionRef の型・schema だけを公開し、内部 resolver は非公開", () => {
     expect(typeof runningApi.competitionRefSchema.parse).toBe("function");
     expect(runningApi.competitionRefSchema.parse({ id: "c1", date: PLANNING_DATE, priority: "NORMAL" })).toBeDefined();
-    for (const name of ["resolveCompetitionAndPhase", "evaluatePhase", "matchedCompetitionWindows", "computeTaperBaseline"]) {
+    for (const name of ["resolveCompetitionAndPhase", "evaluatePhase", "matchedCompetitionWindows", "computeTaperBaseline", "resolveCompetitionDay", "isWithinCompetitionPeriod"]) {
       expect(Object.keys(runningApi), name).not.toContain(name);
     }
   });
