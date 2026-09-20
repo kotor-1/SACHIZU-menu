@@ -1,7 +1,10 @@
+import { createHash } from "node:crypto";
+
 import { z } from "zod";
 
 import {
   AI_REASON_SANITIZED,
+  MENU_PLANNER_POLICY_ID,
   aiPlannerProposalSchema,
   canonicalizeMenuPlannerIntentRequest,
   exerciseCandidateDtoSchema,
@@ -12,12 +15,15 @@ import {
   type AiPlannerProposal,
   type AiPlannerItemProposal,
   type MenuPlannerIntentRequest,
+  type MenuPlannerProviderRequest,
 } from "@/domain/menu-planner";
+import { menuPlannerAcceptConstraintsSchema } from "@/domain/menu-planner/accept-token";
 import {
   LEGACY_PLANNER_ENGINE_ID,
   MENU_PLANNER_ENGINE_ID,
   MENU_PLANNER_PREVIEW_SCHEMA_VERSION,
   RUNNING_PLANNER_ENGINE_ID,
+  canonicalStringify,
   evaluateMenuPlannerPreviewAcceptance,
   type MenuPlannerContextBindingInput,
   type MenuPlannerMaterializationDigestInput,
@@ -55,7 +61,7 @@ import type { IsoDate, IsoDateTime } from "@/domain/running/types/primitives";
 import type { Finding } from "@/domain/running/types/findings";
 import type { WeeklyHistoryInput } from "@/domain/running/types/load";
 import type { RunningPrescriptionValue } from "@/domain/running/types/prescription";
-import type { RuleSet } from "@/domain/running/rules/schema";
+import type { RuleSet, RuleSetStatus } from "@/domain/running/rules/schema";
 import { findExercisesForMenuPlanner, listExercisesForMenuPlanner, type ExerciseWithRelations } from "@/infra/repositories/exercise-repository";
 import { listCompetitionRefs } from "@/infra/repositories/competition-repository";
 import { listLoadHistory, type LoadHistoryResult } from "@/infra/repositories/load-history-repository";
@@ -90,6 +96,11 @@ const previewInputSchema = z
   })
   .strict();
 
+const previewReplayInputSchema = previewInputSchema
+  .omit({ intent: true })
+  .extend({ constraints: z.unknown() })
+  .strict();
+
 export type BuildMenuPlannerPreviewInput = {
   schemaVersion: 1;
   /** server composition で認証済み owner から渡す。client proposal の authority ではない。 */
@@ -98,6 +109,14 @@ export type BuildMenuPlannerPreviewInput = {
   menuName: string;
   intent: MenuPlannerIntentRequest;
   proposal: unknown;
+};
+
+/**
+ * [R12-A3A.1] accept replay の server-only input。
+ * A2 の public input contract は変えず、replay では raw requestText を受け取らない。
+ */
+export type BuildMenuPlannerPreviewReplayRequest = Omit<BuildMenuPlannerPreviewInput, "intent"> & {
+  constraints: MenuPlannerIntentRequest["constraints"];
 };
 
 export type MenuPlannerPreviewErrorKind = "INVALID_INPUT" | "AI_OUTPUT_INVALID" | "PLANNING_REJECTED";
@@ -110,6 +129,59 @@ export type MenuPlannerPreviewError = {
 
 export type BuildMenuPlannerPreviewResult =
   | { ok: true; preview: MenuPlannerPreview }
+  | { ok: false; error: MenuPlannerPreviewError };
+
+/**
+ * [R12-A3A] **server-only**。この preview を再現するために必要な最小 material。
+ * accept token の claim へ binding するのはここにある sanitized proposal / constraints / requestDigest / RuleSet identity
+ * だけで、生の provider output・health data・Prisma model は含まない。
+ *
+ * `buildMenuPlannerPreviewForRevalidation` からだけ返り、公開 entry（`buildMenuPlannerPreview`）の
+ * 結果型には **含まれない**。client へ返す理由が無い（表示に不要な RuleSet identity と sanitized proposal を持つ）
+ * ため、公開 DTO と型として分けてある。
+ */
+export type MenuPlannerPreviewRevalidationSource = {
+  /** strict parse → catalog validation → reason sanitize を通った唯一の proposal 形。 */
+  sanitizedProposal: AiPlannerProposal;
+  /** replay に必要な safe structured constraints（raw requestText は保持しない）。 */
+  constraints: MenuPlannerIntentRequest["constraints"];
+  /** canonical serialized MenuPlannerIntentRequest の SHA-256。lineage binding のみで authority ではない。 */
+  requestDigest: string;
+  /** 正規化済み menuName。 */
+  menuName: string;
+  /**
+   * item 順の「AI reason が sanitize された」判定。accept 時の再計算へ replay して
+   * 同じ findings を再現するために token へ binding する（生の reason は載せない）。
+   */
+  reasonSanitized: boolean[];
+  /** preview を作った RuleSet の同一性（object ではなく版・内容 hash・status）。 */
+  ruleSet: { version: string; contentHash: string; status: RuleSetStatus };
+  /** preview を生成した engine / policy / provenance identity。 */
+  planner: {
+    policyId: string;
+    previewSchemaVersion: number;
+    engineId: string;
+    runningEngineId: string;
+    legacyEngineId: string;
+    provider: string;
+    model: string;
+    requestId: string;
+  };
+};
+
+/**
+ * [R12-A3A] 再計算専用の server-only replay 入力。
+ * 発行時に確定した sanitizer の判定を accept 時の再計算へ戻す（`reasonSanitized` の説明を参照）。
+ */
+export type MenuPlannerPreviewReplayInput = {
+  /** issue 時に計算した request lineage digest。accept replay では再計算 authority に使わない。 */
+  requestDigest: string;
+  reasonSanitized: readonly boolean[];
+};
+
+/** [R12-A3A] server-only な preview 結果（公開結果 + revalidation source）。 */
+export type BuildMenuPlannerPreviewForRevalidationResult =
+  | { ok: true; preview: MenuPlannerPreview; revalidation: MenuPlannerPreviewRevalidationSource }
   | { ok: false; error: MenuPlannerPreviewError };
 
 type PlannerExerciseRow = ExerciseWithRelations;
@@ -149,6 +221,8 @@ type SanitizedProposal = {
   findingsByIndex: Map<number, Finding[]>;
 };
 
+type PlannerConstraints = MenuPlannerIntentRequest["constraints"];
+
 const PREVIEW_ACTOR = {
   kind: "AI_PLANNER" as const,
   provider: PREVIEW_PROVIDER,
@@ -156,8 +230,17 @@ const PREVIEW_ACTOR = {
   requestId: PREVIEW_REQUEST_ID,
 };
 
-function failure(kind: MenuPlannerPreviewErrorKind, code: string, message: string): BuildMenuPlannerPreviewResult {
+function failure(
+  kind: MenuPlannerPreviewErrorKind,
+  code: string,
+  message: string,
+): BuildMenuPlannerPreviewForRevalidationResult {
   return { ok: false, error: { kind, code, message } };
+}
+
+/** canonical serialized MenuPlannerIntentRequest の lineage digest。処方計算へは渡さない。 */
+function requestDigestOf(intent: MenuPlannerIntentRequest): string {
+  return createHash("sha256").update(canonicalStringify(intent), "utf8").digest("hex");
 }
 
 function finding(code: string, severity: Finding["severity"], scope: Finding["scope"] = "ITEM"): Finding {
@@ -342,14 +425,28 @@ function sourceMenuBindingOf(
   };
 }
 
-function sanitizeProposal(proposal: AiPlannerProposal): SanitizedProposal | null {
+/**
+ * reason を sanitize し、AI_REASON_SANITIZED の有無を item ごとに決める。
+ *
+ * [R12-A3A] `reasonSanitizedOverride` は accept 時の再計算でだけ渡す replay 入力。
+ * token は **sanitize 済み** の reason しか持たない（raw reason は載せない）ため、その文字列をもう一度
+ * sanitizer に通すと「今回は変わらなかった」と判定され finding が消え、digest が一致しなくなる。
+ * 発行時に確定した判定を binding して replay することで、同じ preview を再現する。
+ * 長さが item 数と一致しない override は受け付けない（fail closed）。
+ */
+function sanitizeProposal(
+  proposal: AiPlannerProposal,
+  reasonSanitizedOverride?: readonly boolean[],
+): SanitizedProposal | null {
+  if (reasonSanitizedOverride !== undefined && reasonSanitizedOverride.length !== proposal.items.length) return null;
   const findingsByIndex = new Map<number, Finding[]>();
   const items: AiPlannerItemProposal[] = [];
 
   for (const [index, item] of proposal.items.entries()) {
     const result = sanitizeAiReason(item.proposal.reason);
     if (!result.ok) return null;
-    if (result.sanitized) {
+    const wasSanitized = reasonSanitizedOverride?.[index] ?? result.sanitized;
+    if (wasSanitized) {
       findingsByIndex.set(index, [finding(AI_REASON_SANITIZED, "INFO")]);
     }
     items.push(
@@ -367,9 +464,9 @@ function sanitizeProposal(proposal: AiPlannerProposal): SanitizedProposal | null
 
 function equipmentConstraintFinding(
   row: PlannerExerciseRow,
-  intent: MenuPlannerIntentRequest,
+  constraints: PlannerConstraints,
 ): { state: MenuPlannerPreviewItemState | null; finding: Finding | null } {
-  const equipment = intent.constraints.equipment;
+  const equipment = constraints.equipment;
   if (equipment === null) return { state: null, finding: null };
 
   const registered = equipmentTagIds(row);
@@ -387,9 +484,8 @@ function equipmentConstraintFinding(
 
 function exerciseConstraintFinding(
   row: PlannerExerciseRow,
-  intent: MenuPlannerIntentRequest,
+  constraints: PlannerConstraints,
 ): Finding | null {
-  const constraints = intent.constraints;
   const events = new Set(row.events.map((event) => event.event));
   if (
     constraints.targetEvents.length > 0 &&
@@ -408,7 +504,7 @@ function materializeExercise(
   item: Extract<AiPlannerItemProposal, { kind: "EXERCISE" }>,
   index: number,
   row: PlannerExerciseRow,
-  intent: MenuPlannerIntentRequest,
+  constraints: PlannerConstraints,
   phase: TrainingPhase | null,
   reasonFindings: readonly Finding[],
 ): InternalItem {
@@ -435,16 +531,16 @@ function materializeExercise(
     confirmationRequiredCodes: [] as string[],
   };
 
-  if (intent.constraints.excludedExerciseIds.includes(row.id)) {
+  if (constraints.excludedExerciseIds.includes(row.id)) {
     return { ...base, state: "REJECTED", findings: [...base.findings, finding("EXERCISE_EXCLUDED_BY_CONSTRAINT", "BLOCK")] };
   }
 
-  const semanticConstraint = exerciseConstraintFinding(row, intent);
+  const semanticConstraint = exerciseConstraintFinding(row, constraints);
   if (semanticConstraint !== null) {
     return { ...base, state: "REJECTED", findings: [...base.findings, semanticConstraint] };
   }
 
-  const equipment = equipmentConstraintFinding(row, intent);
+  const equipment = equipmentConstraintFinding(row, constraints);
   if (equipment.finding !== null && equipment.state === "REJECTED") {
     return { ...base, state: "REJECTED", findings: [...base.findings, equipment.finding] };
   }
@@ -848,18 +944,48 @@ function providerCatalog(
 }
 
 /**
- * Public application boundary:
+ * 決定論的 preview の本体。公開境界は下の 2 つの wrapper。
+ *
  * unknown proposal -> strict parse -> owner/catalog validation -> reason sanitizer -> deterministic planning.
  */
-export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInput): Promise<BuildMenuPlannerPreviewResult> {
-  const parsedInput = previewInputSchema.safeParse(input);
-  if (!parsedInput.success) return failure("INVALID_INPUT", "PREVIEW_INPUT_INVALID", "プレビュー入力を確認できません。");
+async function buildMenuPlannerPreviewInternal(
+  input: BuildMenuPlannerPreviewInput | BuildMenuPlannerPreviewReplayRequest,
+  replay?: MenuPlannerPreviewReplayInput,
+): Promise<BuildMenuPlannerPreviewForRevalidationResult> {
+  const isReplayInput = "constraints" in input;
+  type ParsedPreviewCommonInput = {
+    schemaVersion: typeof MENU_PLANNER_PREVIEW_SCHEMA_VERSION;
+    ownerId: string;
+    contextMenuTemplateId: string;
+    menuName: string;
+    proposal?: unknown;
+  };
+  let parsedInput: ParsedPreviewCommonInput;
 
-  const validatedIntent = menuPlannerIntentRequestSchema.safeParse(parsedInput.data.intent);
-  if (!validatedIntent.success) return failure("INVALID_INPUT", "INTENT_INVALID", "メニュー作成条件を確認できません。");
-  const intent = canonicalizeMenuPlannerIntentRequest(validatedIntent.data);
+  let intent: MenuPlannerIntentRequest | null = null;
+  let constraints: PlannerConstraints;
+  let requestDigest: string;
+  if (isReplayInput) {
+    if (replay === undefined) return failure("INVALID_INPUT", "REPLAY_INPUT_INVALID", "再計算入力を確認できません。");
+    const parsedReplayInput = previewReplayInputSchema.safeParse(input);
+    if (!parsedReplayInput.success) return failure("INVALID_INPUT", "PREVIEW_INPUT_INVALID", "プレビュー入力を確認できません。");
+    parsedInput = parsedReplayInput.data;
+    const validatedConstraints = menuPlannerAcceptConstraintsSchema.safeParse(parsedReplayInput.data.constraints);
+    if (!validatedConstraints.success) return failure("INVALID_INPUT", "REPLAY_CONSTRAINTS_INVALID", "再計算条件を確認できません。");
+    constraints = validatedConstraints.data;
+    requestDigest = replay.requestDigest;
+  } else {
+    const parsedPreviewInput = previewInputSchema.safeParse(input);
+    if (!parsedPreviewInput.success) return failure("INVALID_INPUT", "PREVIEW_INPUT_INVALID", "プレビュー入力を確認できません。");
+    parsedInput = parsedPreviewInput.data;
+    const validatedIntent = menuPlannerIntentRequestSchema.safeParse(parsedPreviewInput.data.intent);
+    if (!validatedIntent.success) return failure("INVALID_INPUT", "INTENT_INVALID", "メニュー作成条件を確認できません。");
+    intent = canonicalizeMenuPlannerIntentRequest(validatedIntent.data);
+    constraints = intent.constraints;
+    requestDigest = requestDigestOf(intent);
+  }
 
-  const parsedProposal = aiPlannerProposalSchema.safeParse(parsedInput.data.proposal);
+  const parsedProposal = aiPlannerProposalSchema.safeParse(parsedInput.proposal);
   if (!parsedProposal.success) return failure("AI_OUTPUT_INVALID", "PROPOSAL_SCHEMA_INVALID", "AI提案の形式を確認できません。");
   if (parsedProposal.data.question !== null) {
     return failure("AI_OUTPUT_INVALID", "CLARIFICATION_NOT_ALLOWED", "追加質問を含む提案はプレビューできません。");
@@ -867,9 +993,13 @@ export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInpu
 
   let menu: MenuDetail | null;
   try {
-    menu = await findMenuForOwner(parsedInput.data.contextMenuTemplateId, parsedInput.data.ownerId);
+    menu = await findMenuForOwner(parsedInput.contextMenuTemplateId, parsedInput.ownerId);
   } catch {
-    return failure("PLANNING_REJECTED", "CONTEXT_MENU_UNAVAILABLE", "計画の参照メニューを確認できません。");
+    // `null` below means that the authoritative source menu is no longer
+    // visible to this owner (deleted, archived, or otherwise ineligible).
+    // A thrown read error is different provenance: it is an infrastructure
+    // failure and must not be reported as a stale preview.
+    return failure("PLANNING_REJECTED", "CONTEXT_MENU_READ_FAILED", "計画の参照メニューを読み取れません。");
   }
   if (menu === null) return failure("PLANNING_REJECTED", "CONTEXT_MENU_UNAVAILABLE", "計画の参照メニューを確認できません。");
 
@@ -888,12 +1018,12 @@ export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInpu
   } catch {
     return failure("PLANNING_REJECTED", "MENU_PHASE_INVALID", "参照メニューの期分けを確認できません。");
   }
-  if (intent.constraints.phase !== null && intent.constraints.phase !== phase) {
+  if (constraints.phase !== null && constraints.phase !== phase) {
     return failure("PLANNING_REJECTED", "PHASE_CONSTRAINT_UNSATISFIED", "指定された期分けと参照メニューの期分けが一致しません。");
   }
   if (
-    intent.constraints.availableMinutes !== null &&
-    (context.availableMinutes === null || intent.constraints.availableMinutes > context.availableMinutes)
+    constraints.availableMinutes !== null &&
+    (context.availableMinutes === null || constraints.availableMinutes > context.availableMinutes)
   ) {
     return failure("PLANNING_REJECTED", "AVAILABLE_TIME_CONSTRAINT_UNSATISFIED", "指定された練習時間が参照メニューの条件を超えています。");
   }
@@ -905,33 +1035,65 @@ export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInpu
   let history: HistoryContext;
   let allExerciseRows: PlannerExerciseRow[];
   try {
-    selectedRuleSet = getActiveRuleSet(context.plannedDate);
-    subject = subjectFromRunningContext(context);
-    profile = resolveSubjectProfile({ subject, asOf: context.plannedDate, ruleSet: selectedRuleSet.ruleSet });
-    const safeSubject = buildAiSafeSubjectContext({ profile, ruleSet: selectedRuleSet.ruleSet, decision: null });
-    competitions = await listCompetitionRefs(parsedInput.data.ownerId);
-    history = await loadHistory(parsedInput.data.ownerId, context.plannedAt);
-    allExerciseRows = await listExercisesForMenuPlanner(parsedInput.data.ownerId);
+    let safeSubject: ReturnType<typeof buildAiSafeSubjectContext>;
+    try {
+      selectedRuleSet = getActiveRuleSet(context.plannedDate);
+      subject = subjectFromRunningContext(context);
+      profile = resolveSubjectProfile({ subject, asOf: context.plannedDate, ruleSet: selectedRuleSet.ruleSet });
+      safeSubject = buildAiSafeSubjectContext({ profile, ruleSet: selectedRuleSet.ruleSet, decision: null });
+    } catch (error) {
+      // This boundary contains only authoritative RuleSet / subject resolution.
+      // A later planner or repository exception is intentionally handled by
+      // the generic safe failure below, not as stale.
+      if (error instanceof z.ZodError) {
+        return failure("PLANNING_REJECTED", "AUTHORITATIVE_CONTEXT_INVALID", "計画に必要なserver contextを確認できません。");
+      }
+      throw error;
+    }
+    competitions = await listCompetitionRefs(parsedInput.ownerId);
+    history = await loadHistory(parsedInput.ownerId, context.plannedAt);
+    allExerciseRows = await listExercisesForMenuPlanner(parsedInput.ownerId);
 
-    const provider = menuPlannerProviderRequestSchema.safeParse({
-      schemaVersion: MENU_PLANNER_PREVIEW_SCHEMA_VERSION,
-      policy: { id: "R12_MENU_INTENT_V1" },
-      coachRequest: intent,
-      subject: safeSubject,
-      catalog: providerCatalog(allExerciseRows, selectedRuleSet.ruleSet),
-    });
-    if (!provider.success) return failure("PLANNING_REJECTED", "AUTHORITATIVE_CATALOG_INVALID", "ExerciseとRunningのカタログを確認できません。");
+    let catalog: ReturnType<typeof providerCatalog>;
+    try {
+      catalog = providerCatalog(allExerciseRows, selectedRuleSet.ruleSet);
+    } catch (error) {
+      // A malformed current catalog is an authoritative-context invalidation;
+      // repository failures remain generic infrastructure failures.
+      if (error instanceof z.ZodError) {
+        return failure("PLANNING_REJECTED", "AUTHORITATIVE_CATALOG_INVALID", "ExerciseとRunningのカタログを確認できません。");
+      }
+      throw error;
+    }
+    let validatedCatalog: MenuPlannerProviderRequest["catalog"];
+    if (intent !== null) {
+      const provider = menuPlannerProviderRequestSchema.safeParse({
+        schemaVersion: MENU_PLANNER_PREVIEW_SCHEMA_VERSION,
+        policy: { id: MENU_PLANNER_POLICY_ID },
+        coachRequest: intent,
+        subject: safeSubject,
+        catalog,
+      });
+      if (!provider.success) return failure("PLANNING_REJECTED", "AUTHORITATIVE_CATALOG_INVALID", "ExerciseとRunningのカタログを確認できません。");
+      validatedCatalog = provider.data.catalog;
+    } else {
+      // replay は raw requestText を持たないため、A2 の public provider request を捏造せず、
+      // catalog 部分だけを同じ strict schema で検証する。
+      const providerCatalogResult = menuPlannerProviderRequestSchema.shape.catalog.safeParse(catalog);
+      if (!providerCatalogResult.success) return failure("PLANNING_REJECTED", "AUTHORITATIVE_CATALOG_INVALID", "ExerciseとRunningのカタログを確認できません。");
+      validatedCatalog = providerCatalogResult.data;
+    }
 
-    const catalogValidation = validateAiPlannerProposalAgainstCatalog(parsedProposal.data, provider.data.catalog);
+    const catalogValidation = validateAiPlannerProposalAgainstCatalog(parsedProposal.data, validatedCatalog);
     if (!catalogValidation.ok) return failure("AI_OUTPUT_INVALID", "PROPOSAL_CATALOG_INVALID", "AI提案に現在のカタログにない選択が含まれています。");
 
-    const sanitized = sanitizeProposal(parsedProposal.data);
+    const sanitized = sanitizeProposal(parsedProposal.data, replay?.reasonSanitized);
     if (sanitized === null) return failure("AI_OUTPUT_INVALID", "REASON_INVALID", "AI提案の理由を表示用に安全化できません。");
 
     const selectedExerciseIds = sanitized.proposal.items
       .filter((item): item is Extract<AiPlannerItemProposal, { kind: "EXERCISE" }> => item.kind === "EXERCISE")
       .map((item) => item.proposal.exerciseId);
-    const selectedRows = await findExercisesForMenuPlanner(selectedExerciseIds, parsedInput.data.ownerId);
+    const selectedRows = await findExercisesForMenuPlanner(selectedExerciseIds, parsedInput.ownerId);
     const selectedById = new Map(selectedRows.map((row) => [row.id, row]));
     const itemCount = sanitized.proposal.items.length;
     /** 1 つの RUNNING item を、与えられた otherItems で plan する（phase で条件を変えるのはここだけ）。 */
@@ -964,7 +1126,7 @@ export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInpu
         if (row === undefined || row.status !== "REVIEWED") {
           return failure("AI_OUTPUT_INVALID", "EXERCISE_CATALOG_BINDING_INVALID", "AI提案のExerciseを現在のowner-scoped catalogに結び付けられません。");
         }
-        items.set(index, materializeExercise(item, index, row, intent, phase, reasonFindings));
+        items.set(index, materializeExercise(item, index, row, constraints, phase, reasonFindings));
       }
     }
 
@@ -1062,7 +1224,7 @@ export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInpu
     const contextBinding: MenuPlannerContextBindingInput = {
       contract: {
         previewSchemaVersion: MENU_PLANNER_PREVIEW_SCHEMA_VERSION,
-        policyId: "R12_MENU_INTENT_V1",
+        policyId: MENU_PLANNER_POLICY_ID,
         engineId: MENU_PLANNER_ENGINE_ID,
         runningEngineId: RUNNING_PLANNER_ENGINE_ID,
         legacyEngineId: LEGACY_PLANNER_ENGINE_ID,
@@ -1081,7 +1243,7 @@ export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInpu
         result: history.result,
       },
       planning: { planningDate: context.plannedDate, plannedAt: context.plannedAt },
-      explicitConstraints: intent.constraints,
+      explicitConstraints: constraints,
     };
     const contextFingerprint = buildMenuPlannerContextFingerprint(contextBinding);
     const digestInput = materializationDigestInput(
@@ -1094,7 +1256,7 @@ export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInpu
     );
     const materializationDigest = buildMenuPlannerMaterializationDigest(digestInput);
     const presentationInput: MenuPlannerPreviewPresentationInput = {
-      menuName: parsedInput.data.menuName,
+      menuName: parsedInput.menuName,
       statusOnSave: "DRAFT",
       ruleSet: { version: selectedRuleSet.ruleSet.ruleSetVersion, status: selectedRuleSet.ruleSet.status },
       blocks,
@@ -1103,10 +1265,67 @@ export async function buildMenuPlannerPreview(input: BuildMenuPlannerPreviewInpu
       canSave: acceptance.canSave,
       binding: { contextFingerprint, materializationDigest },
     };
-    return { ok: true, preview: presentMenuPlannerPreview(presentationInput) };
+    return {
+      ok: true,
+      preview: presentMenuPlannerPreview(presentationInput),
+      /**
+       * [R12-A3A] server-only。accept token は「コーチが見たもの」をここから binding する。
+       * sanitized proposal（strict parse → catalog validation → reason sanitize 済み）だけを載せ、
+       * raw provider output は決して載せない。
+       */
+      revalidation: {
+        sanitizedProposal: sanitized.proposal,
+        constraints,
+        requestDigest,
+        reasonSanitized: sanitized.proposal.items.map((_, index) => sanitized.findingsByIndex.has(index)),
+        menuName: parsedInput.menuName,
+        ruleSet: {
+          version: selectedRuleSet.ruleSet.ruleSetVersion,
+          contentHash: selectedRuleSet.contentHash,
+          status: selectedRuleSet.ruleSet.status,
+        },
+        planner: {
+          policyId: MENU_PLANNER_POLICY_ID,
+          previewSchemaVersion: MENU_PLANNER_PREVIEW_SCHEMA_VERSION,
+          engineId: MENU_PLANNER_ENGINE_ID,
+          runningEngineId: RUNNING_PLANNER_ENGINE_ID,
+          legacyEngineId: LEGACY_PLANNER_ENGINE_ID,
+          provider: PREVIEW_ACTOR.provider,
+          model: PREVIEW_ACTOR.model,
+          requestId: PREVIEW_REQUEST_ID,
+        },
+      },
+    };
   } catch (error) {
-    if (error instanceof z.ZodError) return failure("PLANNING_REJECTED", "AUTHORITATIVE_CONTEXT_INVALID", "計画に必要なserver contextを確認できません。");
+    if (error instanceof z.ZodError) return failure("PLANNING_REJECTED", "DETERMINISTIC_PLANNING_FAILED", "決定論的なプレビューを生成できません。");
     if (error instanceof Error && error.message === "PLANNED_AT_INVALID") return failure("PLANNING_REJECTED", "PLANNED_AT_INVALID", "計画時刻を確認できません。");
     return failure("PLANNING_REJECTED", "DETERMINISTIC_PLANNING_FAILED", "決定論的なプレビューを生成できません。");
   }
+}
+
+/**
+ * 公開 application boundary（client-safe）。
+ * unknown proposal -> strict parse -> owner/catalog validation -> reason sanitizer -> deterministic planning。
+ * 返すのは表示 DTO だけで、revalidation source は落とす。
+ */
+export async function buildMenuPlannerPreview(
+  input: BuildMenuPlannerPreviewInput,
+): Promise<BuildMenuPlannerPreviewResult> {
+  const result = await buildMenuPlannerPreviewInternal(input);
+  return result.ok ? { ok: true, preview: result.preview } : result;
+}
+
+/**
+ * [R12-A3A] **server-only**。accept token の発行と accept 時の再計算が使う。
+ * `revalidation` を含むため **client へ返してはいけない**。
+ *
+ * accept 側の再計算もこの関数を通す。signature 検証後に「同じ入口・同じ決定論」で
+ * 再実行することが §18.6 の `PREVIEW_ACCEPT_AUTHORITY = SERVER_RECOMPUTE` の実装であり、
+ * binding 入力を別経路で組み立てる余地を作らない（drift を構造的に排除する）。
+ */
+export async function buildMenuPlannerPreviewForRevalidation(
+  input: BuildMenuPlannerPreviewInput | BuildMenuPlannerPreviewReplayRequest,
+  replay?: MenuPlannerPreviewReplayInput,
+): Promise<BuildMenuPlannerPreviewForRevalidationResult> {
+  return buildMenuPlannerPreviewInternal(input, replay);
 }
