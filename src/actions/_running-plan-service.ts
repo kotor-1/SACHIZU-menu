@@ -34,7 +34,6 @@ import {
   type RunningSelection,
   type Subject,
   type Unit,
-  type WeeklyHistoryInput,
 } from "@/domain/running";
 import {
   planRunningPrescriptionWithRuleSet,
@@ -62,7 +61,7 @@ import { renderRationaleJa } from "@/domain/running/rationale/render-ja";
 import { findMenu, findMenuIdForItem, type MenuDetail, type MenuItemDetail } from "@/infra/repositories/menu-repository";
 import { createRunningMenuItem, updateRunningMenuItem } from "@/infra/repositories/running-item-repository";
 import { listCompetitionRefs } from "@/infra/repositories/competition-repository";
-import { listLoadHistory } from "@/infra/repositories/load-history-repository";
+import { weeklyHistoryAsOf } from "./_running-load-history";
 import { engineVersion } from "./_engine-version";
 import { getCoachActorForServer } from "./_actor";
 
@@ -248,26 +247,6 @@ function otherAggregationItems(menu: MenuDetail, excludeItemId: string | null): 
 // history（§19 D9: load-history repository から再導出）
 // ---------------------------------------------------------------------------
 
-const HISTORY_WINDOW_HOURS = 24 * 28;
-
-/**
- * [R10-B1 設計判断] load-history-repository は実際のセッション記録を返すが、
- * 「記録に無い活動が無かった」ことまでは確認できない（§12 の DailyActivitySummary 契約。
- * コーチが「他に活動なし」を明示確認する UI は R11）。そのため、events は実データを渡しつつ、
- * coverage は常に `PARTIAL`（記録はあるが完全性は確認できていない）にする。`dailyActivity7d` は
- * 空のまま（0 埋めで「休養日」を捏造しない）。history=null にはしない（せっかく読めた記録を
- * 無かったことにしない）。
- */
-async function weeklyHistoryAsOf(asOf: Date): Promise<WeeklyHistoryInput> {
-  const { events } = await listLoadHistory({ asOf, windowHours: HISTORY_WINDOW_HOURS });
-  return {
-    events,
-    coverage72h: "PARTIAL",
-    coverage7d: "PARTIAL",
-    coverage28d: "PARTIAL",
-    dailyActivity7d: [],
-  };
-}
 
 // ---------------------------------------------------------------------------
 // competitions（§19 D9: Competition repository から再導出。read-only）

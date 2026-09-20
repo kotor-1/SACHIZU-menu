@@ -26,16 +26,22 @@ export async function createCompetition(input: CompetitionInput) {
 }
 
 export async function updateCompetition(id: string, input: CompetitionInput) {
-  return prisma.competition.update({ where: { id }, data: toData(input) });
+  const updated = await prisma.competition.updateMany({
+    where: { id, ownerId: DEFAULT_OWNER_ID },
+    data: toData(input),
+  });
+  if (updated.count === 0) return null;
+  return findCompetition(id);
 }
 
 /** 削除しても練習記録は残る（TrainingSession.competitionId は onDelete: SetNull）。 */
 export async function deleteCompetition(id: string) {
-  return prisma.competition.delete({ where: { id } });
+  const deleted = await prisma.competition.deleteMany({ where: { id, ownerId: DEFAULT_OWNER_ID } });
+  return deleted.count === 1;
 }
 
 export async function findCompetition(id: string) {
-  return prisma.competition.findUnique({ where: { id } });
+  return prisma.competition.findFirst({ where: { id, ownerId: DEFAULT_OWNER_ID } });
 }
 
 /** 期間指定（from 以上・to 以下の date）で大会を日付順に返す。 */

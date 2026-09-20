@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/infra/db/prisma";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import {
@@ -14,6 +15,12 @@ import {
   snapshotLoadCategory,
   type SessionPlanningEvaluationInput,
 } from "@/domain/running/persistence/sessionSnapshot";
+import { actualRepLogJsonByteLimitIssue, findForbiddenHealthKeys } from "@/domain/running/persistence/limits";
+import { readinessPersistedStateSchema, readinessJsonSizeIssue } from "@/domain/running/readiness/execution";
+import { actualRepLogStateV1Schema, readRepLogStartState, serializeActualRepLogStateV1 } from "@/domain/running/persistence/repLog";
+import { quantityIntervalSchema } from "@/domain/running/types/primitives";
+import { safetyOutcomeSchema } from "@/domain/running/types/readiness";
+import { terminalMonitorActionSchema } from "@/domain/running/persistence/executionState";
 import { buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "./session-fingerprint";
 
 const sessionDetailInclude = {
@@ -30,6 +37,13 @@ export type SessionDetail = Prisma.TrainingSessionGetPayload<{
   include: typeof sessionDetailInclude;
 }>;
 export type SessionItemDetail = SessionDetail["items"][number];
+
+export class CompetitionSessionMutationError extends Error {
+  constructor() {
+    super("大会実績は通常の練習編集では変更できません");
+    this.name = "CompetitionSessionMutationError";
+  }
+}
 
 function buildWhere(search: SessionSearch): Prisma.TrainingSessionWhereInput {
   const and: Prisma.TrainingSessionWhereInput[] = [{ ownerId: DEFAULT_OWNER_ID }];
@@ -91,9 +105,17 @@ export type SessionListItem = Awaited<
 >["items"][number];
 
 export async function findSession(id: string): Promise<SessionDetail | null> {
-  return prisma.trainingSession.findUnique({
-    where: { id },
+  return prisma.trainingSession.findFirst({
+    where: { id, ownerId: DEFAULT_OWNER_ID },
     include: sessionDetailInclude,
+  });
+}
+
+/** Execution reads only the owned Session snapshot, never its source Menu. */
+export async function findSessionForReadiness(id: string) {
+  return prisma.trainingSession.findFirst({
+    where: { id, ownerId: DEFAULT_OWNER_ID },
+    include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 }
 
@@ -113,14 +135,29 @@ export async function createSession(input: SessionInput) {
 }
 
 export async function updateSession(id: string, input: SessionInput) {
-  return prisma.trainingSession.update({
-    where: { id },
-    data: { ...input, date: new Date(input.date) },
+  return prisma.$transaction(async (tx) => {
+    const session = await tx.trainingSession.findFirst({ where: { id, ownerId: DEFAULT_OWNER_ID } });
+    if (!session) throw new Error("セッションが見つかりません");
+    if (session.sessionKind === "COMPETITION") throw new CompetitionSessionMutationError();
+    return tx.trainingSession.update({
+      where: { id },
+      data: { ...input, date: new Date(input.date) },
+    });
   });
 }
 
 export async function deleteSession(id: string) {
-  return prisma.trainingSession.delete({ where: { id } });
+  const deleted = await prisma.trainingSession.deleteMany({ where: { id, ownerId: DEFAULT_OWNER_ID } });
+  return deleted.count === 1;
+}
+
+export async function setSessionStatus(id: string, status: string) {
+  return prisma.$transaction(async (tx) => {
+    const session = await tx.trainingSession.findFirst({ where: { id, ownerId: DEFAULT_OWNER_ID } });
+    if (!session) throw new Error("セッションが見つかりません");
+    if (session.sessionKind === "COMPETITION") throw new CompetitionSessionMutationError();
+    return tx.trainingSession.update({ where: { id }, data: { status } });
+  });
 }
 
 /**
@@ -276,17 +313,253 @@ export async function createSessionFromMenu(
 
 // --- 実施記録 ---------------------------------------------------------------
 
+/**
+ * [R11-B2] 当日 Readiness の導出結果を RUNNING_V2 項目へ保存する primitive。
+ *
+ * ここでやること: `readinessActionsJson` と `safetyOutcome` の **2列だけ** を1 transaction で更新する。
+ * ここでやらないこと（application の責務）:
+ *   - `resolveReadinessAction` / RuleSet loader / load history の呼び出し（policy 再評価をしない §46）
+ *   - raw な ReadinessReport の受け取り（渡されるのは検証済みの enum だけ §43）
+ * planned 系の列・legacy の実績列・rep ログ列は1つも触らない（§21・§39・§40）。
+ */
+export class SessionReadinessStaleError extends Error {
+  constructor(readonly code: "SESSION_ITEMS_CHANGED" | "SESSION_NOT_EXECUTABLE" | "SESSION_CLOSED" | "SESSION_ALREADY_IN_PROGRESS" | "SNAPSHOT_UNREADABLE" = "SESSION_ITEMS_CHANGED") {
+    super("セッションの内容が変わったため、当日の体調確認をやり直してください");
+    this.name = "SessionReadinessStaleError";
+  }
+}
+
+const readinessResultSchema = z
+  .object({
+    sessionItemId: z.string().min(1),
+    state: readinessPersistedStateSchema,
+  })
+  .strict();
+
+export type SessionReadinessResultInput = z.infer<typeof readinessResultSchema>;
+
+export async function applySessionReadinessResults(
+  trainingSessionId: string,
+  results: readonly SessionReadinessResultInput[],
+  expectedSession: { status: string; date: Date },
+) {
+  const parsed = results.map((result) => readinessResultSchema.parse(result));
+  if (parsed.length === 0) throw new SessionReadinessStaleError();
+
+  return prisma.$transaction(async (tx) => {
+    const session = await tx.trainingSession.findFirst({ where: { id: trainingSessionId, ownerId: DEFAULT_OWNER_ID } });
+    if (!session) throw new SessionReadinessStaleError();
+    if (session.sessionKind !== "TRAINING") throw new SessionReadinessStaleError("SESSION_NOT_EXECUTABLE");
+    if (session.status === "COMPLETED" || session.status === "CANCELLED") throw new SessionReadinessStaleError("SESSION_CLOSED");
+    if (session.status !== expectedSession.status || session.date.getTime() !== expectedSession.date.getTime()) throw new SessionReadinessStaleError();
+    // [§44/§45] 対象は「このセッションに属する RUNNING_V2 項目」だけ。評価後に構成が変わっていたら中止する。
+    const items = await tx.sessionItem.findMany({
+      where: { trainingSessionId },
+      select: { id: true, prescriptionKind: true, actualRepLogJson: true },
+    });
+    const v2Ids = items.filter((item) => item.prescriptionKind === "RUNNING_V2").map((item) => item.id);
+    const targetIds = parsed.map((result) => result.sessionItemId);
+    const targets = new Set(targetIds);
+    const sameSet = targets.size === targetIds.length && v2Ids.length === targets.size && v2Ids.every((id) => targets.has(id));
+    if (!sameSet) throw new SessionReadinessStaleError();
+    for (const item of items.filter((item) => item.prescriptionKind === "RUNNING_V2")) {
+      const start = readRepLogStartState(item.actualRepLogJson);
+      if (start === "STARTED") throw new SessionReadinessStaleError("SESSION_ALREADY_IN_PROGRESS");
+      if (start === "UNREADABLE") throw new SessionReadinessStaleError("SNAPSHOT_UNREADABLE");
+    }
+
+    for (const result of parsed) {
+      const value = result.state.readinessExecutionStateV1;
+      const raw = JSON.stringify(value);
+      if (findForbiddenHealthKeys(value).length > 0 || readinessJsonSizeIssue(raw)) throw new Error("Readiness state is invalid");
+      const updated = await tx.sessionItem.updateMany({
+        where: {
+          id: result.sessionItemId,
+          trainingSessionId,
+          prescriptionKind: "RUNNING_V2",
+          trainingSession: { ownerId: DEFAULT_OWNER_ID, sessionKind: "TRAINING" },
+        },
+        data: { readinessActionsJson: raw, safetyOutcome: result.state.safetyOutcome },
+      });
+      if (updated.count !== 1) throw new SessionReadinessStaleError("SESSION_NOT_EXECUTABLE");
+    }
+    return { updated: parsed.length };
+  });
+}
+
+// --- R11-B3 runtime execution ---------------------------------------------
+
+/** Snapshot-only execution read. Source Menu and RuleSet are intentionally absent. */
+export async function findSessionItemForExecution(id: string) {
+  return prisma.sessionItem.findFirst({
+    where: { id, trainingSession: { ownerId: DEFAULT_OWNER_ID } },
+    include: { trainingSession: true },
+  });
+}
+
+const executionWriteSchema = z.object({
+  sessionItemId: z.string().min(1),
+  trainingSessionId: z.string().min(1),
+  expected: z.object({
+    sessionStatus: z.string(),
+    prescriptionKind: z.string(),
+    plannedPrescriptionJson: z.string().nullable(),
+    actualRepLogJson: z.string().nullable(),
+    readinessActionsJson: z.string().nullable(),
+    safetyOutcome: z.string().nullable(),
+    stopReason: z.string().nullable(),
+  }).strict(),
+  next: z.object({
+    executionLogState: actualRepLogStateV1Schema,
+    cumulativeHighSpeedExposureM: quantityIntervalSchema(z.literal("m")),
+    stopReason: terminalMonitorActionSchema.nullable(),
+    safetyOutcome: safetyOutcomeSchema,
+  }).strict(),
+}).strict();
+
+export type SessionExecutionWriteInput = z.infer<typeof executionWriteSchema>;
+export type SessionExecutionWriteResult =
+  | { kind: "APPLIED" }
+  | { kind: "STALE" }
+  | { kind: "SESSION_NOT_EXECUTABLE" }
+  | { kind: "SESSION_CLOSED" };
+
+/**
+ * Policy-free guarded write. All four execution columns and PLANNED -> IN_PROGRESS
+ * are committed together; the raw strings read by the service form the CAS guard.
+ */
+export async function applySessionExecutionResult(rawInput: SessionExecutionWriteInput): Promise<SessionExecutionWriteResult> {
+  const input = executionWriteSchema.parse(rawInput);
+  const actualRepLogJson = serializeActualRepLogStateV1(input.next.executionLogState);
+  const actualHighSpeedExposureJson = JSON.stringify(input.next.cumulativeHighSpeedExposureM);
+  if (actualRepLogJsonByteLimitIssue(actualRepLogJson) || findForbiddenHealthKeys(input.next.executionLogState).length > 0) {
+    throw new Error("Execution log is invalid");
+  }
+  if (findForbiddenHealthKeys(input.next.cumulativeHighSpeedExposureM).length > 0) throw new Error("Execution exposure is invalid");
+
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.sessionItem.findFirst({
+      where: { id: input.sessionItemId, trainingSession: { ownerId: DEFAULT_OWNER_ID } },
+      include: { trainingSession: { select: { id: true, status: true, sessionKind: true } } },
+    });
+    if (!current) return { kind: "STALE" };
+    if (current.trainingSession.sessionKind !== "TRAINING") return { kind: "SESSION_NOT_EXECUTABLE" };
+    if (current.trainingSession.status === "COMPLETED" || current.trainingSession.status === "CANCELLED") return { kind: "SESSION_CLOSED" };
+    const expected = input.expected;
+    const matches = current.trainingSession.id === input.trainingSessionId
+      && current.trainingSession.status === expected.sessionStatus
+      && current.prescriptionKind === expected.prescriptionKind
+      && current.plannedPrescriptionJson === expected.plannedPrescriptionJson
+      && current.actualRepLogJson === expected.actualRepLogJson
+      && current.readinessActionsJson === expected.readinessActionsJson
+      && current.safetyOutcome === expected.safetyOutcome
+      && current.stopReason === expected.stopReason;
+    if (!matches) return { kind: "STALE" };
+
+    const updated = await tx.sessionItem.updateMany({
+      where: {
+        id: input.sessionItemId,
+        trainingSessionId: input.trainingSessionId,
+        prescriptionKind: expected.prescriptionKind,
+        plannedPrescriptionJson: expected.plannedPrescriptionJson,
+        actualRepLogJson: expected.actualRepLogJson,
+        readinessActionsJson: expected.readinessActionsJson,
+        safetyOutcome: expected.safetyOutcome,
+        stopReason: expected.stopReason,
+        trainingSession: { ownerId: DEFAULT_OWNER_ID, sessionKind: "TRAINING" },
+      },
+      data: {
+        actualRepLogJson,
+        actualHighSpeedExposureJson,
+        stopReason: input.next.stopReason,
+        safetyOutcome: input.next.safetyOutcome,
+      },
+    });
+    if (updated.count !== 1) return { kind: "STALE" };
+    if (expected.sessionStatus === "PLANNED") {
+      const status = await tx.trainingSession.updateMany({
+        where: { id: input.trainingSessionId, ownerId: DEFAULT_OWNER_ID, status: "PLANNED", sessionKind: "TRAINING" },
+        data: { status: "IN_PROGRESS" },
+      });
+      if (status.count !== 1) throw new Error("Execution session status changed");
+    }
+    return { kind: "APPLIED" };
+  });
+}
+
+const runtimeCoachReviewAckWriteSchema = z.object({
+  sessionItemId: z.string().min(1),
+  trainingSessionId: z.string().min(1),
+  expected: z.object({
+    sessionStatus: z.literal("IN_PROGRESS"),
+    prescriptionKind: z.literal("RUNNING_V2"),
+    plannedPrescriptionJson: z.string(),
+    actualRepLogJson: z.string(),
+    safetyOutcome: z.string().nullable(),
+    stopReason: z.string().nullable(),
+  }).strict(),
+  nextExecutionLogState: actualRepLogStateV1Schema,
+}).strict();
+
+export type RuntimeCoachReviewAckWriteInput = z.infer<typeof runtimeCoachReviewAckWriteSchema>;
+
+/** Policy-free acknowledgement CAS. It changes only the execution-log envelope. */
+export async function applyRuntimeCoachReviewAcknowledgement(
+  rawInput: RuntimeCoachReviewAckWriteInput,
+): Promise<SessionExecutionWriteResult> {
+  const input = runtimeCoachReviewAckWriteSchema.parse(rawInput);
+  const actualRepLogJson = serializeActualRepLogStateV1(input.nextExecutionLogState);
+
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.sessionItem.findFirst({
+      where: { id: input.sessionItemId, trainingSession: { ownerId: DEFAULT_OWNER_ID } },
+      include: { trainingSession: { select: { id: true, status: true, sessionKind: true } } },
+    });
+    if (!current) return { kind: "STALE" };
+    if (current.trainingSession.sessionKind !== "TRAINING") return { kind: "SESSION_NOT_EXECUTABLE" };
+    if (current.trainingSession.status === "COMPLETED" || current.trainingSession.status === "CANCELLED") return { kind: "SESSION_CLOSED" };
+    const expected = input.expected;
+    const matches = current.trainingSession.id === input.trainingSessionId
+      && current.trainingSession.status === expected.sessionStatus
+      && current.prescriptionKind === expected.prescriptionKind
+      && current.plannedPrescriptionJson === expected.plannedPrescriptionJson
+      && current.actualRepLogJson === expected.actualRepLogJson
+      && current.safetyOutcome === expected.safetyOutcome
+      && current.stopReason === expected.stopReason;
+    if (!matches) return { kind: "STALE" };
+
+    const updated = await tx.sessionItem.updateMany({
+      where: {
+        id: input.sessionItemId,
+        trainingSessionId: input.trainingSessionId,
+        prescriptionKind: expected.prescriptionKind,
+        plannedPrescriptionJson: expected.plannedPrescriptionJson,
+        actualRepLogJson: expected.actualRepLogJson,
+        safetyOutcome: expected.safetyOutcome,
+        stopReason: expected.stopReason,
+        trainingSession: { ownerId: DEFAULT_OWNER_ID, status: expected.sessionStatus, sessionKind: "TRAINING" },
+      },
+      data: { actualRepLogJson },
+    });
+    return updated.count === 1 ? { kind: "APPLIED" } : { kind: "STALE" };
+  });
+}
+
 export async function updateSessionItemResult(
   id: string,
   input: SessionItemResultInput,
 ) {
-  return prisma.sessionItem.update({ where: { id }, data: input });
+  const updated = await prisma.sessionItem.updateMany({
+    where: { id, trainingSession: { ownerId: DEFAULT_OWNER_ID, sessionKind: { not: "COMPETITION" } } },
+    data: input,
+  });
+  if (updated.count !== 1) throw new CompetitionSessionMutationError();
 }
 
 /** チェックボックスだけの高速トグル（実施中の現場で一番使う操作）。 */
 export async function toggleSessionItemDone(id: string) {
-  const item = await prisma.sessionItem.findUnique({
-    where: { id },
+  const item = await prisma.sessionItem.findFirst({
+    where: { id, trainingSession: { ownerId: DEFAULT_OWNER_ID, sessionKind: { not: "COMPETITION" } } },
     select: { done: true, trainingSessionId: true },
   });
   if (!item) throw new Error("項目が見つかりません");
@@ -307,7 +580,10 @@ export async function toggleSessionItemDone(id: string) {
 }
 
 export async function deleteSessionItem(id: string) {
-  return prisma.sessionItem.delete({ where: { id } });
+  const deleted = await prisma.sessionItem.deleteMany({
+    where: { id, trainingSession: { ownerId: DEFAULT_OWNER_ID, sessionKind: { not: "COMPETITION" } } },
+  });
+  if (deleted.count !== 1) throw new CompetitionSessionMutationError();
 }
 
 /** セッションに、テンプレートに無かった項目を後から足す。 */
@@ -319,11 +595,16 @@ export async function addSessionItem(
     blockNameSnapshot: string;
   },
 ) {
-  const max = await prisma.sessionItem.aggregate({
-    where: { trainingSessionId },
-    _max: { sortOrder: true },
-  });
-  return prisma.sessionItem.create({
-    data: { ...data, trainingSessionId, sortOrder: (max._max.sortOrder ?? -1) + 1 },
+  return prisma.$transaction(async (tx) => {
+    const session = await tx.trainingSession.findFirst({ where: { id: trainingSessionId, ownerId: DEFAULT_OWNER_ID } });
+    if (!session) throw new Error("セッションが見つかりません");
+    if (session.sessionKind === "COMPETITION") throw new CompetitionSessionMutationError();
+    const max = await tx.sessionItem.aggregate({
+      where: { trainingSessionId },
+      _max: { sortOrder: true },
+    });
+    return tx.sessionItem.create({
+      data: { ...data, trainingSessionId, sortOrder: (max._max.sortOrder ?? -1) + 1 },
+    });
   });
 }

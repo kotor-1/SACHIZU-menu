@@ -26,7 +26,7 @@ describe("competition repository", () => {
 
     const updated = await updateCompetition(created.id, { ...base, name: "県選手権（2日目まで）", endDate: "2026-10-11", priority: "PEAK", note: "標準記録狙い" });
     expect(updated).toMatchObject({ priority: "PEAK", note: "標準記録狙い" });
-    expect(updated.endDate?.toISOString()).toBe("2026-10-11T00:00:00.000Z");
+    expect(updated?.endDate?.toISOString()).toBe("2026-10-11T00:00:00.000Z");
     expect(await findCompetition(created.id)).toMatchObject({ name: "県選手権（2日目まで）" });
 
     await deleteCompetition(created.id);
@@ -70,6 +70,16 @@ describe("competition repository", () => {
 
     expect((await listCompetitions()).map((c) => c.name)).toEqual(["A", "B", "C"]);
     expect((await listCompetitions({ from: new Date("2026-10-01"), to: new Date("2026-11-01") })).map((c) => c.name)).toEqual(["B", "C"]);
+  });
+
+  it("取得・更新・削除は既定 owner の大会だけを対象にする", async () => {
+    const other = await prisma.competition.create({
+      data: { name: "他コーチ大会", date: new Date("2026-10-10"), ownerId: "other-coach" },
+    });
+    expect(await findCompetition(other.id)).toBeNull();
+    expect(await updateCompetition(other.id, base)).toBeNull();
+    expect(await deleteCompetition(other.id)).toBe(false);
+    expect(await prisma.competition.findUnique({ where: { id: other.id } })).not.toBeNull();
   });
 
   it("大会を削除しても練習記録は残り、competitionId だけ null になる（onDelete: SetNull）", async () => {

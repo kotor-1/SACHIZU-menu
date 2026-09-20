@@ -46,6 +46,7 @@ import {
 } from "./placement";
 import { recheckHardSafety, type FieldValueRecord } from "./hardSafety";
 import { resolveSwapTargets } from "../readiness/swap";
+import { resolveReadinessApplication } from "../readiness/application";
 import { normalizeReadinessActions, type ReadinessDecision } from "../readiness/schema";
 import type { ReadinessActionCode, SafetyOutcome } from "../types/readiness";
 import type { RangePosition } from "../types/prescription";
@@ -502,17 +503,6 @@ type ReadinessApplication =
     }
   | { kind: "INELIGIBLE"; reasons: EligibilityReason[]; substitutes: RunningSelection[] };
 
-type TriggerPool = { ruleId: string; actions: Set<ReadinessActionCode> }[];
-
-function poolUnion(pool: TriggerPool): Set<ReadinessActionCode> {
-  const union = new Set<ReadinessActionCode>();
-  for (const t of pool) for (const a of t.actions) union.add(a);
-  return union;
-}
-
-function dropFromPool(pool: TriggerPool, action: ReadinessActionCode): void {
-  for (const t of pool) t.actions.delete(action);
-}
 
 /** SWAP を取り除いた判断（置換そのものが SWAP の適用）。raw trigger も同時に更新して整合を保つ。 */
 function decisionWithoutSwap(readiness: ReadinessDecision, evaluatedFor: ReadinessDecision["evaluatedFor"]): ReadinessDecision {
@@ -583,82 +573,28 @@ function applyReadinessActions(args: {
     };
   }
 
-  const highIntensity = loadClass === "HIGH_NEURAL" || loadClass === "HIGH_METABOLIC";
-  const swapKeepsCurrent = resolveSwapTargets(resolved.ruleSet, request.selection.method).outcome === "KEEP_CURRENT";
-  const override = request.overrides.find((o) => o.target.kind === "READINESS") ?? null;
-  const canOverride = override !== null && request.actor.kind === "COACH";
-
-  const pool: TriggerPool = readiness.triggers.map((t) => ({ ruleId: t.ruleId, actions: new Set(t.actions) }));
-  const findings: Finding[] = [];
+  const application = resolveReadinessApplication({
+    readiness, ruleSet: resolved.ruleSet, method: request.selection.method, loadClass,
+    isCoach: request.actor.kind === "COACH",
+    canOverrideCancel: request.actor.kind === "COACH" && request.overrides.some((o) => o.target.kind === "READINESS"),
+  });
+  const { safetyOutcome, overrideConsumed, reviewRequired, remaining } = application;
+  const findings: Finding[] = application.effects.map((code) =>
+    itemFinding(code, code === "READINESS_CANCEL_NOT_APPLICABLE" || code === "READINESS_SWAP_KEEP_CURRENT" ? "INFO" : "REQUIRE_COACH_REVIEW"),
+  );
   const codes = new Set<RationaleCode>();
-  let safetyOutcome: SafetyOutcome = readiness.safetyOutcome;
-  let overrideConsumed = false;
-  let reviewRequired = false;
-
-  // その日の痛みが確認できていない（§13.2 NOT_ASKED）× HIGH_*。override では解除できない。
-  if (highIntensity && readiness.highIntensityAllowedToday === "UNKNOWN") {
-    if (request.actor.kind !== "COACH") {
-      return {
-        kind: "INELIGIBLE",
-        reasons: [{ code: "READINESS_CHECK_REQUIRED", ruleId: null, overrideAllowed: false }],
-        substitutes: readinessSubstitutes({ request, resolved, readiness, depth }),
-      };
-    }
-    reviewRequired = true;
-    findings.push(itemFinding("READINESS_CHECK_REQUIRED", "REQUIRE_COACH_REVIEW"));
+  if (overrideConsumed) codes.add("READINESS_CANCEL_OVERRIDDEN");
+  if (application.kind !== "PROCEED") {
+    const code = application.kind === "CHECK_REQUIRED" ? "READINESS_CHECK_REQUIRED"
+      : application.kind === "SWAP" ? "READINESS_SWAP_RECOMMENDED" : "READINESS_HIGH_INTENSITY_CANCELLED";
+    return {
+      kind: "INELIGIBLE",
+      reasons: [{ code, ruleId: null, overrideAllowed: application.kind === "CANCELLED" && request.actor.kind === "COACH" }],
+      substitutes: readinessSubstitutes({ request, resolved, readiness, depth }),
+    };
   }
 
-  // 優先順位（§13.6）: CANCEL → SWAP の順に見て、解除・適用不能なら残りの trigger で決め直す。
-  for (;;) {
-    const union = poolUnion(pool);
-    if (union.has("CANCEL_HIGH_INTENSITY")) {
-      if (!highIntensity) {
-        // 高強度ではない項目には効かない。適用していないことを明示し、他の signal の判定へ進む。
-        dropFromPool(pool, "CANCEL_HIGH_INTENSITY");
-        findings.push(itemFinding("READINESS_CANCEL_NOT_APPLICABLE", "INFO"));
-        continue;
-      }
-      if (canOverride && !overrideConsumed) {
-        overrideConsumed = true;
-        for (const t of pool) {
-          // 同じ signal から CANCEL と SWAP が出ていた場合は二重に適用しない。
-          // 別 signal から出た SWAP は残す（独立した判断を override で消さない）。
-          if (t.actions.delete("CANCEL_HIGH_INTENSITY")) t.actions.delete("SWAP_TO_LOWER_LOAD_METHOD");
-        }
-        // override しても健康上の事象そのものは消えない。
-        safetyOutcome = "COACH_REVIEW";
-        reviewRequired = true;
-        codes.add("READINESS_CANCEL_OVERRIDDEN");
-        findings.push(itemFinding("READINESS_CANCEL_OVERRIDDEN", "REQUIRE_COACH_REVIEW"));
-        continue;
-      }
-      return {
-        kind: "INELIGIBLE",
-        reasons: [
-          { code: "READINESS_HIGH_INTENSITY_CANCELLED", ruleId: null, overrideAllowed: request.actor.kind === "COACH" },
-        ],
-        substitutes: readinessSubstitutes({ request, resolved, readiness, depth }),
-      };
-    }
-    if (union.has("SWAP_TO_LOWER_LOAD_METHOD")) {
-      if (swapKeepsCurrent) {
-        // §13.4「変更なし」。Method は変えず、SWAP は適用していない扱いにする。
-        dropFromPool(pool, "SWAP_TO_LOWER_LOAD_METHOD");
-        findings.push(itemFinding("READINESS_SWAP_KEEP_CURRENT", "INFO"));
-        continue;
-      }
-      // 黙って別 Method へ変換しない。候補を返してコーチ / 呼び出し側に選ばせる（override 不可）。
-      return {
-        kind: "INELIGIBLE",
-        reasons: [{ code: "READINESS_SWAP_RECOMMENDED", ruleId: null, overrideAllowed: false }],
-        substitutes: readinessSubstitutes({ request, resolved, readiness, depth }),
-      };
-    }
-    break;
-  }
-
-  // 残った raw trigger から、この項目へ実際に適用する action を決める（量の位置だけを動かす）。
-  const remaining = poolUnion(pool);
+  // Remaining triggers are resolved by the shared R5 application helper.
   const applied = new Set<ReadinessActionCode>();
   let positionCap: RangePosition | null = null;
   let restPosition: RangePosition | null = null;

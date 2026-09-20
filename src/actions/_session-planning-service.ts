@@ -20,6 +20,7 @@
  */
 import { resolveSubjectProfile, type Finding, type Subject } from "@/domain/running";
 import { resolveCompetitionDay } from "@/domain/running/competition";
+import { requiredConfirmationCodes } from "@/domain/running/planning/confirmation";
 import { evaluateWeeklyContext } from "@/domain/running/weekly";
 import type { WeeklyHistoryInput } from "@/domain/running/types/load";
 import {
@@ -35,12 +36,30 @@ import { listLoadHistory } from "@/infra/repositories/load-history-repository";
 import { buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "@/infra/repositories/session-fingerprint";
 import { evaluateStoredRunningMenu } from "./_running-menu-evaluation";
 
+/**
+ * [R11-B1] 現在の評価で明示確認が必要な内容（severity = REQUIRE_CONFIRMATION）。
+ * `BLOCK` はここに入らない（BLOCK は確認で解除できないため REJECT のまま）。
+ */
+export type SessionConfirmationRequired = { requiredFindingCodes: string[]; findings: Finding[] };
+
 export type SessionPlanningDecision =
   /** RUNNING_V2 項目が無い（legacy-only）。B2 前と同じ挙動を維持し、評価を渡さない（§6/§7）。 */
   | { kind: "SKIP" }
-  /** aggregate に BLOCK / REQUIRE_CONFIRMATION がある。Session row を1件も作らせない（§20/§21）。 */
+  /** aggregate に BLOCK がある。Session row を1件も作らせない（§20/§21。確認では解除できない） */
   | { kind: "REJECT"; message: string }
-  | { kind: "EVALUATED"; evaluation: SessionPlanningEvaluationInput };
+  | {
+      kind: "EVALUATED";
+      evaluation: SessionPlanningEvaluationInput;
+      /**
+       * [R11-B1] null = そのまま作成してよい。非 null = コーチの明示確認が揃うまで作成しない
+       * （確認の照合は `_session-confirmation.ts`、判定は R10-B4A の domain helper）。
+       */
+      confirmationRequired: SessionConfirmationRequired | null;
+    };
+
+/** 合計負荷が上限を超えている（BLOCK）。確認では解除できない（§5/§43）。 */
+export const SESSION_BLOCK_MESSAGE_JA =
+  "このメニューは合計負荷が上限を超えているため、セッションを作成できません。メニュー内容を見直してください。";
 
 // ---------------------------------------------------------------------------
 // 小さな helper（[R10-B1] `_running-plan-service.ts` と同じ考え方。B1 を壊さないため、
@@ -136,6 +155,8 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
         findings,
         sourceMenuFingerprint,
       },
+      // [R11-B1] 評価できていない（§39/§40）ときは確認を要求しない。coach review で作成できる。
+      confirmationRequired: null,
     }) satisfies SessionPlanningDecision;
 
   // ---- §8〜§18: 保存済みメニューの R6 評価は [R10-B4B] の application helper と共有する ----
@@ -158,14 +179,15 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
 
   const aggregationGateFindings = [...aggregate.findings, ...evaluated.plausibilityFindings];
   if (aggregationGateFindings.some((f) => f.severity === "BLOCK")) {
-    return { kind: "REJECT", message: "このメニューは合計負荷が上限を超えているため、セッションを作成できません。メニュー内容を見直してください。" };
+    return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA };
   }
-  if (aggregationGateFindings.some((f) => f.severity === "REQUIRE_CONFIRMATION")) {
-    return {
-      kind: "REJECT",
-      message: "確認が必要な内容が含まれているため、このメニューからはまだセッションを作成できません（確認機能は今後のフェーズで追加予定です）。",
-    };
-  }
+  // [R11-B1] REQUIRE_CONFIRMATION は「作成不可」ではなく「明示確認が必要」。評価はそのまま完成させ、
+  // 確認が必要な内容を呼び出し側（Action）へ渡す。BLOCK_AUTOGEN / REQUIRE_COACH_REVIEW は確認不要（§41/§42）。
+  const confirmationFindings = aggregationGateFindings.filter((f) => f.severity === "REQUIRE_CONFIRMATION");
+  const confirmationRequired: SessionConfirmationRequired | null =
+    confirmationFindings.length === 0
+      ? null
+      : { requiredFindingCodes: requiredConfirmationCodes(confirmationFindings), findings: confirmationFindings };
   findings.push(...evaluated.plausibilityFindings);
 
   // ---- §15/§16/§23〜§29: R7 weekly context ----
@@ -203,5 +225,6 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
       findings,
       sourceMenuFingerprint,
     },
+    confirmationRequired,
   };
 }

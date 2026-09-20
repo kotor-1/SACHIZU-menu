@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card, CardBody, CardHeader, Field, INPUT_CLASS, cn } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { createSessionFromMenuAction } from "@/actions/session-actions";
+import { SessionConfirmationPanel, sessionConfirmationFailureOf } from "./session-confirmation-panel";
 import { TRAINING_PHASE_LABEL, type TrainingPhase } from "@/domain/menu/constants";
 import { todayInputValue } from "@/lib/format";
 
@@ -14,10 +15,19 @@ type MenuOption = {
   estimatedMinutes: number | null;
 };
 
-export function NewSessionFromMenu({ menus }: { menus: MenuOption[] }) {
+export function NewSessionFromMenu({
+  menus,
+  runningV2Enabled = false,
+}: {
+  menus: MenuOption[];
+  /** [R11-B1] 走トレーニングの確認パネルを出すか（flag OFF なら安全側のエラー表示だけ）。 */
+  runningV2Enabled?: boolean;
+}) {
   const [state, formAction] = useActionState(createSessionFromMenuAction, null);
-  const errors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
+  const errors = state && !state.ok && state.kind === "INVALID_INPUT" ? (state.fieldErrors ?? {}) : {};
   const input = cn(INPUT_CLASS, "h-10 py-0");
+  const confirmation = runningV2Enabled ? sessionConfirmationFailureOf(state) : null;
+  const [confirmationReady, setConfirmationReady] = useState(false);
 
   return (
     <Card className="border-indigo-200">
@@ -85,7 +95,11 @@ export function NewSessionFromMenu({ menus }: { menus: MenuOption[] }) {
               </Field>
             </div>
 
-            <SubmitButton pendingLabel="作成中…">練習記録を作成</SubmitButton>
+            <SessionConfirmationPanel failure={confirmation} idPrefix="new-session" onReadyChange={setConfirmationReady} />
+
+            <SubmitButton pendingLabel="作成中…" disabled={confirmation !== null && !confirmationReady}>
+              {confirmation === null ? "練習記録を作成" : "確認のうえ作成する"}
+            </SubmitButton>
           </form>
         )}
       </CardBody>

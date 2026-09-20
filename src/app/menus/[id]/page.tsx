@@ -123,7 +123,7 @@ export default async function MenuDetailPage({
         </div>
 
         <div className="space-y-4 no-print">
-          <StartSessionForm menuId={menu.id} menuName={menu.name} />
+          <StartSessionForm menuId={menu.id} menuName={menu.name} runningV2Enabled={running !== null} />
 
           {running !== null && <RunningMenuPanel menuId={menu.id} view={running} />}
 

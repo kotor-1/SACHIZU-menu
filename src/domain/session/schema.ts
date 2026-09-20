@@ -24,6 +24,12 @@ export const sessionInputSchema = z.object({
 
 export type SessionInput = z.infer<typeof sessionInputSchema>;
 
+/**
+ * [R11-B1] 明示確認した Finding code は複数値で届く（`getAll()` で読む）。
+ * code は内部 payload であり、画面には日本語の Finding だけを出す。
+ */
+export const CONFIRMED_FINDING_CODES_KEY = "confirmedFindingCodes";
+
 /** テンプレートからセッションを起こすときの入力。 */
 export const sessionFromMenuSchema = z.object({
   menuTemplateId: z.string().min(1, "メニューを選んでください"),
@@ -35,6 +41,30 @@ export const sessionFromMenuSchema = z.object({
   groupName: optionalText(120),
   location: optionalText(120),
 });
+
+/**
+ * [R11-B1] セッション作成時の明示確認の入力（作成フォームと同じ form で送る）。
+ * 作成そのものの入力（`sessionFromMenuSchema`）とは分けて parse する。
+ */
+export const sessionConfirmationInputSchema = z.object({
+  /** コーチが「内容を確認しました」と明示した Finding code。未送信は空配列（自動確認しない）。 */
+  confirmedFindingCodes: z
+    .array(z.string().trim().min(1).max(120))
+    .max(50)
+    .optional()
+    .transform((codes) => [...new Set(codes ?? [])]),
+  /**
+   * 1回目の応答で返した確認 challenge（コーチが見た評価の digest）。未送信は null。
+   * 認可トークンではなく「見た評価 == 現在の評価」の照合用。
+   */
+  confirmationChallenge: z
+    .string()
+    .max(200)
+    .optional()
+    .transform((v) => (v === undefined || v.trim() === "" ? null : v.trim())),
+});
+
+export type SessionConfirmationInputValues = z.infer<typeof sessionConfirmationInputSchema>;
 
 export type SessionFromMenuInput = z.infer<typeof sessionFromMenuSchema>;
 

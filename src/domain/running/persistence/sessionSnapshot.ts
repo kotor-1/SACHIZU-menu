@@ -12,7 +12,7 @@
 import { z } from "zod";
 import { sessionAggregateSchema } from "../aggregation/schema";
 import { isValidCalendarDate } from "../planning/schema";
-import { findingSchema, type Finding } from "../types/findings";
+import { findingSchema, type Finding, type FindingSeverity } from "../types/findings";
 import { historyCoverageLevelSchema, loadCategorySchema, loadEventSchema, type LoadCategory, type LoadSnapshot } from "../types/load";
 import { runningTrainingMethodSchema } from "../types/method";
 import { runningPrescriptionSchema } from "../types/prescription";
@@ -133,6 +133,19 @@ const weeklyEvaluationInputSchema = z.discriminatedUnion("status", [
     .strict(),
 ]);
 
+/**
+ * [R11-B1] 明示確認の監査記録（`Provenance.findingConfirmations` と同形）。
+ * 確認した Finding が無い保存では key 自体を持たない（`undefined`）。
+ */
+export const findingConfirmationsSchema = z
+  .array(z.object({ code: z.string().min(1), at: isoDateTimeSchema }).strict())
+  .max(50)
+  .refine((list) => new Set(list.map((c) => c.code)).size === list.length, {
+    message: "findingConfirmations に code の重複があります",
+  })
+  .optional();
+export type FindingConfirmationRecord = { code: string; at: IsoDateTime };
+
 export const sessionPlanningEvaluationInputSchema = z
   .object({
     aggregation: aggregationEvaluationInputSchema,
@@ -144,6 +157,12 @@ export const sessionPlanningEvaluationInputSchema = z
      * 保存全体を中止する。RuleSet を読まずに DB の生値だけで計算する（`buildSourceMenuFingerprint`）。
      */
     sourceMenuFingerprint: z.string().min(1),
+    /**
+     * [R11-B1] セッション作成時に、コーチが明示確認した REQUIRE_CONFIRMATION の監査記録
+     * （backward-compatible optional）。**その作成時の評価に実在した code だけ**を記録する
+     * （client が送った任意文字列は保存しない）。確認しても Finding は消さない（§23 別管理）。
+     */
+    findingConfirmations: findingConfirmationsSchema,
   })
   .strict();
 export type SessionPlanningEvaluationInput = z.input<typeof sessionPlanningEvaluationInputSchema>;
@@ -217,6 +236,209 @@ export function canonicalSourceMenuFingerprintPayload(items: readonly Fingerprin
   }));
 }
 
+// ---------------------------------------------------------------------------
+// [R11-B1] Session 確認 challenge の canonicalization
+// ---------------------------------------------------------------------------
+
+/**
+ * 確認対象 Finding の canonical 形。**localized message ではなく domain Finding の値**を使う
+ * （`Finding` schema に実在する field だけ。存在しない field を作らない）。
+ *
+ * `code` が同じでも `value` / `limit` / `metric` / `scope` が変われば別物として扱う
+ * （例: 総走行距離 9,000m の確認を 15,000m の確認へ流用できないようにする）。
+ */
+export type CanonicalConfirmationFinding = {
+  code: string;
+  severity: FindingSeverity;
+  scope: Finding["scope"];
+  metric: string | null;
+  value: { lower: number | null; upper: number | null; unit: string } | null;
+  limit: { min: number; max: number; unit: string } | null;
+};
+
+export function canonicalConfirmationFinding(finding: Finding): CanonicalConfirmationFinding {
+  return {
+    code: finding.code,
+    severity: finding.severity,
+    scope: finding.scope,
+    metric: finding.metric ?? null,
+    value: finding.value === undefined ? null : { lower: finding.value.lower, upper: finding.value.upper, unit: finding.value.unit },
+    limit: finding.limit === undefined ? null : { min: finding.limit.min, max: finding.limit.max, unit: finding.limit.unit },
+  };
+}
+
+/** canonical Finding を決定的な順序に並べる（順序差では digest を変えない。重複は件数ごと保持）。 */
+function stableFindings(findings: readonly Finding[]): CanonicalConfirmationFinding[] {
+  return findings
+    .map(canonicalConfirmationFinding)
+    .map((value) => ({ key: JSON.stringify(value), value }))
+    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+    .map((entry) => entry.value);
+}
+
+const sortedCopy = (values: readonly string[]): string[] => [...values].sort();
+
+type CanonicalInterval = { lower: number | null; upper: number | null; unit: string; source: string; confidence: string };
+
+function canonicalInterval(interval: {
+  lower: number | null;
+  upper: number | null;
+  unit: string;
+  source: string;
+  confidence: string;
+}): CanonicalInterval {
+  return { lower: interval.lower, upper: interval.upper, unit: interval.unit, source: interval.source, confidence: interval.confidence };
+}
+
+type ParsedEvaluation = z.output<typeof sessionPlanningEvaluationInputSchema>;
+type ParsedAggregate = Extract<ParsedEvaluation["aggregation"], { status: "EVALUATED" }>["result"];
+type ParsedWeeklyResult = Extract<ParsedEvaluation["weeklyContext"], { status: "EVALUATED" }>["items"][number]["result"];
+
+/**
+ * [R11-B1.1] R6 集計結果の canonical 形（field 順を明示し、`JSON.stringify` に並び順を委ねない）。
+ * null は保持する（「未実測だから 0」にしない R6 契約をそのまま digest へ反映する）。
+ */
+function canonicalAggregate(result: ParsedAggregate) {
+  return {
+    totalRunningDistanceM: canonicalInterval(result.totalRunningDistanceM),
+    plannedHighSpeedExposureM: canonicalInterval(result.plannedHighSpeedExposureM),
+    actualHighSpeedExposureM: result.actualHighSpeedExposureM === null ? null : canonicalInterval(result.actualHighSpeedExposureM),
+    nearMaxSprintVolumeM: canonicalInterval(result.nearMaxSprintVolumeM),
+    longSprintVolumeM: canonicalInterval(result.longSprintVolumeM),
+    tempoVolumeM: canonicalInterval(result.tempoVolumeM),
+    strideVolumeM: canonicalInterval(result.strideVolumeM),
+    plyometricContacts: canonicalInterval(result.plyometricContacts),
+    strengthLoad: result.strengthLoad,
+    raceExposure: { count: result.raceExposure.count, distanceM: canonicalInterval(result.raceExposure.distanceM) },
+    relayExposure: { count: result.relayExposure.count, legDistanceM: canonicalInterval(result.relayExposure.legDistanceM) },
+    highIntensityBudgetUse: {
+      recommended: result.highIntensityBudgetUse.recommended,
+      coachEditable: result.highIntensityBudgetUse.coachEditable,
+    },
+    highIntensityMethods: sortedCopy(result.highIntensityMethods),
+    completeness: result.completeness,
+    findings: stableFindings(result.findings),
+  };
+}
+
+/**
+ * [R11-B1.1] R7 週次文脈の結果の canonical 形。
+ *
+ * **除外するもの**（意図的）:
+ *   - `evaluatedAt`（時刻。同じ policy 結果なら同じ digest にする §9）
+ *   - `events48h` / `events72h`（LoadEvent の生履歴。confirmation は raw source data ではなく
+ *     **planning policy result** に対して行うという契約 §14/§21。履歴の中身が変わっても
+ *     policy 結果が同一なら確認は有効）
+ */
+function canonicalWeeklyResult(result: ParsedWeeklyResult) {
+  return {
+    coverage72h: result.coverage72h,
+    highSessions7d: result.highSessions7d,
+    readinessRequired: result.readinessRequired,
+    weeklyPositionCap: result.weeklyPositionCap,
+    autogenBlockedMethods: sortedCopy(result.autogenBlockedMethods),
+    findings: stableFindings(result.findings),
+  };
+}
+
+export type CanonicalSessionConfirmationEvaluationPayload = {
+  schemaVersion: 1;
+  sourceMenuFingerprint: string;
+  aggregation:
+    | { status: "NOT_EVALUATED"; reasons: string[] }
+    | { status: "EVALUATED"; ruleSet: { version: string; contentHash: string }; result: ReturnType<typeof canonicalAggregate> };
+  weeklyContext:
+    | { status: "NOT_EVALUATED"; reasons: string[] }
+    | {
+        status: "EVALUATED";
+        ruleSet: { version: string; contentHash: string };
+        items: { menuItemId: string; result: ReturnType<typeof canonicalWeeklyResult> }[];
+      };
+  findings: CanonicalConfirmationFinding[];
+};
+
+/**
+ * [R11-B1.1] 「コーチが確認した Session planning evaluation」の canonical payload。
+ *
+ * confirmation は **現在の policy 評価結果**に対して行うものなので、Menu の内容（`sourceMenuFingerprint`）だけでなく
+ * 評価結果そのもの（R6 集計・R7 週次・全 Finding・評価できなかった理由・使った RuleSet identity）を対象にする。
+ * これにより MenuItem が同じでも、対象グループ設定（availableMinutes / plannedAt）・大会文脈・週次結果が
+ * 変わっていれば digest が変わり、以前の確認を流用できない。
+ *
+ * 含めないもの:
+ *   - `findingConfirmations`（確認そのもの。challenge の入力へ循環させない §10）
+ *   - 時刻（`evaluatedAt` など §9）・raw な LoadEvent 履歴（§14）
+ *   - 健康 / readiness の生値（そもそも evaluation に含まれない §11）
+ *
+ * hash はここで計算しない（`src/domain/running/**` は Node 組み込みに依存できない §1.6）。
+ */
+export function canonicalSessionConfirmationEvaluationPayload(
+  evaluation: SessionPlanningEvaluationInput,
+): CanonicalSessionConfirmationEvaluationPayload {
+  const parsed = sessionPlanningEvaluationInputSchema.parse(evaluation);
+  return {
+    schemaVersion: 1,
+    sourceMenuFingerprint: parsed.sourceMenuFingerprint,
+    aggregation:
+      parsed.aggregation.status === "EVALUATED"
+        ? {
+            status: "EVALUATED",
+            ruleSet: { version: parsed.aggregation.ruleSet.version, contentHash: parsed.aggregation.ruleSet.contentHash },
+            result: canonicalAggregate(parsed.aggregation.result),
+          }
+        : { status: "NOT_EVALUATED", reasons: sortedCopy(parsed.aggregation.reasons) },
+    weeklyContext:
+      parsed.weeklyContext.status === "EVALUATED"
+        ? {
+            status: "EVALUATED",
+            ruleSet: { version: parsed.weeklyContext.ruleSet.version, contentHash: parsed.weeklyContext.ruleSet.contentHash },
+            items: [...parsed.weeklyContext.items]
+              .map((item) => ({ menuItemId: item.menuItemId, result: canonicalWeeklyResult(item.result) }))
+              .sort((a, b) => (a.menuItemId < b.menuItemId ? -1 : a.menuItemId > b.menuItemId ? 1 : 0)),
+          }
+        : { status: "NOT_EVALUATED", reasons: sortedCopy(parsed.weeklyContext.reasons) },
+    findings: stableFindings(parsed.findings),
+  };
+}
+
+/** 確認 challenge の payload（決定的。時刻・乱数・秘密鍵を含めない）。 */
+export type CanonicalConfirmationChallengePayload = {
+  schemaVersion: 2;
+  menuTemplateId: string;
+  sessionDate: string;
+  sourceMenuFingerprint: string;
+  /** [R11-B1.1] 現在の planning evaluation 全体の digest（`canonicalSessionConfirmationEvaluationPayload` の hash）。 */
+  evaluationDigest: string;
+  /** 明示確認の対象（意味を明確にするため、digest とは別に列挙する）。 */
+  requiredFindings: CanonicalConfirmationFinding[];
+};
+
+/**
+ * [R11-B1] コーチが「見た評価」と「保存直前に server が再評価した内容」を照合するための payload。
+ * [R11-B1.1] Menu の指紋と確認対象 Finding だけでなく、**evaluation 全体の digest** を含める（schemaVersion 2）。
+ *
+ *   - **時刻・乱数・確認時刻を含めない**（同じ評価なら再計算で必ず同じ値になる。§14）
+ *   - 健康情報・readiness の生値は含めない（§44）
+ *   - 配列順の違いだけで値が変わらないよう安定ソートする。同一 Finding の重複は件数も含めて保持する
+ *   - ここでは hash を計算しない（§1.6）。呼び出し側（actions）が SHA-256 で challenge 文字列にする
+ */
+export function canonicalConfirmationChallengePayload(args: {
+  menuTemplateId: string;
+  sessionDate: string;
+  sourceMenuFingerprint: string;
+  evaluationDigest: string;
+  findings: readonly Finding[];
+}): CanonicalConfirmationChallengePayload {
+  return {
+    schemaVersion: 2,
+    menuTemplateId: args.menuTemplateId,
+    sessionDate: args.sessionDate,
+    sourceMenuFingerprint: args.sourceMenuFingerprint,
+    evaluationDigest: args.evaluationDigest,
+    requiredFindings: stableFindings(args.findings.filter((f) => f.severity === "REQUIRE_CONFIRMATION")),
+  };
+}
+
 /**
  * [R10-B2 §35・§36] application service が評価した時点の menu と、`createSessionFromMenu()` が
  * 実際にコピーする直前の menu とで `sourceMenuFingerprint` が一致しないときに投げる。
@@ -234,6 +456,13 @@ export class PlanningEvaluationStaleError extends Error {
 // ---------------------------------------------------------------------------
 
 export const COMPETITION_LOAD_CATEGORIES = ["RACE", "RELAY"] as const;
+
+export const competitionLoadCategoriesSchema = z.union([
+  z.tuple([z.literal("RACE")]),
+  z.tuple([z.literal("RELAY")]),
+  z.tuple([z.literal("RACE"), z.literal("RELAY")]),
+]);
+export type CompetitionLoadCategories = z.infer<typeof competitionLoadCategoriesSchema>;
 
 export const planningSnapshotSchema = z
   .object({
@@ -257,15 +486,85 @@ export const planningSnapshotSchema = z
     /** 渡された評価の findings → repository の RuleSet 非依存なスナップショット検証の findings の順。 */
     findings: z.array(findingSchema),
     /**
-     * [R11] 大会セッションの負荷カテゴリ（大会セッション作成時に設定）。無ければ load history は RACE を
-     * 「generic competition running load fallback」として使う（個人種目だったと推定する意味ではない）。
+     * [R11-B6] 旧大会セッションの read compatibility 専用。新規writerはplural fieldだけを保存する。
+     * 無ければ load history は RACE を「generic competition running load fallback」として使う
+     * （個人種目だったと推定する意味ではない）。
      */
     competitionLoadCategory: z.enum(COMPETITION_LOAD_CATEGORIES).optional(),
+    /**
+     * [R11-B6] 新規の大会実績が持つ category 集合。順序も schema の一部であり、
+     * RACE → RELAY 以外の順序・重複・空配列を保存しない。旧 singular field とは排他的。
+     */
+    competitionLoadCategories: competitionLoadCategoriesSchema.optional(),
     /** [R10-B2] 保存時点の監査用（stale check 自体は書込み前に完了済み）。評価が無ければ持たない。 */
     sourceMenuFingerprint: z.string().min(1).optional(),
+    /**
+     * [R11-B1] セッション作成時にコーチが明示確認した REQUIRE_CONFIRMATION の監査記録。
+     * 旧 snapshot はこの key を持たない（optional。schemaVersion は 1 のまま）。
+     */
+    findingConfirmations: findingConfirmationsSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((snapshot, ctx) => {
+    if (snapshot.competitionLoadCategory !== undefined && snapshot.competitionLoadCategories !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["competitionLoadCategories"],
+        message: "competition load category の singular / plural は同時に保存できません",
+      });
+    }
+  });
 export type PlanningSnapshot = z.infer<typeof planningSnapshotSchema>;
+
+export type CompetitionLoadCategoriesReadResult =
+  | {
+      kind: "RESOLVED";
+      source: "PLURAL" | "LEGACY_SINGULAR" | "HISTORICAL_FALLBACK";
+      categories: CompetitionLoadCategories;
+    }
+  | {
+      kind: "UNREADABLE";
+      reason: "INVALID_PLURAL" | "CONFLICTING_FIELDS" | "UNKNOWN_VERSION";
+    };
+
+/**
+ * Competition Session の負荷 category を snapshot だけから読む。
+ *
+ * 完全に壊れた旧 JSON と category key の無い旧行は historical generic RACE を維持する。
+ * 一方、plural key が見える新形式は corruption を識別できるため、推測で RACE に落とさない。
+ */
+export function readCompetitionLoadCategories(raw: string | null): CompetitionLoadCategoriesReadResult {
+  if (raw === null) return { kind: "RESOLVED", source: "HISTORICAL_FALLBACK", categories: ["RACE"] };
+
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    return { kind: "RESOLVED", source: "HISTORICAL_FALLBACK", categories: ["RACE"] };
+  }
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return { kind: "RESOLVED", source: "HISTORICAL_FALLBACK", categories: ["RACE"] };
+  }
+
+  const record = value as Record<string, unknown>;
+  const hasPlural = Object.prototype.hasOwnProperty.call(record, "competitionLoadCategories");
+  const hasSingular = Object.prototype.hasOwnProperty.call(record, "competitionLoadCategory");
+  if (hasPlural && hasSingular) return { kind: "UNREADABLE", reason: "CONFLICTING_FIELDS" };
+  if (hasPlural) {
+    if (record.schemaVersion !== 1) return { kind: "UNREADABLE", reason: "UNKNOWN_VERSION" };
+    const parsed = planningSnapshotSchema.safeParse(value);
+    if (!parsed.success || parsed.data.competitionLoadCategories === undefined) {
+      return { kind: "UNREADABLE", reason: "INVALID_PLURAL" };
+    }
+    return { kind: "RESOLVED", source: "PLURAL", categories: parsed.data.competitionLoadCategories };
+  }
+
+  const parsed = planningSnapshotSchema.safeParse(value);
+  if (hasSingular && parsed.success && parsed.data.competitionLoadCategory !== undefined) {
+    return { kind: "RESOLVED", source: "LEGACY_SINGULAR", categories: [parsed.data.competitionLoadCategory] };
+  }
+  return { kind: "RESOLVED", source: "HISTORICAL_FALLBACK", categories: ["RACE"] };
+}
 
 /** セッションの日付入力から plannedDate / plannedAt を取り出す（時刻を補わない）。 */
 export function plannedDateTimeOf(raw: string): { plannedDate: IsoDate | null; plannedAt: IsoDateTime | null } {
@@ -393,5 +692,18 @@ export function buildPlanningSnapshot(args: {
         : evaluation.weeklyContext,
     findings: [...evaluation.findings, ...snapshotFindings],
     sourceMenuFingerprint: evaluation.sourceMenuFingerprint,
+    // [R11-B1] 確認が無い作成では key 自体を持たせない（旧 snapshot と同じ形）。
+    ...(evaluation.findingConfirmations !== undefined && evaluation.findingConfirmations.length > 0
+      ? { findingConfirmations: evaluation.findingConfirmations }
+      : {}),
   });
+}
+
+/** R11-B6 actual competition record 用。planning policy を評価せず、category 集合だけを明示保存する。 */
+export function buildCompetitionPlanningSnapshot(
+  sessionDateInput: string,
+  categories: CompetitionLoadCategories,
+): PlanningSnapshot {
+  const base = buildPlanningSnapshot({ sessionDateInput, items: [] });
+  return planningSnapshotSchema.parse({ ...base, competitionLoadCategories: categories });
 }

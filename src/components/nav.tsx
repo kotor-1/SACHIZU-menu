@@ -9,6 +9,7 @@ const LINKS: Array<{ href: string; label: string; exact?: boolean }> = [
   { href: "/exercises", label: "種目" },
   { href: "/menus", label: "メニュー" },
   { href: "/sessions", label: "練習記録" },
+  { href: "/competitions", label: "大会" },
   { href: "/ai", label: "動画解析" },
 ];
 

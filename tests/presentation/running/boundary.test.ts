@@ -76,6 +76,7 @@ const PURE_COMPONENTS = [
   "confidence-badge.tsx",
   "findings-list.tsx",
   "method-template-picker.tsx",
+  "monitor-banner.tsx",
   "provenance-panel.tsx",
   "running-item-editor.tsx",
   "target-split-editor.tsx",
@@ -85,7 +86,16 @@ const PURE_COMPONENTS = [
  * [R10-B4B] 既存 Menu 画面へつなぐ統合 component。Server Action を**呼ぶ**ことだけが追加で許され、
  * repository / RuleSet loader / server presenter / feature flag は（型としてしか）触れない。
  */
-const INTEGRATION_COMPONENTS = ["running-context-editor.tsx", "running-item-create-form.tsx", "running-item-panel.tsx", "running-menu-panel.tsx"];
+const INTEGRATION_COMPONENTS = [
+  "readiness-form.tsx",
+  "rep-logger.tsx",
+  "runtime-coach-review-panel.tsx",
+  "session-execution-panel.tsx",
+  "running-context-editor.tsx",
+  "running-item-create-form.tsx",
+  "running-item-panel.tsx",
+  "running-menu-panel.tsx",
+];
 
 describe("R10-B3: component の境界", () => {
   const components = filesIn(COMPONENT_DIR);
@@ -99,6 +109,10 @@ describe("R10-B3: component の境界", () => {
     expect(clientFiles.sort()).toEqual(
       [
         `${COMPONENT_DIR}/method-template-picker.tsx`,
+        `${COMPONENT_DIR}/readiness-form.tsx`,
+        `${COMPONENT_DIR}/rep-logger.tsx`,
+        `${COMPONENT_DIR}/runtime-coach-review-panel.tsx`,
+        `${COMPONENT_DIR}/session-execution-panel.tsx`,
         `${COMPONENT_DIR}/running-item-editor.tsx`,
         `${COMPONENT_DIR}/target-split-editor.tsx`,
         `${COMPONENT_DIR}/running-context-editor.tsx`,

@@ -13,16 +13,19 @@ export function SubmitButton({
   variant = "primary",
   size = "md",
   className,
+  disabled = false,
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
   className?: string;
+  /** [R11-B1] 送信中以外にも押させたくない場合（確認が揃っていない等）。 */
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant={variant} size={size} className={className} disabled={pending}>
+    <Button type="submit" variant={variant} size={size} className={className} disabled={pending || disabled}>
       {pending ? (pendingLabel ?? "処理中…") : children}
     </Button>
   );

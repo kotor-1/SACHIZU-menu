@@ -11,6 +11,7 @@ import {
 } from "@/domain/session/constants";
 import { searchSessions } from "@/infra/repositories/session-repository";
 import { formatDate, relativeDays } from "@/lib/format";
+import { presentCompetitionSession } from "@/presentation/running/competition";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -44,6 +45,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Sea
           {result.items.map((session) => {
             const doneCount = session.items.filter((i) => i.done).length;
             const status = session.status as SessionStatus;
+            const competitionRecord = session.sessionKind === "COMPETITION" ? presentCompetitionSession(session) : null;
             return (
               <li key={session.id}>
                 <Card className="transition-shadow hover:shadow-md">
@@ -56,6 +58,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Sea
                         <Badge className={SESSION_STATUS_COLOR[status]}>
                           {SESSION_STATUS_LABEL[status] ?? session.status}
                         </Badge>
+                        {competitionRecord && <Badge>大会実績</Badge>}
                         <span className="text-xs text-slate-500">
                           {formatDate(session.date)}
                         </span>
@@ -69,8 +72,9 @@ export default async function SessionsPage({ searchParams }: { searchParams: Sea
                       </h3>
 
                       <p className="mt-0.5 text-xs text-slate-500">
-                        {[session.groupName, session.location].filter(Boolean).join(" ・ ") ||
-                          "対象・場所は未設定"}
+                        {competitionRecord
+                          ? competitionRecord.categoriesLabel
+                          : ([session.groupName, session.location].filter(Boolean).join(" ・ ") || "対象・場所は未設定")}
                         {session.sourceMenuTemplate
                           ? ` ／ 元メニュー：${session.sourceMenuTemplate.name}`
                           : session.sourceMenuNameSnapshot
@@ -80,10 +84,14 @@ export default async function SessionsPage({ searchParams }: { searchParams: Sea
                     </div>
 
                     <div className="shrink-0 text-right">
-                      <p className="text-sm font-medium text-slate-700">
-                        {doneCount} / {session._count.items}
-                      </p>
-                      <p className="text-xs text-slate-400">実施済み</p>
+                      {competitionRecord ? (
+                        <p className="text-sm font-medium text-slate-700">実績記録</p>
+                      ) : (
+                        <>
+                          <p className="text-sm font-medium text-slate-700">{doneCount} / {session._count.items}</p>
+                          <p className="text-xs text-slate-400">実施済み</p>
+                        </>
+                      )}
                     </div>
                   </Link>
                 </Card>

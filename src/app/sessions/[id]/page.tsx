@@ -21,6 +21,10 @@ import {
   type SessionStatus,
 } from "@/domain/session/constants";
 import { formatDate, relativeDays } from "@/lib/format";
+import { presentRunningSessionExecution } from "@/presentation/running/session-execution";
+import { presentSessionItemRow } from "@/presentation/running/session-item";
+import { isRunningV2UiEnabled } from "@/lib/feature-flags";
+import { presentCompetitionSession } from "@/presentation/running/competition";
 
 export default async function SessionDetailPage({
   params,
@@ -28,10 +32,54 @@ export default async function SessionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [session, exercises] = await Promise.all([findSession(id), listExercisesForPicker()]);
+  const session = await findSession(id);
   if (!session) notFound();
 
   const status = session.status as SessionStatus;
+  if (session.sessionKind === "COMPETITION") {
+    const record = presentCompetitionSession(session);
+    return (
+      <>
+        <PageHeader
+          title={session.title}
+          description={
+            <span className="flex flex-wrap items-center gap-1.5">
+              <Badge className={SESSION_STATUS_COLOR[status]}>{SESSION_STATUS_LABEL[status] ?? "記録済み"}</Badge>
+              <Badge>大会実績</Badge>
+              <span className="text-sm text-slate-600">{record.dateLabel}</span>
+              {session.competitionId && <Link href={`/competitions/${session.competitionId}`} className="text-xs text-indigo-600 hover:underline">大会予定を見る</Link>}
+            </span>
+          }
+          actions={
+            <form action={deleteSessionAction}>
+              <input type="hidden" name="id" value={session.id} />
+              <ConfirmSubmitButton size="md" message="この大会実績を削除します。負荷履歴からも取り除かれます。よろしいですか？">
+                大会実績を削除
+              </ConfirmSubmitButton>
+            </form>
+          }
+        />
+        <Card>
+          <CardHeader><h2 className="text-sm font-semibold text-slate-700">大会実績</h2></CardHeader>
+          <CardBody>
+            <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
+              <div><dt className="text-xs text-slate-500">実施日</dt><dd className="mt-1 text-sm text-slate-800">{record.dateLabel}</dd></div>
+              <div><dt className="text-xs text-slate-500">参加種別</dt><dd className="mt-1 break-words text-sm text-slate-800">{record.categoriesLabel}</dd></div>
+              <div><dt className="text-xs text-slate-500">記録状態</dt><dd className="mt-1 text-sm text-slate-800">{SESSION_STATUS_LABEL[status] ?? "状態を確認"}</dd></div>
+            </dl>
+            <p className="mt-4 text-xs leading-relaxed text-slate-500">大会実績は練習項目を持ちません。参加種別を訂正する場合は、この実績を削除して大会予定から再登録してください。</p>
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
+
+  const exercises = await listExercisesForPicker();
+  const runningV2UiEnabled = isRunningV2UiEnabled();
+  const executionByItemId = new Map(session.items.map((item) => [
+    item.id,
+    presentRunningSessionExecution({ sessionStatus: session.status, item }),
+  ]));
   const doneCount = session.items.filter((i) => i.done).length;
   const progress =
     session.items.length === 0 ? 0 : Math.round((doneCount / session.items.length) * 100);
@@ -139,8 +187,10 @@ export default async function SessionDetailPage({
                         <SessionItemRow
                           key={item.id}
                           sessionId={session.id}
-                          item={item}
+                          item={presentSessionItemRow(item)}
                           index={session.items.indexOf(item)}
+                          runningExecution={executionByItemId.get(item.id) ?? null}
+                          runningExecutionUiEnabled={runningV2UiEnabled}
                         />
                       ))}
                     </ul>

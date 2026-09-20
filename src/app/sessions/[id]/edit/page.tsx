@@ -13,6 +13,7 @@ export default async function EditSessionPage({
   const { id } = await params;
   const session = await findSession(id);
   if (!session) notFound();
+  if (session.sessionKind === "COMPETITION") notFound();
 
   const initial: SessionFormValues = {
     title: session.title,

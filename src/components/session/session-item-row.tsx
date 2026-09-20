@@ -5,13 +5,15 @@ import Link from "next/link";
 import { Badge, INPUT_CLASS, buttonClass, cn } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SessionExecutionPanel } from "@/components/running/session-execution-panel";
 import {
   deleteSessionItemAction,
   toggleSessionItemAction,
   updateSessionItemAction,
 } from "@/actions/session-actions";
 import { formatPrescription } from "@/domain/shared/prescription";
-import type { SessionItemDetail } from "@/infra/repositories/session-repository";
+import type { RunningSessionExecutionDto } from "@/presentation/running/session-execution";
+import type { SessionItemRowDto } from "@/presentation/running/session-item";
 
 const str = (v: number | null) => (v == null ? "" : String(v));
 
@@ -26,10 +28,14 @@ export function SessionItemRow({
   sessionId,
   item,
   index,
+  runningExecution = null,
+  runningExecutionUiEnabled = false,
 }: {
   sessionId: string;
-  item: SessionItemDetail;
+  item: SessionItemRowDto;
   index: number;
+  runningExecution?: RunningSessionExecutionDto | null;
+  runningExecutionUiEnabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(
@@ -56,6 +62,7 @@ export function SessionItemRow({
   });
 
   const input = cn(INPUT_CLASS, "h-9 py-0");
+  const useRunningExecutionUi = runningExecutionUiEnabled && runningExecution !== null;
 
   return (
     <li
@@ -65,7 +72,7 @@ export function SessionItemRow({
       )}
     >
       <div className="flex items-start gap-2.5">
-        <form action={toggleSessionItemAction} className="no-print">
+        {!useRunningExecutionUi && <form action={toggleSessionItemAction} className="no-print">
           <input type="hidden" name="sessionId" value={sessionId} />
           <input type="hidden" name="itemId" value={item.id} />
           <button
@@ -82,7 +89,7 @@ export function SessionItemRow({
           >
             ✓
           </button>
-        </form>
+        </form>}
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -129,13 +136,15 @@ export function SessionItemRow({
         </div>
 
         <div className="flex shrink-0 items-center gap-1 no-print">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className={cn(buttonClass("ghost", "sm"), "px-2")}
-          >
-            {open ? "閉じる" : "記録"}
-          </button>
+          {!useRunningExecutionUi && (
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              className={cn(buttonClass("ghost", "sm"), "px-2")}
+            >
+              {open ? "閉じる" : "記録"}
+            </button>
+          )}
           <form action={deleteSessionItemAction}>
             <input type="hidden" name="sessionId" value={sessionId} />
             <input type="hidden" name="itemId" value={item.id} />
@@ -150,7 +159,11 @@ export function SessionItemRow({
         </div>
       </div>
 
-      {open && (
+      {useRunningExecutionUi && runningExecution && (
+        <SessionExecutionPanel sessionId={sessionId} execution={runningExecution} />
+      )}
+
+      {!useRunningExecutionUi && open && (
         <form
           action={formAction}
           className="mt-2.5 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5"

@@ -13,12 +13,15 @@ import { loadEventSchema, type WeeklyHistoryInput } from "@/domain/running/types
 import { evaluateWeeklyContext } from "@/domain/running/weekly";
 import { getRuleSet } from "@/domain/running/rules/loader";
 import type { IsoDateTime } from "@/domain/running/types/primitives";
+import { actualRepLogStateV1Schema, runtimeCoachReviewIdentityOf } from "@/domain/running/persistence/repLog";
 import { addMenuItem } from "@/infra/repositories/menu-repository";
-import { listLoadHistory } from "@/infra/repositories/load-history-repository";
+import { listLoadHistory, LoadHistoryResolutionError } from "@/infra/repositories/load-history-repository";
 import { createRunningMenuItem } from "@/infra/repositories/running-item-repository";
 import { createSessionFromMenu } from "@/infra/repositories/session-repository";
 import { resetDb } from "../../helpers";
 import { makeMenuWithBlock, persistInputFor, planAcc, planStride } from "./fixtures";
+import { monitorRunningPrescription, type RepLogEntry } from "@/domain/running/monitoring";
+import { weeklyHistoryAsOf } from "@/actions/_running-load-history";
 
 const AS_OF = new Date("2026-09-20T07:00:00.000Z");
 const hoursBefore = (h: number, ms = 0) => new Date(AS_OF.getTime() - h * 3600 * 1000 - ms);
@@ -48,6 +51,8 @@ const v2Item = (o: Partial<Prisma.SessionItemCreateWithoutTrainingSessionInput> 
 const notSupplied = { status: "NOT_EVALUATED", reasons: ["PLANNING_EVALUATION_NOT_SUPPLIED"] };
 const competitionSnapshot = (competitionLoadCategory?: "RACE" | "RELAY") =>
   JSON.stringify({ schemaVersion: 1, plannedDate: null, plannedAt: null, aggregation: notSupplied, weeklyContext: notSupplied, findings: [], ...(competitionLoadCategory ? { competitionLoadCategory } : {}) });
+const competitionPluralSnapshot = (competitionLoadCategories: unknown, extra: Record<string, unknown> = {}) =>
+  JSON.stringify({ schemaVersion: 1, plannedDate: null, plannedAt: null, aggregation: notSupplied, weeklyContext: notSupplied, findings: [], competitionLoadCategories, ...extra });
 
 async function competitionSession(date: Date, planningSnapshotJson: string | null, status = "COMPLETED") {
   return prisma.trainingSession.create({ data: { title: "大会", date, status, sessionKind: "COMPETITION", planningSnapshotJson } });
@@ -181,6 +186,36 @@ describe("load history: 実施状況・大会・時間窓", () => {
     expect(events.map((e) => e.completion)).toEqual(["PLANNED_NOT_CONFIRMED", "PLANNED_NOT_CONFIRMED", "PARTIAL"]);
   });
 
+  it("RUNNING_V2 completion uses snapshot + formal logs: planned completion DONE, early END_SESSION PARTIAL", async () => {
+    const p = planStride();
+    const logs: RepLogEntry[] = [];
+    for (let repIndex = 1; repIndex <= p.sets.value * p.repsPerSet.value; repIndex += 1) {
+      logs.push(monitorRunningPrescription({ prescription: p, priorLogs: logs }, {
+        setIndex: 1,
+        repIndex,
+        timeS: 13,
+        timing: "HAND",
+        ...(repIndex === 1 ? { coachJudgment: { effortBecameMaximal: true } } : {}),
+      }).logEntry);
+    }
+    expect(logs[0].action).toBe("COACH_REVIEW");
+    expect(logs.at(-1)).toMatchObject({ action: "END_SESSION_QUALITY", reasons: expect.arrayContaining(["PLANNED_REPS_COMPLETE"]) });
+    await session(hoursBefore(24), [v2Item({
+      runningMethod: p.method, sessionTemplateId: p.templateId, plannedPrescriptionJson: JSON.stringify(p),
+      done: false, actualRepLogJson: JSON.stringify(actualRepLogStateV1Schema.parse({
+        schemaVersion: 1,
+        reps: logs,
+        coachReviewAcknowledgements: [{ review: runtimeCoachReviewIdentityOf(logs[0]), acknowledgedAt: "2026-09-20T00:00:00.000Z" }],
+      })), stopReason: "END_SESSION_QUALITY",
+    })], { status: "IN_PROGRESS" });
+    await session(hoursBefore(23), [v2Item({
+      runningMethod: p.method, sessionTemplateId: p.templateId, plannedPrescriptionJson: JSON.stringify(p),
+      done: false, actualRepLogJson: JSON.stringify([{ ...logs[0], action: "END_SESSION_QUALITY", reasons: ["CONSECUTIVE_TIMING_FAILURES"] }]), stopReason: "END_SESSION_QUALITY",
+    })], { status: "IN_PROGRESS" });
+    const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    expect(events.map((event) => event.completion)).toEqual(["DONE", "PARTIAL"]);
+  });
+
   it("asOf 以降のセッション（未来の予定）は混ぜない。asOf ちょうども除外（窓は [asOf - windowHours, asOf)）", async () => {
     await session(new Date(AS_OF.getTime() - 1), [v2Item()], { status: "PLANNED" });
     await session(AS_OF, [v2Item()], { status: "PLANNED" });
@@ -229,6 +264,141 @@ describe("load history: 実施状況・大会・時間窓", () => {
       expect(e.magnitude.contacts).toBeUndefined();
       expect(e.magnitude.attempts).toBeUndefined();
     }
+  });
+
+  it("plural RACE/RELAY/mixedをcategoryごとに投影し、mixedは同じsessionKeyでcanonical順", async () => {
+    const race = await competitionSession(hoursBefore(30), competitionPluralSnapshot(["RACE"]));
+    const relay = await competitionSession(hoursBefore(28), competitionPluralSnapshot(["RELAY"]));
+    const mixed = await competitionSession(hoursBefore(24), competitionPluralSnapshot(["RACE", "RELAY"]));
+    const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    expect(events.map((event) => [event.sessionKey, event.category])).toEqual([
+      [race.id, "RACE"],
+      [relay.id, "RELAY"],
+      [mixed.id, "RACE"],
+      [mixed.id, "RELAY"],
+    ]);
+    const mixedEvents = events.filter((event) => event.sessionKey === mixed.id);
+    expect(new Set(mixedEvents.map((event) => event.sessionKey)).size).toBe(1);
+    expect(mixedEvents.every((event) => event.source === "COMPETITION_RECORD" && event.intensityTag === "HIGH" && event.completion === "DONE")).toBe(true);
+  });
+
+  it("mixedはR7でHIGH Session 1件、Finding重複なし", async () => {
+    await competitionSession(hoursBefore(24), competitionPluralSnapshot(["RACE", "RELAY"]));
+    const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    const result = evaluateWeeklyContext(
+      { events, coverage72h: "COMPLETE", coverage7d: "PARTIAL", coverage28d: "PARTIAL", dailyActivity7d: [] },
+      { ruleSet: getRuleSet("rs-2026.09.0")!, evaluatedAt: AS_OF.toISOString() as IsoDateTime, method: "MAX_VELOCITY", loadClass: "HIGH_NEURAL", ageBand: "ADULT", hasExistingReadinessDecision: false },
+    );
+    expect(result.highSessions7d).toBe(1);
+    expect(result.findings.filter((finding) => finding.code === "WEEKLY_HIGH_WITHIN_48H")).toHaveLength(2);
+    expect(new Set(result.findings.filter((finding) => finding.code === "WEEKLY_HIGH_WITHIN_48H").map((finding) => finding.severity)))
+      .toEqual(new Set(["BLOCK_AUTOGEN", "REQUIRE_COACH_REVIEW"]));
+  });
+
+  it("distinct sessionKeyでmixed当日=1、別日・別大会Sessionは各1として7日集計する", async () => {
+    const one = await competitionSession(hoursBefore(24), competitionPluralSnapshot(["RACE", "RELAY"]));
+    await competitionSession(hoursBefore(48), competitionPluralSnapshot(["RACE"]));
+    await competitionSession(hoursBefore(23), competitionPluralSnapshot(["RELAY"]));
+    const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 168 });
+    const result = evaluateWeeklyContext(
+      { events, coverage72h: "COMPLETE", coverage7d: "PARTIAL", coverage28d: "PARTIAL", dailyActivity7d: [] },
+      { ruleSet: getRuleSet("rs-2026.09.0")!, evaluatedAt: AS_OF.toISOString() as IsoDateTime, method: "MAX_VELOCITY", loadClass: "HIGH_NEURAL", ageBand: "ADULT", hasExistingReadinessDecision: false },
+    );
+    expect(events.filter((event) => event.sessionKey === one.id)).toHaveLength(2);
+    expect(result.highSessions7d).toBe(3);
+  });
+
+  it("self exclusionはmixedの同じsessionKey 2 eventを両方除外する", async () => {
+    const mixed = await competitionSession(hoursBefore(24), competitionPluralSnapshot(["RACE", "RELAY"]));
+    const history = await weeklyHistoryAsOf(AS_OF, mixed.id);
+    expect(history.events.filter((event) => event.sessionKey === mixed.id)).toEqual([]);
+  });
+
+  it.each([
+    ["RACE", ["RACE"]],
+    ["RELAY", ["RELAY"]],
+    ["mixed", ["RACE", "RELAY"]],
+  ] as const)("%s Competition eventは既存48h/72h境界を変更しない", async (_label, categories) => {
+    const evaluateAt = async (hours: number) => {
+      await resetDb();
+      await competitionSession(hoursBefore(hours), competitionPluralSnapshot([...categories]));
+      const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 168 });
+      return evaluateWeeklyContext(
+        { events, coverage72h: "COMPLETE", coverage7d: "PARTIAL", coverage28d: "PARTIAL", dailyActivity7d: [] },
+        { ruleSet: getRuleSet("rs-2026.09.0")!, evaluatedAt: AS_OF.toISOString() as IsoDateTime, method: "MAX_VELOCITY", loadClass: "HIGH_NEURAL", ageBand: "ADULT", hasExistingReadinessDecision: false },
+      ).findings.map((finding) => finding.code);
+    };
+    for (const hours of [24, 48]) {
+      const codes = await evaluateAt(hours);
+      expect(codes).toContain("WEEKLY_HIGH_WITHIN_48H");
+      expect(codes).not.toContain("READINESS_CHECK_REQUIRED");
+    }
+    for (const hours of [60, 72]) {
+      const codes = await evaluateAt(hours);
+      expect(codes).not.toContain("WEEKLY_HIGH_WITHIN_48H");
+      expect(codes).toContain("READINESS_CHECK_REQUIRED");
+    }
+    const after = await evaluateAt(73);
+    expect(after).not.toContain("WEEKLY_HIGH_WITHIN_48H");
+    expect(after).not.toContain("READINESS_CHECK_REQUIRED");
+  });
+
+  it("mixed Competition eventはLOW methodへ48h lockを追加しない", async () => {
+    await competitionSession(hoursBefore(24), competitionPluralSnapshot(["RACE", "RELAY"]));
+    const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    const result = evaluateWeeklyContext(
+      { events, coverage72h: "COMPLETE", coverage7d: "PARTIAL", coverage28d: "PARTIAL", dailyActivity7d: [] },
+      { ruleSet: getRuleSet("rs-2026.09.0")!, evaluatedAt: AS_OF.toISOString() as IsoDateTime, method: "STRIDE", loadClass: "LOW", ageBand: "ADULT", hasExistingReadinessDecision: false },
+    );
+    expect(result.findings.map((finding) => finding.code)).not.toContain("WEEKLY_HIGH_WITHIN_48H");
+  });
+
+  it("Competition Sessionにhistorical SessionItemがあってもsession-level eventだけを生成する", async () => {
+    const row = await prisma.trainingSession.create({
+      data: {
+        title: "historical mixed",
+        date: hoursBefore(24),
+        status: "COMPLETED",
+        sessionKind: "COMPETITION",
+        planningSnapshotJson: competitionPluralSnapshot(["RACE", "RELAY"]),
+        items: { create: v2Item() },
+      },
+    });
+    const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    expect(events).toHaveLength(2);
+    expect(events.every((event) => event.sessionKey === row.id && event.source === "COMPETITION_RECORD")).toBe(true);
+  });
+
+  it("Competition calendar削除後もSession snapshotからmixed loadを維持する", async () => {
+    const calendar = await prisma.competition.create({ data: { name: "calendar", date: hoursBefore(24) } });
+    const row = await prisma.trainingSession.create({ data: {
+      title: "calendar snapshot", date: hoursBefore(24), status: "COMPLETED", sessionKind: "COMPETITION",
+      competitionId: calendar.id, planningSnapshotJson: competitionPluralSnapshot(["RACE", "RELAY"]),
+    } });
+    await prisma.competition.delete({ where: { id: calendar.id } });
+    const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    expect((await prisma.trainingSession.findUniqueOrThrow({ where: { id: row.id } })).competitionId).toBeNull();
+    expect(events.map((event) => [event.sessionKey, event.category])).toEqual([[row.id, "RACE"], [row.id, "RELAY"]]);
+  });
+
+  it.each([
+    competitionPluralSnapshot([]),
+    competitionPluralSnapshot(["RELAY", "RACE"]),
+    competitionPluralSnapshot(["RACE", "RACE"]),
+    competitionPluralSnapshot(["WORLD"]),
+    competitionPluralSnapshot(["RACE"], { competitionLoadCategory: "RACE" }),
+    JSON.stringify({ ...JSON.parse(competitionPluralSnapshot(["RACE"])), schemaVersion: 2 }),
+  ])("detectableな新plural corruptionは履歴全体をtyped failureにする", async (snapshot) => {
+    await competitionSession(hoursBefore(24), snapshot);
+    await expect(listLoadHistory({ asOf: AS_OF, windowHours: 72 })).rejects.toBeInstanceOf(LoadHistoryResolutionError);
+  });
+
+  it("old completely corrupt snapshotはhistorical RACE fallbackを維持し、calendar rowだけではeventを作らない", async () => {
+    const old = await competitionSession(hoursBefore(24), "{broken");
+    await prisma.competition.create({ data: { name: "calendar only", date: hoursBefore(20) } });
+    const { events } = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ sessionKey: old.id, category: "RACE", source: "COMPETITION_RECORD" });
   });
 
   it.each([["RACE"], ["RELAY"], ["fallback"]] as const)("大会（%s）は R7 の 48h ガードで HIGH イベントとして機能する", async (kind) => {

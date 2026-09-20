@@ -124,6 +124,25 @@ describe("R10-B2: session planning evaluation", () => {
     expect(snapshot.weeklyContext.items[0]!.result.evaluatedAt).toBe(`${SESSION_DATE}T16:00:00+09:00`);
   });
 
+  it("新plural Competition snapshotが壊れていればActionは安全に停止しSessionを追加しない", async () => {
+    const { menu, block } = await makeMenuWithBlock();
+    await saveMenuRunningContext(menu.id, runningContextJson());
+    await createRunningMenuItem(block.id, persistInputFor(planAcc()));
+    await prisma.trainingSession.create({
+      data: {
+        title: "壊れた大会実績",
+        date: new Date("2026-09-19"),
+        status: "COMPLETED",
+        sessionKind: "COMPETITION",
+        planningSnapshotJson: JSON.stringify({ schemaVersion: 1, competitionLoadCategories: ["RELAY", "RACE"] }),
+      },
+    });
+    const before = await prisma.trainingSession.count();
+    const result = await callCreateSessionFromMenuAction(menu.id);
+    expect(result).toEqual({ ok: false, message: "大会実績の履歴を確認できないため、セッションを作成できません。大会実績を確認してください。" });
+    expect(await prisma.trainingSession.count()).toBe(before);
+  });
+
   it("RUNNING_V2 の版が混在する場合、NOT_EVALUATED / MIXED_RULESET_VERSIONS で保存し、Session 作成自体は成功する。active loader は呼ばれない", async () => {
     const { menu, block } = await makeMenuWithBlock();
     await saveMenuRunningContext(menu.id, runningContextJson());
@@ -340,7 +359,7 @@ describe("R10-B2: session planning evaluation", () => {
     const decision = await sessionPlanningService.buildSessionPlanningEvaluation({ menuTemplateId: menu.id, date: SESSION_DATE });
     if (decision.kind !== "EVALUATED") throw new Error("unreachable");
     const tampered = { ...decision.evaluation, sourceMenuFingerprint: `${decision.evaluation.sourceMenuFingerprint}-tampered` };
-    vi.spyOn(sessionPlanningService, "buildSessionPlanningEvaluation").mockResolvedValueOnce({ kind: "EVALUATED", evaluation: tampered });
+    vi.spyOn(sessionPlanningService, "buildSessionPlanningEvaluation").mockResolvedValueOnce({ kind: "EVALUATED", evaluation: tampered, confirmationRequired: null });
 
     const result = await callCreateSessionFromMenuAction(menu.id);
     expect(result.ok).toBe(false);

@@ -3,6 +3,7 @@ import { NewSessionFromMenu } from "@/components/session/new-session-from-menu";
 import { SessionForm } from "@/components/session/session-form";
 import { createSessionAction } from "@/actions/session-actions";
 import { listMenusForPicker } from "@/infra/repositories/menu-repository";
+import { isRunningV2UiEnabled } from "@/lib/feature-flags";
 import { todayInputValue } from "@/lib/format";
 
 /** DB を直接読むため、ビルド時に固定せず毎回サーバーで描画する。 */
@@ -22,7 +23,7 @@ export default async function NewSessionPage() {
       />
 
       <div className="space-y-6">
-        <NewSessionFromMenu menus={menus} />
+        <NewSessionFromMenu menus={menus} runningV2Enabled={isRunningV2UiEnabled()} />
 
         <div>
           <h2 className="mb-2 text-sm font-semibold text-slate-500">

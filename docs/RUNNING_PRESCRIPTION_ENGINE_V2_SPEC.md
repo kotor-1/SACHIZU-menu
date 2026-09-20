@@ -1758,6 +1758,8 @@ DEV の ACC を3項目並べる従来ケース（全 item が同じ cap）は `�
     code 全体）を付ける。確認済みでも Finding は消さない（item は `prescription.findings`、session は `sessionFindings`）。
     `BLOCK` は当然すべての actor で BLOCKED。session の `BLOCK_AUTOGEN` は AI / SYSTEM のみ BLOCKED とし、
     COACH は `REQUIRE_COACH_REVIEW` を保ったまま手動で継続できる（hard BLOCK と区別する）。
+    **[R11-B1] セッション作成時**（B2 の aggregation 由来の `REQUIRE_CONFIRMATION`）も同じ「code 単位の明示確認」で
+    作成できるようにした（2段階確認 + confirmation challenge。詳細は §22 の R11 行）。`BLOCK` は確認では解除できない。
 
 13. **Finding の scope**: 項目の出力 plausibility は `ITEM`（`prescription.findings`）、
     §11 の集計由来は `SESSION`（`PlanResult.sessionFindings`）。混ぜない。
@@ -1811,17 +1813,21 @@ export type LoadEvent = {
 | v2 SessionItem（done / 実施ログあり） | MethodMeta.weeklyLoadCategory（[R9] = `SessionItem.loadCategory`。作成時に処方の `loadSnapshot.weeklyLoadCategory` をコピー） | HIGH_* → HIGH、MODERATE → MODERATE、LOW → LOW（[R9] `plannedPrescriptionJson.loadSnapshot.loadClass` から。category から推定しない） |
 | legacy SessionItem（Exercise.category=SPRINT/HURDLE/JUMP/STRENGTH） | RUNNING_HIGH_INTENSITY / HURDLES / PLYOMETRIC / STRENGTH | **UNKNOWN**（強度が記録されていない） |
 | Exercise 削除済みの legacy 項目 | `SessionItem.loadCategory` スナップショット、無ければ OTHER | UNKNOWN |
-| 大会セッション（`sessionKind="COMPETITION"`） | RACE / RELAY（[R9] `planningSnapshotJson.competitionLoadCategory`。無ければ RACE = generic fallback） | HIGH |
+| 大会セッション（`sessionKind="COMPETITION"`） | RACE / RELAY（[R11-B6] 新規は `planningSnapshotJson.competitionLoadCategories` をcategoryごとに投影。旧 `competitionLoadCategory` も読取可。無ければ RACE = generic fallback） | HIGH |
 | コーチ手入力（学校体育・他クラブ等） | 選択式 | 選択式 |
 | 過去日付で `status=PLANNED` のまま | 元の category | 元の tag、completion=PLANNED_NOT_CONFIRMED（**実施したものとして扱う**） |
 
 - **[R9 errata] v2 の旧 snapshot / 壊れた snapshot。** `plannedPrescriptionJson` が null・壊れている・`loadSnapshot` の無い
   旧 snapshot のときは、intensityTag = UNKNOWN、category = `SessionItem.loadCategory ?? OTHER`（安全情報を捏造しない）。
-- **[R9 errata] 大会の種別。** `competitionLoadCategory: "RACE" | "RELAY"` は optional で、R11 の大会セッション作成時に設定する
-  （明示の RELAY は RACE fallback を上書きする）。種別が無い（既存・未指定）ときの RACE は **generic competition running load
+- **[R9/R11-B6 errata] 大会の旧singular種別。** `competitionLoadCategory: "RACE" | "RELAY"` は旧データのread compatibility専用であり、
+  新規writerは設定しない。新規大会実績writerのauthorityはcanonicalな`competitionLoadCategories`だけである。旧singularで明示された
+  RELAYはRACE fallbackを上書きする。種別が無い（既存・未指定）ときの RACE は **generic competition running load
   fallback** であり、「実際に個人種目だった」と推定した意味ではない。RACE / RELAY は週次 safety 上どちらも HIGH で同じ 48h guard の
   対象なので、UNKNOWN→OTHER に落として guard を逃すことを避ける。種別不明でも intensityTag = HIGH。距離・露出は推測せず
   unknown 区間（`lower = upper = null`、0 にしない。リレー区間距離もレース距離も作らない）。
+- **[R11-B6] mixed大会日の投影。** 新規大会実績は `competitionLoadCategories` を `['RACE']` / `['RELAY']` /
+  `['RACE','RELAY']` のcanonical集合として保存する。mixedは同じTrainingSessionからRACE→RELAYの2 LoadEventを生成するが、両eventの
+  `sessionKey`は同じSession idなので`highSessions7d`は1件。Competition calendar row自体はLoadEventを生成しない。
 
 ### 12.3 時間窓（Method 別の固定時間を持たない）
 
@@ -1974,7 +1980,7 @@ export type AiSafeSubjectContext = {
 };
 ```
 
-- 保存: v2 で永続化するのは `readinessActions`（enum 配列）と `safetyOutcome`（enum）だけ。**部位・red flag・尺度値は保存しない**（その場の判定にだけ使う）。傷害履歴として残すかは [OPEN-15]。
+- 保存: 計画処方内では `readinessApplied`（enum 配列）と `safetyOutcome`（enum）を保持する。**[R11-B2 / Option B] 実施時の SessionItem は `readinessActionsJson` に下記 v1 item execution payload、別列 `safetyOutcome` に R5 outcome を保存する。** これは R5 Decision 全体の snapshot ではない。**部位・red flag・尺度値は保存しない**（その場の判定にだけ使う）。傷害履歴として残すかは [OPEN-15]。
 - テスト: `AiSafeSubjectContext` を JSON 化した文字列に `pain` `region` `redFlag` `soreness` `fatigue` `sleep` `birth` `sex` `maturity` のキーが含まれないこと（§20 T-AI-06）。
 - **[R8 errata]「部位・red flag・尺度値は保存しない」の意味の明確化。** 保存を禁じるのは **選手本人の health observation**
   — 報告された `BodyRegion`、選択された `RedFlag`、pain / soreness / fatigue / sleep の値、reporter / reportedAt、
@@ -2055,7 +2061,7 @@ export type ReadinessDecision = {
    `readinessApplied` に `CANCEL_HIGH_INTENSITY` は入らず、`REQUIRE_COACH_REVIEW` と
    `safetyOutcome = COACH_REVIEW` が残る（健康上の事象そのものは override で消えない）。
    readiness を評価したのに適用結果が何も無い場合は `["NO_CHANGE"]`、`readiness: null`（未評価）の場合は `[]`。
-   `RunningPrescription.safetyOutcome`（enum）を追加し、保存してよい readiness 情報はこの2つだけとする。
+   `RunningPrescription.safetyOutcome`（enum）を追加し、計画処方内の readiness 情報はこの2つとする。実施時の SessionItem は下記 §13.7 の versioned payload を使用する（計画 snapshot は変更しない）。
 
 10. **position の意味**: `USE_LOWER_BOUND` は rest 以外のエンジン配置値に `LOWER_BOUND` の位置上限を与える
     （連立する回数・総量での意味は 12 を参照）。
@@ -2098,6 +2104,117 @@ export type ReadinessDecision = {
     `NO_CHANGE` および `USE_LOWER_BOUND` / `INCREASE_REST` だけの日は `true`。
 
 ---
+
+### 13.7 [R11-B2] Versioned item execution persistence（Option B）
+
+`evaluateSessionReadinessAction({ sessionId, readinessReport })` は Coach 用の server Action。入力は strict。
+method / loadClass / ageBand / RuleSet identity / actions / gate は client から受け付けない。
+raw ReadinessReport は一時的な入力であり、DB・logs・ActionResult・confirmation challenge へ保存／混入しない。
+
+```ts
+type PersistedReadinessExecutionStateV1 = {
+  schemaVersion: 1;
+  actions: ReadinessActionCode[];
+  executionGate: "YES" | "NO" | "REQUIRES_COACH_DECISION";
+  swapRecommended: boolean;
+};
+```
+
+- 新規 writer はこの strict v1 object を `SessionItem.readinessActionsJson` へ JSON 保存し、`safetyOutcome` は既存別列へ保存する。Prisma schema / migration は変更しない。既存 UTF-8 JSON 上限検査（prescription 用 32KB ceiling）と正式 health-key guard を適用する。
+- 復元保証は **その item の execution gate / 適用される SWAP / 下限・休息延長 advisory / coach review / safetyOutcome**。`highIntensityAllowedToday`、`painCheckRequired`、triggers、transientFindings、stopPlanning の生 flag、evaluatedFor、full Decision、元回答は保存しない。hard STOP の効果は gate=NO に保持する。
+- `NO_CHANGE` は「この item について追加 Readiness action なし」であり、健康上問題なし／全高強度許可／痛み確認済みを意味しない。YES は「Readiness による追加の実施停止なし」。NO は「この処方をそのまま実施しない」。確認要求は実施前のコーチ判断が必要であり、B2 は承認 UI / override を追加しない。
+- R5 の raw Decision と実際の item 適用を分ける。planning と execution は `readiness/application.ts` の適用ロジックを共有する。CANCEL は HIGH に適用、LOW/MODERATE では非適用。SWAP の KEEP_CURRENT は `resolveSwapTargets()` に従う。STRIDE と TEMPO_EXTENSIVE は同じ LOW・同じ SWAP action でも gate が異なるため、enum 配列だけでは不十分。数値 policy を application に複製しない。
+- reload reader は保存された v1 payload + safetyOutcome だけを読み、RuleSet lookup をしない。null は NOT_EVALUATED、旧 enum array は LEGACY_UNVERSIONED（再評価が必要、gate を推測しない）、不正 JSON / 不正 schema / 未知 version は UNREADABLE。読むだけで自動移行しない。旧 array でも rep 記録後の再評価禁止は維持し、コーチ確認用の安全な表示を可能にする。
+- Session snapshot のみを使用する。method は plannedPrescriptionJson.method、loadClass は loadSnapshot.loadClass、ageBand は plannedProvenanceJson.inputsDigest.ageBand。UNKNOWN は変換しない。旧 snapshot の loadClass 欠損は current MethodMeta で補完せず評価不可とする。壊れた item が1件でもあれば全 write 0。
+- **Readiness RuleSet selection uses `getActiveRuleSet(TrainingSession.date)` with its existing DRAFT fallback semantics.** ACTIVE-only に変更しない。DRAFT は既存 RULESET_DRAFT informational view で示す。処方の保存版への fallback と loader の正式 DRAFT fallback は別であり、前者は禁止。today / Menu plannedDate は選択に使用しない。
+- 窓は Session planning snapshot の明示 `plannedAt` がある場合のみ、現在の load-history + 既存 `evaluateWeeklyContext()` で再評価する。作成時 weekly result は流用しない。時刻なしは NOT_EVALUATED、保存時刻と Session date の不整合は評価不可。現在時刻・正午・深夜を補わない。既存履歴 adapter の PARTIAL coverage を維持し、sessionKey で評価対象自身を除外する。RACE / RELAY mapping を複製しない。
+- 1 report を全 RUNNING_V2 item へ個別評価する。変更する列は readinessActionsJson / safetyOutcome のみ。全結果を1 transaction で保存し、transaction 内で Session status/date・v2 id集合・kind・rep開始状態を再確認する。並行 submit は最後に完全 commit した評価が勝つ。部分更新は禁止。
+- **planned snapshot は不変**。CANCEL / SWAP でも自動再計画・方法変更・代替 item 生成をしない。USE_LOWER_BOUND / INCREASE_REST は advisory であり planned dose/rest は変更しない。実休息は将来B3のRepObservationで扱う。
+- 実施前は最新の derived state が以前の payload と safetyOutcome を置換する（append しない）。rep log の null / [] は未開始、正式な entry が1件以上なら再評価禁止。不正ログは fail closed。COMPLETED / CANCELLED は更新しない。LEGACY item は全列不変。
+
+### 13.8 [R11-B3] Rep monitor persistence
+
+- `recordRepAction` の入力は `sessionItemId` と strict `RepObservation` だけ。処方は `plannedPrescriptionJson`、過去ログは `actualRepLogJson` から読み、`monitorRunningPrescription()` を呼ぶ。RuleSet loader、現行 MethodMeta、planning、Readiness 再評価には到達しない。
+- 最初の rep だけ §13.7 の厳格な v1 payload + Readiness safety pair を gate として使う。開始後は v1 payload、累積 `safetyOutcome`、RepLog、terminal summary を個別に検証する（runtime safety が初期 Readiness outcome より強くなり得るため、開始前 pair へ偽装して戻さない）。
+- `actualRepLogJson` の実施 rep は `MonitorDecision.logEntry` の append-only 配列で、UTF-8 64KB 以下。同一 `(stopPolicyId,setIndex,repIndex)` の置換・編集・削除はしない。R11-B4B1 以降の物理形式は §13.9 の versioned envelope とする。raw `athleteReport`、痛み、部位、red flag は保存しない。`actualHighSpeedExposureJson` は monitor が返した cumulative interval をそのまま最新 snapshot として置換する。
+- `SessionItem.stopReason` は列名上の naming debt を持つが、意味は **terminal MonitorAction summary**。新 writer は `END_SESSION_QUALITY` / `STOP_SAFETY` / null だけを保存し、詳細原因は各 `RepLogEntry.reasons[]` に全件残す。`CONTINUE` / `EXTEND_REST` / `END_SET` / `COACH_REVIEW` は null。summary とログの矛盾、未知の historical 値は fail closed。
+- `END_SET` は set terminal であり次 set は可能。`END_SESSION_QUALITY` と `STOP_SAFETY` は item terminal。`COACH_REVIEW` は item terminal ではないが、§13.9 の明示 acknowledgement まで pause し、reload 後も log と acknowledgement から fail closed に復元する。
+- `safetyOutcome` は実施前には最新 Readiness evaluation の outcome。最初の rep 以降は Readiness 採用値と全 MonitorDecision のうち最も強い outcome を `NONE < COACH_REVIEW < STOP < MEDICAL_EVALUATION_RECOMMENDED` で保持する monotonic lifecycle summary であり、現在の健康状態を表さない。legacy `STOP` は新規生成せず、recordRep は fail closed。
+- 読取り時の raw `actualRepLogJson`（最初の rep は加えて `readinessActionsJson` / `safetyOutcome`）を content guard に使い、4 execution 列を1 transactionで更新する。guard miss は全状態を1回だけ読み直し、再度競合すれば stale とする。最初の成功時だけ Session を `PLANNED -> IN_PROGRESS` にし、`done` や legacy actual 列、planned snapshot、Readiness payload、Session の COMPLETED は変更しない。
+- `END_SESSION_QUALITY` は正常な予定量完遂にも使われる。load history の DONE は、正常な RUNNING_V2 snapshot + 正式ログ + 最終 `END_SESSION_QUALITY` + `PLANNED_REPS_COMPLETE` / `ATTEMPTS_COMPLETE` + 予定数到達が揃う場合だけ導出する。品質 PASS の意味ではない。ログの無い historical summary、早期終了、`STOP_SAFETY` は PARTIAL。
+- B2 safety は feature flag 非依存。Readiness UI / rep logger / monitor persistence / Competition CRUD は今回追加しない。B1/B1.1 confirmation contract は独立のまま。
+
+### 13.9 [R11-B4B1] Runtime COACH_REVIEW acknowledgement
+
+- `actualRepLogJson` は次の strict versioned execution-log envelope を保存する。旧 `RepLogEntry[]` は backward-compatible reader で読み続けるが、read だけでは変換しない。最初の rep、旧配列への次 rep、または旧配列の review acknowledgement が成功した時点から、新 writer は常に v1 を書く。unknown version・壊れた配列/envelope は空配列へ置換せず fail closed。
+
+```ts
+type RuntimeCoachReviewIdentity = {
+  stopPolicyId: StopPolicyId;
+  setIndex: number;
+  repIndex: number;
+};
+
+type RuntimeCoachReviewAcknowledgement = {
+  review: RuntimeCoachReviewIdentity;
+  acknowledgedAt: IsoDateTime; // server clock
+};
+
+type ActualRepLogStateV1 = {
+  schemaVersion: 1;
+  reps: RepLogEntry[];
+  coachReviewAcknowledgements: RuntimeCoachReviewAcknowledgement[];
+};
+```
+
+- acknowledgement は owner の `IN_PROGRESS` / `RUNNING_V2` item に対する明示 Coach action で、現在の最新 unresolved `COACH_REVIEW` entry と `(stopPolicyId,setIndex,repIndex)` が完全一致するときだけ append する。random token・confirmation challenge・client timestamp・`acknowledgedBy` は保存しない。同じ review の再送は audit record を増やさず `ALREADY_ACKNOWLEDGED`。古い identity、terminal state、review 不在、過去 review 未確認のまま後続 rep がある不整合状態は fail closed。
+- ack は元の `RepLogEntry` を変更せず、synthetic rep も作らない。後続 rep 後も acknowledgement を保持する。新しい `COACH_REVIEW` は新しい identity の ack を必要とし、古い ack を流用しない。R8 monitor と load-history adapter へ渡すのは envelope の `reps` だけで、ack metadata は rep 数・露出・DONE/PARTIAL 判定へ影響しない。
+- ack の意味は「この runtime review を確認し、次 rep 入力を再開可能にする」だけであり、安全問題の解消・医学的安全・quality 成功を意味しない。`safetyOutcome`（monotonic lifecycle summary）、terminal summary の `stopReason`、Readiness state、planned snapshot は一切変更しない。
+- acknowledgement を含む envelope 全体に health-key guard と UTF-8 64KB 上限を適用する。保存可能な ack metadata は identity 3 field と server-generated `acknowledgedAt` だけ。raw health information / reason text / free text は保存しない。
+- ack write は raw `actualRepLogJson`、Session status、prescription kind、planned prescription snapshot、`safetyOutcome`、`stopReason` の CAS guard を使い、`actualRepLogJson` だけを atomic に更新する。guard miss は全状態を最大1回読み直し、既に同じ ack があれば idempotent success、review が変われば stale、terminal なら拒否する。
+
+### 13.10 [R11-B4B2] Session execution presentation DTO
+
+- `/sessions/[id]` の server page は既存の owner-scoped Session + SessionItems 読取り結果だけから、RUNNING_V2 itemごとにread-only execution DTOを構築する。Menu / Competition repository、RuleSet loader、Readiness再評価、Monitor再実行、DB writeを追加しない。LEGACY itemは既存row表示のまま、mixed SessionではRUNNING_V2 itemだけにDTOを付ける。
+- DTOのauthorityは保存済み `plannedPrescriptionJson`、B2 Readiness reader、B3 started-execution reader、B4B1 execution-log envelope reader、`actualHighSpeedExposureJson`、累積 `safetyOutcome`。Client Componentへraw `plannedPrescriptionJson` / `plannedProvenanceJson` / `actualRepLogJson` / `readinessActionsJson`を渡さない。planned prescriptionはsnapshotをparseして既存R10 presenterへ渡し、exact RuleSetが利用できない場合も処方表示とexecution stateは分離して継続する。
+- execution machine stateは `NOT_STARTED` / `READY_FOR_NEXT_REP` / `END_SET` / `COACH_REVIEW_ACK_REQUIRED` / `TERMINAL` / `UNREADABLE`。`END_SET`はitem terminalではなく次setへ進める状態。terminalは`END_SESSION_QUALITY`と`STOP_SAFETY`を日本語messageで区別し、raw enumを表示しない。壊れたsnapshot/log、unknown envelope、summary/log矛盾、未ack review後の後続repはitem単位でfail closedとし、Session page全体を失敗させない。
+- pending runtime reviewは最新のunresolved `COACH_REVIEW`だけを、内部action payload用の `(stopPolicyId,setIndex,repIndex)` と安全な日本語messageへ射影する。ack済みreviewはpendingにせず、2回目のreviewには別identityを返す。capabilityはUX用であり、server Actionの認可・validationを置き換えない。
+- capabilityは既存reader stateからのみ導出する。`canSubmitReadiness`はactive・snapshot/log readable・未開始、`canRecordRep`はfirst-rep gate=YESまたはstarted readerが次repを許す状態、`canAcknowledgeCoachReview`はIN_PROGRESSかつ最新unresolved reviewの場合だけtrue。COMPLETED / CANCELLED、blocked/coach-decision readiness、terminal、review待ち、unreadableでは該当操作をfalseにする。
+- latest monitorは保存済み最新RepLogEntryのaction / quality / reasons / timing / time / actual restを既存label registryで表示する。reasonは全件・domain順を維持し、primary reasonを作らない。`nextRepRestS`はRepLogEntryに保存されないtransient Decision値なので、reload DTOではnull（利用不可）とし推測しない。
+- progressは保存済みrep数とsnapshotの予定数（R8と共通helper）を別々に示す。予定量完遂とquality PASSを混同しない。exposureは正式QuantityInterval schemaでparseし、range / unit / source / confidenceを表示する。`safetyOutcome`は現在の健康状態ではなくexecution lifecycle中の最強outcomeであり、NONEも「安全」と断定しない。
+- DTOはplain JSON-safe dataのみ。raw health observation、Zod error、invalid JSON本文を含めない。B4B2はDTO/prop wiringだけで、Readiness form、rep logger、ack button、その他mutation UIを描画しない。新しい操作UIの表示は後続B4B3でfeature flag境界を接続する。
+
+### 13.11 [R11-B4B3] Session execution UI
+
+- 新しいReadiness / rep記録 / runtime Coach review確認UIは、server pageが `RUNNING_V2_UI_ENABLED === "true"` と判定し、かつRUNNING_V2 itemに安全な§13.10 DTOがある場合だけ表示する。flag OFFとLEGACY itemは既存Session rowのmarkup・操作を維持する。DTO capabilityはUX上の表示・disableにだけ使い、最終authorityは各Server Actionのowner scope・schema validation・CAS guardである。
+- Readiness formは正式 `ReadinessReportSchema` の選択式fieldだけを送信する。`reportedAt` は実際に確認した日時の明示入力であり、Client current timeで補完しない。痛み、部位、red flag、soreness、fatigue、sleep等の入力はcomponent memory内だけのtransient stateであり、localStorage / sessionStorage / IndexedDB / cookie / URL / analyticsへ保存しない。成功後はhealth-sensitive stateをclearし、server DTOをrefreshする。Clientは尺度値からaction・gateを判定しない。
+- rep loggerは正式 `RepObservationSchema` のfieldだけを送り、set/rep sequence、timing、quality、stop、exposureをClientで導出しない。共有next-index authorityがない間はsetIndex / repIndexを明示入力とする。VIDEO fpsは未入力を推測せず、UNKNOWN / coach-only判定をerror扱いしない。raw athleteReportはtransient inputで、成功後にclearする。
+- 保存済みmonitor表示はlatest RepLogEntryを§13.10の日本語DTOから描画し、reasonを全件・domain順で示す。`nextRepRestS`はrecordRep成功直後のtransient resultにだけ表示し、reload後に再構成しない。END_SETはitem terminalと表示せず、END_SESSION_QUALITYとSTOP_SAFETYを区別する。
+- runtime `COACH_REVIEW` acknowledgementは、pending DTOとcapabilityの両方がある場合の明示button clickだけで送信する。payloadはsessionItemIdとreview identityだけ。閲覧・banner close・次rep入力をackとみなさず、ack文言も安全性・医学的解決を意味しない。成功、already-acknowledged、stale、terminal race後はserver DTOをrefreshし、Clientだけでcapabilityを変更しない。
+- 同一itemのReadiness / rep / ack mutationは共有pending lockで並列送信とdouble submitを抑止する。競合時もClientでdomain stateをpatchせずrefreshする。フォームはlabel / fieldset / legend / aria-live / keyboard focusを備え、主要button・入力はmobileで約44pxのtouch targetを確保する。Server Actionのsafe messageだけを表示し、raw enum、Zod issue、JSON、database errorは表示しない。
+
+### 13.12 [R11-B5] Competition CRUD
+
+- Competitionは計画用calendar entityとして、一覧・作成・詳細・編集・削除をCoach UIへ接続する。B5はCompetitionからTrainingSessionを生成せず、RACE / RELAY load event、result、placing、entry管理を追加しない。CRUD後のMenu / Session snapshotも自動再計画しない。
+- 書込みは既存 `competitionInputSchema` だけをauthorityにし、name 1〜120文字、実在するdate-onlyの必須開始日、nullable endDate、`endDate >= date`、正式CompetitionPriority、nullable note 1000文字を検証する。空のendDate / noteはnullのままで、今日・開始日に補完しない。重複名・日程overlapは禁止規則が無いため許容する。
+- ownerIdはserver側の既定Coachから決定し、Clientから受け取らない。find / update / deleteもowner scopeを必須にし、他ownerはNOT_FOUND相当で扱う。priorityは日本語labelをpresentation registryから表示し、raw enumを表示しない。
+- DBのCompetition dateはUTC 0:00で保存されたdate-onlyとして`YYYY-MM-DD`へ戻し、表示は数値成分から組み立てる。browser local timezoneに再解釈して前日へずらさない。メモはReact textとして描画し、HTMLとして挿入しない。
+- Competition削除は明示confirmationを必要とする。Prisma relationの`TrainingSession.competitionId onDelete: SetNull`により過去Sessionは残る。Competition CRUDは`RUNNING_V2_UI_ENABLED`に依存せず、planning / weekly / monitor / ReadinessをAction内で実行しない。
+
+### 13.13 [R11-B6] Competition actual participation
+
+- Competitionは予定calendarであり単独ではloadを作らない。Coachの「大会実績を記録」により、開催期間内かつ未来でない日へ
+  `status=COMPLETED` / `sessionKind=COMPETITION` / item 0件のTrainingSessionを1件作る。titleはCompetition.nameの作成時snapshot。
+  priorityやrace resultはsnapshotせず、RuleSet / planner / readiness / monitorを呼ばない。
+- 1大会・1開催日を1実績とし、idempotency keyは `(ownerId, competitionId, date)`（COMPETITION Session内）。categoryはkeyに含めない。
+  owner/range/existing確認とcreateはSQLite Serializable interactive transaction内で行い、write/lock conflict時はtransaction全体を最大1回再実行する。
+  exactな再送は`ALREADY_RECORDED`、別category、cancelled、破損、既存重複は`CONFLICT_EXISTING_RECORD`。silent mergeしない。
+- category集合は作成後immutable。訂正はowner-scopedに大会Sessionを削除して再登録する。通常Sessionのdate/status編集、item追加、実施UIからは
+  Competition Sessionを変更できない。Competition calendarの改名・日程変更は既存Sessionのtitle/date/categoryを変更せず、calendar削除後も
+  SetNullされたSession snapshotからloadを維持する。
+- `competitionLoadCategories`が存在する新形式の空・重複・逆順・未知値、singularとの同時存在、unknown versionはUNREADABLE。
+  HIGH履歴を消して計画を続けず、load-historyをtyped failureにしてplanning / readiness等の新規writeを止める。JSON自体をparseできない旧行、
+  category keyの無い旧行は識別不能なhistorical compatibilityとしてRACE fallbackを維持する。
 
 ## 14. Phase / Competition / Taper
 
@@ -2343,7 +2460,7 @@ model SessionItem {
   plannedProvenanceJson         String?
   plannedRationale              String?
   loadCategory                  String?   // 週次文脈用スナップショット（legacy 項目にも入れる）
-  actualRepLogJson              String?   // RepLogEntry[]（痛みの部位は含めない）
+  actualRepLogJson              String?   // ActualRepLogStateV1（旧 RepLogEntry[] 読取可。痛みの部位は含めない）
   actualHighSpeedExposureJson   String?   // QuantityInterval（source 付き）
   stopReason                    String?
   safetyOutcome                 String?
@@ -2381,7 +2498,7 @@ model Competition {
 | --- | --- |
 | prescriptionJson | 3層 range・位置・露出区間・stop policy・tolerance を丸ごと保存（再現性） |
 | provenanceJson | 入力要約・actor・override 履歴・evidenceIds（構造が版で変わりうる） |
-| actualRepLogJson | rep ごとの可変長ログ |
+| actualRepLogJson | versioned execution-log envelope（rep ごとの可変長ログ + runtime review acknowledgement） |
 
 - PostgreSQL 移行時は `String` の JSON 列を `Json` 型、列挙 String を enum に戻す（既存の SQLite 方針と同じ）。
 
@@ -2486,7 +2603,9 @@ export type Provenance = {
 - JSON 列はコピー後に `RunningPrescriptionSchema` の**全 schemaVersion 対応パーサ**で検証する。
 - 検証に失敗しても**コピーは中止しない・値を書き換えない**。`planningSnapshotJson.findings` に `SNAPSHOT_JSON_INVALID`（REQUIRE_COACH_REVIEW）を記録する。
 - 過去版の説明表示は SessionItem のスナップショットだけで行う。ルールセットファイルの Evidence 詳細を表示する場合は `version` と `contentHash` の一致を確認し、不一致なら「版情報不一致」と表示する。
-- **[R9 errata] `planningSnapshotJson` の形（schemaVersion 1）:** `{ schemaVersion, plannedDate, plannedAt, aggregation, weeklyContext, findings, competitionLoadCategory? }`。
+- **[R9/R11-B6] `planningSnapshotJson` の形（schemaVersion 1）:** `{ schemaVersion, plannedDate, plannedAt, aggregation, weeklyContext, findings, competitionLoadCategory?, competitionLoadCategories? }`。
+  - `competitionLoadCategory`は旧read compatibility専用。新writerはcanonicalな`competitionLoadCategories`だけを書く。両fieldの同時存在はinvalid。
+    additive optional fieldのためschemaVersionは1のまま。
   - `aggregation` = `NOT_EVALUATED{ reasons }` | `EVALUATED{ ruleSet: { version, contentHash }, result: SessionAggregate }`
   - `weeklyContext` = `NOT_EVALUATED{ reasons }` | `EVALUATED{ ruleSet, items: [{ menuItemId, sortOrder, result: WeeklyContextResult }] }`
     （evaluateWeeklyContext は計画項目ごとの評価のため項目単位。sortOrder は repository が SessionItem に合わせて付ける）
@@ -2922,7 +3041,7 @@ export function proposalToPlanRequests(
 | tests | Action の3ステップ、override に CoachActor 必須、T-AI-07、ガード |
 | [R9 で確定した requirement] セッション作成 | RUNNING_V2 を含むメニューからセッションを作る application path は、`SessionPlanningEvaluationInput` を**必ず**生成して `createSessionFromMenu()` に渡す。評価に RuleSet が必要なときは、MenuItem の `ruleSetVersion` + `ruleSetContentHash` に一致する保存済み RuleSet を**明示的に**読む（`getActiveRuleSet` 等の active selector による silent upgrade 禁止。一致する版が読めなければ `RULESET_VERSION_UNAVAILABLE`）。同じメニューの RUNNING_V2 項目で version / hash が混在する場合は1版に統一せず、`MIXED_RULESET_VERSIONS`（NOT_EVALUATED）+ Finding `MIXED_RULESET_VERSIONS`（REQUIRE_COACH_REVIEW）で明示的に扱う。plannedAt が無ければ週次は `PLANNED_AT_UNAVAILABLE` |
 | [R9 note] 編集面 | `Provenance.coachEdits.field` は formal どおり `EnvelopeField` のため、`approachDistanceM`（EVENT_APPROACH_SPEED の手入力）の編集履歴を記録できない。override / edit surface の設計時に再確認する。汎用 `updateMenuItem` 経路の RUNNING_V2 ガード（§15.3）もここで実装する |
-| [R10-B4A] Action contract | **(1) override の `confirmedTwice`**: Action の必須入力（`"true"` / `"false"` の明示値。未送信は入力エラー）で、そのまま domain の `coachOverrideSchema` に渡す（どの target で二重確認が必要かを Action / service に複製しない。service 内で true に固定・補完しない）。**(2) REQUIRE_CONFIRMATION の明示確認**: plan / edit / override / recalculate の4 Action は `confirmedFindingCodes[]` を受け取る。確認は CoachOverride ではない（reason・confirmedTwice を持たない）。service は**現在の入力で plan を再実行した結果**の REQUIRE_CONFIRMATION の code 集合（`requiredCodes`）と照合し、現在の結果に無い code が含まれていれば `CONFIRMATION_STATE_STALE`、不足があれば `CONFIRMATION_REQUIRED` で保存しない。確認は **Finding code 単位**（同じ code の Finding が複数あっても1回の明示確認でその code 群を確認した扱い）。以前の確認（保存済みの `findingConfirmations`）を edit / recalculate / override の新しい結果へ流用しない。override したこと自体を Finding の確認とみなさない。Session 作成時（B2）の aggregation REQUIRE_CONFIRMATION とはまだ混ぜない（B5 で判断）。**(3) result**: 失敗は `kind`（`INVALID_INPUT` / `REJECTED` / `CONFIRMATION_REQUIRED` / `CONFIRMATION_STATE_STALE` / `PLAN_INELIGIBLE` / `PLAN_BLOCKED`）付き。Finding と不適格理由は B3 の presentation mapper で日本語化して返し、code は内部 payload だけに持つ。**(4) aggregate EnvelopeField**: EnvelopeField に存在することと直接編集できることは同義ではない。直接 edit できるのは `RunningPrescription` 内に一意に対応する一次 `FieldValue` だけで、`totalReps` / `sessionVolumeM` / `flyVolumeM` / `attempts` / `vdecPercent`（`AGGREGATE_ENVELOPE_FIELDS`）は Action が拒否し、UI は read-only（現在値・範囲の表示のみ。値から sets や距離を逆算しない）。**(5) approachDistanceM**: RuleSet に編集用の EnvelopeCell（recommended / coachEditable）が存在しない（手入力 + plausibility のみ）ため編集可能にしない。UI は read-only（spec gap: `APPROACH_DISTANCE_EDIT_SOURCE_MISSING`。Provenance.coachEdits も記録できない）。**(6) RunningMenuContext Action**: `updateRunningMenuContextAction` は実装済み `runningMenuContextSchema`（strict）の JSON だけを受け付け、健康情報キーを拒否し、`plannedDate` / `plannedAt` は明示値のまま保存する（当日で補わない）。flag OFF で拒否。**(7) picker**: `plannedDate` 基準の active RuleSet から template 候補 DTO を作る server provider（`_running-template-options.ts`）。一覧は候補であり eligibility の判定ではない（`canAttemptSelection`）。最終的な可否は `planRunningItemAction` の plan 結果 |
+| [R10-B4A] Action contract | **(1) override の `confirmedTwice`**: Action の必須入力（`"true"` / `"false"` の明示値。未送信は入力エラー）で、そのまま domain の `coachOverrideSchema` に渡す（どの target で二重確認が必要かを Action / service に複製しない。service 内で true に固定・補完しない）。**(2) REQUIRE_CONFIRMATION の明示確認**: plan / edit / override / recalculate の4 Action は `confirmedFindingCodes[]` を受け取る。確認は CoachOverride ではない（reason・confirmedTwice を持たない）。service は**現在の入力で plan を再実行した結果**の REQUIRE_CONFIRMATION の code 集合（`requiredCodes`）と照合し、現在の結果に無い code が含まれていれば `CONFIRMATION_STATE_STALE`、不足があれば `CONFIRMATION_REQUIRED` で保存しない。確認は **Finding code 単位**（同じ code の Finding が複数あっても1回の明示確認でその code 群を確認した扱い）。以前の確認（保存済みの `findingConfirmations`）を edit / recalculate / override の新しい結果へ流用しない。override したこと自体を Finding の確認とみなさない。Session 作成時（B2）の aggregation REQUIRE_CONFIRMATION は別契約として **R11-B1 で実装した**（§22 の R11 行。Menu 側の確認記録を Session 作成の確認へ流用しない）。**(3) result**: 失敗は `kind`（`INVALID_INPUT` / `REJECTED` / `CONFIRMATION_REQUIRED` / `CONFIRMATION_STATE_STALE` / `PLAN_INELIGIBLE` / `PLAN_BLOCKED`）付き。Finding と不適格理由は B3 の presentation mapper で日本語化して返し、code は内部 payload だけに持つ。**(4) aggregate EnvelopeField**: EnvelopeField に存在することと直接編集できることは同義ではない。直接 edit できるのは `RunningPrescription` 内に一意に対応する一次 `FieldValue` だけで、`totalReps` / `sessionVolumeM` / `flyVolumeM` / `attempts` / `vdecPercent`（`AGGREGATE_ENVELOPE_FIELDS`）は Action が拒否し、UI は read-only（現在値・範囲の表示のみ。値から sets や距離を逆算しない）。**(5) approachDistanceM**: RuleSet に編集用の EnvelopeCell（recommended / coachEditable）が存在しない（手入力 + plausibility のみ）ため編集可能にしない。UI は read-only（spec gap: `APPROACH_DISTANCE_EDIT_SOURCE_MISSING`。Provenance.coachEdits も記録できない）。**(6) RunningMenuContext Action**: `updateRunningMenuContextAction` は実装済み `runningMenuContextSchema`（strict）の JSON だけを受け付け、健康情報キーを拒否し、`plannedDate` / `plannedAt` は明示値のまま保存する（当日で補わない）。flag OFF で拒否。**(7) picker**: `plannedDate` 基準の active RuleSet から template 候補 DTO を作る server provider（`_running-template-options.ts`）。一覧は候補であり eligibility の判定ではない（`canAttemptSelection`）。最終的な可否は `planRunningItemAction` の plan 結果 |
 | [R10-B3] presentation layer | `src/presentation/running/` に表示用 DTO・日本語ラベル registry・Finding message registry・dose / confidence / provenance / template presenter を置く（表示専用。量の上限・rest の式・eligibility・大会 window・RuleSet 選択は持たない）。`components/running/*` は DTO だけを props で受け取り、RuleSet JSON / Prisma model / Server Action を import しない（`"use client"` は picker と editor だけ）。保存済み item の題名は `TEMPLATE_SELECTED.params.templateLabelJa` → `displayName` → exact RuleSet の `labelJa` の順、理由本文は保存済み `MenuItem.rationale`（再レンダリングしない）。Evidence の出典種類と aggregate field の範囲は、保存時の `ruleSetVersion + ruleSetContentHash` と完全一致した RuleSet だけから引く（不一致なら「根拠の詳細を確認できません」。active 版で代用しない）。editor は controlled component で、Action・`confirmedFindingCodes[]` への接続と `RUNNING_V2_UI_ENABLED` による切替は B4 の integration boundary |
 | [R10-B4B] Menu UI integration | **(1) flag boundary**: `src/app/menus/[id]/page.tsx` は `isRunningV2UiEnabled()` が true のときだけ `buildRunningMenuView(menu)` を呼ぶ。OFF のときは Running v2 の読み込み・評価・DTO 生成を**一度も実行しない**（CSS で隠すのではない）。`MenuBlockEditor` / `MenuItemForm` は `running` / `runningV2Enabled` が未指定なら B4B 前と同一の描画（golden: `tests/presentation/running/legacy-menu-ui.test.ts`）。**(2) server 境界**: 画面へ渡すのは DTO だけ（`_running-menu-view.ts`）。RuleSet オブジェクト・Prisma モデル・処方 JSON を client へ渡さない。統合 component（`running-context-editor` / `running-item-create-form` / `running-item-panel` / `running-menu-panel`）は server 側へ **`"use server"` の Action か型 import 経由でしか**触らない。**(3) メニュー集計**: B2 が session 作成時に行っていた保存済みメニューの R6 評価を `src/actions/_running-menu-evaluation.ts` の `evaluateStoredRunningMenu()` として抽出し、B2（セッション日で `competitionDay` を判定）と B4B（メニューの `plannedDate` で判定。未設定なら `NOT_EVALUATED`）で共有する。policy を複製しない。版が混在していれば合計を出さず `MIXED_RULESET_VERSIONS` の説明（現行ルールで再計算すると揃う）を出す。**(4) context 編集**: 入力欄は `runningMenuContextSchema` にある項目だけ。**痛み・soreness・睡眠・疲労・体調・性別・生年月日などの健康 / 個人情報の入力欄を作らない**。計画日は必須で、今日の日付で補わない。`plannedAt` の暦日が計画日と違えばエラーにして**自動で直さない**（タイムゾーン offset は入力端末の値を明示的に付ける）。**(5) 走系 legacy 種目**: 走系かどうかは既存の分類 API（`src/domain/prescription/classify.ts` + `HIGH_INTENSITY_RUN_KINDS` + `TEMPO_AEROBIC`）で判定し、種目名の文字列リストを作らない。flag ON のとき legacy の「推奨処方を入れる」を出さず、走トレーニングの導線を案内する（legacy 入力自体は従来どおり保存できる。§R13 まで legacy ロジックは変更しない）。**(6) 保存済み項目**: 表示・編集は保存時の exact RuleSet のまま。版が現行へ動くのは「現行ルールで再計算」を押したときだけ。壊れた処方 JSON は題名だけ出し、数値を出さず合計も計算しない |
 | 既存互換 | フラグ OFF で従来画面と同一 |
@@ -2934,12 +3053,15 @@ export function proposalToPlanRequests(
 | 項目 | 内容 |
 | --- | --- |
 | 目的 | セッション中の rep 入力と monitor 判定、当日 readiness、大会カレンダー |
-| 新規ファイル | `src/components/running/{rep-logger,readiness-form,monitor-banner}.tsx`、`src/app/competitions/{page,new/page,[id]/page}.tsx`、`tests/actions/running/session-monitor.test.ts` |
-| 変更ファイル | `src/components/session/session-item-row.tsx`（RUNNING_V2 項目で rep 入力）、`src/actions/session-actions.ts`（`recordRepAction`、actual 列のみ更新） |
+| 新規ファイル | `src/components/running/{rep-logger,readiness-form,monitor-banner}.tsx`、`src/app/competitions/{page,new/page,[id]/page}.tsx`、`tests/actions/running/session-monitor.test.ts`、**[R11-B1]** `src/actions/_session-confirmation.ts`・`src/presentation/running/session-confirmation.ts`・`src/components/session/session-confirmation-panel.tsx`・`tests/actions/running/session-confirmation{,-challenge}.test.ts`・`tests/presentation/running/session-confirmation-ui.test.ts` |
+| 変更ファイル | `src/components/session/session-item-row.tsx`（RUNNING_V2 項目で rep 入力）、`src/actions/session-actions.ts`（`recordRepAction`、actual 列のみ更新）、**[R11-B1]** `src/actions/{session-actions,_session-planning-service}.ts`（REQUIRE_CONFIRMATION を REJECT から2段階確認へ）・`src/domain/running/persistence/sessionSnapshot.ts`（`findingConfirmations?` + challenge canonicalization）・`src/domain/session/schema.ts`（確認入力）・`src/components/session/{start-session-form,new-session-from-menu}.tsx`・`src/components/submit-button.tsx`・`src/app/sessions/new/page.tsx`・`src/app/menus/[id]/page.tsx`（flag 受け渡し） |
 | schema / migration | なし / 不要（R9 で追加済み） |
-| 保存規則 | 部位・red flag・尺度値を保存しない。`readinessActions` と `safetyOutcome` のみ（§13.5） |
-| [R9 で確定した requirement] 大会セッション | 大会セッション（`sessionKind="COMPETITION"`）作成時に `planningSnapshotJson.competitionLoadCategory`（RACE / RELAY）を設定する（planningSnapshotJson は §17.3 の schemaVersion 1 を満たすこと）。未設定の既存データは load history で RACE（generic fallback）として扱われる（§12.2） |
+| 保存規則 | 部位・red flag・尺度値・raw report は保存しない。実施時は `readinessActionsJson` の versioned item execution payload と別列 `safetyOutcome` のみ（§13.5・§13.7） |
+| [R11-B2] Readiness application contract | `evaluateSessionReadinessAction` は Session snapshot + session.date の loader policy（正式 DRAFT fallback 含む）+ 現在履歴から各 v2 item を評価し、v1 payload を atomic 保存。旧 array は再評価要求、reload は policy 非依存。詳細は §13.7。UI / rep logging は後続段階 |
+| [R11-B3/B4B1] Monitor persistence / runtime acknowledgement contract | `recordRepAction` は保存済み処方 snapshot と envelope 内の append-only reps だけで R8 monitor を実行し、4 execution 列を raw content guard 付き transaction で保存する。`stopReason` は terminal MonitorAction summary、`safetyOutcome` は Readiness + Monitor の monotonic lifecycle maximum。`COACH_REVIEW` は review-instance-specific acknowledgement まで pauseし、ack は同じ envelope の別配列へ server timestamp とともに保存する。詳細は §13.8 / §13.9。UI は後続段階 |
+| [R11-B6] 大会セッション | 明示的な大会実績はitemless COMPLETED Competition Session。1大会・1日1Sessionで、plural category集合にRACE / RELAY / mixedを保存する。mixedは同じsessionKeyの2 eventへ投影してHIGH session countは1。新plural破損はfail closed、旧singular/欠落は互換read。詳細は§13.13 |
 | tests | actual 列だけが更新され planned 列が不変、COACH_ONLY の表示、STOP_SAFETY で以降の rep 入力を止める |
+| [R11-B1] Session 確認 contract | **(1) 2段階確認**: `createSessionFromMenuAction` は1回目（確認入力なし）で `CONFIRMATION_REQUIRED` + 確認が必要な Finding（B3 で日本語化）+ `requiredFindingCodes`（内部 payload）+ `confirmationChallenge` を返し、Session row を作らない。2回目は `confirmedFindingCodes[]` + `confirmationChallenge` を受け取る。**(2) 現在の評価だけを使う**: 2回目も**以前の評価を使わず**メニュー / context を読み直して `buildSessionPlanningEvaluation()` を最初から再実行し、その結果の required code と照合する。**(3) 完全一致**: 不足は `CONFIRMATION_REQUIRED`、現在の結果に無い code（stale）は `CONFIRMATION_STATE_STALE`。重複入力は dedupe。判定は R10-B4A の domain helper（`requiredConfirmationCodes` / `evaluateFindingConfirmation`）を共有する。**(4) confirmation challenge = 現在の policy 評価の digest**: challenge は「コーチが確認した **Session planning evaluation**」を表す値であり、「Menu の指紋 + 確認対象 Finding」だけではない（[R11-B1.1]）。構成は `schemaVersion: 2` / `menuTemplateId` / `sessionDate` / `sourceMenuFingerprint`（§30〜§37 の MenuItem 指紋）/ `evaluationDigest` / 確認対象 Finding の canonical 値。`evaluationDigest` は `canonicalSessionConfirmationEvaluationPayload()`（domain・Node 非依存）を SHA-256 した値で、対象は **`SessionPlanningEvaluationInput` の policy 結果全体**: `sourceMenuFingerprint`、`aggregation`（status / reasons / RuleSet identity / `SessionAggregate` 全体＝区間・予算・completeness・findings）、`weeklyContext`（status / reasons / RuleSet identity / 項目ごとの coverage・highSessions7d・readinessRequired・weeklyPositionCap・autogenBlockedMethods・findings）、および evaluation の **全 Finding**（WARN / REQUIRE_COACH_REVIEW / BLOCK_AUTOGEN も含む）。Finding の canonical 値は `code` / `severity` / `scope` / `metric` / `value` / `limit`（Finding schema に実在する field だけ）。**含めないもの**: `findingConfirmations`（確認そのもの。入力へ循環させない）、時刻（`evaluatedAt` 等）、`events48h` / `events72h` の raw な LoadEvent 履歴、健康 / readiness の生値。field 順は明示し（`JSON.stringify` の並びに依存しない）、配列は安定ソート・null は保持・`undefined` は canonical から除外、重複 Finding は件数ごと保持。**時刻・乱数・秘密鍵を含めない**（同じ policy 評価なら再計算で必ず同じ値）。したがって MenuItem が同じでも、対象グループ設定（`availableMinutes` / `plannedAt`）・大会文脈・週次結果が評価結果を変えれば confirmation は流用できない。逆に **raw な入力（履歴の中身・評価時刻・policy に影響しない設定変更）だけが違って canonical な planning 結果が完全同一なら、以前の確認は有効**（confirmation は raw source data ではなく policy 結果に対して行う）。認可トークンではなく照合用の値で、DB へ保存しない（challenge / digest は request 間の transient state。保存するのは `findingConfirmations` の `{code, at}` だけ）。**(5) 同じ code でも中身が変われば流用不可**: code 一致でも challenge 不一致なら `CONFIRMATION_STATE_STALE`。本番 RuleSet の確認 Finding は `value` / `limit` を持たない（`code` + `metric` + `scope` のみ）ため、実際の差分は `sourceMenuFingerprint` が検出する。**(6) 確認対象が消えた場合**: 古い確認が送られてきたら silent create せず一度 `CONFIRMATION_STATE_STALE` を返す（確認入力なしの新しい要求で作成できる）。**(7) severity**: `BLOCK` は確認では解除できない（`REJECTED`）。`REQUIRE_COACH_REVIEW` / `BLOCK_AUTOGEN` は確認不要のまま作成できる。`MIXED_RULESET_VERSIONS` / `RULESET_VERSION_UNAVAILABLE`（NOT_EVALUATED）も確認要求に変えない。**(8) 監査記録**: `planningSnapshotJson.findingConfirmations?: [{ code, at }]`（backward-compatible optional。schemaVersion は 1 のまま。旧 snapshot はこの key を持たない）。保存するのは**その作成時の評価に実在した code だけ**で、`at` は server clock。確認しても `findings` から Finding を消さない。**(9) fingerprint 保護の継続**: 確認は `createSessionFromMenu()` の transaction 内の指紋再計算を迂回しない。確認通過後にメニューが変わっていれば `PLANNING_EVALUATION_STALE` で中止（Session row 0）。**(10) UI**: 共有 `SessionConfirmationPanel` を2つの入口（`StartSessionForm` / `NewSessionFromMenu`）の同じ form 内に置き、チェックと challenge を hidden field で送る（作成フォームの入力値は消えない）。チェックは既定 false・全確認までボタン無効・challenge が変われば全解除・自動再送なし。challenge hash と Finding code は画面に出さない。`RUNNING_V2_UI_ENABLED === "true"` のときだけパネルを表示し、Action / repository の fail-closed safety は flag に依存しない |
 | 既存互換 | legacy 項目の実施記録は従来通り |
 | 完了条件 | hand timing / photo cell / UNKNOWN の3通りで判定が §10 どおりに表示される |
 | rollback | フラグ OFF |

@@ -14,9 +14,15 @@ import { normalizeInput } from "./normalize";
 import { evaluateSafetyGate } from "./safety";
 import { evaluateStopPolicy } from "./stopPolicies";
 import { repLogEntrySchema, type MonitorDecision, type MonitorState, type RepLogEntry, type RepObservation } from "./schema";
+import type { RunningPrescriptionValue } from "../types/prescription";
 
 export type { MonitorAction, MonitorDecision, MonitorState, RepLogEntry, RepObservation, StopReason } from "./schema";
 export { repObservationSchema, repLogEntrySchema, monitorStateSchema } from "./schema";
+
+/** Snapshot上の予定本数。monitorとread-only presentationが同じ定義を共有する。 */
+export function plannedRepCountOf(prescription: RunningPrescriptionValue): number {
+  return prescription.sets.value * prescription.repsPerSet.value;
+}
 
 export function monitorRunningPrescription(state: MonitorState, obs: RepObservation): MonitorDecision {
   // ---- 1: normalization（不正な state / 観測・二重判定は例外で拒否） ----
@@ -24,7 +30,7 @@ export function monitorRunningPrescription(state: MonitorState, obs: RepObservat
   const { prescription, priorLogs } = input.state;
   const observation = input.obs;
   const timing = input.timing;
-  const plannedRepCount = prescription.sets.value * prescription.repsPerSet.value;
+  const plannedRepCount = plannedRepCountOf(prescription);
   const completedRepCount = priorLogs.length + 1;
 
   const baseLog = {

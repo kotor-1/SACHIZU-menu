@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card, CardBody, CardHeader, Field, INPUT_CLASS, cn } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { createSessionFromMenuAction } from "@/actions/session-actions";
+import { SessionConfirmationPanel, sessionConfirmationFailureOf } from "./session-confirmation-panel";
 import { todayInputValue } from "@/lib/format";
 
 /**
@@ -13,13 +14,18 @@ import { todayInputValue } from "@/lib/format";
 export function StartSessionForm({
   menuId,
   menuName,
+  runningV2Enabled = false,
 }: {
   menuId: string;
   menuName: string;
+  /** [R11-B1] 走トレーニングの確認パネルを出すか（flag OFF なら安全側のエラー表示だけ）。 */
+  runningV2Enabled?: boolean;
 }) {
   const [state, formAction] = useActionState(createSessionFromMenuAction, null);
-  const errors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
+  const errors = state && !state.ok && state.kind === "INVALID_INPUT" ? (state.fieldErrors ?? {}) : {};
   const input = cn(INPUT_CLASS, "h-9 py-0");
+  const confirmation = runningV2Enabled ? sessionConfirmationFailureOf(state) : null;
+  const [confirmationReady, setConfirmationReady] = useState(false);
 
   return (
     <Card className="border-indigo-200">
@@ -77,8 +83,14 @@ export function StartSessionForm({
             </Field>
           </div>
 
-          <SubmitButton className="w-full" pendingLabel="作成中…">
-            練習記録を作成
+          <SessionConfirmationPanel
+            failure={confirmation}
+            idPrefix={`start-session-${menuId}`}
+            onReadyChange={setConfirmationReady}
+          />
+
+          <SubmitButton className="w-full" pendingLabel="作成中…" disabled={confirmation !== null && !confirmationReady}>
+            {confirmation === null ? "練習記録を作成" : "確認のうえ作成する"}
           </SubmitButton>
         </form>
       </CardBody>
