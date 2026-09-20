@@ -114,6 +114,17 @@ export async function findMenu(id: string): Promise<MenuDetail | null> {
   return prisma.menuTemplate.findUnique({ where: { id }, include: menuDetailInclude });
 }
 
+/**
+ * MenuPlanner の server authority 用 read path。
+ * ownerId を where に閉じ込め、Application 層の後付け filter に依存しない。
+ */
+export async function findMenuForOwner(id: string, ownerId: string): Promise<MenuDetail | null> {
+  return prisma.menuTemplate.findFirst({
+    where: { id, ownerId, status: { not: "ARCHIVED" } },
+    include: menuDetailInclude,
+  });
+}
+
 /** [R10-B1] MenuItem から親の MenuTemplate.id を辿る（running-plan-service が「この項目のメニュー」を読むため）。 */
 export async function findMenuIdForItem(itemId: string): Promise<string | null> {
   const row = await prisma.menuItem.findUnique({

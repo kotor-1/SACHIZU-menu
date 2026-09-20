@@ -31,6 +31,8 @@ export type LoadHistoryQuery = {
   asOf: Date;
   /** 遡る時間（例: 7日 = 168）。 */
   windowHours: number;
+  /** owner scope。省略時は Phase 1 の既定 owner を使う。 */
+  ownerId?: string;
 };
 
 export type UnresolvedLoadRecord = {
@@ -127,7 +129,7 @@ export async function listLoadHistory(query: LoadHistoryQuery): Promise<LoadHist
 
   const sessions = await prisma.trainingSession.findMany({
     where: {
-      ownerId: DEFAULT_OWNER_ID,
+      ownerId: query.ownerId ?? DEFAULT_OWNER_ID,
       date: { gte: windowStart, lt: asOf },
       status: { not: "CANCELLED" },
     },

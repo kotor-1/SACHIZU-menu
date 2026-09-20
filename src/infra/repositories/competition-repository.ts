@@ -45,12 +45,15 @@ export async function findCompetition(id: string) {
 }
 
 /** 期間指定（from 以上・to 以下の date）で大会を日付順に返す。 */
-export async function listCompetitions(range: { from?: Date; to?: Date } = {}) {
+export async function listCompetitions(
+  range: { from?: Date; to?: Date } = {},
+  ownerId = DEFAULT_OWNER_ID,
+) {
   const date: Prisma.DateTimeFilter = {};
   if (range.from) date.gte = range.from;
   if (range.to) date.lte = range.to;
   return prisma.competition.findMany({
-    where: { ownerId: DEFAULT_OWNER_ID, ...(range.from || range.to ? { date } : {}) },
+    where: { ownerId, ...(range.from || range.to ? { date } : {}) },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
   });
 }
@@ -65,8 +68,8 @@ function toIsoDate(value: Date): CompetitionRef["date"] {
  * planner（R10-B1）と session 評価（R10-B2）が共有する唯一の adapter。開催期間の判定に必要な
  * `endDate` を落とさない（null は1日開催）。
  */
-export async function listCompetitionRefs(): Promise<CompetitionRef[]> {
-  const rows = await listCompetitions();
+export async function listCompetitionRefs(ownerId = DEFAULT_OWNER_ID): Promise<CompetitionRef[]> {
+  const rows = await listCompetitions({}, ownerId);
   return rows.map((c) => ({
     id: c.id,
     date: toIsoDate(c.date),

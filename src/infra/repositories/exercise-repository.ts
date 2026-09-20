@@ -20,6 +20,31 @@ export type ExerciseWithRelations = Prisma.ExerciseGetPayload<{
 }>;
 
 /**
+ * MenuPlanner の authoritative catalog read path。
+ * status の判定は Application 層で行うため、owner 内の全 status を返す。
+ */
+export async function findExercisesForMenuPlanner(
+  ids: readonly string[],
+  ownerId: string,
+): Promise<ExerciseWithRelations[]> {
+  if (ids.length === 0) return [];
+  return prisma.exercise.findMany({
+    where: { ownerId, id: { in: [...ids] } },
+    include: withRelations,
+    orderBy: { id: "asc" },
+  });
+}
+
+/** MenuPlanner の binding と catalog validation が共有する owner-scoped 全件 read。 */
+export async function listExercisesForMenuPlanner(ownerId: string): Promise<ExerciseWithRelations[]> {
+  return prisma.exercise.findMany({
+    where: { ownerId },
+    include: withRelations,
+    orderBy: { id: "asc" },
+  });
+}
+
+/**
  * 検索条件 → Prisma where。
  *
  * 注意: SQLite provider は `mode: "insensitive"` を持たない。
