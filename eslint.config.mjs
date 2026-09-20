@@ -80,6 +80,76 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // R12 MenuPlanner の domain/application contract は provider・framework・DB から独立した純粋境界。
+  {
+    files: [
+      "src/domain/menu-planner/**/*.ts",
+      "src/domain/menu-planner/**/*.tsx",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "react",
+              message: "MenuPlanner contract は React に依存できません。",
+            },
+            {
+              name: "react-dom",
+              message: "MenuPlanner contract は React に依存できません。",
+            },
+            {
+              name: "@prisma/client",
+              message: "MenuPlanner contract は Prisma に依存できません。",
+            },
+            {
+              name: "openai",
+              message: "MenuPlanner contract は provider SDK に依存できません。",
+            },
+            {
+              name: "@anthropic-ai/sdk",
+              message: "MenuPlanner contract は provider SDK に依存できません。",
+            },
+            {
+              name: "@google/generative-ai",
+              message: "MenuPlanner contract は provider SDK に依存できません。",
+            },
+            {
+              name: "@google-cloud/aiplatform",
+              message: "MenuPlanner contract は provider SDK に依存できません。",
+            },
+            {
+              name: "cohere-ai",
+              message: "MenuPlanner contract は provider SDK に依存できません。",
+            },
+          ],
+          patterns: [
+            {
+              group: ["next", "next/*", "@/infra/**", "@/actions/**"],
+              message:
+                "MenuPlanner contract は Next.js・infra・actions に依存できません。",
+            },
+            {
+              group: ["node:*"],
+              message:
+                "MenuPlanner contract は Node.js 組み込みモジュールに依存できません。",
+            },
+            {
+              regex: "(^|/)(infra|actions)(/|$)",
+              message:
+                "MenuPlanner contract は相対パス経由でも infra・actions に依存できません。",
+            },
+            {
+              regex: "(^|/)domain/ai(/|$)",
+              message:
+                "MenuPlanner contract は video AI contract を import できません。",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Running Prescription Engine v2 — CoachActor / Coach 専用 Server Action の AI 境界（R10-B1 §7・R10-B4A.1）:
   // AI 経路（動画解析・下書き生成・将来の MenuPlanner）は CoachActor を生成できず、CoachActor を内部で生成する
   // Coach 専用の application module（running-actions.ts / _running-plan-service.ts）も**モジュールごと** import できない。
@@ -92,6 +162,8 @@ const eslintConfig = defineConfig([
     files: [
       "src/domain/ai/**/*.ts",
       "src/domain/ai/**/*.tsx",
+      "src/domain/menu-planner/**/*.ts",
+      "src/domain/menu-planner/**/*.tsx",
       "src/infra/ai/**/*.ts",
       "src/infra/ai/**/*.tsx",
       "src/app/ai/**/*.ts",

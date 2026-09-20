@@ -2646,44 +2646,113 @@ export type Provenance = {
 ### 18.2 型
 
 ```ts
-export type CoachActor = Brand<{ kind: "COACH"; ownerId: string }, "CoachActor">;
-export type AiPlannerActor = { kind: "AI_PLANNER"; provider: string; model: string; requestId: string };
-export type Actor = CoachActor | AiPlannerActor | { kind: "SYSTEM" };
-
-export const aiRunningItemProposalSchema = z.object({
-  blockName: z.string().trim().min(1).max(80),
-  method: z.enum(RUNNING_TRAINING_METHODS),
-  templateId: z.string(),                          // refine: active ruleSet に存在し method と一致
-  positionPreference: z.enum(["LOWER", "MIDDLE"]).nullable(),
-  reason: z.string().max(300),
-}).strict();
-
-export type AiPlannerProposal = {
-  runningItems: z.infer<typeof aiRunningItemProposalSchema>[];
-  exerciseItems: Array<{ blockName: string; exerciseId: string; reason: string }>;   // 既存カタログ
-  question: { id: string; text: string; options: string[] } | null;                // 1問まで
+export type MenuPlannerIntentRequest = {
+  schemaVersion: 1;
+  requestText: string; // trim 後 1..2000
+  constraints: {
+    phase: TrainingPhase | null;
+    targetEvents: TrackFieldEvent[];       // max 8
+    purposes: ExercisePurposeValue[];      // max 16
+    availableMinutes: number | null;       // integer 1..600、coerce しない
+    equipment: { availableTagIds: string[] } | null; // max 30
+    preferredExerciseIds: string[];        // max 20
+    excludedExerciseIds: string[];         // max 20
+  };
 };
 
-/** AI 経路の変換。overrides / coachEdits は型で空に固定 */
-export function proposalToPlanRequests(
-  proposal: AiPlannerProposal, server: ServerPlanningContext, actor: AiPlannerActor,
-): Array<PlanRequest & { overrides: []; coachEdits: []; actor: AiPlannerActor }>;
+export type ExerciseCandidateDto = {
+  id: string;
+  name: string;
+  category: ExerciseCategory;
+  purposes: ExercisePurposeValue[];
+  events: TrackFieldEvent[];
+  equipmentTagIds: string[];
+};
+export type EquipmentCandidateDto = { id: string; name: string };
+export type RunningTemplateCandidateDto = {
+  method: RunningTrainingMethod;
+  templateId: string;
+  label: string;
+};
+
+export type MenuPlannerProviderRequest = {
+  schemaVersion: 1;
+  policy: { id: "R12_MENU_INTENT_V1" };
+  coachRequest: MenuPlannerIntentRequest;
+  subject: AiSafeSubjectContext;
+  catalog: {
+    exercises: ExerciseCandidateDto[];
+    runningTemplates: RunningTemplateCandidateDto[];
+    equipment: EquipmentCandidateDto[];
+  };
+};
+
+export interface MenuIntentParser {
+  propose(
+    request: MenuPlannerProviderRequest,
+    options?: { signal?: AbortSignal },
+  ): Promise<MenuIntentParserResult>;
+}
+export type MenuIntentParserResult =
+  | { ok: true; output: unknown }
+  | { ok: false; kind: "UNAVAILABLE" | "FAILED" | "TIMEOUT" | "ABORTED" | "OUTPUT_TOO_LARGE" };
+
+export type AiPlannerItemProposal =
+  | { kind: "RUNNING"; proposal: {
+      blockName: string;
+      method: RunningTrainingMethod;
+      templateId: string;
+      positionPreference: "LOWER" | "MIDDLE" | null;
+      reason: string;
+    } }
+  | { kind: "EXERCISE"; proposal: {
+      blockName: string;
+      exerciseId: string;
+      reason: string;
+    } };
+
+export type AiPlannerProposal = {
+  schemaVersion: 1;
+  items: AiPlannerItemProposal[];
+  question: {
+    missingField: "PURPOSE" | "EVENT" | "EQUIPMENT" | "EXERCISE_PREFERENCE" | "REQUEST_DETAIL";
+    text: string;
+    options: string[];
+  } | null;
+};
 ```
 
+- 実装場所は video 用 `src/domain/ai/**` と分離した `src/domain/menu-planner/**`。domain/application contract → 将来の infra adapter → 将来の server composition の一方向依存とする。
+- `MenuIntentParser` 成功値の `output` は必ず `unknown`。provider の structured-output 検証を信頼境界にせず、application が `aiPlannerProposalSchema` で再検証する。
+- 全 object schema は `.strict()`。unknown key・unknown enum・型 coercion・invalid item の drop・dedupe・fallback を禁止し、proposal 単位で拒否する。
+- request の ID は trim 後 1..64。各配列の重複と preferred / excluded の積集合を拒否する。canonical 化は enum 宣言順、opaque ID は昇順とし、proposal の `items` 順は変更しない。
+- `AiPlannerProposal` は `question === null` なら `items` 1..20、`question !== null` なら `items.length === 0`。AI は question ID を返さず、必要な identity は application が将来生成する。
+- clarification の text は trim 後 1..200、options は0件または2..4件、各 trim 後 1..80、重複禁止。中間状態・raw prompt・raw response はDBに保存せず、reloadで失うephemeral stateとする。
+- `blockName` は NFKC・trim・空白正規化後 1..80。control / bidi・HTML / markup・URL を拒否する。閉じた blockName の再登場と9 block以上を拒否する。同一block内のRUNNING / EXERCISE混在と配列順の採用は許可する。
+- 同一 Exercise ID、同一 method + templateId の重複は拒否する。schema parse 後にserver catalogに対する別のpure validationを行い、unknown Exercise、unknown template、template-method mismatchをproposal単位で拒否する。
+- AI-safe catalog に Exercise の数値既定・description・coach memo・video text・ownerId・Prisma rowを含めない。owner scopeとarchived除外はcatalog構築側の責務。running catalogにRuleSet数値・Evidence・safety値を含めない。
+- subject は §13.5 の `AiSafeSubjectContext` の6 fieldだけを再利用し、birthDate / sexForNorms / maturity detail / raw readiness / pain / soreness / fatigue / sleepを追加しない。
+- provider decoded UTF-8 output上限は64 KiB。timeoutはbounded config必須だが秒数はprovider評価フェーズで決める。failure resultにraw error message / stack / endpoint / response bodyを含めない。
+
 ### 18.3 reason のサニタイズ [ENGINE-POLICY]
-- 除去（その文を丸ごと削除し Finding `AI_REASON_SANITIZED` INFO）:
-  - 用量表現: `/\d+\s*(m|メートル|秒|分|本|回|セット|set|%|％)/`
-  - 出典らしき表現: `/(et al|doi|論文|研究によると|エビデンス|meta-analysis|メタ分析)/i`
-  - 技術による中止指示: `/フォーム.*(崩|乱).*(中止|終了|やめ)/`（Fable M-4）
+- strict proposal parse と raw 300-character check を先に行い、その後だけ `reason` を NFKC・trim・文分割する。proposal 全体を sanitizer で救済してはならない。
+- 除去（該当文を丸ごと削除し Finding `AI_REASON_SANITIZED` INFO）:
+  - 数値用量（distance / reps / sets / duration / rest / intensity / pace / velocity / volume / recovery 相当）
+  - HTML tag、Markdown link、URL、code fence / inline code
+  - control / bidi character
+  - system / developer / assistant の role impersonation、以前の指示を無視する要求、system prompt override
+  - 出典らしき表現、技術による中止指示など AI reason の表示責務を超える文
+- 残った文は空白1個で結合し、single-line plain text とする。sanitization の有無を pure result で返し、raw text や chain-of-thought は保存しない。
 - 表示上は「AIの理由」と「エンジンの根拠」を別ラベルで並べる。
 
 ### 18.4 自動生成制限の適用範囲
 - `BLOCK_AUTOGEN` Finding は **actor が AI_PLANNER / SYSTEM のときに適用**（その項目を生成しない）。コーチの手動選択では表示のみ（eligibility と override 規則は別途適用）。
-- AI 由来の項目は `provenance.generatedBy.proposer = AI_PLANNER`、メニューは `status = "DRAFT"`。コーチが確認すると `acceptedByCoachAt` を記録。以後もすべて編集可能（要件F）。
+- AI 由来の項目は accept/save の deterministic rebuild まで `actor = AI_PLANNER` とし、`overrides = []`、`coachEdits = []`、`coachReference = null`、`confirmedFindingCodes = []` を固定する。AI proposal の確認操作だけで COACH actor へ昇格させない。
+- メニューは explicit accept 後も `status = "DRAFT"`。新しい `acceptedByCoachAt` DB field は追加せず、AI proposer は既存 strict provenance に保存する。AI reason と engine rationale は混ぜない。保存後に既存 manual authoring で編集する処理だけが通常の COACH authority を使う。
 
 ### 18.5 [R10-B4A.1] Coach 専用 application module の AI 境界
 
-- **AI モジュール**（`src/domain/ai/**`・`src/infra/ai/**`・`src/app/ai/**`・`src/actions/ai/**`・`src/actions/ai-*`・`src/actions/_ai-*`）は、
+- **AI モジュール**（`src/domain/ai/**`・`src/domain/menu-planner/**`・`src/infra/ai/**`・`src/app/ai/**`・`src/actions/ai/**`・`src/actions/ai-*`・`src/actions/_ai-*`）は、
   次を import できない（`eslint.config.mjs` の AI ブロック。alias だけでなく相対パス・拡張子付きの迂回も patterns の regex で拒否）:
   - `src/actions/_actor.ts`（`getCoachActorForServer`。CoachActor 生成の唯一の server boundary）
   - `createCoachActor` / `coachActorSchema` / `CoachActor` 型（`@/domain/running/types/actor` と root re-export `@/domain/running`。相対パスも）
@@ -2696,10 +2765,37 @@ export function proposalToPlanRequests(
 - `src/actions/**` 全体は禁止しない。CoachActor を扱わない安全な port（例: `_running-template-options.ts` の template 候補 provider）や、
   R12 で作る AI actor 専用の application path は AI から使ってよい。Coach 側（Menu UI → `running-actions`）の import は制限しない。
 - **[R12 formal requirement] AI の Running 処方生成は Coach Action を再利用しない。** 経路は
-  `AI proposal → sanitize → aiRunningItemProposalSchema（.strict()）→ AI actor 専用 application path（actor = AiPlannerActor）→ domain planner`
+  `provider output unknown → aiPlannerProposalSchema（.strict()）→ reason sanitizer → catalog validation → AI actor 専用 application path（actor = AiPlannerActor）→ domain planner`
   とし、`running-actions.ts` / `_running-plan-service.ts` へショートカットしない。R10-B4A.1 ではこの経路を作らない。
-- **`aiRunningItemProposalSchema` は `.strict()` のまま**で、数値・overrides・coachEdits・`allowAdvancedMethods`・`confirmedTwice`・
-  `confirmedFindingCodes` の field を追加しない（§18.2 の5フィールドのみ）。R10-B4A.1 時点では未実装（R12）。
+- **proposal の全階層を `.strict()` のまま**にし、distance / reps / sets / duration / rest / setRest / intensity / percentage / pace / velocity / volume / recovery / stopPolicy / safety / readiness / monitor / ruleSetVersion / evidenceIds / overrides / coachEdits / coachReference / confirmedFindingCodes を追加しない。
+
+### 18.6 Preview / accept / stale contract [R12-A1]
+
+- validated proposal はserverがdeterministic plannerを実行してwrite-0 `MenuPlannerPreview` にする。previewとclarification stateはDBに保存しない。raw RuleSet / provenance JSON / health inputをclientへ返さない。
+- preview はblocks、ordered items、deterministic running prescriptionの表示DTO、non-running deterministic defaults、sanitized AI reason、engine findings / warnings、estimated time（算出可能な場合）だけを持つ。AI数値をpreview fieldにmaterializeしない。
+- clientが返すpreview数値・provider/model・actor・RuleSet identity・provenanceは保存authorityではない。acceptはserver-issued opaque bindingとproposal selection identityと許可された構造編集だけを受け取る。
+- accept時はowner-scoped Exercise / Running template catalog、RuleSet identity、AI-safe subject、history、competition/menu context、planning dateをserverが再読込し、proposal strict parse・catalog validation・deterministic planningを再実行する。
+- preview時のcanonical display result / authoritative context bindingとaccept時結果が一致しなければ `STALE_PREVIEW` で全体を拒否する。silent recalculationでコーチが見ていない別メニューを保存しない。UIは新しいpreviewの生成を要求する。
+- preview bindingのHMAC / digest / revision tokenの具体実装はapplication phase。DB無しでtamperとstaleを検出できるserver-issued bindingを必須とする。
+
+### 18.7 AI → deterministic planner mapping [R12-A1]
+
+- RUNNING itemでAIが供給できるのはcatalog-bound `method` / `templateId`、`positionPreference`、block/order、sanitized reasonだけ。
+- serverはplanningDate、subject、menuContext、history、readiness、competition context、RuleSet loader、`actor = AI_PLANNER`を供給する。事前メニュー作成のreadinessは`null`。AIにreadiness / medical judgmentをさせない。
+- non-running itemでAIが供給できるのはowner-scoped existing Exercise ID、block/order、sanitized reasonだけ。数値はexisting Exercise defaults → deterministic non-running prescriptionで決める。必要なdefaultが無ければitemを拒否してmanual input / clarificationを要求し、AIで補完しない。
+- `availableMinutes` はselection constraintに使えるが、時間へ合わせてAIが数値処方を変更してはならない。deterministic resultが超過した場合はfinding / re-proposalとし、silent scalingを禁止する。
+
+### 18.8 Atomic save / privacy [R12-A1]
+
+- explicit acceptの成功時だけ、`MenuTemplate(status = DRAFT)`、全`MenuBlock`、全`MenuItem`、running prescription / provenanceを同一transactionで作る。失敗時はpartial template / block / itemを0件にrollbackする。
+- raw coach prompt、raw provider response、chain-of-thought、clarification途中状態、previewはDBへ保存しない。server logにもraw prompt / raw response / provider bodyを出さない。
+- requestId、provider、modelはserver-generated provenanceでありclient inputを信頼しない。free-form AI reasoningをprovenance JSONへ入れない。
+
+### 18.9 Feature / production gate [R12-A1]
+
+- feature flagは`AI_MENU_PLANNER_ENABLED`、default OFF。将来のUIとServer Actionの双方がOFF時に拒否する。Running proposalはさらに`RUNNING_V2_UI_ENABLED`が必要。
+- flag OFFでのcontract/application実装・testは許可する。production enableは **OPEN-20完了 AND ACTIVE RuleSet AND `AI_MENU_PLANNER_ENABLED`** を必須とする。OPEN-20とDRAFT RuleSetはimplementation blockerではなくproduction gateである。
+- video ingestion / YouTube / Exercise video analysis / Antigravity analyzerはR12 MenuPlannerに含めず、`src/domain/ai/**`の`VideoAnalyzer` / `ExerciseDraft` / `AnalysisJob` / `rawOutput` contractをimportしない。MenuPlanner routeはvideo専用`/ai`を再利用せず、将来`/menus/new/ai`とする。
 
 ---
 
@@ -2718,7 +2814,10 @@ export function proposalToPlanRequests(
 | `RepObservationSchema` | monitor 入力 | `.strict()`。index は 1 始まり整数、timeS / fps / 速度は finite > 0、restTakenS ≥ 0、vdec 0–100、実測露出は `source: "MEASURED"`・finite ≥ 0・lower ≤ upper。**[R8 errata] timing=VIDEO で fps が無くても拒否しない**（§20 T-TIM-05 を採用。正規化で UNKNOWN 扱い → COACH_ONLY） |
 | `CoachOverrideSchema` | override Action | reason ≥ 10文字、HARD_SAFETY/ELIGIBILITY は confirmedTwice=true |
 | `CompetitionInputSchema` | 大会登録 | priority enum、date 必須 |
-| `aiRunningItemProposalSchema` | MenuPlanner 出力の受け取り | `.strict()`、templateId の実在 |
+| `menuPlannerIntentRequestSchema` | MenuPlanner coach request | 全object `.strict()`、文字数・配列上限、重複、preferred/excluded交差を拒否 |
+| `menuPlannerProviderRequestSchema` | providerへ渡すsafe envelope | policy literal、AI-safe subject、数値既定/free text/owner rowを持たないcatalog |
+| `aiPlannerProposalSchema` | providerのunknown outputをapplicationが受け取る境界 | schemaVersion=1、全階層`.strict()`、question/items排他、numeric authority field拒否、ordered mixed items |
+| catalog-bound validation | strict parse後 | Exercise ID実在、template実在、method一致。invalid itemのdrop/fallback禁止 |
 
 ### 19.2 永続化時の整合規則
 - `prescriptionKind = "RUNNING_V2"` ⇒ `exerciseId = null`、`runningMethod`・`sessionTemplateId`・`ruleSetVersion`・`ruleSetContentHash`・`prescriptionJson`・`provenanceJson`・`rationale` が非 null、`sets`・`reps` が非 null。
@@ -2730,7 +2829,7 @@ export function proposalToPlanRequests(
 ## 20. Test Matrix
 
 - すべて Vitest（既存構成・`fileParallelism: false`）。**新規パッケージは追加しない**。property / boundary テストは fast-check を使わず、**列挙型の全組み合わせ × 境界値の決定的グリッド**で行う。[ENGINE-POLICY]
-- 置き場所: `tests/domain/running/**`（純粋関数）、`tests/repository/running/**`（DB）、`tests/actions/running/**`（Server Action、既存の `revalidatePath`/`redirect` モック規約に従う）。
+- 置き場所: `tests/domain/running/**`（純粋関数）、`tests/domain/menu-planner-contracts.test.ts`（R12 MenuPlanner pure contract）、`tests/repository/running/**`（DB）、`tests/actions/running/**`（Server Action、既存の `revalidatePath`/`redirect` モック規約に従う）。
 - ルールセットはテスト用に `rs-test.json`（本番版のコピー + テスト専用版）を loader 差し替えで使い、**本番版の数値変更でテストの意味が変わらない**ようにする。ただし T-RV 群と T-POP 群の一部は本番の DRAFT 版に対して実行する。
 
 ### 20.1 カテゴリ別
@@ -3070,13 +3169,14 @@ export function proposalToPlanRequests(
 
 | 項目 | 内容 |
 | --- | --- |
-| 前提 | Mobile Menu Builder v1 の MenuPlanner port（別設計 M7）が存在すること。無ければ本フェーズは着手しない |
+| implementation gate | `src/domain/menu-planner/**` のpure port / strict schema / catalog validationが存在しcontract testが通ること。feature flag OFFでの開発実装はOPEN-20・DRAFT RuleSetに妨げられない |
+| production gate | OPEN-20完了、RuleSet ACTIVE、`AI_MENU_PLANNER_ENABLED=true`。Runningを含む場合は`RUNNING_V2_UI_ENABLED=true`も必要 |
 | 目的 | AI の提案を §18 の境界で v2 項目に変換する |
-| [R10-B4A.1 requirement] 経路 | AI 処方は `AI proposal → sanitize → aiRunningItemProposalSchema（strict）→ AI actor 専用 application path → domain planner`。Coach 専用の `running-actions.ts` / `_running-plan-service.ts` を経由しない（§18.5。eslint で import 禁止） |
-| 新規ファイル | `src/domain/running/ai/{proposal-schema,sanitize,proposal-to-plan}.ts`、`tests/domain/running/ai-boundary.test.ts` |
-| 変更ファイル | MenuPlanner 実装側（running 提案を受け取る部分のみ） |
+| [R10-B4A.1 requirement] 経路 | AI 処方は `provider output unknown → application strict parse → reason sanitize → allow-list validation → AI actor 専用 application path → domain planner`。Coach 専用の`running-actions.ts` / `_running-plan-service.ts`を経由しない（§18.5。eslintでimport禁止） |
+| foundation | `src/domain/menu-planner/{contracts,port,catalog-validation,reason-sanitizer}.ts`。video AI namespaceと分離し、provider SDK / infra / Next / Prismaへ依存しない |
+| application（後続） | write-0 preview、server binding、stale reject、server recompute、atomic DRAFT save。HMAC/token、Server Action、UI、provider adapterはfoundationに含めない |
 | schema / migration | なし / 不要 |
-| tests | T-AI-01〜07 |
+| tests | strict request/proposal、numeric injection、clarification排他、catalog ID/method binding、sanitizer、provider unknown境界、dependency isolationに加え、後続でpreview write-0 / stale / atomic rollback / feature flag |
 | 既存互換 | 種目カタログのみの提案は従来通り |
 | 完了条件 | AI 経路から数値・override・版指定・Evidence を1つも渡せないことが型テストと実行時テストの両方で確認できる |
 | rollback | running 提案の受け取りを外す |
@@ -3166,7 +3266,8 @@ Fable の Critical 8件は本書で次のように反映済み:
 | **R0–R8**（domain のみ・schema 変更なし） | **GO** | R0 の golden 凍結を最初に行う。各フェーズの完了条件を満たしてから次へ |
 | **R9**（schema 変更・migration） | **CONDITIONAL GO** | §16 の schema 案をユーザーが承認すること、dev.db のバックアップ、§21.2 の件数照合 |
 | **R10–R11**（UI） | **CONDITIONAL GO** | R9 完了、フラグで切替可能にすること |
-| **R12**（AI 自動生成） | **NO-GO（現時点）** | MenuPlanner port が未実装。加えて OPEN-20（ルールセットの一次資料照合と ACTIVE 化）が済むまで、AI による自動生成を本番で有効にしない |
+| **R12-A2以降の実装**（flag OFF） | **GO** | MenuPlanner foundation contract testを維持し、preview / accept / providerを段階実装する。DB・UI・provider接続は各段階の明示scopeに従う |
+| **R12 production enable** | **NO-GO（現時点）** | OPEN-20完了、RuleSet ACTIVE、`AI_MENU_PLANNER_ENABLED=true`がすべて必要。DRAFT RuleSetで本番AI生成を有効にしない |
 | **R13**（legacy 係数削除） | **NO-GO（現時点）** | R3・R4・R10 の完了と運用確認が前提 |
 | ルールセットの ACTIVE 化 | **NO-GO（現時点）** | 全 Evidence が SECONDARY_REPORT_ONLY。一次資料照合と人間の承認が必要 |
 
@@ -3174,7 +3275,4 @@ Fable の Critical 8件は本書で次のように反映済み:
 
 ---
 
-**今回コードを変更したか：NO**
-
-- `src/` `prisma/` `tests/` `scripts/` `package.json` 等のリポジトリ内ファイルは変更していません。migration・package 変更・DB 書き込み・git 操作もしていません。
-- 本仕様書は、ユーザー承認のうえ `docs/RUNNING_PRESCRIPTION_ENGINE_V2_SPEC.md` として保存した（設計書ファイルの追加のみ。git add / commit はしていない）。
+**R12-A1B foundation status:** MenuPlanner port、strict request / provider / proposal schema、AI-safe catalog DTO、catalog-bound validation、reason sanitizerを実装。provider接続・preview・save・UI・DB / Prisma変更・migration・production enableは未実装。
