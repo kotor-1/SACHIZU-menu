@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { z } from "zod";
+import { engineVersion } from "@/actions/_engine-version";
 
 import {
   AI_REASON_SANITIZED,
@@ -17,6 +18,7 @@ import {
   type MenuPlannerIntentRequest,
   type MenuPlannerProviderRequest,
 } from "@/domain/menu-planner";
+import type { MenuPlannerDraftMaterialization } from "@/domain/menu-planner/draft";
 import { menuPlannerAcceptConstraintsSchema } from "@/domain/menu-planner/accept-token";
 import {
   LEGACY_PLANNER_ENGINE_ID,
@@ -62,10 +64,12 @@ import type { Finding } from "@/domain/running/types/findings";
 import type { WeeklyHistoryInput } from "@/domain/running/types/load";
 import type { RunningPrescriptionValue } from "@/domain/running/types/prescription";
 import type { RuleSet, RuleSetStatus } from "@/domain/running/rules/schema";
+import { buildProvenance, type Provenance } from "@/domain/running/persistence/provenance";
 import { findExercisesForMenuPlanner, listExercisesForMenuPlanner, type ExerciseWithRelations } from "@/infra/repositories/exercise-repository";
 import { listCompetitionRefs } from "@/infra/repositories/competition-repository";
 import { listLoadHistory, type LoadHistoryResult } from "@/infra/repositories/load-history-repository";
 import { findMenuForOwner, type MenuDetail } from "@/infra/repositories/menu-repository";
+import type { PrismaDbClient } from "@/infra/db/prisma";
 import { buildMenuPlannerContextFingerprint, buildMenuPlannerMaterializationDigest } from "./binding";
 import {
   presentMenuPlannerPreview,
@@ -167,6 +171,8 @@ export type MenuPlannerPreviewRevalidationSource = {
     model: string;
     requestId: string;
   };
+  /** [R12-A3B] saveable な fresh replayだけが作れる、DB write用の明示allow-list。client/tokenには出さない。 */
+  draft: MenuPlannerDraftMaterialization | null;
 };
 
 /**
@@ -899,11 +905,11 @@ function buildSubjectBinding(profile: SubjectProfile, context: RunningMenuContex
   };
 }
 
-async function loadHistory(ownerId: string, plannedAt: string | null): Promise<HistoryContext> {
+async function loadHistory(ownerId: string, plannedAt: string | null, db?: PrismaDbClient): Promise<HistoryContext> {
   if (plannedAt === null) return { input: null, result: null };
   const asOf = new Date(plannedAt);
   if (Number.isNaN(asOf.getTime())) throw new Error("PLANNED_AT_INVALID");
-  const result = await listLoadHistory({ ownerId, asOf, windowHours: 24 * 28 });
+  const result = await listLoadHistory({ ownerId, asOf, windowHours: 24 * 28 }, db);
   return {
     input: {
       events: result.events,
@@ -919,6 +925,36 @@ async function loadHistory(ownerId: string, plannedAt: string | null): Promise<H
 function phaseOf(menu: MenuDetail): TrainingPhase | null {
   if (menu.phase === null) return null;
   return z.enum(TRAINING_PHASES).parse(menu.phase);
+}
+
+function buildAiPlannerProvenance(args: {
+  prescription: RunningPrescriptionValue;
+  aiReason: string | null;
+  context: RunningMenuContext;
+  profile: SubjectProfile;
+  plannedDate: IsoDate | null;
+  phase: TrainingPhase | null;
+  competitions: readonly CompetitionRef[];
+}): Provenance {
+  return buildProvenance({
+    prescription: args.prescription,
+    engineVersion: engineVersion(),
+    inputsDigest: {
+      tier: args.prescription.tier,
+      ageBand: args.profile.ageBand,
+      maturityEffective: [...new Set(args.context.subject.members.map((member) => member.maturity.status))].sort().join("+") || "UNKNOWN",
+      trainingAgeTier: args.profile.trainingAgeKnown ? args.profile.trainingAgeTier : "UNKNOWN",
+      phase: args.phase,
+      plannedDate: args.plannedDate,
+      competitionWindows: args.competitions.map((competition) => `${competition.id}:${competition.priority}`),
+      referenceKinds: [args.prescription.intensity.reference.kind],
+      historyCoverage72h: "PARTIAL",
+      readinessActions: [...args.prescription.readinessApplied],
+    },
+    coachEdits: [],
+    overrides: [],
+    aiReason: args.aiReason,
+  });
 }
 
 function providerCatalog(
@@ -951,6 +987,7 @@ function providerCatalog(
 async function buildMenuPlannerPreviewInternal(
   input: BuildMenuPlannerPreviewInput | BuildMenuPlannerPreviewReplayRequest,
   replay?: MenuPlannerPreviewReplayInput,
+  options: { db?: PrismaDbClient } = {},
 ): Promise<BuildMenuPlannerPreviewForRevalidationResult> {
   const isReplayInput = "constraints" in input;
   type ParsedPreviewCommonInput = {
@@ -993,7 +1030,7 @@ async function buildMenuPlannerPreviewInternal(
 
   let menu: MenuDetail | null;
   try {
-    menu = await findMenuForOwner(parsedInput.contextMenuTemplateId, parsedInput.ownerId);
+    menu = await findMenuForOwner(parsedInput.contextMenuTemplateId, parsedInput.ownerId, options.db);
   } catch {
     // `null` below means that the authoritative source menu is no longer
     // visible to this owner (deleted, archived, or otherwise ineligible).
@@ -1050,9 +1087,9 @@ async function buildMenuPlannerPreviewInternal(
       }
       throw error;
     }
-    competitions = await listCompetitionRefs(parsedInput.ownerId);
-    history = await loadHistory(parsedInput.ownerId, context.plannedAt);
-    allExerciseRows = await listExercisesForMenuPlanner(parsedInput.ownerId);
+    competitions = await listCompetitionRefs(parsedInput.ownerId, options.db);
+    history = await loadHistory(parsedInput.ownerId, context.plannedAt, options.db);
+    allExerciseRows = await listExercisesForMenuPlanner(parsedInput.ownerId, options.db);
 
     let catalog: ReturnType<typeof providerCatalog>;
     try {
@@ -1093,7 +1130,7 @@ async function buildMenuPlannerPreviewInternal(
     const selectedExerciseIds = sanitized.proposal.items
       .filter((item): item is Extract<AiPlannerItemProposal, { kind: "EXERCISE" }> => item.kind === "EXERCISE")
       .map((item) => item.proposal.exerciseId);
-    const selectedRows = await findExercisesForMenuPlanner(selectedExerciseIds, parsedInput.ownerId);
+    const selectedRows = await findExercisesForMenuPlanner(selectedExerciseIds, parsedInput.ownerId, options.db);
     const selectedById = new Map(selectedRows.map((row) => [row.id, row]));
     const itemCount = sanitized.proposal.items.length;
     /** 1 つの RUNNING item を、与えられた otherItems で plan する（phase で条件を変えるのはここだけ）。 */
@@ -1195,7 +1232,8 @@ async function buildMenuPlannerPreviewInternal(
     });
 
     const estimatedTime = estimateMenuTime(orderedItems, context.availableMinutes);
-    const blocks = groupedBlocks(orderedItems).map((block) => ({
+    const materializedBlocks = groupedBlocks(orderedItems);
+    const blocks = materializedBlocks.map((block) => ({
       blockKey: block.blockKey,
       title: block.title,
       items: block.items.map((item) => ({
@@ -1265,6 +1303,42 @@ async function buildMenuPlannerPreviewInternal(
       canSave: acceptance.canSave,
       binding: { contextFingerprint, materializationDigest },
     };
+    const draft: MenuPlannerDraftMaterialization | null = acceptance.canSave ? {
+      menuName: parsedInput.menuName,
+      phase,
+      estimatedMinutes:
+        estimatedTime.quality === "ESTIMATE" && estimatedTime.seconds !== null
+          ? Math.ceil(estimatedTime.seconds / 60)
+          : null,
+      runningContextJson: JSON.stringify(context),
+      blocks: materializedBlocks.map((block) => ({
+        name: block.title,
+        items: block.items.map((item) => {
+          if (item.state !== "READY" || (item.runningPrescription === null && item.legacyPrescription === null)) {
+            throw new Error("DRAFT_MATERIALIZATION_NOT_READY");
+          }
+          return {
+            selection: item.selection,
+            title: item.title,
+            runningPrescription: item.runningPrescription,
+            runningProvenance:
+              item.runningPrescription === null
+                ? null
+                : buildAiPlannerProvenance({
+                    prescription: item.runningPrescription,
+                    aiReason: item.aiReason,
+                    context,
+                    profile,
+                    plannedDate: context.plannedDate,
+                    phase,
+                    competitions,
+                  }),
+            legacyPrescription: item.legacyPrescription,
+            legacySetRestSeconds: item.legacySetRestSeconds,
+          };
+        }),
+      })),
+    } : null;
     return {
       ok: true,
       preview: presentMenuPlannerPreview(presentationInput),
@@ -1294,6 +1368,7 @@ async function buildMenuPlannerPreviewInternal(
           model: PREVIEW_ACTOR.model,
           requestId: PREVIEW_REQUEST_ID,
         },
+        draft,
       },
     };
   } catch (error) {
@@ -1326,6 +1401,7 @@ export async function buildMenuPlannerPreview(
 export async function buildMenuPlannerPreviewForRevalidation(
   input: BuildMenuPlannerPreviewInput | BuildMenuPlannerPreviewReplayRequest,
   replay?: MenuPlannerPreviewReplayInput,
+  options?: { db?: PrismaDbClient },
 ): Promise<BuildMenuPlannerPreviewForRevalidationResult> {
-  return buildMenuPlannerPreviewInternal(input, replay);
+  return buildMenuPlannerPreviewInternal(input, replay, options);
 }

@@ -131,6 +131,11 @@ export const menuPlannerAcceptClaimsSchema = z
     contextFingerprint: sha256HexSchema,
     /** preview 時の canonical display result。 */
     materializationDigest: sha256HexSchema,
+    /**
+     * A3B の post-commit retry identity。保存用 semantic projection の digest であり、
+     * 新規 MenuItem の数値 authority ではない。A3A の materializationDigest とは別物。
+     */
+    savedDraftIdentityDigest: sha256HexSchema,
     ruleSet: acceptRuleSetIdentitySchema,
     planner: acceptPlannerIdentitySchema,
     issuedAt: canonicalIsoDateTimeSchema,
@@ -177,6 +182,7 @@ export function canonicalizeMenuPlannerAcceptClaims(claims: MenuPlannerAcceptCla
     reasonSanitized: claims.reasonSanitized,
     contextFingerprint: claims.contextFingerprint,
     materializationDigest: claims.materializationDigest,
+    savedDraftIdentityDigest: claims.savedDraftIdentityDigest,
     ruleSet: {
       version: claims.ruleSet.version,
       contentHash: claims.ruleSet.contentHash,

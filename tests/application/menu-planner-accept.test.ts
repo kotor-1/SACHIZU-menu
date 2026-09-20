@@ -322,6 +322,7 @@ describe("R12-A3A issue", () => {
     expect(claims.requestDigest).toMatch(/^[0-9a-f]{64}$/u);
     expect(claims.contextFingerprint).toBe(result.signed.preview.binding.contextFingerprint);
     expect(claims.materializationDigest).toBe(result.signed.preview.binding.materializationDigest);
+    expect(claims.savedDraftIdentityDigest).toMatch(/^[0-9a-f]{64}$/u);
     expect(claims.issuedAt).toBe("2026-09-20T07:00:00.000Z");
     expect(claims.expiresAt).toBe(new Date(ISSUED_AT.getTime() + TTL_MS).toISOString());
     const source = await revalidationSource(menu.id, drill.id);

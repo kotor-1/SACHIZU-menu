@@ -1,4 +1,4 @@
-import { prisma } from "@/infra/db/prisma";
+import { prisma, type PrismaDbClient } from "@/infra/db/prisma";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import {
   legacyLoadCategoryOfExerciseCategory,
@@ -121,13 +121,13 @@ const INTENSITY_TAG_BY_LOAD_CLASS: Record<LoadClass, LoadEvent["intensityTag"]> 
 /** 距離・露出が記録されていないことを表す区間（0 にしない）。 */
 const unknownMetersInterval = () => ({ lower: null, upper: null, unit: "m" as const, source: "UNKNOWN" as const, confidence: "NONE" as const });
 
-export async function listLoadHistory(query: LoadHistoryQuery): Promise<LoadHistoryResult> {
+export async function listLoadHistory(query: LoadHistoryQuery, db: PrismaDbClient = prisma): Promise<LoadHistoryResult> {
   const { asOf, windowHours } = query;
   if (!(asOf instanceof Date) || Number.isNaN(asOf.getTime())) throw new Error("asOf が不正です");
   if (!Number.isFinite(windowHours) || windowHours <= 0) throw new Error("windowHours は正の数である必要があります");
   const windowStart = new Date(asOf.getTime() - windowHours * 60 * 60 * 1000);
 
-  const sessions = await prisma.trainingSession.findMany({
+  const sessions = await db.trainingSession.findMany({
     where: {
       ownerId: query.ownerId ?? DEFAULT_OWNER_ID,
       date: { gte: windowStart, lt: asOf },

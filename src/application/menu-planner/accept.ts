@@ -29,6 +29,7 @@ import {
   type MenuPlannerAcceptClaims,
 } from "@/domain/menu-planner/accept-token";
 import { MENU_PLANNER_PREVIEW_SCHEMA_VERSION, canonicalStringify } from "@/domain/menu-planner/preview";
+import type { MenuPlannerDraftMaterialization } from "@/domain/menu-planner/draft";
 import type { AiPlannerProposal } from "@/domain/menu-planner";
 import type { RuleSetStatus } from "@/domain/running/rules/schema";
 import type { MenuPlannerPreview } from "@/presentation/menu-planner/preview";
@@ -39,11 +40,13 @@ import {
   verifyHmacToken,
   type HmacSigningKey,
 } from "@/infra/security/hmac-token";
+import { buildMenuPlannerDraftIdentityDigest } from "@/infra/repositories/menu-planner-draft-repository";
 import {
   buildMenuPlannerPreviewForRevalidation,
   type BuildMenuPlannerPreviewInput,
   type MenuPlannerPreviewError,
 } from "./preview";
+import type { PrismaDbClient } from "@/infra/db/prisma";
 
 // ---------------------------------------------------------------------------
 // Error taxonomy
@@ -235,10 +238,16 @@ export async function issueMenuPlannerSignedPreview(
 
   const issuedAt = resolveNow(deps);
 
+  if (revalidation.draft === null) {
+    return { ok: false, error: acceptError("PLANNING_REJECTED", "DETERMINISTIC_PLANNING_FAILED", "決定論的なプレビューを生成できません。") };
+  }
+
+  const targetMenuId = deps.generateId();
+
   const rawClaims: MenuPlannerAcceptClaims = {
     schemaVersion: MENU_PLANNER_ACCEPT_TOKEN_SCHEMA_VERSION,
     previewId: deps.generateId(),
-    targetMenuId: deps.generateId(),
+    targetMenuId,
     ownerId: input.ownerId,
     contextMenuTemplateId: input.contextMenuTemplateId,
     menuName: revalidation.menuName,
@@ -248,6 +257,11 @@ export async function issueMenuPlannerSignedPreview(
     reasonSanitized: revalidation.reasonSanitized,
     contextFingerprint: preview.binding.contextFingerprint,
     materializationDigest: preview.binding.materializationDigest,
+    savedDraftIdentityDigest: buildMenuPlannerDraftIdentityDigest({
+      ...revalidation.draft,
+      ownerId: input.ownerId,
+      targetMenuId,
+    }),
     ruleSet: revalidation.ruleSet,
     planner: revalidation.planner,
     issuedAt: issuedAt.toISOString(),
@@ -295,27 +309,25 @@ export type MenuPlannerAcceptMaterialization = {
   materializationDigest: string;
   ruleSet: { version: string; contentHash: string; status: RuleSetStatus };
   sanitizedProposal: AiPlannerProposal;
+  /** fresh replayからのみ作られる、A3B transaction write用のserver-only material。 */
+  draft: MenuPlannerDraftMaterialization;
 };
 
 export type RevalidateMenuPlannerAcceptResult =
   | { ok: true; preview: MenuPlannerPreview; materialization: MenuPlannerAcceptMaterialization }
   | { ok: false; error: MenuPlannerAcceptError };
 
-/**
- * token を検証し、authoritative context を再読込して A2 を再実行し、binding の一致を判定する。
- *
- * 検査順（cheap なものを先に。IO は signature / 期限 / owner の後）:
- *   1. HMAC 署名検証（DB に触らない）
- *   2. payload の JSON / strict claim schema
- *   3. 期限（期限切れは INVALID_INPUT ではなく **STALE_PREVIEW**）
- *   4. owner binding の exact 一致（不一致なら他 owner の context を読まない）
- *   5. authoritative 再読込 + A2 再実行（§18.6 の server recompute）
- *   6. contextFingerprint **かつ** materializationDigest の一致（両方必須）
- */
-export async function revalidateMenuPlannerAccept(
+export type VerifiedMenuPlannerAccept = {
+  claims: MenuPlannerAcceptClaims;
+  ownerId: string;
+  now: Date;
+};
+
+/** DB不要のtoken検証境界。A3Bはこの結果をtransaction内のtarget checkへ渡す。 */
+export function verifyMenuPlannerAcceptToken(
   input: RevalidateMenuPlannerAcceptInput,
   deps: MenuPlannerAcceptDependencies,
-): Promise<RevalidateMenuPlannerAcceptResult> {
+): { ok: true; verified: VerifiedMenuPlannerAccept } | { ok: false; error: MenuPlannerAcceptError } {
   assertDependencies(deps);
   const now = resolveNow(deps);
 
@@ -358,17 +370,29 @@ export async function revalidateMenuPlannerAccept(
     };
   }
 
-  // 5. authoritative recompute。token の数値ではなく、server が読み直した context から A2 を再実行する。
+  return { ok: true, verified: { claims, ownerId: input.ownerId, now } };
+}
+
+/**
+ * 検証済みtokenを使い、authoritative contextをtransaction clientから再読込してA2を再実行する。
+ * A3Bはこの関数を同一transaction内で呼ぶため、revalidateとwriteの間にTOCTOU gapを作らない。
+ */
+export async function revalidateVerifiedMenuPlannerAccept(
+  verified: VerifiedMenuPlannerAccept,
+  options: { db?: PrismaDbClient } = {},
+): Promise<RevalidateMenuPlannerAcceptResult> {
+  const { claims } = verified;
+  // authoritative recompute。token の数値ではなく、server が読み直した context から A2 を再実行する。
   const recomputed = await buildMenuPlannerPreviewForRevalidation({
     schemaVersion: MENU_PLANNER_PREVIEW_SCHEMA_VERSION,
-    ownerId: input.ownerId,
+    ownerId: verified.ownerId,
     contextMenuTemplateId: claims.contextMenuTemplateId,
     menuName: claims.menuName,
     constraints: claims.constraints,
     proposal: claims.proposal,
     // 発行時に確定した sanitizer の判定を replay する（token の proposal は sanitize 済みのため、
     // そのまま再 sanitize すると AI_REASON_SANITIZED が消えて digest が一致しなくなる）。
-  }, { requestDigest: claims.requestDigest, reasonSanitized: claims.reasonSanitized });
+  }, { requestDigest: claims.requestDigest, reasonSanitized: claims.reasonSanitized }, options);
   if (!recomputed.ok) {
     return { ok: false, error: fromPlannerError(recomputed.error, true) };
   }
@@ -391,6 +415,16 @@ export async function revalidateMenuPlannerAccept(
     };
   }
 
+  // A signed acceptToken can only be issued for canSave=true. Keep this guard
+  // fail-closed for impossible/tampered internal states instead of fabricating
+  // a write materialization for an unsaveable replay.
+  if (recomputed.revalidation.draft === null) {
+    return {
+      ok: false,
+      error: acceptError("PLANNING_REJECTED", "DETERMINISTIC_PLANNING_FAILED", "決定論的なプレビューを生成できません。"),
+    };
+  }
+
   return {
     ok: true,
     preview: recomputed.preview,
@@ -401,6 +435,20 @@ export async function revalidateMenuPlannerAccept(
       materializationDigest: recomputed.preview.binding.materializationDigest,
       ruleSet: recomputed.revalidation.ruleSet,
       sanitizedProposal: recomputed.revalidation.sanitizedProposal,
+      draft: recomputed.revalidation.draft,
     },
   };
+}
+
+/**
+ * tokenを検証し、authoritative contextを再読込してA2を再実行し、bindingの一致を判定する。
+ * 通常のA3A caller向けwrapper。A3Bは同じ処理のverified variantをtransaction内で使う。
+ */
+export async function revalidateMenuPlannerAccept(
+  input: RevalidateMenuPlannerAcceptInput,
+  deps: MenuPlannerAcceptDependencies,
+): Promise<RevalidateMenuPlannerAcceptResult> {
+  const verified = verifyMenuPlannerAcceptToken(input, deps);
+  if (!verified.ok) return verified;
+  return revalidateVerifiedMenuPlannerAccept(verified.verified);
 }

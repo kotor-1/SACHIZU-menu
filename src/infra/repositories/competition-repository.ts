@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "@/infra/db/prisma";
+import { prisma, type PrismaDbClient } from "@/infra/db/prisma";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { competitionInputSchema, type CompetitionInput } from "@/domain/running/persistence/competition";
 import type { CompetitionRef } from "@/domain/running/competition/schema";
@@ -48,11 +48,12 @@ export async function findCompetition(id: string) {
 export async function listCompetitions(
   range: { from?: Date; to?: Date } = {},
   ownerId = DEFAULT_OWNER_ID,
+  db: PrismaDbClient = prisma,
 ) {
   const date: Prisma.DateTimeFilter = {};
   if (range.from) date.gte = range.from;
   if (range.to) date.lte = range.to;
-  return prisma.competition.findMany({
+  return db.competition.findMany({
     where: { ownerId, ...(range.from || range.to ? { date } : {}) },
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
   });
@@ -68,8 +69,8 @@ function toIsoDate(value: Date): CompetitionRef["date"] {
  * planner（R10-B1）と session 評価（R10-B2）が共有する唯一の adapter。開催期間の判定に必要な
  * `endDate` を落とさない（null は1日開催）。
  */
-export async function listCompetitionRefs(ownerId = DEFAULT_OWNER_ID): Promise<CompetitionRef[]> {
-  const rows = await listCompetitions({}, ownerId);
+export async function listCompetitionRefs(ownerId = DEFAULT_OWNER_ID, db: PrismaDbClient = prisma): Promise<CompetitionRef[]> {
+  const rows = await listCompetitions({}, ownerId, db);
   return rows.map((c) => ({
     id: c.id,
     date: toIsoDate(c.date),

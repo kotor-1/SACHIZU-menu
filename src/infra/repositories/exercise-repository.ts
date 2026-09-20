@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "@/infra/db/prisma";
+import { prisma, type PrismaDbClient } from "@/infra/db/prisma";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import {
   EXERCISE_PAGE_SIZE,
@@ -26,9 +26,10 @@ export type ExerciseWithRelations = Prisma.ExerciseGetPayload<{
 export async function findExercisesForMenuPlanner(
   ids: readonly string[],
   ownerId: string,
+  db: PrismaDbClient = prisma,
 ): Promise<ExerciseWithRelations[]> {
   if (ids.length === 0) return [];
-  return prisma.exercise.findMany({
+  return db.exercise.findMany({
     where: { ownerId, id: { in: [...ids] } },
     include: withRelations,
     orderBy: { id: "asc" },
@@ -36,8 +37,8 @@ export async function findExercisesForMenuPlanner(
 }
 
 /** MenuPlanner の binding と catalog validation が共有する owner-scoped 全件 read。 */
-export async function listExercisesForMenuPlanner(ownerId: string): Promise<ExerciseWithRelations[]> {
-  return prisma.exercise.findMany({
+export async function listExercisesForMenuPlanner(ownerId: string, db: PrismaDbClient = prisma): Promise<ExerciseWithRelations[]> {
+  return db.exercise.findMany({
     where: { ownerId },
     include: withRelations,
     orderBy: { id: "asc" },

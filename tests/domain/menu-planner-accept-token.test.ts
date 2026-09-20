@@ -56,6 +56,7 @@ function claims(): MenuPlannerAcceptClaims {
     reasonSanitized: [false],
     contextFingerprint: "a".repeat(64),
     materializationDigest: "b".repeat(64),
+    savedDraftIdentityDigest: "d".repeat(64),
     ruleSet: { version: "rs-2026.09.0", contentHash: "rules-a", status: "DRAFT" },
     planner: {
       policyId: "R12_MENU_INTENT_V1",
@@ -119,6 +120,7 @@ describe("R12-A3A accept token claims", () => {
       planner: base.planner,
       ruleSet: base.ruleSet,
       materializationDigest: base.materializationDigest,
+      savedDraftIdentityDigest: base.savedDraftIdentityDigest,
       contextFingerprint: base.contextFingerprint,
       proposal: base.proposal,
       reasonSanitized: base.reasonSanitized,
@@ -149,6 +151,7 @@ describe("R12-A3A accept token claims", () => {
     const base = canonicalStringify(canonicalizeMenuPlannerAcceptClaims(claims()));
     expect(canonicalStringify(canonicalizeMenuPlannerAcceptClaims({ ...claims(), contextFingerprint: "c".repeat(64) }))).not.toBe(base);
     expect(canonicalStringify(canonicalizeMenuPlannerAcceptClaims({ ...claims(), materializationDigest: "d".repeat(64) }))).not.toBe(base);
+    expect(canonicalStringify(canonicalizeMenuPlannerAcceptClaims({ ...claims(), savedDraftIdentityDigest: "e".repeat(64) }))).not.toBe(base);
     expect(canonicalStringify(canonicalizeMenuPlannerAcceptClaims({ ...claims(), targetMenuId: "target-2" }))).not.toBe(base);
   });
 

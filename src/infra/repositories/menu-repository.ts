@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "@/infra/db/prisma";
+import { prisma, type PrismaDbClient } from "@/infra/db/prisma";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import {
   MENU_PAGE_SIZE,
@@ -118,8 +118,8 @@ export async function findMenu(id: string): Promise<MenuDetail | null> {
  * MenuPlanner の server authority 用 read path。
  * ownerId を where に閉じ込め、Application 層の後付け filter に依存しない。
  */
-export async function findMenuForOwner(id: string, ownerId: string): Promise<MenuDetail | null> {
-  return prisma.menuTemplate.findFirst({
+export async function findMenuForOwner(id: string, ownerId: string, db: PrismaDbClient = prisma): Promise<MenuDetail | null> {
+  return db.menuTemplate.findFirst({
     where: { id, ownerId, status: { not: "ARCHIVED" } },
     include: menuDetailInclude,
   });

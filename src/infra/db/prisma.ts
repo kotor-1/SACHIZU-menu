@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 /**
  * Next.js の dev サーバーはモジュールを繰り返し評価するため、
@@ -15,3 +15,6 @@ export const prisma =
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
+
+/** Global client と interactive transaction client の共通 repository 境界。 */
+export type PrismaDbClient = PrismaClient | Prisma.TransactionClient;
