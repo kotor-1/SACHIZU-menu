@@ -66,6 +66,15 @@ export type MenuPlannerGenerateContextError = {
   message: string;
 };
 
+/**
+ * The only fact exposed to the production pre-preview gate. Keep this
+ * projection detached from the A3C proposal so a gate cannot mutate the
+ * proposal that is later materialized and signed.
+ */
+export type MenuPlannerBeforePreviewContext = Readonly<{
+  containsRunning: boolean;
+}>;
+
 export type LoadMenuPlannerAuthoritativeParserContext = (input: {
   ownerId: string;
   contextMenuTemplateId: string;
@@ -80,6 +89,13 @@ export type GenerateMenuPlannerPreviewDependencies = {
   loadAuthoritativeParserContext: LoadMenuPlannerAuthoritativeParserContext;
   parserOptions: Pick<ParseMenuIntentOptions, "timeoutMs" | "maxOutputBytes">;
   accept: MenuPlannerAcceptDependencies;
+  /**
+   * Server-owned checks that must run after A3C has accepted the proposal and
+   * before A2 materialization or A3A token issuance. Only a frozen, derived
+   * fact is exposed; the validated proposal itself remains private to this
+   * orchestration and is passed unchanged to A2/A3A.
+   */
+  beforePreview?: (context: MenuPlannerBeforePreviewContext) => MenuPlannerGenerateContextError | null;
 };
 
 export type GenerateMenuPlannerPreviewOptions = {
@@ -210,6 +226,29 @@ export async function generateMenuPlannerPreview(
       ok: true,
       result: { kind: "CLARIFICATION", question: parsed.proposal.question },
     };
+  }
+
+  if (deps.beforePreview !== undefined) {
+    let proposalGate: MenuPlannerGenerateContextError | null;
+    try {
+      // Keep the gate input detached from the validated proposal. Freezing the
+      // scalar projection also prevents a gate from changing the fact it is
+      // inspecting and thereby bypassing its own decision.
+      const beforePreviewContext = Object.freeze({
+        containsRunning: parsed.proposal.items.some((item) => item.kind === "RUNNING"),
+      });
+      proposalGate = deps.beforePreview(beforePreviewContext);
+    } catch {
+      return {
+        ok: false,
+        error: {
+          kind: "PLANNING_REJECTED",
+          code: "PROPOSAL_GATE_FAILED",
+          message: "提案を本番利用できる状態か確認できません。",
+        },
+      };
+    }
+    if (proposalGate !== null) return { ok: false, error: proposalGate };
   }
 
   let issued: IssueMenuPlannerSignedPreviewResult;

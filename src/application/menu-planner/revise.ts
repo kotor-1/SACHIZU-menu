@@ -252,6 +252,28 @@ export async function reviseMenuPlannerPreview(
     };
   }
 
+  if (deps.beforePreview !== undefined) {
+    let proposalGate: MenuPlannerGenerateContextError | null;
+    try {
+      // The gate sees only a frozen derived fact. The A3C proposal remains
+      // detached from the hook and is passed unchanged to A2/A3A below.
+      const beforePreviewContext = Object.freeze({
+        containsRunning: parsed.proposal.items.some((item) => item.kind === "RUNNING"),
+      });
+      proposalGate = deps.beforePreview(beforePreviewContext);
+    } catch {
+      return {
+        ok: false,
+        error: {
+          kind: "PLANNING_REJECTED",
+          code: "PROPOSAL_GATE_FAILED",
+          message: "提案を本番利用できる状態か確認できません。",
+        },
+      };
+    }
+    if (proposalGate !== null) return { ok: false, error: proposalGate };
+  }
+
   let issued;
   try {
     issued = await issueMenuPlannerSignedPreview(

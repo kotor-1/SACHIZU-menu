@@ -264,6 +264,67 @@ describe("R12-A3D generate application orchestration", () => {
     expect(result).toMatchObject({ ok: false, error: { kind: "PLANNING_REJECTED" } });
   });
 
+  it("isolates the pre-preview gate from the proposal used by A2/A3A", async () => {
+    const generatedExercise = await makeExercise({ name: "A3G.2ドリル" });
+    const sourceMenu = await prisma.menuTemplate.create({
+      data: {
+        ownerId: DEFAULT_OWNER_ID,
+        name: "A3G.2参照メニュー",
+        phase: "PREPARATION",
+        runningContextJson: JSON.stringify({
+          schemaVersion: 1,
+          subject: {
+            kind: "GROUP",
+            label: "短距離ブロック",
+            members: [{
+              ageBandOverride: "U18",
+              maturity: { status: "POST", confidence: "HIGH", method: "COACH_OBSERVATION", assessedAt: "2026-09-01" },
+              trainingAge: { structuredSprintYears: 5, coachAssignedTier: "ADVANCED" },
+              primaryEvent: "400m",
+            }],
+            allowAdvancedMethods: true,
+          },
+          plannedDate: "2026-09-20",
+          plannedAt: "2026-09-20T16:00:00+09:00",
+          availableMinutes: 90,
+        }),
+      },
+    });
+    const calls: Array<{ kind: string; value?: unknown }> = [];
+    let observedContext: unknown;
+    const deps = dependencies(
+      parserReturning(exerciseProposal(generatedExercise.id), []),
+      authoritativeContext(generatedExercise.id),
+      calls,
+    );
+    deps.beforePreview = (context) => {
+      observedContext = context;
+      expect(context).toEqual({ containsRunning: false });
+      expect(Object.isFrozen(context)).toBe(true);
+      expect("items" in context).toBe(false);
+      expect(() => {
+        (context as { containsRunning: boolean }).containsRunning = true;
+      }).toThrow();
+      return null;
+    };
+
+    const result = await generateMenuPlannerPreview(
+      input({ contextMenuTemplateId: sourceMenu.id }),
+      deps,
+    );
+
+    expect(observedContext).toEqual({ containsRunning: false });
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.result.kind !== "PREVIEW" || result.result.acceptToken === null) {
+      throw new Error(JSON.stringify(result));
+    }
+    const verified = verifyHmacToken(result.result.acceptToken, SIGNING_KEY);
+    expect(verified.ok).toBe(true);
+    if (!verified.ok) throw new Error("generated token did not verify");
+    const claims = JSON.parse(verified.payload) as { proposal: ReturnType<typeof exerciseProposal> };
+    expect(claims.proposal.items[0]?.proposal.exerciseId).toBe(generatedExercise.id);
+  });
+
   it("returns a safe planning failure when authoritative context loading throws", async () => {
     const deps = dependencies(parserReturning(exerciseProposal(), []), authoritativeContext(), []);
     deps.loadAuthoritativeParserContext = async () => {

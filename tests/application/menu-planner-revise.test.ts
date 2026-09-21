@@ -359,6 +359,42 @@ describe("R12-A3E revise preview orchestration", () => {
     expect(menu.id).toBeTruthy();
   });
 
+  it("keeps the revised proposal immutable across the pre-preview gate", async () => {
+    const alternateExercise = await makeExercise({ name: "A3G.2別ドリル", defaultDistanceMeters: 25 });
+    const { revisedExercise, token } = await setup();
+    const parser: MenuIntentParser = {
+      async propose() {
+        return { ok: true, output: exerciseProposal(alternateExercise.id) };
+      },
+    };
+    const deps = revisionDependencies(parser, alternateExercise.id, []);
+    let observedContext: unknown;
+    deps.beforePreview = (context) => {
+      observedContext = context;
+      expect(context).toEqual({ containsRunning: false });
+      expect(Object.isFrozen(context)).toBe(true);
+      expect("items" in context).toBe(false);
+      expect(() => {
+        (context as { containsRunning: boolean }).containsRunning = true;
+      }).toThrow();
+      return null;
+    };
+
+    const result = await reviseMenuPlannerPreview(revisionInput(token), deps);
+
+    expect(observedContext).toEqual({ containsRunning: false });
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.result.kind !== "PREVIEW" || result.result.acceptToken === null) {
+      throw new Error(JSON.stringify(result));
+    }
+    const verified = verifyHmacToken(result.result.acceptToken, SIGNING_KEY);
+    expect(verified.ok).toBe(true);
+    if (!verified.ok) throw new Error("revised token did not verify");
+    const claims = JSON.parse(verified.payload) as { proposal: ReturnType<typeof exerciseProposal> };
+    expect(claims.proposal.items[0]?.proposal.exerciseId).toBe(alternateExercise.id);
+    expect(revisedExercise.id).not.toBe(alternateExercise.id);
+  });
+
   it("rebuilds Running prescription deterministically from a revised selection", async () => {
     const { revisedExercise, token } = await setup();
     const parserRequests: unknown[] = [];
