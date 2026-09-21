@@ -224,6 +224,41 @@ const menuPlannerCatalogSchema = z
     );
   });
 
+/**
+ * A3E revision 用の verified prior selection projection。
+ *
+ * これは signed accept-token の proposal から server が再構成する provider-visible
+ * context であり、raw reason / block label / preview materialization / numeric
+ * prescription は含めない。revision の AI は「何を選んでいたか」だけを参照できる。
+ */
+const menuPlannerRevisionPreviousSelectionItemSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("EXERCISE"),
+      exerciseId: identifierSchema,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("RUNNING"),
+      method: runningTrainingMethodSchema,
+      templateId: identifierSchema,
+      positionPreference: z.enum(["LOWER", "MIDDLE"]).nullable(),
+    })
+    .strict(),
+]);
+
+export const menuPlannerRevisionPreviousProposalSchema = z
+  .object({
+    schemaVersion: z.literal(MENU_PLANNER_SCHEMA_VERSION),
+    items: z.array(menuPlannerRevisionPreviousSelectionItemSchema).max(20),
+  })
+  .strict();
+
+export type MenuPlannerRevisionPreviousProposal = z.infer<
+  typeof menuPlannerRevisionPreviousProposalSchema
+>;
+
 export const menuPlannerProviderRequestSchema = z
   .object({
     schemaVersion: z.literal(MENU_PLANNER_SCHEMA_VERSION),
@@ -235,6 +270,8 @@ export const menuPlannerProviderRequestSchema = z
     coachRequest: menuPlannerIntentRequestSchema,
     subject: menuPlannerAiSafeSubjectContextSchema,
     catalog: menuPlannerCatalogSchema,
+    /** A3E only: verified signed prior selection, never client-supplied authority. */
+    previousProposal: menuPlannerRevisionPreviousProposalSchema.optional(),
   })
   .strict();
 

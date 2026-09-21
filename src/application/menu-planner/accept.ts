@@ -153,6 +153,11 @@ export type IssueMenuPlannerSignedPreviewInput = {
   menuName: string;
   intent: unknown;
   proposal: unknown;
+  /**
+   * Server-internal revision lineage input. When present, this must come from
+   * a verified prior accept-token claim; it is never part of a client request.
+   */
+  trustedTargetMenuId?: string;
 };
 
 /** client へ返してよい部分だけ。token は opaque な文字列として扱う。 */
@@ -242,7 +247,11 @@ export async function issueMenuPlannerSignedPreview(
     return { ok: false, error: acceptError("PLANNING_REJECTED", "DETERMINISTIC_PLANNING_FAILED", "決定論的なプレビューを生成できません。") };
   }
 
-  const targetMenuId = deps.generateId();
+  // A fresh generate starts a new logical draft lineage. A revision, however,
+  // carries forward the target identity from the already verified prior token.
+  // Keep this input in the issuer before deriving the signed draft identity so
+  // every target-bound claim remains internally consistent.
+  const targetMenuId = input.trustedTargetMenuId ?? deps.generateId();
 
   const rawClaims: MenuPlannerAcceptClaims = {
     schemaVersion: MENU_PLANNER_ACCEPT_TOKEN_SCHEMA_VERSION,
