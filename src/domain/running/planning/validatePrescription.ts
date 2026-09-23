@@ -105,6 +105,18 @@ export function validatePrescriptionAgainstRuleSet(
     problems.push("planningControls がありません");
   }
 
+  // E10: 新しい Vdec plan は分類境界を snapshot するが、分類から数値 target を作らない。
+  // 旧 snapshot は旧 target を持つ限り読み取り互換を維持する。
+  if (p.intensity.reference.kind === "VELOCITY_DECREMENT") {
+    const vdecPolicy = p.monitoringSnapshot.vdecClassificationPolicy;
+    if (vdecPolicy !== undefined && canonical(vdecPolicy.bands) !== canonical(ruleSet.vdecClassificationBands)) {
+      problems.push("monitoringSnapshot.vdecClassificationPolicy が plan 時点の RuleSet と一致しません");
+    }
+    if (p.intensity.target === null && vdecPolicy === undefined) {
+      problems.push("新しい Vdec plan には vdecClassificationPolicy snapshot が必要です");
+    }
+  }
+
   const stopPolicy = ruleSet.stopPolicies.find((sp) => sp.id === p.stopPolicyId);
   if (
     !(methodMeta.stopPolicyIds as readonly string[]).includes(p.stopPolicyId) ||

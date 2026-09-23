@@ -440,6 +440,7 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
       "EV_HAUGEN_2019_VOLUME_TABLE",
       "EV_HAUGEN_2019_TEMPO",
       "EV_HAUGEN_2019_VITTORI",
+      "EV_VITTORI_1981_PRIMARY",
       "EV_HAUGEN_2019_48H",
       "EV_UKA_CLASSIFICATION",
       "EV_PETRAKOS_2016_VDEC",
@@ -454,7 +455,7 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
       "EV_WELLNESS_SR",
       "EV_TIMING_ERROR_REPORTS",
       "EV_JAAF_JHS_GUIDE",
-      "EV_JSPO_GROWTH_GUIDE",
+      "EV_ENGINE_SAFETY_POLICY",
       "EV_JAAF_WIND_SPRINT",
       "EV_ENGINE_POLICY",
     ];
@@ -653,29 +654,34 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
     expect(vittori.fields.sets!.recommended).toEqual({ min: 2, max: 4, unit: "sets" });
     const assisted = rs.envelopes.find((e) => e.method === "ASSISTED_SPRINT")!;
     expect(assisted.fields.intensityPercent!.coachEditable).toEqual({ min: 100, max: 105, unit: "percent" });
-    expect(rs.evidence.length).toBe(24);
-    expect(rs.evidence.filter((e) => e.verification === "SECONDARY_REPORT_ONLY").length).toBe(24);
+    expect(rs.evidence.length).toBe(25);
+    expect(rs.evidence.filter((e) => e.verification === "PRIMARY_CHECKED").map((e) => e.id).sort()).toEqual([
+      "EV_JAAF_JHS_GUIDE",
+      "EV_JAAF_WIND_SPRINT",
+      "EV_PETRAKOS_2016_VDEC",
+      "EV_VITTORI_1981_PRIMARY",
+    ]);
   });
 
   it("status=DRAFT である（一次資料未照合のため ACTIVE 化しない、§25）", () => {
     expect(rs.status).toBe("DRAFT");
   });
 
-  it("全 Evidence の verification は SECONDARY_REPORT_ONLY（PRIMARY_CHECKED は無い）", () => {
+  it("Evidence の verification は一次照合済みと二次報告を区別する", () => {
+    const primary = new Set(["EV_JAAF_JHS_GUIDE", "EV_JAAF_WIND_SPRINT", "EV_PETRAKOS_2016_VDEC", "EV_VITTORI_1981_PRIMARY"]);
     for (const e of rs.evidence) {
-      if (e.sourceType === "ENGINE_POLICY") continue;
-      expect(e.verification).toBe("SECONDARY_REPORT_ONLY");
+      expect(e.verification).toBe(primary.has(e.id) ? "PRIMARY_CHECKED" : "SECONDARY_REPORT_ONLY");
     }
   });
 
-  it("Evidence verification の分布: total=24, SECONDARY_REPORT_ONLY=24, PRIMARY_CHECKED=0（EV_ENGINE_POLICY も SECONDARY_REPORT_ONLY として格納し、sourceType/provisional で区別する）", () => {
-    expect(rs.evidence.length).toBe(24);
+  it("Evidence verification の分布: total=25, PRIMARY_CHECKED=4（レビュー/公式資料の照合状態を保持）", () => {
+    expect(rs.evidence.length).toBe(25);
     const counts = { SECONDARY_REPORT_ONLY: 0, PRIMARY_CHECKED: 0 };
     for (const e of rs.evidence) {
       counts[e.verification] += 1;
     }
-    expect(counts.SECONDARY_REPORT_ONLY).toBe(24);
-    expect(counts.PRIMARY_CHECKED).toBe(0);
+    expect(counts.SECONDARY_REPORT_ONLY).toBe(21);
+    expect(counts.PRIMARY_CHECKED).toBe(4);
 
     const enginePolicy = rs.evidence.find((e) => e.id === "EV_ENGINE_POLICY")!;
     expect(enginePolicy.sourceType).toBe("ENGINE_POLICY");
@@ -716,10 +722,10 @@ describe("loader-level completeness enforcement (parseProductionRuleSet)", () =>
 
   it("Envelope から参照されている Evidence を1件欠かすと（evidence completeness 欠落）shape validation の時点で拒否される", async () => {
     const { parseProductionRuleSet } = await import("@/domain/running/rules/loader");
-    // EV_HAUGEN_2019_ACC_EXAMPLES は ACCELERATION Envelope から参照されている。
+    // EV_ENGINE_POLICY は ACCELERATION の tier 縮約セルから参照されている。
     const mutated = {
       ...realRaw,
-      evidence: realRaw.evidence.filter((e: { id: string }) => e.id !== "EV_HAUGEN_2019_ACC_EXAMPLES"),
+      evidence: realRaw.evidence.filter((e: { id: string }) => e.id !== "EV_ENGINE_POLICY"),
     };
     expect(() => parseProductionRuleSet(mutated)).toThrow();
   });
@@ -849,13 +855,62 @@ describe("numerical transcription audit against §7.4", () => {
     }
   });
 
-  it("RESISTED_SPRINT: vdec境界 LIGHT<10, MODERATE 10-15, HEAVY 15-30（ADVANCED）", () => {
-    const light = rs.envelopes.find((e) => e.method === "RESISTED_SPRINT" && e.templateIds.includes("RS_SLED_LIGHT" as never) && e.fields.vdecPercent && e.tier === "ADVANCED");
-    const moderate = rs.envelopes.find((e) => e.method === "RESISTED_SPRINT" && e.templateIds.includes("RS_SLED_MODERATE" as never) && e.fields.vdecPercent && e.tier === "ADVANCED");
-    const heavy = rs.envelopes.find((e) => e.method === "RESISTED_SPRINT" && e.templateIds.includes("RS_SLED_HEAVY" as never) && e.fields.vdecPercent);
-    expect(light!.fields.vdecPercent!.recommended).toEqual({ min: 0, max: 10, unit: "percent" });
-    expect(moderate!.fields.vdecPercent!.recommended).toEqual({ min: 10, max: 15, unit: "percent" });
-    expect(heavy!.fields.vdecPercent!.recommended).toEqual({ min: 15, max: 30, unit: "percent" });
+  it("RESISTED_SPRINT: vdec は専用分類帯を持ち、Envelope の数値 recommended ではない", () => {
+    expect(rs.envelopes.filter((e) => e.method === "RESISTED_SPRINT" && e.fields.vdecPercent).every((e) => e.fields.vdecPercent!.recommended === null)).toBe(true);
+    expect(rs.vdecClassificationBands).toEqual([
+      expect.objectContaining({ classification: "LIGHT", lowerPercent: 0, lowerInclusive: true, upperPercent: 10, upperInclusive: false, classificationOnly: true }),
+      expect.objectContaining({ classification: "MODERATE", lowerPercent: 10, lowerInclusive: true, upperPercent: 15, upperInclusive: false, classificationOnly: true }),
+      expect.objectContaining({ classification: "UNRESOLVED_REVIEW", lowerPercent: 15, lowerInclusive: true, upperPercent: 30, upperInclusive: true, classificationOnly: true }),
+      expect.objectContaining({ classification: "VERY_HEAVY", lowerPercent: 30, lowerInclusive: false, upperPercent: null, upperInclusive: false, classificationOnly: true }),
+    ]);
+  });
+
+  it("E15 growth velocity は CHECK_ONLY、E16 taper は sprint-specific source-backed ではない", () => {
+    const growth = rs.evidence.find((e) => e.id === "EV_GROWTH_VELOCITY_7_2")!;
+    expect(growth.usage).toBe("CHECK_ONLY");
+    expect(growth.applicabilityNotes).toContain("hard stop/eligibility cutoffではない");
+
+    const taper = rs.competitionRules.find((r) => r.taperGuidance !== null)!.taperGuidance!;
+    expect(taper.evidenceId).toBe("EV_ENGINE_POLICY");
+    expect(taper.applicabilityNotes).toContain("sprint-specific prescription にはしない");
+    expect(rs.evidence.find((e) => e.id === "EV_BOSQUET_2007_TAPER")!.usage).toBe("CONTEXT_ONLY");
+  });
+
+  it("E02–E06 の tier 縮約・例示を primary universal prescription として扱わない", () => {
+    const accelerationDev = rs.envelopes.find((e) => e.method === "ACCELERATION" && e.tier === "DEVELOPMENTAL")!;
+    expect(accelerationDev.fields.repDistanceM!.judgement).toBe("ENGINE_POLICY");
+    expect(accelerationDev.fields.repRestS!.judgement).toBe("ENGINE_POLICY");
+
+    const mvDev = rs.envelopes.find((e) => e.method === "MAX_VELOCITY" && e.tier === "DEVELOPMENTAL")!;
+    expect(mvDev.fields.buildUpM!.evidenceIds).toEqual(["EV_ENGINE_POLICY"]);
+    expect(mvDev.fields.repRestS!.evidenceIds).toEqual(["EV_ENGINE_POLICY"]);
+
+    const sesDev = rs.envelopes.find((e) => e.method === "SPRINT_ENDURANCE_SHORT" && e.tier === "DEVELOPMENTAL")!;
+    expect(sesDev.fields.totalReps!.evidenceIds).toEqual(["EV_ENGINE_POLICY"]);
+    expect(sesDev.fields.totalReps!.judgement).toBe("ENGINE_POLICY");
+
+    const tempo = rs.evidence.find((e) => e.id === "EV_HAUGEN_2019_TEMPO")!;
+    expect(tempo.applicabilityNotes).toContain("elite sprint coaching practice");
+    expect(tempo.applicabilityNotes).toContain("universal youth");
+  });
+
+  it("E22 pain safety は JSPO の unsupported attribution ではなく非診断的 policy", () => {
+    const safety = rs.evidence.find((e) => e.id === "EV_ENGINE_SAFETY_POLICY")!;
+    expect(safety.sourceType).toBe("ENGINE_POLICY");
+    expect(safety.usage).toBe("CHECK_ONLY");
+    expect(safety.applicabilityNotes).toContain("旧JSPO attributionは使用しない");
+    expect(JSON.stringify(safety)).not.toContain("EV_JSPO_GROWTH_GUIDE");
+  });
+
+  it("E23 generic STRIDE envelope は JAAF direct prescription を参照しない", () => {
+    for (const env of rs.envelopes.filter((e) => e.method === "STRIDE")) {
+      for (const cell of Object.values(env.fields)) {
+        if (!cell) continue;
+        expect(cell.evidenceIds).toEqual(["EV_ENGINE_POLICY"]);
+        expect(cell.evidenceIds).not.toContain("EV_JAAF_WIND_SPRINT");
+      }
+    }
+    expect(rs.evidence.find((e) => e.id === "EV_JAAF_WIND_SPRINT")!.usage).toBe("CONTEXT_ONLY");
   });
 
   it("RESISTED_SPRINT: repDistanceM は ADV/DEV とも judgement=ENGINE_POLICY で EV_ENGINE_POLICY のみを参照する（R2 errata: §5.6にusage=PRESCRIPTIONの直接根拠が無いためSBから降格）", () => {
@@ -1027,8 +1082,6 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
     };
     const EXPECTED: Record<string, string> = {
       methods: "b048e8197b8f0b0ab617aaa8ec57a195d3b600ce531ea3ceda6fa9555ec2f3ee",
-      envelopes: "3015587e8a263d963f7504211c6b8292ff6092745b2996a63cc47523e97ef023",
-      evidence: "7425f5b3570cc9f7ab72ba365ae1a3543671e489c793b01c2bd3dcce1435c45b",
       timingTolerances: "8b0d3b0264e7629f8157e93c1353ac511ea1bb709f6bb07bc63e65560ed6c04e",
       constraints: "cebe8dd9bfd111a78e6107b7d9640c81be6f1e4e43c5b514772fe463fe479a17",
       stopPolicies: "2550dabf2fc0bb93672c8aad4c64cb3cccd9d7f8f2e9523e58f1fdd68a2f6eff",

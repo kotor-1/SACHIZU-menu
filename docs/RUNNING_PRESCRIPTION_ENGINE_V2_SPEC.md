@@ -11,11 +11,11 @@
 
 | ラベル | 意味 | 実装上の扱い |
 | --- | --- | --- |
-| **[SOURCE-BACKED]** | 4つの Deep Research のいずれかが出典（著者・年・種類）を挙げて報告している | ルールデータに `EvidenceRecord` を必ず紐付ける。**ただし全件 `verification: "SECONDARY_REPORT_ONLY"`（一次資料は未照合）** |
+| **[SOURCE-BACKED]** | 4つの Deep Research のいずれかが出典（著者・年・種類）を挙げて報告している | ルールデータに `EvidenceRecord` を必ず紐付ける。verification は一次資料または公式資料を実際に照合した記録だけ `PRIMARY_CHECKED` とし、それ以外は `SECONDARY_REPORT_ONLY` とする |
 | **[ENGINE-POLICY]** | 研究では決まらないため、本アプリが安全側・実装都合で決めたもの | `sourceType: "ENGINE_POLICY"`, `provisional: true` を付ける。**科学的事実として表示しない** |
 | **[OPEN]** | 未決定。本書では暫定値または無効化で扱い、§24 に論点として残す | 暫定値を置く場合は ENGINE-POLICY と併記する |
 
-> **重要**: [SOURCE-BACKED] の数値もすべて「二次報告のみ」です。Gemini の「Thomas 2018 = RCT」「10m=60秒は PCr 研究で強く支持」「女性はレスト×0.95」は Fable と他3レポートにより否定・弱化されているため、**本書では採用しません**。
+> **重要**: [SOURCE-BACKED] は、出典が研究または公式資料に基づくことを示すだけで、派生したRuleSet値をその資料の直接処方とみなす意味ではない。一次資料・公式資料を実際に照合した記録は `PRIMARY_CHECKED`、Deep Research経由の未照合記録は `SECONDARY_REPORT_ONLY` と明示する。Gemini の「Thomas 2018 = RCT」「10m=60秒は PCr 研究で強く支持」「女性はレスト×0.95」は Fable と他3レポートにより否定・弱化されているため、**本書では採用しません**。
 
 ### 0.2 用語
 - **Method**: 生理学・回復構造・安全制約・stop logic のための内部分類（10種、コーチには原則見せない）
@@ -356,7 +356,7 @@ export type Finding = {
   - `AttemptsRepSpec.approachDistanceM` は `FieldValue<"m">` ではなく
     `{ value: number; unit: "m"; source: "COACH_ENTERED" } | null`（§7.4 R2 errata の「EnvelopeCell ではない手入力値」。
     recommended / coachEditable を持たせない。plausibility は `PlausibilityRule.inputTarget = COACH_EDIT_APPROACH_DISTANCE_M` の行（≤60m で REQUIRE_CONFIRMATION））。
-  - `RunningPrescription.monitoringSnapshot: { stopPolicy: StopPolicySnapshot; timingTolerances: TimingToleranceSnapshot[] }` を追加
+  - `RunningPrescription.monitoringSnapshot: { stopPolicy: StopPolicySnapshot; timingTolerances: TimingToleranceSnapshot[]; vdecClassificationPolicy?: VdecClassificationPolicySnapshot }` を追加
     （§17.1 不変条件5）。plan 時点の RuleSet から、選ばれた StopPolicy の行と**全 TimingMethod** の TimingTolerance の行を
     **データとしてコピー**する（RuleSet object への参照ではない。snapshot の schema は schemaVersion=1 の一部として strict に独立定義）。
     `stopPolicyId` は検索・表示用に残し、`monitoringSnapshot.stopPolicy.id` と一致しなければならない。
@@ -563,8 +563,8 @@ export type MaturityAssessment = {
 ```
 
 - [ENGINE-POLICY] 医学的診断機能にしない。UI 文言は「成長段階の目安（コーチ判断）」とし、思春期評価（二次性徴）を**入力項目にしない**（Fable M-1）。
-- [SOURCE-BACKED] 年間成長速度の急増（Claude DR が narrative review の 7.2cm/年を報告）→ **`rapidGrowthFlag`**。
-  - [ENGINE-POLICY] flag=true のとき、申告 status に関係なく **CIRCA の制約を適用**。閾値 7.2cm/年は provisional。
+- [CHECK_ONLY] 年間成長速度の急増（Claude DR が narrative review の 7.2cm/年を報告）→ **`rapidGrowthFlag`**。
+  - `rapidGrowthFlag` は male academy football の risk marker をコーチ確認へ渡すためだけの provisional check であり、hard stop、eligibility cutoff、female/general track threshold、または自動的な maturity/tier 変更ではない。
   - **[R3 implementation policy]** 成長速度の算出（初版 ENGINE-POLICY・provisional。医学的診断値ではない）:
     1. `heightHistory` のうち、§8.5 の身長 plausibility が BLOCK の点と、`asOf` より未来の点を除外する。
     2. 残った有効点が **2点未満**なら算出しない（rapidGrowthFlag を無理に確定しない）。
@@ -590,7 +590,6 @@ export type MaturityAssessment = {
 
   | 条件 | 実効カテゴリ |
   | --- | --- |
-  | `rapidGrowthFlag = true` | CIRCA |
   | normalized status = PRE | PRE（confidence に関わらず） |
   | normalized status = CIRCA | CIRCA（confidence に関わらず） |
   | normalized status = UNKNOWN | EFFECTIVE_UNKNOWN |
@@ -604,7 +603,7 @@ export type MaturityAssessment = {
     `GROWTH_VELOCITY` は status=UNKNOWN に強制される）。表のヘッダー「POST（≥MEDIUM）」の
     confidence 条件は POST 列にだけ適用される。
 
-| Method / Template | PRE | EFFECTIVE_UNKNOWN | CIRCA（または rapidGrowth） | POST（≥MEDIUM） |
+| Method / Template | PRE | EFFECTIVE_UNKNOWN | CIRCA | POST（≥MEDIUM） |
 | --- | --- | --- | --- | --- |
 | ACCELERATION（≤20m template） | 自動 ✅ | 自動 ✅ | 自動 ✅ | 自動 ✅ |
 | ACCELERATION（30–40m template） | 手動+REVIEW | 手動+REVIEW | 手動+REVIEW | 自動 ✅（tier 依存） |
@@ -656,7 +655,7 @@ export type TrainingAgeInput = {
 - **EnvelopeTier = ADVANCED の条件（すべて満たす）** [ENGINE-POLICY]:
   1. maturity が `POST` かつ実効 confidence ≥ MEDIUM（ADULT は自動充足）
   2. trainingAge tier ∈ {TRAINED, ADVANCED}
-  3. `rapidGrowthFlag = false`
+  3. 成長速度の CHECK_ONLY flag は tier eligibility を変更しない
 - それ以外はすべて **DEVELOPMENTAL**。成人初心者も DEVELOPMENTAL。[SOURCE-BACKED 方針]（ChatGPT DR「post-PHV ≠ advanced athlete」、Fable M-2）
 - 「条件付き自動」（§4.4）の条件 [ENGINE-POLICY]:
   - SPRINT_ENDURANCE_SHORT: tier=ADVANCED、または (POST & tier=DEVELOPING 以上 & phase≠TRANSITION)
@@ -760,7 +759,7 @@ export type EvidenceRecord = {
 | いずれかが PARTIAL、または inputData = MEDIUM、または evidence が `SECONDARY_REPORT_ONLY` のみ | `MODERATE` |
 | それ以外 | `HIGH` |
 
-- 初期ルールセットは全件 `SECONDARY_REPORT_ONLY` のため、**v2 初期の最高値は MODERATE**（HIGH は一次資料照合後にしか出ない）。
+- Phase 3B では、Vittori原著・Petrakos review・現行公式ガイダンス等、実際に照合した限定的な記録だけを `PRIMARY_CHECKED` に更新した。ただし、レビューや公式資料を照合したことは、そこから派生したENGINE_POLICY値を一次実験の普遍的処方へ変えるものではない。HIGH は `PRIMARY_CHECKED`、directness、inputData、履歴の条件をすべて満たす場合に限り得られる。
 - **[R4 integration errata]** 72h 履歴カバレッジに `NOT_EVALUATED` を追加する（`HistoryCoverage = COMPLETE | PARTIAL | NONE | NOT_EVALUATED`）。
   R4 は §9.2 step 5（週次・履歴）を接続しないため、`history` の有無に関わらず `NOT_EVALUATED` を渡す。`NOT_EVALUATED` は
   **中立**（上表の LOW 条件「NONE」にも、確認済みの「COMPLETE」にも読み替えない）。R7 で step 5 を接続した後は
@@ -780,7 +779,7 @@ export type EvidenceRecord = {
   - コーチ入力の参照（RACE_PACE / TARGET_SPLIT / COACH_DEFINED / 実測 vdec）は MEDIUM、`VELOCITY_DECREMENT.measured=false` は LOW。
   - §4.1 の GROUP の上限（最大 LOW）は参照依存のときだけ適用し、NOT_REQUIRED には適用しない。
   - `derivePrescriptionConfidence` では **中立**: LOW 条件（LOW / NONE）にも MODERATE 条件（MEDIUM）にも該当せず、confidence は
-    Evidence / directness / 履歴だけで決まる。初期 RuleSet は全 Evidence が SECONDARY_REPORT_ONLY のため、NOT_REQUIRED でも最高 MODERATE。
+    Evidence / directness / 履歴だけで決まる。ENGINE_POLICYだけを使う処方は `POLICY_ONLY` のまま、source-backed値は実際のverificationとdirectnessに従って評価する。
 
 ### 5.5 挙動への接続（表示だけで終わらせない）[ENGINE-POLICY]
 
@@ -799,28 +798,29 @@ export type EvidenceRecord = {
 | id | 内容 | sourceType | usage | 判断 |
 | --- | --- | --- | --- | --- |
 | EV_HAUGEN_2019_REVIEW | 短距離トレーニングの科学と best practice の統合 | NARRATIVE_REVIEW | PRESCRIPTION | [SOURCE-BACKED] |
-| EV_HAUGEN_2019_ACC_EXAMPLES | 加速 10–50m、youth 20m/約2分、elite 40m block/約7分 | COACHING_BEST_PRACTICE（UKA 由来） | PRESCRIPTION | [SOURCE-BACKED] |
-| EV_HAUGEN_2019_MV_EXAMPLES | build 20–60m, fly 10–30m, youth 20+10/約4分, elite 40+30/約15分 | COACHING_BEST_PRACTICE | PRESCRIPTION | [SOURCE-BACKED] |
-| EV_HAUGEN_2019_SES_EXAMPLES | 7–15秒・95–100%、youth 2–3×100m/約10分、elite 4–6×150m/20–30分 | COACHING_BEST_PRACTICE | PRESCRIPTION | [SOURCE-BACKED] |
-| EV_HAUGEN_2019_VOLUME_TABLE | Acc 100–300m / MV fly 50–150m / SES 300–900m / Tempo 1000–2000m | COACHING_BEST_PRACTICE | PRESCRIPTION | [SOURCE-BACKED]（Perplexity・Gemini DR。Claude は Acc 100–160m と報告 → 不一致を applicabilityNotes に記載） |
-| EV_HAUGEN_2019_TEMPO | 100–300m、約60–70% Vmax、prep 約2000m / comp 約1000m | ELITE_COACH_PRACTICE | PRESCRIPTION | [SOURCE-BACKED] |
-| EV_HAUGEN_2019_VITTORI | 60–80m、約90→95%、rep 約2分 / set 約8分 | ELITE_COACH_PRACTICE | PRESCRIPTION（TI_VITTORI_SE のみ） | [SOURCE-BACKED] |
+| EV_HAUGEN_2019_ACC_EXAMPLES | 加速 10–50m / recovery 2–7分 / session 100–300m（best-practice synthesis）。youth/elite例はcoach example | COACHING_BEST_PRACTICE（UKA 由来） | PRESCRIPTION | [SYNTHESIZED / provisional] |
+| EV_HAUGEN_2019_MV_EXAMPLES | build 20–60m / fly 10–30m / recovery 4–15分（best-practice core）。youth/elite例はcoach example | COACHING_BEST_PRACTICE | PRESCRIPTION | [SYNTHESIZED / provisional] |
+| EV_HAUGEN_2019_SES_EXAMPLES | 7–15秒・95–100%・recovery 8–30分・volume 300–900m（best-practice synthesis）。rep数はcoach example | COACHING_BEST_PRACTICE | PRESCRIPTION | [SYNTHESIZED / provisional] |
+| EV_HAUGEN_2019_VOLUME_TABLE | Acc 100–300m / MV fly 50–150m / SES 300–900m / Tempo 1000–2000m | COACHING_BEST_PRACTICE | PRESCRIPTION | [MULTI_SOURCE_SYNTHESIS / provisional]（Perplexity・Gemini DR。Claude は Acc 100–160m と報告 → 不一致を applicabilityNotes に記載） |
+| EV_HAUGEN_2019_TEMPO | 100–300m、約60–70% Vmax、prep 約2000m / comp 約1000m | ELITE_COACH_PRACTICE | PRESCRIPTION | [ELITE COACHING PRACTICE / not universal youth dose] |
+| EV_HAUGEN_2019_VITTORI | Haugenの二次 retelling（60–80m、約90→95%、rep/set休息） | ELITE_COACH_PRACTICE | CONTEXT_ONLY | [SECONDARY / historical retelling] |
+| EV_VITTORI_1981_PRIMARY | 60/80mおよび60/80/100m framework、phase依存のmicro/macro rest、near-maximal構造 | COACHING_BEST_PRACTICE | PRESCRIPTION（TI_VITTORI_SEの歴史的method contextに限定） | [PRIMARY_CHECKED / historical method] |
 | EV_HAUGEN_2019_48H | 高強度セッションは通常48h程度離す | COACHING_BEST_PRACTICE | CHECK_ONLY | [SOURCE-BACKED] |
 | EV_UKA_CLASSIFICATION | 強度帯（95–100 / 76–94 / <75）、完全/不完全回復 | COACHING_BEST_PRACTICE | CHECK_ONLY | [SOURCE-BACKED]（Claude DR） |
-| EV_PETRAKOS_2016_VDEC | vdec <10 / 10–15 / 15–30 / >30% | SYSTEMATIC_REVIEW | PRESCRIPTION（band 分類のみ） | [SOURCE-BACKED] |
+| EV_PETRAKOS_2016_VDEC | vdec <10 / 10–15 / 15–30 / >30% | SYSTEMATIC_REVIEW | CHECK_ONLY（classificationのみ） | [PRIMARY_CHECKED / no load prescription] |
 | EV_RESISTED_META_2024_2025 | resisted は主に 10m/加速に効果、重いほど良いとは言えない | META_ANALYSIS | CONTEXT_ONLY | [SOURCE-BACKED] |
 | EV_ASSISTED_EVIDENCE_LIMITED | assisted の長期効果データは限定的 | SYSTEMATIC_REVIEW | CHECK_ONLY | [SOURCE-BACKED] |
 | EV_MORAN_2016_YOUTH_DOSE | 週2回・約20m×最大16本・work:rest 1:25 または ≥90秒（男子ユース・主に団体競技） | META_ANALYSIS | **CONTEXT_ONLY / notForPrescription** | [SOURCE-BACKED]（Fable H-2 により処方不可） |
 | EV_MATURITY_NOT_AGE | 暦年齢・学年から成熟度を確定しない | SYSTEMATIC_REVIEW + CONSENSUS | CHECK_ONLY | [SOURCE-BACKED] |
-| EV_GROWTH_VELOCITY_7_2 | 成長速度 >7.2cm/年で傷害リスク上昇の目安 | NARRATIVE_REVIEW | CHECK_ONLY | [SOURCE-BACKED]（Claude DR のみ） |
-| EV_BOSQUET_2007_TAPER | 約2週間、volume −41〜60%、intensity/frequency 維持（**短距離特異的ではない**） | META_ANALYSIS | PRESCRIPTION（ADVANCED × PEAK のみ） | [SOURCE-BACKED] |
+| EV_GROWTH_VELOCITY_7_2 | 成長速度 >7.2cm/年で傷害リスク上昇の目安 | NARRATIVE_REVIEW | CHECK_ONLY | [CHECK_ONLY / male academy football marker; no hard cutoff]（Claude DR のみ） |
+| EV_BOSQUET_2007_TAPER | 約2週間、volume −41〜60%、intensity/frequency 維持（**短距離特異的ではない**） | META_ANALYSIS | CONTEXT_ONLY | [GENERAL TAPER CONTEXT / not sprint-specific] |
 | EV_RESISTED_RECOVERY_2023 | 20%BM resisted 後 30m 低下が 72h まで | CROSSOVER_REPEATED_MEASURES | CHECK_ONLY | [SOURCE-BACKED]（ChatGPT/Perplexity DR） |
 | EV_THOMAS_2018 | squat/jump/sprint 後の疲労 48–72h（n=10 成人男性・15×30m・crossover。**RCT ではない**） | CROSSOVER_REPEATED_MEASURES | CHECK_ONLY | [SOURCE-BACKED]（Fable M-9 の訂正を反映） |
 | EV_WELLNESS_SR | 主観的 wellness は負荷変化に客観指標より一貫して反応 | SYSTEMATIC_REVIEW | CHECK_ONLY | [SOURCE-BACKED] |
 | EV_TIMING_ERROR_REPORTS | 手動計時の誤差・MDC、timing gate の CV 1.1–2.4% | OBSERVATIONAL | CHECK_ONLY | [SOURCE-BACKED]（Perplexity/Gemini DR） |
-| EV_JAAF_JHS_GUIDE | 中学: 週≤16h、週5日+休養2日、平日約2h/休日約3h | GOVERNING_BODY_GUIDANCE | PRESCRIPTION（週次ガード） | [SOURCE-BACKED]（Claude DR のみ・一次未照合） |
-| EV_JSPO_GROWTH_GUIDE | 発育期: 痛みがあれば休養、改善しなければ受診 | GOVERNING_BODY_GUIDANCE | PRESCRIPTION（安全ゲート文言） | [SOURCE-BACKED]（Claude DR のみ） |
-| EV_JAAF_WIND_SPRINT | ウインドスプリント 100–150m×3–4 | GOVERNING_BODY_GUIDANCE | PRESCRIPTION（STRIDE） | [SOURCE-BACKED]（Claude DR のみ） |
+| EV_JAAF_JHS_GUIDE | 日本の学校部活動・適用対象の認定地域クラブにおける現行ガイダンス（休養≥2日、平日約2h、休日約3h、週約11h） | GOVERNING_BODY_GUIDANCE | CONTEXT_ONLY | [PRIMARY_CHECKED / institutional context only] |
+| EV_ENGINE_SAFETY_POLICY | 誘発負荷の停止/変更、assessment、持続症状・red flagの医療評価 | ENGINE_POLICY | CHECK_ONLY | [ENGINE-POLICY / non-diagnostic; no JSPO attribution] |
+| EV_JAAF_WIND_SPRINT | JAAFのevent/phase付きwind sprint coaching examples | GOVERNING_BODY_GUIDANCE | CONTEXT_ONLY | [PRIMARY_CHECKED / examples, not generic STRIDE prescription] |
 | EV_ENGINE_POLICY | 本アプリの暫定運用値 | ENGINE_POLICY | PRESCRIPTION | [ENGINE-POLICY] |
 
 - **不採用**（ルールセットに入れない）: 「10m=60秒」（全DRが根拠なしと報告）、「3%/5% の普遍 drop-off」、「女性 rest×0.95」（Gemini のみ）、「中学生×0.6」「期分け固定 pp」。
@@ -976,11 +976,11 @@ export type Envelope = {
 
 | field | DEVELOPMENTAL | ADVANCED | 判断・根拠 |
 | --- | --- | --- | --- |
-| repDistanceM | 10–20 / 10–30 | 20–50 / 10–60 | DEV推奨 SB（youth 10–20: Claude DR）、ADV推奨 SB（10–50・上級 40–50: Haugen）、編集可 EP |
+| repDistanceM | 10–20 / 10–30 | 20–50 / 10–60 | 10–50m は best-practice synthesis。DEV/ADV の縮約は ENGINE_POLICY、youth/elite 例を実験的 tier 境界にしない |
 | totalReps | 4–8 / 3–10 | 3–8 / 2–12 | EP（ChatGPT DR の保守プリセット・envelope）。Moran 16本は **参照しない** |
 | repsPerSet | 3–6 / 2–8 | 3–5 / 2–8 | EP |
 | sets | 1–2 / 1–3 | 1–3 / 1–4 | EP |
-| repRestS | 120–180 / 90–300 | 180–420 / 120–600 | youth 約2分・elite 約7分の例を端点に使用（SB）、幅は EP |
+| repRestS | 120–180 / 90–300 | 180–420 / 120–600 | 2–7分は best-practice synthesis。DEV/ADV の縮約と幅は ENGINE_POLICY、youth/elite 例を普遍閾値にしない |
 | setRestS | 240–420 / 180–600 | 300–600 / 240–900 | EP |
 | sessionVolumeM | 60–160 / 40–200 | 100–300 / 80–400 | ADV推奨 SB（Haugen 表。Claude は 100–160 と報告 → OPEN-07）、DEV は EP |
 
@@ -988,12 +988,12 @@ export type Envelope = {
 
 | field | DEVELOPMENTAL | ADVANCED | 判断・根拠 |
 | --- | --- | --- | --- |
-| buildUpM | 15–25 / 15–30 | 30–60 / 20–70 | youth 20m・一般 20–60m・elite 40m（SB）、幅は EP。**選手の加速距離推定（§11.2）と矛盾する場合 Finding** |
+| buildUpM | 15–25 / 15–30 | 30–60 / 20–70 | 20–60m は best-practice core。DEV の15m開始値は ENGINE_POLICY、ADV の core 適用も synthesis として扱う。**選手の加速距離推定（§11.2）と矛盾する場合 Finding** |
 | flyZoneM | 10–10 / 10–20 | 20–30 / 10–40 | youth 10m・elite 30m・範囲 10–30（SB）、編集可 EP |
 | decelerationM | 20 固定 | 30 固定 | EP（露出に計上しない） |
 | totalReps（fly 本数） | 2–3 / 1–4 | 3–6 / 2–8 | EP（ChatGPT/Perplexity DR） |
 | sets | 1–1 / 1–2 | 1–2 / 1–3 | EP |
-| repRestS | 180–300 / 150–420 | 480–900 / 240–1080 | youth 約4分・elite 約15分を端点（SB）、幅 EP |
+| repRestS | 180–300 / 150–420 | 480–900 / 240–1080 | 4–15分は best-practice core。DEV の3分開始値と tier 差分は ENGINE_POLICY |
 | setRestS | — / 300–600 | 600–900 / 480–1200 | EP |
 | flyVolumeM | 20–40 / 10–60 | 50–150 / 20–180 | ADV推奨 SB（Haugen 表）、DEV推奨 EP（ChatGPT プリセット。Fable は Haugen youth 例と記載 → OPEN-08） |
 
@@ -1005,7 +1005,7 @@ export type Envelope = {
 | --- | --- | --- | --- |
 | repDurationS | 7–12 / 6–13 | 7–15 / 6–17 | 7–15秒（SB: Haugen/UKA）。DEV 上限は EP |
 | 分類ヒステリシス | 13–17秒 → `COACH_CONFIRM`（SES か LSR か） | 同左 | EP（Fable C-4） |
-| totalReps | 2–3 / 1–4 | 4–6 / 2–6 | youth 2–3本・elite 4–6本の例（SB）、編集可 EP |
+| totalReps | 2–3 / 1–4 | 4–6 / 2–6 | youth 2–3本・elite 4–6本は coaching example。tier dose は ENGINE_POLICY、普遍的な実験処方ではない |
 | sets | 1–1 / 1–2 | 1–2 / 1–2 | EP |
 | repRestS | 480–720 / 420–900 | 1200–1800 / 600–1800 | youth 約10分・elite 20–30分（SB）、幅 EP |
 | sessionVolumeM（表示用距離） | 150–300 / 100–400 | 300–900 / 200–900 | ADV SB（Haugen 表）、DEV EP |
@@ -1028,7 +1028,7 @@ export type Envelope = {
 
 | field | DEVELOPMENTAL | ADVANCED | 判断・根拠 |
 | --- | --- | --- | --- |
-| intensityPercent（数値参照がある場合のみ） | 60–70 / 55–75 | 60–70 / 55–75 | 60–70%（SB: Haugen）、上限 75 未満（SB: UKA <75）、下限 55 は EP |
+| intensityPercent（数値参照がある場合のみ） | 60–70 / 55–75 | 60–70 / 55–75 | 60–70% は elite sprint coaching practice をレビューが記録した値。一般 youth の universal science-backed dose ではなく、下限・tier適用は EP |
 | repDistanceM | 100–200 / 60–300 | 100–300 / 60–400 | ADV SB（100–300）、DEV EP |
 | repsPerSet | 3–8 / 2–10 | 4–10 / 2–12 | EP |
 | sets | 1–2 / 1–3 | 1–3 / 1–4 | EP |
@@ -1041,7 +1041,7 @@ export type Envelope = {
 | field | TI_VITTORI_SE（ADVANCED のみ） | TI_COACH_DEFINED（recommended=null・手動のみ） | 判断 |
 | --- | --- | --- | --- |
 | repDistanceM | 60–80 / 50–100 | null / 80–300 | VITTORI SB（60–80m）、他 EP |
-| intensityPercent | 90–95 / 88–95 | null / 70–94 | VITTORI SB（約90→95%）。COACH 上限 94 は UKA 76–94 に合わせた EP（DR 間で 70–90/75–90/80–89 と不一致 → OP-12） |
+| intensityPercent | 90–95 / 88–95 | null / 70–94 | 現行 90–95% は ENGINE_POLICY。Vittori 原著の near-maximal 約95–98%と、Haugen の二次 retelling 約90→95%を同一の exact prescription として扱わない |
 | repRestS | 90–150 / 60–180 | null / 60–360 | VITTORI 約2分（SB）を中心に EP 幅 |
 | setRestS | 420–540 / 360–720 | null / 180–720 | 約8分（SB）を中心に EP 幅 |
 | repsPerSet | 3–5 / 3–5 | null / 1–10 | EP |
@@ -1061,8 +1061,8 @@ export type Envelope = {
 
 | field | DEVELOPMENTAL | ADVANCED | 判断・根拠 |
 | --- | --- | --- | --- |
-| vdecPercent（sled） | LIGHT <10、MODERATE 10–15（HEAVY 不適格） | LIGHT <10、MODERATE 10–15、HEAVY 15–30 | band 境界 SB（Petrakos 2016）。DEV で HEAVY を外すのは EP（DR 一致の方向性） |
-| vdec 実測 | 無い場合 band は `measured:false`・confidence LOW。HEAVY は実測必須 | 同左 | EP |
+| vdecPercent（sled） | 専用 classification bands を snapshot（LIGHT: x<10、MODERATE: 10≤x<15、15≤x≤30: unresolved review、VERY_HEAVY: x>30） | 同左 | Petrakos は classification/check の根拠。classification は load prescription ではない。15–30 は named empirical band にしない |
+| vdec 実測 | 無い場合 band は `measured:false`・confidence LOW。VERY_HEAVY は COACH_REVIEW | 同左 | EP / CHECK_ONLY |
 | HILL | vdec を使わない（平地参照が無い） | 同左 | EP（Fable M-13） |
 | repDistanceM | 10–20 / 10–30 | 10–30 / 10–40 | **EP**（§5.6 の Evidence には usage=PRESCRIPTION でこの数値を直接裏付ける記録が無いため、DEV・ADV とも ENGINE_POLICY として扱う。研究が存在しないという意味ではなく、初版 EvidenceRecord 構造では数値処方へ直接使える一次根拠を登録できていないための保守的処理。§24 OPEN-23 参照） |
 | totalReps | 4–6 / 3–8 | 4–8 / 3–10 | EP |
@@ -1154,7 +1154,7 @@ export type Envelope = {
 | ageBand | 追加制約 |
 | --- | --- |
 | U12 | ASSISTED・LONG（全）・RS_SLED_HEAVY・TEMPO_INTENSIVE（全）を**不適格（override 不可）**。自動生成は complexity LOW のみ |
-| U15 | **ASSISTED_SPRINT を不適格（override 不可）**。JAAF 中学ガイド（週≤16h・休養日2日）を週次ガードで評価（§12.4, REQUIRE_COACH_REVIEW） |
+| U15 | **ASSISTED_SPRINT を不適格（override 不可）**。年齢帯だけから institutional weekly guidance を自動適用しない（§12.4） |
 | U18 | 未成年の健康情報の取り扱い規則（§13.5）を適用 |
 | ADULT | 追加制約なし |
 
@@ -1196,10 +1196,10 @@ export type CoachOverride = {
 
 判断: [ENGINE-POLICY]（Fable「override は人間 role 限定・ログ必須」を型で実装）。
 
-### 8.4 競技団体ガイドライン [SOURCE-BACKED（Claude DR のみ・一次未照合）→ 挙動は ENGINE-POLICY]
-- JAAF 中学校部活動: 週≤16時間、週5日＋休養2日、平日約2h・休日約3h → U15 の週次ガード（§12.4）。
-- JSPO 発育期: 痛みがあれば休養、改善しなければ受診 → pain gate の出力文言（§13）。
-- アプリはこれらの実時間を完全には把握できないため、**BLOCK にせず REQUIRE_COACH_REVIEW**。[ENGINE-POLICY]
+### 8.4 競技団体ガイドライン（context-only）
+- Sports Agency「部活動改革及び地域クラブ活動の推進等に関する総合的なガイドライン」（令和7年12月）の休養日・活動時間 guidance は、**日本の学校部活動および適用対象の認定地域クラブ**に限る context-specific guidance として EvidenceRecord に保持する。
+- `ageBand=U15`、日本語利用者、または AI の文章だけから institutional context を推定してはならない。現行 MVP は trusted institutional context input を持たないため、週次 runtime へ自動適用しない。
+- 旧 JSPO growth guidance の正確な primary attributionは保持せず、pain gate の非診断的な安全挙動は `ENGINE_SAFETY_POLICY` として実装する（§13.2）。
 
 ### 8.5 Plausibility（rs-2026.09.0）[ENGINE-POLICY・provisional]
 
@@ -1384,7 +1384,7 @@ export type RestPlan = {
     p の値（95% 等）を Method 名や経験則から推測しない。MEASURED_VMAX の `distance / (v × p)` も同じ。
   - RACE_PACE / TARGET_SPLIT は target にコーチ入力をそのまま入れる（TARGET_SPLIT は区間の合計）。丸めない。RACE_PACE の表示距離は
     `eventDefinitions.raceEvents` の distanceM × 時間 ÷ 目標タイムの区間。
-  - VELOCITY_DECREMENT は band の `vdecPercent` セルの recommended を `QuantityInterval<"percent">`（RULE_DEFINITION）で出す。
+  - VELOCITY_DECREMENT は plan 時に専用 `vdecClassificationPolicy` snapshot だけを保存する。観測値は LIGHT / MODERATE / unresolved review / VERY_HEAVY に分類するが、分類から sled load・推奨 Vdec target・intensity prescription を生成しない。旧 numeric target snapshot は読み取り互換のみ。
     ASSISTED_SPRINT はコーチ入力の intensityPercent を percent target として出す。NOT_REQUIRED の参照は target を持たない。
   - LONG: FULL で TARGET_SPLIT のときは SPLIT rep（区間距離はコーチ入力、合計目標時間は repDurationS の範囲で検査）、RACE_PACE /
     SAME_DISTANCE_BEST のときは DURATION rep（表示距離は時間×速度の区間。同距離 best は下端 null）。INCOMPLETE は 2 区間以上の
@@ -1431,6 +1431,8 @@ export function monitorRunningPrescription(state: MonitorState, obs: RepObservat
 - `MonitorState` = SessionItem のスナップショット（`plannedPrescriptionJson`）+ これまでの `RepLogEntry[]`。**ルールセットを再読込しない**（ただし timing tolerance と stop policy は スナップショット時点の値を `prescriptionJson.stopPolicy` に埋め込んでおく §17）。
 
 ### 10.2 Timing tolerance [ENGINE-POLICY・provisional]
+
+以下の数値は計測器・実装の運用 convention であり、普遍的に検証された科学的許容限界ではない。特に `VIDEO = 2 / fps` は engineering convention で、一次資料から universal tolerance として導出しない。
 
 | timing | tolerance | 数値 stop |
 | --- | --- | --- |
@@ -1851,8 +1853,7 @@ export type LoadEvent = {
 | code | 条件 | severity | 判断 |
 | --- | --- | --- | --- |
 | WEEKLY_HIGH_SESSIONS | 直近7日の HIGH セッション（大会含む）が 3 以上 | WARN | 「高強度は週2回程度」の実践（Claude/ChatGPT DR）を方向として参照、閾値は EP |
-| WEEKLY_JHS_REST_DAYS | U15 で直近7日に活動なしの日が 2 日未満 | REQUIRE_COACH_REVIEW | JAAF（Claude DR 経由・一次未照合） |
-| WEEKLY_JHS_HOURS | U15 で記録上の練習時間合計 > 16h | REQUIRE_COACH_REVIEW | 同上 |
+| （institutional weekly guidance） | 日本の学校部活動・適用対象の認定地域クラブで trusted context が明示された場合のみ別途 review 対象 | CHECK_ONLY | Sports Agency 令和7年12月 guidance。現行 MVP の自動 runtime rule ではない |
 | （未実装） | 高速曝露の週次急増 | — | OPEN-17（閾値の出典なし） |
 
 ### 12.5 出力
@@ -1897,8 +1898,7 @@ export type WeeklyContextResult = {
     文字列の暦日境界としてそのまま使い、`evaluatedAt`（`plannedAt`）の時刻・タイムゾーンから変換しない
     （`calendarDateOf` と同じ「先頭10文字」規約）。「その日の記録が無い」ことを「休養日」とは絶対に推測しない
     （`DailyActivitySummary` 自体が該当日に無ければ、その日の活動有無は不明のまま）。
-- **U15 の休養日数・週間時間ガードは `coverage7d = COMPLETE` のときだけ評価する。** 不完全なら「安全」と結論せず、
-  専用の「判定不能」Finding を出す（0 埋めしない）。
+- **U15 の年齢帯だけでは institutional weekly guidance を評価しない。** 日本の学校部活動等の trusted context が存在しない現行 MVP では、休養日数・週間時間を自動判定しない。将来 context を明示的に入力できる機能を追加する場合も、UNKNOWN を適用可能として扱わない。
 - **48h/72h の窓は Method 別の固定時間を持たない。** 判定は「経過時間」と MethodMeta.loadClass（HIGH_NEURAL /
   HIGH_METABOLIC）だけで行い、ACC=48h・SES=72h のような Method 別定数は実装しない（`weekly/` 配下の grep テストで
   数値の複製が無いことを検証する）。TEMPO_EXTENSIVE / STRIDE は48h ロックの対象外（他の週次表示・7日ガードの対象からは
@@ -1932,14 +1932,16 @@ export type ReadinessReport = {
 - 部位は選択式のみ。**自由記述欄を作らない**。[ENGINE-POLICY]（Fable M-12）
 - 尺度（1–5）は [ENGINE-POLICY]（ChatGPT DR の提案形式）。主観的 wellness を集める意義は [SOURCE-BACKED]（systematic review）。
 
-### 13.2 Pain gate（hard gate・計画時と実施時の両方）[ENGINE-POLICY]（方向: JSPO / Perplexity DR の hard stop 例）
+### 13.2 Pain gate（hard gate・計画時と実施時の両方）[ENGINE-SAFETY-POLICY]
+
+これは診断ロジックではない。旧 `JSPO` の正確な一次資料 attribution は行わず、`EV_ENGINE_SAFETY_POLICY` として、誘発負荷の停止/変更、assessment、持続症状・red flag の医療評価を保守的に扱う。
 
 | 条件 | 出力 | override |
 | --- | --- | --- |
 | redFlags に PAIN_AT_REST_OR_NIGHT / SWELLING / LIMPING / NUMBNESS_TINGLING / DIZZINESS_OR_BREATHING_DIFFICULTY / PAIN_PERSISTING_OVER_DAYS | `STOP`（当日の走処方なし。STRIDE も出さない）+ `MEDICAL_EVALUATION_RECOMMENDED` | 不可 |
 | その他の redFlags（SUDDEN_SHARP_PAIN / PAIN_WORSENING_DURING_SESSION） | `STOP` + `COACH_REVIEW` | 不可 |
 | status=PRESENT（red flag なし） | `CANCEL_HIGH_INTENSITY` + `REQUIRE_COACH_REVIEW` | 可（理由必須） |
-| status=PRESENT、ageBand≠ADULT、部位 ∈ {HEEL, KNEE, HIP_PELVIS} | 上記 + 表示文「成長期の痛みの可能性があります。休養し、続く場合は受診を検討してください」（診断ではない） | 可 |
+| status=PRESENT、ageBand≠ADULT、部位 ∈ {HEEL, KNEE, HIP_PELVIS} | 上記 + 表示文「成長期では評価が必要な痛みの可能性があります。誘発する負荷を止める/変更し、続く場合は受診を検討してください」（診断ではない） | 可 |
 | status=NOT_ASKED、ageBand≠ADULT、計画に HIGH_* あり | `PAIN_CHECK_REQUIRED`（REQUIRE_COACH_REVIEW）。確認されるまで HIGH_* を自動生成しない | — |
 | status=NONE_REPORTED | gate 通過（**高強度の許可ではない**。§13.3 を続けて評価） | — |
 
@@ -2272,8 +2274,8 @@ type ActualRepLogStateV1 = {
 - 「前日は休養かごく少量の priming、新しい刺激は入れない」は [SOURCE-BACKED 方向]（ChatGPT/Perplexity DR の best practice 表）。「5–7日前から新規刺激・大きな解糖系負荷を入れない」を youth に使うのは [ENGINE-POLICY]（Fable H-8）。
 
 ### 14.4 Taper
-- [SOURCE-BACKED] Bosquet 2007: 約2週間、volume −41〜60%、intensity・frequency 維持。**持久系中心で短距離特異的ではない**（applicabilityNotes に保存し、画面にも表示）。
-- [ENGINE-POLICY] 使うのは **ADVANCED tier × PEAK だけ**。出力は「週の総量を大会前の基準週から 41–60% の範囲で減らす目安」という**ガイダンス Finding（INFO）**と、量フィールドの位置 LOWER_HALF のみ。
+- Bosquet 2007 の約2週間・volume −41〜60%・intensity/frequency 維持は pooled competitive-athlete の general taper context であり、**短距離特異的な source-backed 推奨値ではない**。`EV_BOSQUET_2007_TAPER` は CONTEXT_ONLY として保持する。
+- 現行 sprint engine の出力は **ENGINE_POLICY / ADVANCED tier × PEAK の provisional guidance** に限る。出力は「週の総量を大会前の基準週から減らす目安」という Finding と、量フィールドの位置 LOWER_HALF のみ。sprint-specific primary source が得られるまでは、Bosquet 値を sprint prescription と表示しない。
   - 基準週の量（直近4週の週平均）が履歴カバレッジ不足で計算できない場合は、数値を出さず文章のみ。
 - [ENGINE-POLICY] PRE / CIRCA / EFFECTIVE_UNKNOWN / DEVELOPMENTAL に **% の量削減を自動適用しない**。§14.3 の「新規刺激を入れない・大きな解糖系負荷を近接させない」で代替する。
 - Charlie Francis 型 10日 taper 等の個別コーチ実践はテンプレートとしても実装しない（v2 範囲外、OPEN-18）。
@@ -2854,7 +2856,7 @@ export type AiPlannerProposal = {
 | --- | --- | --- | --- |
 | T-POP-01 | **maturity UNKNOWN** | U15、maturity=UNKNOWN、trainingAge 3年 | tier=DEVELOPMENTAL。LONG（全）・ASSISTED・RS HEAVY は INELIGIBLE。ACC ≤20m・STRIDE・MV_FLY10（reps≤3）は自動生成可。SES は手動+REVIEW（**PRE とは違い不適格にならない**） |
 | T-POP-02 | **youth** | U12、maturity=PRE | U12 制約で LONG/ASSISTED/TI/RS HEAVY が override 不可。自動生成は complexity LOW のみ |
-| T-POP-03 | CIRCA / rapidGrowth | U15、申告 POST、成長速度 8cm/年 | CIRCA 制約が適用される |
+| T-POP-03 | growth velocity CHECK_ONLY | U15、申告 POST、成長速度 8cm/年 | `rapidGrowthFlag=true` を監査情報として保持するが、maturity category / eligibility / tier を自動変更しない |
 | T-POP-04 | **trainingAge beginner** | U18、POST（MEDIUM）、年数 0.5 | tier=DEVELOPMENTAL。ACC の envelope が DEV 値 |
 | T-POP-05 | **adult beginner** | ADULT、年数 null | trainingAge=BEGINNER → tier=DEVELOPMENTAL（POST でも ADVANCED にならない） |
 | T-POP-06 | **elite** | ADULT、coachAssignedTier=ADVANCED、PHOTO_CELL fly 記録あり | tier=ADVANCED、MV envelope が ADV 値、prescriptionConfidence ≤ MODERATE（SECONDARY_REPORT_ONLY のため） |
@@ -3269,9 +3271,9 @@ Fable の Critical 8件は本書で次のように反映済み:
 | **R12-A2以降の実装**（flag OFF） | **GO** | MenuPlanner foundation contract testを維持し、preview / accept / providerを段階実装する。DB・UI・provider接続は各段階の明示scopeに従う |
 | **R12 production enable** | **NO-GO（現時点）** | OPEN-20完了、RuleSet ACTIVE、`AI_MENU_PLANNER_ENABLED=true`がすべて必要。DRAFT RuleSetで本番AI生成を有効にしない |
 | **R13**（legacy 係数削除） | **NO-GO（現時点）** | R3・R4・R10 の完了と運用確認が前提 |
-| ルールセットの ACTIVE 化 | **NO-GO（現時点）** | 全 Evidence が SECONDARY_REPORT_ONLY。一次資料照合と人間の承認が必要 |
+| ルールセットの ACTIVE 化 | **NO-GO（現時点）** | 一部の資料照合は完了したが、派生policy・未照合synthesisを含むRuleSet全体のOPEN20一次資料reconciliationと人間の承認が未完了 |
 
-**本書は数値の科学的妥当性を保証しません。** [SOURCE-BACKED] は「Deep Research が出典を挙げて報告した」という意味で、一次資料との照合は未実施です。[ENGINE-POLICY] は安全側に倒した運用値であり、科学的事実として画面や AI の文章に表示してはいけません。
+**本書は数値の科学的妥当性を保証しません。** [SOURCE-BACKED] は出典を持つ資料由来であることを示し、`PRIMARY_CHECKED` は対象資料を照合した記録、`SECONDARY_REPORT_ONLY` はDeep Research経由の未照合記録である。照合済み資料から派生したtier値・境界・運用値まで科学的に検証済みになるわけではない。[ENGINE-POLICY] は安全側に倒した運用値であり、科学的事実として画面や AI の文章に表示してはいけません。
 
 ---
 

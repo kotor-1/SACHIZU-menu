@@ -205,7 +205,8 @@
     "R5: added versioned readinessRules (§13 pain red flag groups, pain PRESENT / NOT_ASKED gates, growth-period guidance regions, wellness thresholds and signal counts, readiness-window rule, SWAP target map). No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/plausibility/eventDefinitions are byte-identical. Status remains DRAFT.",
     "R6: added versioned aggregationRules (§11 accel interval A per tier, relay allowance, per-Method aggregation metadata, high-intensity budget, tempo/stride session limits, legacy category semantics) and plausibility outputTarget metadata. No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/stopPolicies/readinessRules/eventDefinitions and every plausibility threshold are unchanged. Status remains DRAFT.",
     "R7: added versioned weeklyRules (§12 48h/72h window hours, relevant categories, high-sessions-7d threshold, U15 rest-days/hours guards, history-unknown policy), phaseRules (§14.2 per-phase method priority, dose position cap, blocked autogen load classes, PRE_COMPETITION injury-transition info), and competitionRules (§14.3 day-0..14 windows per priority/tier, autogen-exception metadata for STRIDE/ACC<=20m, new-stimulus policy, LONG-INCOMPLETE eligibility, §14.4 taper guidance for ADVANCED x PEAK x day 8-14 only). Added EligibilityConditions.requiresPhaseNotIn and set it on ELIG_SES_POST (blocks AUTO during TRANSITION; behaviorally redundant with TRANSITION's own blockedAutogenLoadClasses for HIGH_METABOLIC, kept as a single AND condition for representability). No numeric or scientific data changed: methods/templates/envelopes/evidence/constraints/timingTolerances/stopPolicies/readinessRules/aggregationRules/plausibility thresholds/eventDefinitions and all pre-existing eligibility outcomes/overrideAllowed/conditionNote text are unchanged. Status remains DRAFT.",
-    "R8: added StopPolicy.runtime structured metadata (§10.3 machine-readable runtime behavior: timingEvaluation, reference strategy, first/consecutive failure actions, TE too-fast warning threshold, ACC/MV poor-start threshold, technique/vdec/effort actions, planned count unit) so that monitorRunningPrescription never parses stop policy ids or ruleDescriptionJa. The values restate the existing §10.3 table only; existing consecutiveFailuresToStop / numericStopAvailable / descriptions and all timingTolerances are unchanged. No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/readinessRules/aggregationRules/weeklyRules/phaseRules/competitionRules/plausibility/eventDefinitions are unchanged. Status remains DRAFT."
+    "R8: added StopPolicy.runtime structured metadata (§10.3 machine-readable runtime behavior: timingEvaluation, reference strategy, first/consecutive failure actions, TE too-fast warning threshold, ACC/MV poor-start threshold, technique/vdec/effort actions, planned count unit) so that monitorRunningPrescription never parses stop policy ids or ruleDescriptionJa. The values restate the existing §10.3 table only; existing consecutiveFailuresToStop / numericStopAvailable / descriptions and all timingTolerances are unchanged. No numeric or scientific data changed: methods/templates/envelopes/evidence/eligibility/constraints/timingTolerances/readinessRules/aggregationRules/weeklyRules/phaseRules/competitionRules/plausibility/eventDefinitions are unchanged. Status remains DRAFT.",
+    "OPEN20 Phase 3B (DRAFT): E10 Vdec is represented by targeted non-overlapping classification bands and no numeric Vdec prescription; E15 growth velocity remains CHECK_ONLY; E16 taper values are ENGINE_POLICY rather than sprint-specific source-backed recommendations; E21 universal U15 weekly rules are removed; E22 uses the non-diagnostic ENGINE_SAFETY_POLICY without JSPO attribution; E23 JAAF examples remain event/phase context only and generic STRIDE values remain ENGINE_POLICY. Provenance semantics are separated without changing historical SessionItem snapshots or public contracts. Status remains DRAFT and RUNNING_V2_OPEN20_COMPLETED is unchanged."
   ],
   "competitionRules": [
     {
@@ -419,8 +420,8 @@
       "priority": "PEAK",
       "raceIsLoadEvent": false,
       "taperGuidance": {
-        "applicabilityNotes": "Bosquet 2007 は持久系種目中心のメタ分析であり、短距離特異的な taper 研究ではない。目安として参照する。",
-        "evidenceId": "EV_BOSQUET_2007_TAPER",
+        "applicabilityNotes": "短距離特異的な一次資料に基づく推奨値ではない。DRAFT engine の一般的な taper 文脈を示す provisional ENGINE_POLICY guidance としてのみ参照し、自動的な sprint-specific prescription にはしない。Bosquet 2007 は背景の general taper context として EvidenceRecord に保持する。",
+        "evidenceId": "EV_ENGINE_POLICY",
         "reductionPercentLower": 41,
         "reductionPercentUpper": 60
       },
@@ -2466,10 +2467,11 @@
             "unit": "m"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_ACC_EXAMPLES"
+            "EV_HAUGEN_2019_ACC_EXAMPLES",
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 20,
             "min": 10,
@@ -2483,10 +2485,11 @@
             "unit": "s"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_ACC_EXAMPLES"
+            "EV_HAUGEN_2019_ACC_EXAMPLES",
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 180,
             "min": 120,
@@ -2601,10 +2604,11 @@
             "unit": "m"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_ACC_EXAMPLES"
+            "EV_HAUGEN_2019_ACC_EXAMPLES",
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 50,
             "min": 20,
@@ -2618,10 +2622,11 @@
             "unit": "s"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_ACC_EXAMPLES"
+            "EV_HAUGEN_2019_ACC_EXAMPLES",
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 420,
             "min": 180,
@@ -2736,10 +2741,10 @@
             "unit": "m"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_MV_EXAMPLES"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 25,
             "min": 15,
@@ -2787,10 +2792,10 @@
             "unit": "m"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_MV_EXAMPLES"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 10,
             "min": 10,
@@ -2804,10 +2809,10 @@
             "unit": "s"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_MV_EXAMPLES"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 300,
             "min": 180,
@@ -3096,10 +3101,10 @@
             "unit": "reps"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_SES_EXAMPLES"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 3,
             "min": 2,
@@ -3194,10 +3199,10 @@
             "unit": "reps"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_SES_EXAMPLES"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 6,
             "min": 4,
@@ -3726,10 +3731,10 @@
             "unit": "percent"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_VITTORI"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 95,
             "min": 90,
@@ -3743,7 +3748,7 @@
             "unit": "m"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_VITTORI"
+            "EV_VITTORI_1981_PRIMARY"
           ],
           "hardSafety": null,
           "judgement": "SOURCE_BACKED",
@@ -3760,7 +3765,7 @@
             "unit": "s"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_VITTORI"
+            "EV_VITTORI_1981_PRIMARY"
           ],
           "hardSafety": null,
           "judgement": "SOURCE_BACKED",
@@ -3811,7 +3816,7 @@
             "unit": "s"
           },
           "evidenceIds": [
-            "EV_HAUGEN_2019_VITTORI"
+            "EV_VITTORI_1981_PRIMARY"
           ],
           "hardSafety": null,
           "judgement": "SOURCE_BACKED",
@@ -4132,20 +4137,16 @@
       "fields": {
         "vdecPercent": {
           "coachEditable": {
-            "max": 10,
+            "max": 100,
             "min": 0,
             "unit": "percent"
           },
           "evidenceIds": [
-            "EV_PETRAKOS_2016_VDEC"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
-          "recommended": {
-            "max": 10,
-            "min": 0,
-            "unit": "percent"
-          }
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
         }
       },
       "method": "RESISTED_SPRINT",
@@ -4159,20 +4160,16 @@
       "fields": {
         "vdecPercent": {
           "coachEditable": {
-            "max": 15,
-            "min": 10,
+            "max": 100,
+            "min": 0,
             "unit": "percent"
           },
           "evidenceIds": [
-            "EV_PETRAKOS_2016_VDEC"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
-          "recommended": {
-            "max": 15,
-            "min": 10,
-            "unit": "percent"
-          }
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
         }
       },
       "method": "RESISTED_SPRINT",
@@ -4267,20 +4264,16 @@
       "fields": {
         "vdecPercent": {
           "coachEditable": {
-            "max": 10,
+            "max": 100,
             "min": 0,
             "unit": "percent"
           },
           "evidenceIds": [
-            "EV_PETRAKOS_2016_VDEC"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
-          "recommended": {
-            "max": 10,
-            "min": 0,
-            "unit": "percent"
-          }
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
         }
       },
       "method": "RESISTED_SPRINT",
@@ -4294,20 +4287,16 @@
       "fields": {
         "vdecPercent": {
           "coachEditable": {
-            "max": 15,
-            "min": 10,
+            "max": 100,
+            "min": 0,
             "unit": "percent"
           },
           "evidenceIds": [
-            "EV_PETRAKOS_2016_VDEC"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
-          "recommended": {
-            "max": 15,
-            "min": 10,
-            "unit": "percent"
-          }
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
         }
       },
       "method": "RESISTED_SPRINT",
@@ -4321,20 +4310,16 @@
       "fields": {
         "vdecPercent": {
           "coachEditable": {
-            "max": 30,
-            "min": 15,
+            "max": 100,
+            "min": 0,
             "unit": "percent"
           },
           "evidenceIds": [
-            "EV_PETRAKOS_2016_VDEC"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
-          "recommended": {
-            "max": 30,
-            "min": 15,
-            "unit": "percent"
-          }
+          "judgement": "ENGINE_POLICY",
+          "recommended": null
         }
       },
       "method": "RESISTED_SPRINT",
@@ -4536,10 +4521,10 @@
             "unit": "m"
           },
           "evidenceIds": [
-            "EV_JAAF_WIND_SPRINT"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 120,
             "min": 80,
@@ -4570,10 +4555,10 @@
             "unit": "reps"
           },
           "evidenceIds": [
-            "EV_JAAF_WIND_SPRINT"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 4,
             "min": 3,
@@ -4633,10 +4618,10 @@
             "unit": "m"
           },
           "evidenceIds": [
-            "EV_JAAF_WIND_SPRINT"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 120,
             "min": 80,
@@ -4667,10 +4652,10 @@
             "unit": "reps"
           },
           "evidenceIds": [
-            "EV_JAAF_WIND_SPRINT"
+            "EV_ENGINE_POLICY"
           ],
           "hardSafety": null,
-          "judgement": "SOURCE_BACKED",
+          "judgement": "ENGINE_POLICY",
           "recommended": {
             "max": 4,
             "min": 3,
@@ -4808,6 +4793,56 @@
       }
     ]
   },
+  "vdecClassificationBands": [
+    {
+      "classification": "LIGHT",
+      "classificationOnly": true,
+      "evidenceIds": [
+        "EV_PETRAKOS_2016_VDEC"
+      ],
+      "id": "VDEC_LIGHT_LT_10",
+      "lowerInclusive": true,
+      "lowerPercent": 0,
+      "upperInclusive": false,
+      "upperPercent": 10
+    },
+    {
+      "classification": "MODERATE",
+      "classificationOnly": true,
+      "evidenceIds": [
+        "EV_PETRAKOS_2016_VDEC"
+      ],
+      "id": "VDEC_MODERATE_10_TO_LT_15",
+      "lowerInclusive": true,
+      "lowerPercent": 10,
+      "upperInclusive": false,
+      "upperPercent": 15
+    },
+    {
+      "classification": "UNRESOLVED_REVIEW",
+      "classificationOnly": true,
+      "evidenceIds": [
+        "EV_ENGINE_POLICY"
+      ],
+      "id": "VDEC_UNRESOLVED_15_TO_30",
+      "lowerInclusive": true,
+      "lowerPercent": 15,
+      "upperInclusive": true,
+      "upperPercent": 30
+    },
+    {
+      "classification": "VERY_HEAVY",
+      "classificationOnly": true,
+      "evidenceIds": [
+        "EV_PETRAKOS_2016_VDEC"
+      ],
+      "id": "VDEC_VERY_HEAVY_GT_30",
+      "lowerInclusive": false,
+      "lowerPercent": 30,
+      "upperInclusive": false,
+      "upperPercent": null
+    }
+  ],
   "evidence": [
     {
       "applicabilityNotes": "短距離トレーニングの科学と best practice の統合レビュー。一次資料未照合（DR経由の二次報告）。",
@@ -4838,7 +4873,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "加速 10–50m の例。youth 20m/約2分、elite 40m block/約7分。UKA分類由来。一次資料未照合。",
+      "applicabilityNotes": "10–50m / 約2–7分はHaugen/UKAのbest-practice synthesis。youth 20m/約2分、elite 40m block/約7分はcoach examplesであり、DEV/ADV tier境界や普遍的実験閾値ではない。",
       "evidenceLevel": 4,
       "id": "EV_HAUGEN_2019_ACC_EXAMPLES",
       "population": {
@@ -4868,7 +4903,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "build 20–60m, fly 10–30m。youth 20+10m/約4分、elite 40+30m/約15分。一次資料未照合。",
+      "applicabilityNotes": "build 20–60m / fly 10–30m / recovery 4–15分はbest-practice core。youth/eliteの分割例はcoach examplesであり、DEV/ADV境界の直接実験値ではない。",
       "evidenceLevel": 4,
       "id": "EV_HAUGEN_2019_MV_EXAMPLES",
       "population": {
@@ -4898,7 +4933,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "7–15秒・95–100%。youth 2–3×100m/約10分、elite 4–6×150m/20–30分。一次資料未照合。",
+      "applicabilityNotes": "7–15秒 / 95–100% / recovery 8–30分 / volume 300–900mはbest-practice synthesis。youth 2–3本・elite 4–6本はcoach examplesであり、universal tier doseではない。",
       "evidenceLevel": 4,
       "id": "EV_HAUGEN_2019_SES_EXAMPLES",
       "population": {
@@ -4956,7 +4991,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "100–300m、約60–70%Vmax。準備期 約2000m / 試合期 約1000m。一次資料未照合。",
+      "applicabilityNotes": "100–300m、約60–70%Vmax。準備期 約2000m / 試合期 約1000m。elite sprint coaching practice documented in an integrative reviewであり、universal youth doseではない。一次資料未照合。",
       "evidenceLevel": 4,
       "id": "EV_HAUGEN_2019_TEMPO",
       "population": {
@@ -4985,7 +5020,39 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "60–80m、約90→95%、rep約2分/set約8分。TI_VITTORI_SEのみに適用。一次資料未照合。",
+      "applicabilityNotes": "一次資料で確認した歴史的コーチング方法。60/80mおよび60/80/100m framework、phase/distance dependentなmicro rest約1:30–4:00、macro rest約6–12分、near-maximal約95–98%の構造を記録する。現代の一般/ユース自動処方ではない。",
+      "evidenceLevel": 4,
+      "id": "EV_VITTORI_1981_PRIMARY",
+      "population": {
+        "ageBands": [
+          "ADULT"
+        ],
+        "maturity": [
+          "POST"
+        ],
+        "performanceLevels": [
+          "ELITE"
+        ],
+        "sexes": "ANY",
+        "sport": "TRACK_SPRINT"
+      },
+      "provisional": true,
+      "reference": {
+        "citation": "Carlo Vittori, Pasquale Bellotti, Alessandro Donati, Esperienze sulla resistenza alla velocità dello sprinter, Atleticastudi 1981;5:51–72, FIDAL",
+        "doi": null,
+        "url": null,
+        "year": 1981
+      },
+      "reportedBy": [
+        "HUMAN"
+      ],
+      "sourceType": "COACHING_BEST_PRACTICE",
+      "studyDesign": "Historical coaching method; primary period source verified during OPEN20 reconciliation",
+      "usage": "PRESCRIPTION",
+      "verification": "PRIMARY_CHECKED"
+    },
+    {
+      "applicabilityNotes": "Haugenによる二次 retelling。60–80m、約90→95%、rep約2分/set約8分は歴史的elite-coach exampleで、Vittori原著のexact prescriptionでも現代の一般/ユース既定値でもない。",
       "evidenceLevel": 4,
       "id": "EV_HAUGEN_2019_VITTORI",
       "population": {
@@ -5014,7 +5081,7 @@
       ],
       "sourceType": "ELITE_COACH_PRACTICE",
       "studyDesign": null,
-      "usage": "PRESCRIPTION",
+      "usage": "CONTEXT_ONLY",
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
@@ -5070,7 +5137,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "vdec帯: <10% / 10–15% / 15–30% / >30%。band分類のみに使用。",
+      "applicabilityNotes": "Petrakos reviewの整理を、LIGHT <10%、MODERATE 10≤x<15%、15–30% unresolved review、VERY_HEAVY >30%として分類にのみ使用。classificationはload prescriptionではない。",
       "evidenceLevel": 1,
       "id": "EV_PETRAKOS_2016_VDEC",
       "population": {
@@ -5093,8 +5160,8 @@
       ],
       "sourceType": "SYSTEMATIC_REVIEW",
       "studyDesign": null,
-      "usage": "PRESCRIPTION",
-      "verification": "SECONDARY_REPORT_ONLY"
+      "usage": "CHECK_ONLY",
+      "verification": "PRIMARY_CHECKED"
     },
     {
       "applicabilityNotes": "resistedは主に10m/加速に効果。重いほど良いとは言えない。数値根拠ではなく方向性の CONTEXT_ONLY。",
@@ -5212,8 +5279,8 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "成長速度 >7.2cm/年で傷害リスク上昇の目安。Claude DRのみの報告。処方数値ではなくrapidGrowthFlagのCHECK_ONLY。",
-      "evidenceLevel": 3,
+      "applicabilityNotes": ">7.2cm/年はmale academy footballで報告されたgrowth-velocity risk marker。女性・一般陸上へ外挿せず、rapidGrowthFlagのCHECK_ONLYとしてのみ使用する。hard stop/eligibility cutoffではない。",
+    "evidenceLevel": 3,
       "id": "EV_GROWTH_VELOCITY_7_2",
       "population": {
         "ageBands": [
@@ -5223,8 +5290,10 @@
         ],
         "maturity": "ANY",
         "performanceLevels": "ANY",
-        "sexes": "ANY",
-        "sport": "GENERAL"
+          "sexes": [
+            "MALE"
+          ],
+        "sport": "TEAM_SPORT"
       },
       "provisional": true,
       "reference": {
@@ -5242,7 +5311,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "約2週間、volume -41〜60%、intensity/frequency維持。短距離特異的ではない。ADVANCED×PEAKのみで参照。",
+      "applicabilityNotes": "一般競技者をpooledしたmeta-analysisの約2週間・volume -41〜60%・intensity/frequency維持。短距離特異的推奨値ではなく、ADVANCED×PEAKのgeneral taper contextとしてのみ参照する。",
       "evidenceLevel": 1,
       "id": "EV_BOSQUET_2007_TAPER",
       "population": {
@@ -5269,7 +5338,7 @@
       ],
       "sourceType": "META_ANALYSIS",
       "studyDesign": null,
-      "usage": "PRESCRIPTION",
+      "usage": "CONTEXT_ONLY",
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
@@ -5389,7 +5458,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "中学: 週≤16h、週5日+休養2日、平日約2h/休日約3h。Claude DRのみ・一次未照合。週次ガードの根拠。",
+      "applicabilityNotes": "日本の学校部活動および適用対象となる認定地域クラブに限る現行制度 guidance。休養≥2日/週、平日約2h、休日約3h、週約11hの文脈付き情報であり、U15一般生理閾値ではない。歴史的なJSPO/JASAの<16h/week guidanceとは区別し、runtime universal ruleには使用しない。",
       "evidenceLevel": 3,
       "id": "EV_JAAF_JHS_GUIDE",
       "population": {
@@ -5403,23 +5472,23 @@
       },
       "provisional": true,
       "reference": {
-        "citation": "JAAF junior high school guidance (via Claude Deep Research)",
+        "citation": "スポーツ庁『部活動改革及び地域クラブ活動の推進等に関する総合的なガイドライン』令和7年12月",
         "doi": null,
         "url": null,
-        "year": null
+        "year": 2025
       },
       "reportedBy": [
         "CLAUDE_DR"
       ],
       "sourceType": "GOVERNING_BODY_GUIDANCE",
       "studyDesign": null,
-      "usage": "PRESCRIPTION",
-      "verification": "SECONDARY_REPORT_ONLY"
+      "usage": "CONTEXT_ONLY",
+      "verification": "PRIMARY_CHECKED"
     },
     {
-      "applicabilityNotes": "発育期: 痛みがあれば休養、改善しなければ受診。安全ゲート文言の根拠。Claude DRのみ・一次未照合。",
-      "evidenceLevel": 3,
-      "id": "EV_JSPO_GROWTH_GUIDE",
+      "applicabilityNotes": "旧JSPO attributionは使用しない。診断ではなく、既存ENGINE_SAFETY_POLICYの一般的な保守的判断（誘発負荷を止める/変更、assessment、持続症状やred flagは医療評価）を表す内部policy record。",
+      "evidenceLevel": 5,
+      "id": "EV_ENGINE_SAFETY_POLICY",
       "population": {
         "ageBands": [
           "U12",
@@ -5433,7 +5502,7 @@
       },
       "provisional": true,
       "reference": {
-        "citation": "JSPO growth-period guidance (via Claude Deep Research)",
+        "citation": "SACHIZU Running Prescription Engine v2 — non-diagnostic safety policy",
         "doi": null,
         "url": null,
         "year": null
@@ -5441,13 +5510,13 @@
       "reportedBy": [
         "CLAUDE_DR"
       ],
-      "sourceType": "GOVERNING_BODY_GUIDANCE",
+      "sourceType": "ENGINE_POLICY",
       "studyDesign": null,
-      "usage": "PRESCRIPTION",
+      "usage": "CHECK_ONLY",
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "ウインドスプリント 100-150m×3-4本。STRIDEの根拠。Claude DRのみ・一次未照合。",
+      "applicabilityNotes": "JAAF official coaching examplesをevent/phase付きで保持する。short sprint specialized preparation 100m×3、competition phase 120m×3、middle/long precompetition 120m×2/3・150m×2、jumps/throwsの例など。generic STRIDE 100–150m×3–4の直接処方ではない。",
       "evidenceLevel": 3,
       "id": "EV_JAAF_WIND_SPRINT",
       "population": {
@@ -5459,7 +5528,7 @@
       },
       "provisional": true,
       "reference": {
-        "citation": "JAAF wind sprint guidance (via Claude Deep Research)",
+        "citation": "JAAF『中学校部活動における陸上競技指導の手引き』第4章（wind sprint examples）",
         "doi": null,
         "url": null,
         "year": null
@@ -5469,11 +5538,11 @@
       ],
       "sourceType": "GOVERNING_BODY_GUIDANCE",
       "studyDesign": null,
-      "usage": "PRESCRIPTION",
-      "verification": "SECONDARY_REPORT_ONLY"
+      "usage": "CONTEXT_ONLY",
+      "verification": "PRIMARY_CHECKED"
     },
     {
-      "applicabilityNotes": "本アプリの暫定運用値。科学的確定値ではない。ENGINE_POLICY判断のEnvelopeセル・timing tolerance等全般で参照する。",
+      "applicabilityNotes": "本アプリのDRAFT ENGINE_POLICY。科学的確定値・safety thresholdではない。tier normalization、timing convention、plausibility、48/72h operational window、unknown-history、phase/competition caps等の実装判断を明示するために参照する。",
       "evidenceLevel": 5,
       "id": "EV_ENGINE_POLICY",
       "population": {
@@ -7372,20 +7441,6 @@
       "id": "WK_HIGH_SESSIONS_7D",
       "kind": "HIGH_SESSIONS_7D",
       "threshold": 3
-    },
-    {
-      "ageBand": "U15",
-      "findingCode": "WEEKLY_JHS_REST_DAYS",
-      "id": "WK_YOUTH_REST_DAYS",
-      "kind": "YOUTH_REST_DAYS",
-      "minRestDays": 2
-    },
-    {
-      "ageBand": "U15",
-      "findingCode": "WEEKLY_JHS_HOURS",
-      "id": "WK_YOUTH_MAX_MINUTES_7D",
-      "kind": "YOUTH_MAX_MINUTES_7D",
-      "maxMinutes": 960
     },
     {
       "affectedLoadClasses": [

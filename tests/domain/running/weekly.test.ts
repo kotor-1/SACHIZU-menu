@@ -18,8 +18,8 @@ import { countHighSessions } from "@/domain/running/weekly/events";
 import { planRunningPrescription } from "@/domain/running/planning";
 import type { PlanRequest, PlanResult } from "@/domain/running/planning/schema";
 import { getRuleSet } from "@/domain/running/rules/loader";
-import { ruleSetSchema, type RuleSet } from "@/domain/running/rules/schema";
 import { createCoachActor } from "@/domain/running/types/actor";
+import { ruleSetSchema, type RuleSet } from "@/domain/running/rules/schema";
 import { loadEventSchema, weeklyHistoryInputSchema, type LoadEvent, type WeeklyHistoryInput } from "@/domain/running/types/load";
 import type { IsoDate, IsoDateTime } from "@/domain/running/types/primitives";
 import type { AthleteProfile, Subject } from "@/domain/running/types/subject";
@@ -288,63 +288,28 @@ describe("§12.4 highSessions7d（session 数。item 数ではない）", () => 
   });
 });
 
-describe("§12.4 U15 rest days / hours（coverage7d=COMPLETE のときだけ）", () => {
-  function u15Ctx() {
-    return ctx({ ageBand: "U15" });
-  }
-  function dailyActivity(pattern: boolean[]) {
-    return pattern.map((had, i) => ({ date: `2026-09-${String(9 + i).padStart(2, "0")}` as IsoDate, hadActivity: had, trainingMinutes: had ? 60 : 0 }));
-  }
-
-  it("休養日 2日未満 → WEEKLY_JHS_REST_DAYS（REQUIRE_COACH_REVIEW）", () => {
-    const dailyActivity7d = dailyActivity([true, true, true, true, true, true, false]); // 1 rest day
-    const h = history({ coverage7d: "COMPLETE", dailyActivity7d });
-    const result = evaluateWeeklyContext(h, u15Ctx());
-    expect(result.findings).toContainEqual(expect.objectContaining({ code: "WEEKLY_JHS_REST_DAYS", severity: "REQUIRE_COACH_REVIEW" }));
+describe("E21 institutional weekly guidance is not a universal U15 runtime rule", () => {
+  it("production RuleSet has no universal youth rest-day or weekly-minute rule", () => {
+    expect(ruleSet.weeklyRules.some((r) => r.kind === "YOUTH_REST_DAYS")).toBe(false);
+    expect(ruleSet.weeklyRules.some((r) => r.kind === "YOUTH_MAX_MINUTES_7D")).toBe(false);
   });
 
-  it("休養日 2日以上なら Finding 無し", () => {
-    const dailyActivity7d = dailyActivity([true, true, true, true, true, false, false]);
-    const h = history({ coverage7d: "COMPLETE", dailyActivity7d });
-    const result = evaluateWeeklyContext(h, u15Ctx());
-    expect(codes(result.findings)).not.toContain("WEEKLY_JHS_REST_DAYS");
-  });
-
-  it("coverage7d が不完全なら「安全」と断定せず判定不能 Finding", () => {
-    const h = history({ coverage7d: "PARTIAL", dailyActivity7d: [] });
-    const result = evaluateWeeklyContext(h, u15Ctx());
-    expect(codes(result.findings)).toContain("WEEKLY_REST_DAYS_NOT_DETERMINABLE");
-    expect(codes(result.findings)).not.toContain("WEEKLY_JHS_REST_DAYS");
-  });
-
-  it("合計 960分超 → WEEKLY_JHS_HOURS", () => {
+  it("ageBand=U15 alone does not evaluate the institutional 11h / 2-rest-day guidance", () => {
     const dailyActivity7d = Array.from({ length: 7 }, (_, i) => ({
       date: `2026-09-${String(9 + i).padStart(2, "0")}` as IsoDate,
       hadActivity: true,
-      trainingMinutes: 150, // 7*150=1050 > 960
+      trainingMinutes: 180,
     }));
-    const h = history({ coverage7d: "COMPLETE", dailyActivity7d });
-    const result = evaluateWeeklyContext(h, u15Ctx());
-    expect(result.findings).toContainEqual(expect.objectContaining({ code: "WEEKLY_JHS_HOURS", severity: "REQUIRE_COACH_REVIEW" }));
-  });
-
-  it("時間不明の日があれば 0 で埋めず判定不能", () => {
-    const dailyActivity7d = [
-      ...Array.from({ length: 6 }, (_, i) => ({ date: `2026-09-${String(9 + i).padStart(2, "0")}` as IsoDate, hadActivity: true, trainingMinutes: 200 })),
-      { date: "2026-09-15" as IsoDate, hadActivity: true, trainingMinutes: null },
-    ];
-    const h = history({ coverage7d: "COMPLETE", dailyActivity7d });
-    const result = evaluateWeeklyContext(h, u15Ctx());
-    expect(codes(result.findings)).toContain("WEEKLY_HOURS_NOT_DETERMINABLE");
-    expect(codes(result.findings)).not.toContain("WEEKLY_JHS_HOURS");
-  });
-
-  it("U15 以外には適用しない", () => {
-    const dailyActivity7d = dailyActivity([true, true, true, true, true, true, true]);
-    const h = history({ coverage7d: "COMPLETE", dailyActivity7d });
-    const result = evaluateWeeklyContext(h, ctx({ ageBand: "ADULT" }));
+    const result = evaluateWeeklyContext(history({ coverage7d: "COMPLETE", dailyActivity7d }), ctx({ ageBand: "U15" }));
     expect(codes(result.findings)).not.toContain("WEEKLY_JHS_REST_DAYS");
+    expect(codes(result.findings)).not.toContain("WEEKLY_JHS_HOURS");
     expect(codes(result.findings)).not.toContain("WEEKLY_REST_DAYS_NOT_DETERMINABLE");
+    expect(codes(result.findings)).not.toContain("WEEKLY_HOURS_NOT_DETERMINABLE");
+  });
+
+  it("RuleSet-driven weekly evaluation remains available for non-youth rules", () => {
+    const result = evaluateWeeklyContext(history({ events: [event({ at: hoursBefore(24) })] }), ctx({ ageBand: "U15" }));
+    expect(codes(result.findings)).toContain("WEEKLY_HIGH_WITHIN_48H");
   });
 });
 
@@ -369,8 +334,8 @@ describe("coverage7d の整合検証（不足日があるのに COMPLETE は rej
     const h = history({ coverage7d: "COMPLETE", dailyActivity7d: [{ date: "2026-09-15" as IsoDate, hadActivity: true, trainingMinutes: 30 }] });
     const result = evaluateWeeklyContext(h, ctx({ ageBand: "U15" }));
     expect(codes(result.findings)).toContain("WEEKLY_COVERAGE7D_INCONSISTENT");
-    // downgrade された結果、U15 rest days は「判定不能」扱いになる
-    expect(codes(result.findings)).toContain("WEEKLY_REST_DAYS_NOT_DETERMINABLE");
+    // E21: universal U15 weekly rule は runtime から除去されているため、追加の youth 判定不能 finding は出さない。
+    expect(codes(result.findings)).not.toContain("WEEKLY_REST_DAYS_NOT_DETERMINABLE");
   });
 
   // [R7 pre-commit correction §16] 「対象7 calendar dates」の契約を明示する:
@@ -430,19 +395,8 @@ describe("判定データは RuleSet 側にある", () => {
     expect(codes(changed.findings)).toContain("READINESS_CHECK_REQUIRED"); // 36–72h の範囲に入る
   });
 
-  it("U15 max weekly minutes 960→600 で Finding が変化", () => {
-    const dailyActivity7d = Array.from({ length: 7 }, (_, i) => ({
-      date: `2026-09-${String(9 + i).padStart(2, "0")}` as IsoDate,
-      hadActivity: true,
-      trainingMinutes: 100, // 700分。960未満だがmutated後の600は超える
-    }));
-    const h = history({ coverage7d: "COMPLETE", dailyActivity7d });
-    const base = evaluateWeeklyContext(h, ctx({ ageBand: "U15" }));
-    expect(codes(base.findings)).not.toContain("WEEKLY_JHS_HOURS");
-
-    const mutated = withWeeklyRules((rules) => rules.map((r) => (r.kind === "YOUTH_MAX_MINUTES_7D" ? { ...r, maxMinutes: 600 } : r)));
-    const changed = evaluateWeeklyContext(h, ctx({ ageBand: "U15", ruleSet: mutated }));
-    expect(codes(changed.findings)).toContain("WEEKLY_JHS_HOURS");
+  it("universal youth rules are intentionally absent while weekly completeness remains valid", () => {
+    expect(ruleSet.weeklyRules.map((r) => r.kind)).toEqual(["WINDOW_HOURS", "RELEVANT_CATEGORIES", "HIGH_SESSIONS_7D", "HISTORY_UNKNOWN_POLICY"]);
   });
 
   it("weeklyRules の配列順序を入れ替えても結果は同じ", () => {
@@ -570,7 +524,7 @@ describe("Planning への接続（end-to-end）", () => {
       expect(r.status, describeResult(r)).toBe("OK");
       if (r.status !== "OK") throw new Error("unreachable");
       expect(r.prescription.findings.map((f) => f.code)).toContain("HISTORY_UNKNOWN");
-      expect(r.prescription.confidence.prescription).toBe("LOW");
+      expect(r.prescription.confidence.prescription).toBe("POLICY_ONLY");
     });
 
     it("HIGH_METABOLIC × history=null（plannedAt あり）: HISTORY_UNKNOWN_HIGH_METABOLIC も追加で REQUIRE_COACH_REVIEW", () => {
@@ -587,7 +541,7 @@ describe("Planning への接続（end-to-end）", () => {
       const plannedAtNoHistory = planRunningPrescription(makeRequest("STRIDE", "ST_RELAXED", { plannedAt: "2026-09-15T08:00:00.000Z", history: null }));
       if (noPlannedAt.status !== "OK" || plannedAtNoHistory.status !== "OK") throw new Error("unreachable");
       expect(noPlannedAt.prescription.confidence.prescription).not.toBe("LOW");
-      expect(plannedAtNoHistory.prescription.confidence.prescription).toBe("LOW");
+      expect(plannedAtNoHistory.prescription.confidence.prescription).toBe("POLICY_ONLY");
     });
   });
 

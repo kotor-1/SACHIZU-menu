@@ -9,7 +9,12 @@ import type { EnvelopeCell, EnvelopeField, RuleSet } from "../rules/schema";
 import type { Finding, RationaleLine } from "../types/findings";
 import type { QuantityInterval } from "../types/primitives";
 import type { RunningPrescriptionValue } from "../types/prescription";
-import { runningPrescriptionSchema, stopPolicySnapshotSchema, timingToleranceSnapshotSchema } from "../types/prescription";
+import {
+  runningPrescriptionSchema,
+  stopPolicySnapshotSchema,
+  timingToleranceSnapshotSchema,
+  vdecClassificationPolicySnapshotSchema,
+} from "../types/prescription";
 import { runtimeSafetyPolicySnapshotSchema, type RuntimeSafetyPolicySnapshot } from "../types/monitoring";
 import type { GenerationRecord } from "../types/actor";
 import { resolveSubjectProfile, type SubjectProfile } from "../context/subject";
@@ -901,7 +906,6 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     plan,
     repDistanceM: repBuild.repDistanceForTarget,
     intensityPercent: repBuild.intensityPercent,
-    vdecCell: envelope.fields.vdecPercent ?? null,
   });
   const exposure = computeItemExposure(method, methodMeta.highSpeedExposureModel, repBuild.geometry, counts.totalReps);
 
@@ -922,6 +926,13 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     stopPolicy: stopPolicySnapshotSchema.parse(structuredClone(stopPolicy)),
     timingTolerances: ruleSet.timingTolerances.map((t) => timingToleranceSnapshotSchema.parse(structuredClone(t))),
     safetyPolicy,
+    ...(method === "RESISTED_SPRINT"
+      ? {
+          vdecClassificationPolicy: vdecClassificationPolicySnapshotSchema.parse({
+            bands: structuredClone(ruleSet.vdecClassificationBands),
+          }),
+        }
+      : {}),
   };
 
   // ---- step 15: rationale / output ----

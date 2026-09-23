@@ -14,8 +14,8 @@ const selected = loader.getActiveRuleSet("2026-09-20");
 afterEach(() => vi.restoreAllMocks());
 
 describe("R11-B2 production equivalence classes", () => {
-  it("120 complete planning results equal unmodified HEAD 5fee13b (pre-extraction golden)", () => {
-    expect(readinessPlanningRegressionDigest()).toEqual({ count: 120, sha256: "18ca19634b27e8919c9e0cd20ece8247e5386d3f088bd01ccf9e62bdca6ed541" });
+  it("120 complete planning results match the Phase 3B DRAFT RuleSet golden", () => {
+    expect(readinessPlanningRegressionDigest()).toEqual({ count: 120, sha256: "d5eb41449841eb921e94957265b27236e11eb41c7505b029cc390811bd810693" });
   });
   it("all 580 R5 outputs / 19 tuples / 30 item states survive versioned round-trip", () => {
     // Exhaust the finite wellness grid, then quotient only by complete R5 wellness outputs

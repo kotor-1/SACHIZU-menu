@@ -34,6 +34,18 @@ export type PolicyEvaluation = {
   notes: StopReason[];
 };
 
+type VdecClassificationPolicy = NonNullable<RunningPrescriptionValue["monitoringSnapshot"]["vdecClassificationPolicy"]>;
+
+function includesVdecBand(value: number, band: VdecClassificationPolicy["bands"][number]): boolean {
+  const lowerOk = band.lowerPercent === null || value > band.lowerPercent || (band.lowerInclusive && value === band.lowerPercent);
+  const upperOk = band.upperPercent === null || value < band.upperPercent || (band.upperInclusive && value === band.upperPercent);
+  return lowerOk && upperOk;
+}
+
+function classifyVdec(policy: VdecClassificationPolicy, value: number): VdecClassificationPolicy["bands"][number]["classification"] | null {
+  return policy.bands.find((band) => includesVdecBand(value, band))?.classification ?? null;
+}
+
 type StreakEntry = Pick<RepLogEntry, "quality" | "action" | "fasterThanTargetLower" | "startQuality">;
 
 /** 末尾から数えた連続 FAIL 数（今回を含む）。PASS / COACH_ONLY / END_SET で終わった本で途切れる。 */
@@ -128,14 +140,32 @@ export function evaluateStopPolicy(args: {
   if (runtime.velocityDecrementOutOfBandAction !== null) {
     const vdec = obs.measuredVelocityDecrementPercent ?? null;
     const target = prescription.intensity.target;
-    const band =
-      prescription.intensity.reference.kind === "VELOCITY_DECREMENT" && target !== null && target.unit === "percent" && target.lower !== null && target.upper !== null
-        ? { lower: target.lower, upper: target.upper }
-        : null;
-    if (vdec !== null && band === null) {
-      notes.push("VELOCITY_DECREMENT_BAND_UNAVAILABLE");
-    } else if (vdec !== null && band !== null && (vdec < band.lower || vdec > band.upper)) {
-      candidates.push({ action: runtime.velocityDecrementOutOfBandAction, reasons: ["VELOCITY_DECREMENT_OUT_OF_BAND"] });
+    const reference = prescription.intensity.reference;
+    const vdecPolicy = prescription.monitoringSnapshot.vdecClassificationPolicy;
+    if (vdec !== null && reference.kind === "VELOCITY_DECREMENT" && vdecPolicy !== undefined) {
+      const classification = classifyVdec(vdecPolicy, vdec);
+      const requiresReview =
+        classification === null ||
+        classification === "UNRESOLVED_REVIEW" ||
+        classification === "VERY_HEAVY" ||
+        classification !== reference.band;
+      if (classification === null) {
+        notes.push("VELOCITY_DECREMENT_BAND_UNAVAILABLE");
+      } else if (requiresReview) {
+        // E10: unresolved / very-heavy は default load を出さず、既存の COACH_REVIEW action へ収束させる。
+        candidates.push({ action: runtime.velocityDecrementOutOfBandAction, reasons: ["VELOCITY_DECREMENT_OUT_OF_BAND"] });
+      }
+    } else {
+      // 旧 snapshot（数値 target を持つもの）の monitoring 互換を維持する。
+      const band =
+        reference.kind === "VELOCITY_DECREMENT" && target !== null && target.unit === "percent" && target.lower !== null && target.upper !== null
+          ? { lower: target.lower, upper: target.upper }
+          : null;
+      if (vdec !== null && band === null) {
+        notes.push("VELOCITY_DECREMENT_BAND_UNAVAILABLE");
+      } else if (vdec !== null && band !== null && (vdec < band.lower || vdec > band.upper)) {
+        candidates.push({ action: runtime.velocityDecrementOutOfBandAction, reasons: ["VELOCITY_DECREMENT_OUT_OF_BAND"] });
+      }
     }
   }
   if (runtime.effortBecameMaximalAction !== null && judgment?.effortBecameMaximal === true) {

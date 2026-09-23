@@ -19,7 +19,7 @@ import { CONTEXT_PLAUSIBILITY_RULE_IDS, evaluateInputPlausibility } from "./plau
 import { daysBetween } from "./dateMath";
 
 // ---------------------------------------------------------------------------
-// Growth velocity（§4.3 rapidGrowthFlag の算出根拠）
+// Growth velocity（§4.3 rapidGrowthFlag の CHECK_ONLY 算出根拠）
 // ---------------------------------------------------------------------------
 
 export type HeightHistoryPoint = { date: IsoDate; heightCm: number };
@@ -31,10 +31,11 @@ export type HeightHistoryPoint = { date: IsoDate; heightCm: number };
 const MIN_GROWTH_INTERVAL_DAYS = 182;
 
 /**
- * [ENGINE-POLICY / provisional — secondary-report-derived]
- * 年間成長速度 > 7.2 cm/年 を rapidGrowthFlag の閾値とする（Claude DR の
- * narrative review 由来。§4.3）。医学的診断値ではない。`>` であって `>=`
- * ではない（仕様の表現どおり）。
+ * [CHECK_ONLY / provisional — secondary-report-derived]
+ * 年間成長速度 > 7.2 cm/年を rapidGrowthFlag として記録する（Claude DR の
+ * narrative review 由来）。これは male academy football の risk marker を
+ * 監査・コーチ確認へ渡すための値であり、医学的診断値、hard stop、eligibility
+ * cutoff、または自動的な maturity/tier 変更ではない。`>` であって `>=` ではない。
  */
 export const RAPID_GROWTH_THRESHOLD_CM_PER_YEAR = 7.2;
 
@@ -144,7 +145,9 @@ function resultWith(
     effectiveConfidence,
     rapidGrowthFlag,
     growthVelocityCmPerYear,
-    constraintCategory: rapidGrowthFlag ? "CIRCA" : constraintCategoryIfNotRapid,
+    // E15: growth velocity は CHECK_ONLY。申告された maturity category や
+    // confidence から決まった category を、成長速度だけで置換しない。
+    constraintCategory: constraintCategoryIfNotRapid,
   };
 }
 
@@ -155,15 +158,14 @@ function resultWith(
 export function normalizeMaturity(input: MaturityNormalizationInput): NormalizedMaturity {
   const { ageBand, maturity, asOf, ruleSet } = input;
 
-  // rapidGrowthFlag は method に関わらず heightHistory から独立に評価する
-  // （§4.3: 「flag=true のとき、申告 status に関係なく CIRCA の制約を適用」）。
+  // rapidGrowthFlag は method に関わらず heightHistory から独立に評価する。
+  // E15ではCHECK_ONLYの監査情報として保持し、eligibility/tierの入力にはしない。
   const growth = computeGrowthVelocity(maturity.heightHistory, asOf, ruleSet);
   const growthVelocityCmPerYear = growth.available ? growth.cmPerYear : null;
   const rapidGrowthFlag = growth.available && growth.cmPerYear > RAPID_GROWTH_THRESHOLD_CM_PER_YEAR;
 
   // ADULT: ENGINE-POLICY で常に POST/HIGH（申告値・method に関わらず）。
-  // rapidGrowthFlag が true でも normalizedStatus は POST のまま
-  // （raw/resolved maturity と constraint category を混同しない。§4.3 要件）。
+  // rapidGrowthFlag が true でも normalizedStatus / constraintCategory は変更しない。
   if (ageBand === "ADULT") {
     return resultWith(input, "POST", "HIGH", rapidGrowthFlag, growthVelocityCmPerYear, "POST");
   }

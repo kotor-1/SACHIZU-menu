@@ -637,7 +637,7 @@ describe("T-PH-04: ADVANCED × PEAK n=10 は 41–60% taper guidance", () => {
     expect(finding!.metric).toContain("reductionPercentUpper=60");
     expect(finding!.metric).toContain("baselineAverageLowerM=2000");
     const evidenceRule = ruleSet.competitionRules.find((r) => r.taperGuidance !== null)!;
-    expect(evidenceRule.taperGuidance!.evidenceId).toBe("EV_BOSQUET_2007_TAPER");
+    expect(evidenceRule.taperGuidance!.evidenceId).toBe("EV_ENGINE_POLICY");
 
     // [R7 pre-commit correction §19] intensity 側の完全な deep-equality。reference（MAX_INTENT /
     // Vmax 参照の種類など）と target（intensityPercent・比率などの実値）の両方、および

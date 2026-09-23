@@ -359,7 +359,7 @@ describe("running-actions: legacy guard（§37/§39。flag と独立して常時
     const okResult = await updateMenuItemAction(menu.id, legacy.id, null, planFormData({ exerciseId: "", displayName: "旧ドリル2", reps: "12" }));
     expect(okResult.ok).toBe(true);
 
-    const v2 = await createRunningMenuItem(block.id, persistInputFor(planWith({ ruleSet: getRuleSet("rs-2026.09.0")!, contentHash: "4e64974ab047a925c275a4a9b33d4dbed542604afe09200288e71fdf0c9092c1", isDraftFallback: false }, "ACCELERATION", "ACC_BLOCK_30")));
+    const v2 = await createRunningMenuItem(block.id, persistInputFor(planWith({ ruleSet: getRuleSet("rs-2026.09.0")!, contentHash: "dca25fa7fc3d062c98f3a53e43488d8b5163196e35624ba5b67a1dbd750af30e", isDraftFallback: false }, "ACCELERATION", "ACC_BLOCK_30")));
     const rejected = await updateMenuItemAction(menu.id, v2.id, null, planFormData({ exerciseId: "", displayName: "上書きしようとする", sets: "9" }));
     expect(rejected.ok).toBe(false);
     expect(await prisma.menuItem.findUniqueOrThrow({ where: { id: v2.id } })).toMatchObject({ displayName: v2.displayName });
@@ -367,14 +367,14 @@ describe("running-actions: legacy guard（§37/§39。flag と独立して常時
 
   it("repository の updateMenuItem も独立に RUNNING_V2 を拒否する（二重の守り）", async () => {
     const { block } = await makeMenuWithRunningContext();
-    const v2 = await createRunningMenuItem(block.id, persistInputFor(planWith({ ruleSet: getRuleSet("rs-2026.09.0")!, contentHash: "4e64974ab047a925c275a4a9b33d4dbed542604afe09200288e71fdf0c9092c1", isDraftFallback: false }, "ACCELERATION", "ACC_BLOCK_30")));
+    const v2 = await createRunningMenuItem(block.id, persistInputFor(planWith({ ruleSet: getRuleSet("rs-2026.09.0")!, contentHash: "dca25fa7fc3d062c98f3a53e43488d8b5163196e35624ba5b67a1dbd750af30e", isDraftFallback: false }, "ACCELERATION", "ACC_BLOCK_30")));
     await expect(updateMenuItem(v2.id, menuItemInputSchema.parse({ displayName: "直接book", sets: "9" }))).rejects.toThrow();
     expect(await findMenuItemPrescriptionKind(v2.id)).toBe("RUNNING_V2");
   });
 
   it("move / delete は RUNNING_V2 でも従来どおり許可される", async () => {
     const { block } = await makeMenuWithRunningContext();
-    const v2 = await createRunningMenuItem(block.id, persistInputFor(planWith({ ruleSet: getRuleSet("rs-2026.09.0")!, contentHash: "4e64974ab047a925c275a4a9b33d4dbed542604afe09200288e71fdf0c9092c1", isDraftFallback: false }, "ACCELERATION", "ACC_BLOCK_30")));
+    const v2 = await createRunningMenuItem(block.id, persistInputFor(planWith({ ruleSet: getRuleSet("rs-2026.09.0")!, contentHash: "dca25fa7fc3d062c98f3a53e43488d8b5163196e35624ba5b67a1dbd750af30e", isDraftFallback: false }, "ACCELERATION", "ACC_BLOCK_30")));
     const { moveMenuItem, deleteMenuItem } = await import("@/infra/repositories/menu-repository");
     await addMenuItem(block.id, menuItemInputSchema.parse({ displayName: "隣", reps: "10" }));
     await expect(moveMenuItem(v2.id, "down")).resolves.not.toThrow();

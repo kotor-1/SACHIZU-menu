@@ -35,7 +35,7 @@ import type { Unit } from "@/domain/running/types/primitives";
 // ---------------------------------------------------------------------------
 
 const ruleSet = getRuleSet("rs-2026.09.0")!;
-const EXPECTED_HASH = "4e64974ab047a925c275a4a9b33d4dbed542604afe09200288e71fdf0c9092c1";
+const EXPECTED_HASH = "dca25fa7fc3d062c98f3a53e43488d8b5163196e35624ba5b67a1dbd750af30e";
 const PLANNING_DATE = "2026-09-15";
 
 function iso(value: string): IsoDate {
@@ -760,9 +760,15 @@ describe("step 8: envelope", () => {
     expect(f.find((x) => x.code === "ENVELOPE_INFEASIBLE")?.severity).toBe("BLOCK_AUTOGEN");
   });
 
-  it("RESISTED の vdecPercent Envelope は band ごとの Envelope を束ねて使う", () => {
+  it("RESISTED の vdecPercent は分類 snapshot のみで、処方 target を作らない", () => {
     const p = expectOk(plan("RESISTED_SPRINT", "RS_SLED_MODERATE", { coachReference: { kind: "VELOCITY_DECREMENT", band: "MODERATE", measured: true } }));
-    expect(p.intensity.target).toEqual({ lower: 10, upper: 15, unit: "percent", source: "RULE_DEFINITION", confidence: "MEDIUM" });
+    expect(p.intensity.target).toBeNull();
+    expect(p.monitoringSnapshot.vdecClassificationPolicy?.bands).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ classification: "LIGHT", upperPercent: 10, upperInclusive: false }),
+        expect.objectContaining({ classification: "MODERATE", lowerPercent: 10, lowerInclusive: true, upperPercent: 15, upperInclusive: false }),
+      ]),
+    );
   });
 });
 
@@ -1047,10 +1053,12 @@ describe("step 12: position & placement（§7.3, §9.3）", () => {
   });
 
   it("R2 JSON の `reps≤N` 修飾子をエンジンの総本数上限に使う（数値は note から読む）", () => {
-    // 本番 DEV の MV totalReps recommended は 2–3 のため修飾子が効かない。テスト用に範囲だけ広げた RuleSet で確認する。
+    // 本番 DEV の MV totalReps recommended は 2–3 のため修飾子が効かない。今回の
+    // ENGINE_POLICY provenance による POLICY_ONLY/lower-half 制約と混同しないよう、
+    // テスト用に十分広い範囲へ拡張した RuleSet で eligibility 上限を確認する。
     const widened: RuleSet = structuredClone(ruleSet);
     const mvDev = widened.envelopes.find((e) => e.method === "MAX_VELOCITY" && e.tier === "DEVELOPMENTAL")!;
-    mvDev.fields.totalReps = { ...mvDev.fields.totalReps!, recommended: { min: 2, max: 8, unit: "reps" }, coachEditable: { min: 1, max: 8, unit: "reps" } };
+    mvDev.fields.totalReps = { ...mvDev.fields.totalReps!, recommended: { min: 2, max: 20, unit: "reps" }, coachEditable: { min: 1, max: 20, unit: "reps" } };
     mvDev.fields.flyVolumeM = { ...mvDev.fields.flyVolumeM!, recommended: { min: 20, max: 200, unit: "m" }, coachEditable: { min: 10, max: 200, unit: "m" } };
     const req = makeRequest("MAX_VELOCITY", "MV_FLY10", { subject: u15Unknown(), actor: AI });
     const r = planRunningPrescriptionWithRuleSet(req, { ruleSet: widened, contentHash: "test", isDraftFallback: true });
@@ -1208,7 +1216,8 @@ describe("step 9: individualization", () => {
     expect(expectOk(light({ kind: "VELOCITY_DECREMENT", band: "LIGHT", measured: true })).confidence.inputData).toBe("MEDIUM");
     const unmeasured = expectOk(light({ kind: "VELOCITY_DECREMENT", band: "LIGHT", measured: false }));
     expect(unmeasured.confidence.inputData).toBe("LOW");
-    expect(unmeasured.intensity.target).toMatchObject({ lower: 0, upper: 10, unit: "percent", confidence: "LOW" });
+    expect(unmeasured.intensity.target).toBeNull();
+    expect(unmeasured.monitoringSnapshot.vdecClassificationPolicy?.bands).toEqual(expect.any(Array));
     const fallback = expectOk(light(null));
     expect(fallback.intensity).toEqual({ reference: { kind: "MAX_INTENT" }, target: null });
     expect(fallback.confidence.inputData).toBe("LOW");

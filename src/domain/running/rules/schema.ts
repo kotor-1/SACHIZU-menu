@@ -262,6 +262,43 @@ export const envelopeSchema = z.object({
 export type Envelope = z.infer<typeof envelopeSchema>;
 
 // ---------------------------------------------------------------------------
+// Vdec classification（E10）
+// ---------------------------------------------------------------------------
+
+/**
+ * Vdec の観測値を分類するための専用 band。
+ * EnvelopeCell / Range とは別物であり、sled 負荷や Vdec target を処方しない。
+ */
+export const VDEC_CLASSIFICATIONS = ["LIGHT", "MODERATE", "UNRESOLVED_REVIEW", "VERY_HEAVY"] as const;
+export const vdecClassificationSchema = z.enum(VDEC_CLASSIFICATIONS);
+export type VdecClassification = z.infer<typeof vdecClassificationSchema>;
+
+export const vdecClassificationBandSchema = z
+  .object({
+    id: z.string().min(1),
+    classification: vdecClassificationSchema,
+    lowerPercent: z.number().finite().nonnegative().nullable(),
+    upperPercent: z.number().finite().nonnegative().nullable(),
+    lowerInclusive: z.boolean(),
+    upperInclusive: z.boolean(),
+    evidenceIds: z.array(evidenceIdSchema).min(1),
+    classificationOnly: z.literal(true),
+  })
+  .strict()
+  .superRefine((band, ctx) => {
+    if (band.lowerPercent === null && band.lowerInclusive) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "下限が無い band は lowerInclusive=true にできません", path: ["lowerInclusive"] });
+    }
+    if (band.upperPercent === null && band.upperInclusive) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "上限が無い band は upperInclusive=true にできません", path: ["upperInclusive"] });
+    }
+    if (band.lowerPercent !== null && band.upperPercent !== null && band.lowerPercent > band.upperPercent) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Vdec classification band の下限は上限以下である必要があります", path: ["lowerPercent"] });
+    }
+  });
+export type VdecClassificationBand = z.infer<typeof vdecClassificationBandSchema>;
+
+// ---------------------------------------------------------------------------
 // EligibilityRule（§4.4 の表。R2ではデータのみ・評価関数は作らない）
 // ---------------------------------------------------------------------------
 
@@ -1224,6 +1261,9 @@ export const ruleSetSchema = z
     methods: z.array(methodMetaSchema),
     templates: z.array(ruleSetSessionTemplateSchema),
     envelopes: z.array(envelopeSchema),
+    // 旧 RuleSet / fixture はこの専用 metadata を持たないため、構造 parse は互換にする。
+    // 本番 RuleSet の完全性は checkRuleSetCompleteness で必須化する。
+    vdecClassificationBands: z.array(vdecClassificationBandSchema).default([]),
     eligibility: z.array(eligibilityRuleSchema),
     constraints: z.array(constraintRuleSchema),
     timingTolerances: z.array(timingToleranceRuleSchema),
@@ -1238,6 +1278,64 @@ export const ruleSetSchema = z
     eventDefinitions: eventDefinitionsSchema,
   })
   .superRefine((rs, ctx) => {
+    // E10: Vdec classification は閉区間の Envelope Range ではなく、境界を明示した
+    // 連続・非重複の専用分類帯として管理する。15–30% は named empirical band にしない。
+    const vdecBands = [...rs.vdecClassificationBands].sort(
+      (a, b) => (a.lowerPercent ?? Number.NEGATIVE_INFINITY) - (b.lowerPercent ?? Number.NEGATIVE_INFINITY),
+    );
+    const vdecClasses = new Set(vdecBands.map((band) => band.classification));
+    if (vdecBands.length > 0) {
+      for (const classification of VDEC_CLASSIFICATIONS) {
+        if (!vdecClasses.has(classification)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Vdec classification に ${classification} がありません`,
+            path: ["vdecClassificationBands"],
+          });
+        }
+      }
+      if (vdecClasses.size !== vdecBands.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Vdec classification は各 classification を一度だけ定義します",
+          path: ["vdecClassificationBands"],
+        });
+      }
+      if (vdecBands[0]?.lowerPercent !== 0 || vdecBands[0]?.lowerInclusive !== true) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Vdec classification は0%以上の観測値を覆う必要があります",
+          path: ["vdecClassificationBands"],
+        });
+      }
+      if (vdecBands.at(-1)?.upperPercent !== null || vdecBands.at(-1)?.upperInclusive !== false) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Vdec classification の最終 band は上限なしである必要があります",
+          path: ["vdecClassificationBands"],
+        });
+      }
+      for (let i = 1; i < vdecBands.length; i += 1) {
+        const previous = vdecBands[i - 1];
+        const current = vdecBands[i];
+        if (previous.upperPercent !== current.lowerPercent) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Vdec classification band の間に gap があります",
+            path: ["vdecClassificationBands", i, "lowerPercent"],
+          });
+        } else if (previous.upperInclusive === current.lowerInclusive) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: previous.upperInclusive
+              ? "Vdec classification band が境界で重複しています"
+              : "Vdec classification band が境界で gap になります",
+            path: ["vdecClassificationBands", i],
+          });
+        }
+      }
+    }
+
     // ---- Method / Template -------------------------------------------------
     const methodsSeen = new Set<string>();
     for (const [i, m] of rs.methods.entries()) {
@@ -1789,6 +1887,10 @@ export type RuleSet = z.infer<typeof ruleSetSchema>;
 export function checkRuleSetCompleteness(rs: RuleSet): string[] {
   const problems: string[] = [];
 
+  if (rs.vdecClassificationBands.length === 0) {
+    problems.push("本番 RuleSet に Vdec classification bands がありません");
+  }
+
   const methodsSeen = new Set(rs.methods.map((m) => m.method));
   for (const method of RUNNING_TRAINING_METHODS) {
     if (!methodsSeen.has(method)) {
@@ -1837,7 +1939,7 @@ export function checkRuleSetCompleteness(rs: RuleSet): string[] {
   // CompetitionRule の n=1 行があること。
   if (rs.weeklyRules.length > 0) {
     const weeklyKinds = new Set(rs.weeklyRules.map((r) => r.kind));
-    for (const kind of ["WINDOW_HOURS", "RELEVANT_CATEGORIES", "HIGH_SESSIONS_7D", "YOUTH_REST_DAYS", "YOUTH_MAX_MINUTES_7D", "HISTORY_UNKNOWN_POLICY"] as const) {
+    for (const kind of ["WINDOW_HOURS", "RELEVANT_CATEGORIES", "HIGH_SESSIONS_7D", "HISTORY_UNKNOWN_POLICY"] as const) {
       if (!weeklyKinds.has(kind)) problems.push(`WeeklyRule に kind=${kind} がありません`);
     }
   }

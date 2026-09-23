@@ -101,7 +101,7 @@ describe("normalizeMaturity — ADULT (§4.3 ENGINE-POLICY)", () => {
     expect(result.constraintCategory).toBe("POST");
   });
 
-  it("ADULT でも rapidGrowthFlag=true なら constraintCategory だけ CIRCA（normalizedStatus は POST のまま）", () => {
+  it("ADULT でも rapidGrowthFlag=true は CHECK_ONLY で category を変更しない", () => {
     const result = normalizeMaturity({
       ageBand: "ADULT",
       maturity: {
@@ -119,7 +119,7 @@ describe("normalizeMaturity — ADULT (§4.3 ENGINE-POLICY)", () => {
     });
     expect(result.rapidGrowthFlag).toBe(true);
     expect(result.normalizedStatus).toBe("POST");
-    expect(result.constraintCategory).toBe("CIRCA");
+    expect(result.constraintCategory).toBe("POST");
   });
 });
 
@@ -264,7 +264,7 @@ describe("normalizeMaturity — rapidGrowthFlag（要件13）", () => {
       ruleSet,
     });
     expect(over.rapidGrowthFlag).toBe(true);
-    expect(over.constraintCategory).toBe("CIRCA");
+    expect(over.constraintCategory).toBe("PRE");
 
     const exact = normalizeMaturity({
       ageBand: "U15",

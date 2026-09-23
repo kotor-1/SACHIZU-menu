@@ -12,7 +12,7 @@
  * - 露出は項目単位だけ（セッション集計は R6）。加速距離 A の数値は TS に持たないため、
  *   A を必要とする側の bound は null（0 にしない）。
  */
-import type { EnvelopeCell, EventDefinitions, MethodMeta, RuleSet, RuleSetSessionTemplate } from "../rules/schema";
+import type { EventDefinitions, MethodMeta, RuleSet, RuleSetSessionTemplate } from "../rules/schema";
 import type { Finding } from "../types/findings";
 import type { IntensityReference, TimedMark, TimingMethod, VelocityEstimate } from "../types/intensity";
 import type { Confidence, IsoDate, QuantityInterval } from "../types/primitives";
@@ -296,7 +296,7 @@ export type IntensityTarget = QuantityInterval<"s"> | QuantityInterval<"percent"
  * - MEASURED_VMAX（距離 rep）: distance / (v × p)、v=[lower, upper]、p=intensityPercent の区間
  * - SAME_DISTANCE_BEST: best / p（rep 距離と記録の距離が一致するときだけ）
  * - RACE_PACE / TARGET_SPLIT: コーチ入力値をそのまま区間化
- * - VELOCITY_DECREMENT: band の vdecPercent 範囲（RuleSet）
+ * - VELOCITY_DECREMENT: 分類 band は monitoring snapshot に保存するが、数値 Vdec target は処方しない
  * - GROUP では目標タイムを出さない
  * 材料（intensityPercent・rep 距離）が無ければ null。
  */
@@ -307,9 +307,8 @@ export function computeIntensityTarget(args: {
   repDistanceM: number | null;
   /** 百分率（例 60–70）。recommended の範囲、またはコーチ入力の1点。 */
   intensityPercent: { min: number; max: number } | null;
-  vdecCell: EnvelopeCell | null;
 }): IntensityTarget {
-  const { method, subjectKind, plan, repDistanceM, intensityPercent, vdecCell } = args;
+  const { method, subjectKind, plan, repDistanceM, intensityPercent } = args;
   const ref = plan.reference;
   if (method === "MAX_VELOCITY") return null;
   // 数値目標は performance / コーチ入力の参照に基づくときだけ。NOT_REQUIRED の参照は目標を持たない。
@@ -322,15 +321,9 @@ export function computeIntensityTarget(args: {
     case "COACH_DEFINED":
       return null;
     case "VELOCITY_DECREMENT": {
-      if (!vdecCell || vdecCell.recommended === null) return null;
-      // band の範囲（RULE_DEFINITION）。confidence は実測かどうかで決める。
-      return {
-        lower: vdecCell.recommended.min,
-        upper: vdecCell.recommended.max,
-        unit: "percent",
-        source: "RULE_DEFINITION",
-        confidence: ref.measured ? "MEDIUM" : "LOW",
-      };
+      // E10: Vdec は measured observation の classification にのみ使用する。
+      // classification から sled load / recommended Vdec target を逆算しない。
+      return null;
     }
     case "MEASURED_VMAX": {
       if (intensityPercent === null) return null;

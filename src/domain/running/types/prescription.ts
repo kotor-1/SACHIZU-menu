@@ -348,6 +348,33 @@ export const planningControlsSchema = z
   .strict();
 export type PlanningControls = z.infer<typeof planningControlsSchema>;
 
+/**
+ * E10 の Vdec 分類ポリシーの plan-time snapshot。
+ *
+ * これは観測値を分類するための metadata であり、sled load や数値 Vdec
+ * target を処方するフィールドではない。optional にして、過去に保存された
+ * Vdec prescription（旧 target を持つ snapshot）も読めるようにする。
+ */
+const vdecClassificationBandSnapshotSchema = z
+  .object({
+    id: z.string().min(1),
+    classification: z.enum(["LIGHT", "MODERATE", "UNRESOLVED_REVIEW", "VERY_HEAVY"]),
+    lowerPercent: z.number().finite().nonnegative().nullable(),
+    upperPercent: z.number().finite().nonnegative().nullable(),
+    lowerInclusive: z.boolean(),
+    upperInclusive: z.boolean(),
+    evidenceIds: z.array(evidenceIdSchema).min(1),
+    classificationOnly: z.literal(true),
+  })
+  .strict();
+
+export const vdecClassificationPolicySnapshotSchema = z
+  .object({
+    bands: z.array(vdecClassificationBandSnapshotSchema).min(1),
+  })
+  .strict();
+export type VdecClassificationPolicySnapshot = z.infer<typeof vdecClassificationPolicySnapshotSchema>;
+
 export const monitoringSnapshotSchema = z
   .object({
     stopPolicy: stopPolicySnapshotSchema,
@@ -357,6 +384,8 @@ export const monitoringSnapshotSchema = z
      * （monitor は RuleSet を読めないため）。健康情報そのものではない。
      */
     safetyPolicy: runtimeSafetyPolicySnapshotSchema,
+    /** E10: Vdec の分類境界だけを plan 時点で固定する。数値 target ではない。 */
+    vdecClassificationPolicy: vdecClassificationPolicySnapshotSchema.optional(),
   })
   .strict()
   .refine((m) => new Set(m.timingTolerances.map((t) => t.timing)).size === m.timingTolerances.length, {

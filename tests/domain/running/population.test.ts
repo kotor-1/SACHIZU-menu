@@ -215,10 +215,10 @@ describe("T-POP-03: U15 declared POST, growth > 7.2cm/year", () => {
   }) as { kind: "ATHLETE"; profile: AthleteProfile };
   const profile = resolveSubjectProfile({ subject, asOf: iso("2026-01-01"), ruleSet });
 
-  it("rapidGrowth=true, constraint category=CIRCA, tier=DEVELOPMENTAL", () => {
+  it("rapidGrowth=true は CHECK_ONLY で、申告 category/tier を変更しない", () => {
     expect(profile.rapidGrowthFlag).toBe(true);
-    expect(profile.maturity?.constraintCategory).toBe("CIRCA");
-    expect(profile.envelopeTier).toBe("DEVELOPMENTAL");
+    expect(profile.maturity?.constraintCategory).toBe("POST");
+    expect(profile.envelopeTier).toBe("ADVANCED");
   });
 });
 
@@ -289,12 +289,11 @@ describe("T-POP-06: ADULT, coachAssignedTier=ADVANCED, PHOTO_CELL fly", () => {
     expect(ref.confidence).toBe("HIGH");
   });
 
-  it("R2 Evidence が secondary-report-only のため、最終 prescriptionConfidence を HIGH にする根拠は R3 context には無い（R4計算前の確認）", () => {
-    // R3 は prescriptionConfidence 自体を計算しない（R4の責務）。ここでは
-    // 「HIGHに必要な primary evidence が無い」という R2 の事実を壊していない
-    // ことだけを確認する（EvidenceRecord は全件 SECONDARY_REPORT_ONLY）。
-    const nonPrimary = ruleSet.evidence.every((e) => e.verification === "SECONDARY_REPORT_ONLY");
-    expect(nonPrimary).toBe(true);
+  it("secondary report の処方根拠と primary-checked の限定的な根拠を混同しない", () => {
+    // Phase 3B は一次照合済みの限定的な資料を保持するが、Haugen の
+    // best-practice synthesis は引き続き SECONDARY_REPORT_ONLY である。
+    expect(ruleSet.evidence.find((e) => e.id === "EV_HAUGEN_2019_REVIEW")?.verification).toBe("SECONDARY_REPORT_ONLY");
+    expect(ruleSet.evidence.filter((e) => e.verification === "PRIMARY_CHECKED")).toHaveLength(4);
   });
 });
 

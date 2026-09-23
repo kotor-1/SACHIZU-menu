@@ -5,12 +5,9 @@
  *   1. effective maturity（constraintCategory）= POST
  *   2. effective confidence >= MEDIUM
  *   3. trainingAgeTier ∈ {TRAINED, ADVANCED}
- *   4. rapidGrowthFlag = false
  *
- * `maturity.ts` の `NormalizedMaturity.constraintCategory` は既に
- * 条件1・2・4を統合済み（POST として現れるのは confidence>=MEDIUM かつ
- * rapidGrowthFlag=false のときだけ。§4.4 の実効カテゴリ定義そのもの）。
- * そのためここでは `constraintCategory === "POST"` と
+ * E15 の growth velocity は CHECK_ONLY のため、tier eligibility へ自動的に
+ * CIRCA 制約を追加しない。ここでは `constraintCategory === "POST"` と
  * `trainingAgeTier ∈ {TRAINED, ADVANCED}` の2条件だけを見ればよい。
  * それ以外はすべて DEVELOPMENTAL（成人の初心者も DEVELOPMENTAL。T-POP-05）。
  */

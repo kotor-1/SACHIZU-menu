@@ -706,13 +706,33 @@ describe("§10.3 stop policy の実挙動", () => {
       monitorRunningPrescription({ prescription: p, priorLogs: [] }, { setIndex: 1, repIndex: 1, timeS: 5.0, timing: "HAND", measuredVelocityDecrementPercent: vdec });
     expect(decide(12).action).toBe("COACH_REVIEW");
     expect(decide(12).reasons).toContain("VELOCITY_DECREMENT_OUT_OF_BAND");
-    expect(decide(10).action).toBe("CONTINUE");
+    // E10: LIGHT は 10% 未満。境界値 10% は MODERATE で、LIGHT reference には一致しない。
+    expect(decide(9.999).action).toBe("CONTINUE");
+    expect(decide(10).action).toBe("COACH_REVIEW");
     expect(decide(0).action).toBe("CONTINUE");
     expect(decide(null).action).toBe("CONTINUE");
     // 速度 m/s だけでは vdec を推定しない（基準速度が snapshot に無い）
     const velocityOnly = monitorRunningPrescription({ prescription: p, priorLogs: [] }, { setIndex: 1, repIndex: 1, timeS: 5.0, timing: "HAND", measuredVelocityMps: 3 });
     expect(velocityOnly.action).toBe("CONTINUE");
     expect(velocityOnly.logEntry.measuredVelocityDecrementPercent).toBeNull();
+  });
+
+  it("E10: Vdec classification の境界は重複せず、15–30% は review、30%超は VERY_HEAVY review", () => {
+    const moderate = planned("RESISTED_SPRINT", "RS_SLED_MODERATE", {
+      coachReference: { kind: "VELOCITY_DECREMENT", band: "MODERATE", measured: true },
+    });
+    const decide = (prescription: RunningPrescriptionValue, vdec: number) =>
+      monitorRunningPrescription(
+        { prescription, priorLogs: [] },
+        { setIndex: 1, repIndex: 1, timeS: 5.0, timing: "HAND", measuredVelocityDecrementPercent: vdec },
+      );
+
+    expect(decide(rs(), 9.999).action).toBe("CONTINUE");
+    expect(decide(moderate, 10.0).action).toBe("CONTINUE");
+    expect(decide(moderate, 14.999).action).toBe("CONTINUE");
+    expect(decide(moderate, 15.0).action).toBe("COACH_REVIEW");
+    expect(decide(moderate, 30.0).action).toBe("COACH_REVIEW");
+    expect(decide(moderate, 30.001).action).toBe("COACH_REVIEW");
   });
 
   it("SP_AS: technique GOOD は継続、ACCEPTABLE / DETERIORATING / UNSAFE は STOP_SAFETY、未入力は GOOD と推測せず COACH_REVIEW", () => {

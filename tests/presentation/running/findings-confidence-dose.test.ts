@@ -230,8 +230,8 @@ describe("R10-B3: Dose presentation", () => {
   it("速度低下率の % は「速度低下率の目安」として言い分ける（最高速度に対する % と誤読させない）", () => {
     const dose = presentDose(planRs());
     expect(dose.intensityLabel).toMatch(/^速度低下率の目安/);
-    expect(dose.intensityTargetLabel).toMatch(/^速度低下率の目安 /);
-    expect(dose.intensityTargetLabel).not.toMatch(/最高速度/);
+    // E10: Vdec は分類表示だけで、分類から numeric target を処方・表示しない。
+    expect(dose.intensityTargetLabel).toBeNull();
   });
 
   it("セットで区切らない構造は「N本」、分割走は区間を「＋」で並べる", () => {
