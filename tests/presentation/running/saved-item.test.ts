@@ -12,10 +12,12 @@ import type { RuleSetIdentityResult } from "@/domain/running/rules/loader";
 import type { RuleSet } from "@/domain/running/rules/schema";
 import type { Provenance } from "@/domain/running/persistence/provenance";
 import type { RunningPrescriptionValue } from "@/domain/running/types/prescription";
+import { isoDateTimeSchema } from "@/domain/running/types/primitives";
 import { ProvenancePanel } from "@/components/running/provenance-panel";
 import { presentRunningItem } from "@/presentation/running/item";
+import { buildFieldEditRequest } from "@/presentation/running/editor-requests";
 import { presentSavedRunningMenuItem, type RuleSetIdentityResolver, type SavedRunningMenuItemRow } from "@/presentation/running/server";
-import { planAcc, planMvFly20, planWith, provenanceFor, athlete, FLY20_PHOTO } from "../../repository/running/fixtures";
+import { planAcc, planEa, planMvFly20, planWith, provenanceFor, athlete, FLY20_PHOTO } from "../../repository/running/fixtures";
 import { productionRuleSet, rawKeyLeaks, renderMarkup, stripTags } from "./helpers";
 
 afterEach(() => vi.restoreAllMocks());
@@ -98,6 +100,37 @@ describe("R10-B3: 保存済み item の題名（template label source）", () =>
     expect(presentRunningItem({ ...base, displayName: "保存時の表示名", exactRuleSet: { status: "OK", ruleSet: ruleSetA } }).title).toBe("保存時の表示名");
     expect(presentRunningItem({ ...base, displayName: null, exactRuleSet: { status: "OK", ruleSet: ruleSetA } }).title).toBe("フライ20m");
     expect(presentRunningItem({ ...base, displayName: null, exactRuleSet: { status: "UNAVAILABLE" } }).title).toBe("走トレーニング");
+  });
+});
+
+describe("G.6: 保存済み coach-entered approach distance", () => {
+  it("実在する coach-entered 助走距離だけ直接編集可能にし、Envelope 範囲や override を作らない", () => {
+    const prescription = structuredClone(planEa());
+    if (prescription.rep.kind !== "ATTEMPTS") throw new Error("expected ATTEMPTS");
+    prescription.rep.approachDistanceM = { value: 30, unit: "m", source: "COACH_ENTERED" };
+    const item = presentRunningItem({
+      id: "ea-saved",
+      displayName: null,
+      rationale: "保存済み",
+      prescription,
+      provenance: null,
+      exactRuleSet: { status: "OK", ruleSet: productionRuleSet() },
+    });
+    const approach = item.editor.fields.find((field) => field.keyInternal === "approachDistanceM")!;
+    expect(approach).toMatchObject({
+      currentValue: 30,
+      originLabel: "コーチ入力",
+      editable: true,
+      readOnly: false,
+      recommended: null,
+      coachEditable: null,
+      hardSafety: null,
+      overrideLayers: [],
+    });
+    expect(buildFieldEditRequest(item.id, approach, "35")).toMatchObject({
+      ok: true,
+      request: { itemId: "ea-saved", field: "approachDistanceM", value: 35, displayedFromValue: 30 },
+    });
   });
 });
 
@@ -240,6 +273,28 @@ describe("R10-B3: Provenance の表示（AI とエンジンの区別・技術情
     expect(item.provenance.coachEdits.items[0]).toMatchObject({ label: "本間レスト", detail: "11分30秒 → 12分" });
     expect(item.provenance.overrides.items[0]).toMatchObject({ label: "助走（加速）区間（コーチ調整可能範囲の外）", detail: "設定値 75m", reason: "助走を長く取りたい選手のため" });
     expect(rawKeyLeaks(renderMarkup(ProvenancePanel, { provenance: item.provenance }))).toEqual([]);
+  });
+
+  it("初回 coach numeric input を変更前の値を作らず表示する", () => {
+    const { resolver, row, prescription } = setup();
+    const withInitialInput: Provenance = {
+      ...provenanceFor(prescription),
+      coachEdits: [{ at: isoDateTimeSchema.parse("2026-09-15T09:00:00+09:00"), field: "totalReps", to: 3 }],
+    };
+    const item = okItem(presentSavedRunningMenuItem({ ...row, provenanceJson: JSON.stringify(withInitialInput) }, { resolveRuleSetByIdentity: resolver }));
+    if (item.provenance.status !== "AVAILABLE") throw new Error("unreachable");
+    expect(item.provenance.coachEdits.items[0]).toMatchObject({ label: "総本数", detail: "初回入力: 3本" });
+  });
+
+  it("同値の coach edit は数値変更ではなくコーチ指定として表示する", () => {
+    const { resolver, row, prescription } = setup();
+    const withAdoption: Provenance = {
+      ...provenanceFor(prescription),
+      coachEdits: [{ at: isoDateTimeSchema.parse("2026-09-15T09:00:00+09:00"), field: "repRestS", from: 150, to: 150 }],
+    };
+    const item = okItem(presentSavedRunningMenuItem({ ...row, provenanceJson: JSON.stringify(withAdoption) }, { resolveRuleSetByIdentity: resolver }));
+    if (item.provenance.status !== "AVAILABLE") throw new Error("unreachable");
+    expect(item.provenance.coachEdits.items[0]).toMatchObject({ label: "本間レスト", detail: "コーチ指定: 2分30秒" });
   });
 
   it("provenance JSON が壊れていても処方は表示し、作成経緯だけ「確認できません」", () => {

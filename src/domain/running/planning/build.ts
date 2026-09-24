@@ -382,6 +382,7 @@ function buildAttemptsRep(ctx: RepContext): RepBuild {
       return { ok: false, findings: [itemFinding("COACH_EDIT_INVALID", "BLOCK", { metric: "approachDistanceM" })] };
     }
     approachDistanceM = { value: edit.value, unit: "m", source: "COACH_ENTERED" };
+    inputs.materializedCoachEdits.add("approachDistanceM");
   }
 
   const counts = solveCounts({ cells: countCells(envelope), volume: null, position, maxAutoTotalReps: ctx.eligibility.modifiers.maxAutoTotalReps, inputs });
@@ -978,14 +979,15 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     const fv = r.fieldValue;
     if (fv.origin === "TEMPLATE_FIXED") {
       rationale.push(rationaleLine("TEMPLATE_FIXED_VALUE", { field: r.field, value: fv.value, unit: fv.unit }));
-    } else if (fv.origin === "COACH") {
-      rationale.push(rationaleLine("COACH_MANUAL_INPUT", { field: r.field }));
     } else if (fv.origin === "COACH_OVERRIDE") {
       rationale.push(rationaleLine("COACH_OVERRIDE_APPLIED", { field: r.field }));
     }
   }
-  if (rep.kind === "ATTEMPTS" && rep.approachDistanceM !== null) {
-    rationale.push(rationaleLine("COACH_MANUAL_INPUT", { field: "approachDistanceM" }));
+  // This existing rationale code records origin, including coach-controlled values with no
+  // standalone FieldValue (for example intensityPercent and decelerationM). Fixed-value
+  // equality consumes an input but never enters materializedCoachEdits, so it is not attributed.
+  for (const field of inputs.materializedCoachEdits) {
+    rationale.push(rationaleLine("COACH_MANUAL_INPUT", { field }));
   }
   if (rest.repRestS.origin === "ENGINE_POSITIONED") {
     rationale.push(

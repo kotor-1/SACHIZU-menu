@@ -131,6 +131,8 @@ export type CoachInputs = {
   fieldOverrides: ReadonlyMap<EnvelopeField, CoachOverride>;
   /** 実際に処方へ反映された edit / override の field。未消費のものは build で BLOCKED にする。 */
   consumedEdits: Set<string>;
+  /** COACH authority として値を materialize した CoachFieldEdit の field。固定値一致の no-op は含めない。 */
+  materializedCoachEdits: Set<string>;
   consumedOverrides: Set<string>;
 };
 
@@ -141,7 +143,7 @@ export function createCoachInputs(request: PlanRequest): CoachInputs {
   for (const o of request.overrides) {
     if (o.target.kind === "FIELD") fieldOverrides.set(o.target.field, o);
   }
-  return { edits, fieldOverrides, consumedEdits: new Set(), consumedOverrides: new Set() };
+  return { edits, fieldOverrides, consumedEdits: new Set(), materializedCoachEdits: new Set(), consumedOverrides: new Set() };
 }
 
 type CoachOrigin = Extract<ValueOrigin, "COACH" | "COACH_OVERRIDE">;
@@ -211,6 +213,7 @@ export function resolveCoachValue(field: EnvelopeField, cell: EnvelopeCell, inpu
     if (cell.recommended !== null && !within(edit.value, cell.recommended)) {
       findings.push(itemFinding("OUTSIDE_RECOMMENDED", "WARN", { metric: field, limit: cell.recommended }));
     }
+    inputs.materializedCoachEdits.add(field);
     return { kind: "VALUE", value: edit.value, origin: "COACH", findings };
   }
 

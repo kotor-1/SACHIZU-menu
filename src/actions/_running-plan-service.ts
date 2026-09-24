@@ -35,6 +35,7 @@ import {
   type Subject,
   type Unit,
 } from "@/domain/running";
+import type { ValueOrigin } from "@/domain/running/types/prescription";
 import {
   planRunningPrescriptionWithRuleSet,
   type CoachFieldEdit,
@@ -44,7 +45,7 @@ import {
   type PlanRequest,
   type PlanResult,
 } from "@/domain/running/planning";
-import { AGGREGATE_ENVELOPE_FIELDS, coachOverrideSchema, isValidCalendarDate } from "@/domain/running/planning/schema";
+import { AGGREGATE_ENVELOPE_FIELDS, coachOverrideSchema, isValidCalendarDate, type CoachEditField } from "@/domain/running/planning/schema";
 import { evaluateFindingConfirmation, requiredConfirmationCodes } from "@/domain/running/planning/confirmation";
 import type { TrainingPhase } from "@/domain/menu/constants";
 import type { IsoDate } from "@/domain/running/types/primitives";
@@ -82,7 +83,7 @@ export type RunningActionRejection =
   | { code: "RULESET_VERSION_NOT_FOUND" }
   | { code: "RULESET_IDENTITY_MISMATCH" }
   | { code: "REPLAN_INPUT_SNAPSHOT_MISSING" }
-  | { code: "COACH_EDIT_FIELD_NOT_SUPPORTED"; field: EnvelopeField }
+  | { code: "COACH_EDIT_FIELD_NOT_SUPPORTED"; field: CoachEditField }
   | {
       code: "PLAN_INELIGIBLE";
       reasons: readonly EligibilityReason[];
@@ -97,6 +98,7 @@ export type RunningActionRejection =
   | { code: "CONFIRMATION_STATE_STALE"; requiredFindingCodes: readonly string[]; findings: readonly Finding[] }
   /** [R10-B4A] 新しい override が domain の CoachOverride schema を満たさない（confirmedTwice / reason 等）。path だけを返す。 */
   | { code: "OVERRIDE_INPUT_INVALID"; paths: readonly string[] }
+  | { code: "OVERRIDE_TARGET_INVALID" }
   /** [R10-B4A] 保存済み override に確認の記録が無く（または不足し）、CoachOverride として再構築できない。 */
   | { code: "OVERRIDE_HISTORY_UNCONFIRMED" }
   | { code: "PERSISTENCE_INVALID"; issues: readonly string[] };
@@ -284,7 +286,7 @@ function coachReferenceFromPrescription(p: RunningPrescriptionValue): CoachRefer
  * RuleSet cross-validation 内部にある `expectedUnitByField` と同じ対応）。ここは
  * CoachFieldEdit 再構築専用の最小限のコピーで、生理学的な数値ポリシーではない。
  */
-const ENVELOPE_FIELD_UNIT: Record<EnvelopeField, Unit> = {
+const ENVELOPE_FIELD_UNIT: Record<CoachEditField, Unit> = {
   repDistanceM: "m",
   buildUpM: "m",
   flyZoneM: "m",
@@ -301,6 +303,7 @@ const ENVELOPE_FIELD_UNIT: Record<EnvelopeField, Unit> = {
   intensityPercent: "percent",
   attempts: "reps",
   vdecPercent: "percent",
+  approachDistanceM: "m",
 };
 
 /**
@@ -309,7 +312,11 @@ const ENVELOPE_FIELD_UNIT: Record<EnvelopeField, Unit> = {
  * attempts / vdecPercent も同様）。**直接 edit の対象にしない**（EnvelopeField に存在することと直接編集できることは
  * 同義ではない）。変更後の値から一次入力を逆算する（sets を勝手に変える・距離を割り戻す等）ことはしない。
  */
-const UNSUPPORTED_EDIT_FIELDS: readonly EnvelopeField[] = AGGREGATE_ENVELOPE_FIELDS;
+const UNSUPPORTED_EDIT_FIELDS: readonly CoachEditField[] = AGGREGATE_ENVELOPE_FIELDS;
+
+function assertNever(value: never): never {
+  throw new Error(`未対応の CoachEditField mapping: ${String(value)}`);
+}
 
 function currentEnvelopeFieldValue(p: RunningPrescriptionValue, field: EnvelopeField): number | null {
   switch (field) {
@@ -348,17 +355,121 @@ function currentEnvelopeFieldValue(p: RunningPrescriptionValue, field: EnvelopeF
     case "vdecPercent":
       return null;
   }
+  return assertNever(field);
+}
+
+/** Read field-level authority from the saved/materialized prescription, never from coachEdits history. */
+function currentEnvelopeFieldOrigin(p: RunningPrescriptionValue, field: EnvelopeField): ValueOrigin | null {
+  switch (field) {
+    case "repDistanceM":
+      return p.rep.kind === "DISTANCE" ? p.rep.distanceM.origin : null;
+    case "buildUpM":
+      return p.rep.kind === "FLY" ? p.rep.buildUpDistanceM.origin : null;
+    case "flyZoneM":
+      return p.rep.kind === "FLY" ? p.rep.flyZoneDistanceM.origin : null;
+    case "repDurationS":
+      return p.rep.kind === "DURATION" ? p.rep.durationS.origin : null;
+    case "repsPerSet":
+      return p.repsPerSet.origin;
+    case "sets":
+      return p.sets.origin;
+    case "repRestS":
+      return p.rest.repRestS.origin;
+    case "setRestS":
+      return p.rest.setRestS?.origin ?? null;
+    case "intraRepRestS":
+      return p.rest.intraRepRestS?.origin ?? null;
+    // These values have no standalone FieldValue.origin. Their COACH authority is represented by the
+    // successful planner's COACH_MANUAL_INPUT rationale below.
+    case "decelerationM":
+    case "intensityPercent":
+    case "totalReps":
+    case "sessionVolumeM":
+    case "flyVolumeM":
+    case "attempts":
+    case "vdecPercent":
+      return null;
+  }
+  return assertNever(field);
+}
+
+/** CoachEditField の保存済み final value。非Envelope field は明示的にここで扱う。 */
+function currentCoachEditFieldValue(p: RunningPrescriptionValue, field: CoachEditField): number | null {
+  switch (field) {
+    case "approachDistanceM":
+      return p.rep.kind === "ATTEMPTS" ? p.rep.approachDistanceM?.value ?? null : null;
+    case "totalReps":
+    case "attempts": {
+      const total = p.rationale.find((line) => line.code === "COUNTS_RESOLVED")?.params?.totalReps;
+      return typeof total === "number" && Number.isFinite(total) ? total : null;
+    }
+    // These are applied planner constraints, not one-to-one numeric fields in the saved prescription. Their exact
+    // validated input is retained in coachEdits only after COACH_MANUAL_INPUT confirms planner materialization.
+    case "sessionVolumeM":
+    case "flyVolumeM":
+    case "vdecPercent":
+      return null;
+    default:
+      // `CoachEditField` に新しい非Envelope variantが追加された場合、このEnvelopeField呼び出しが型エラーになる。
+      return currentEnvelopeFieldValue(p, field);
+  }
+}
+
+type CoachEditFieldOrigin = ValueOrigin | "COACH_ENTERED" | null;
+
+/** CoachEditField の actual authority source。助走距離は既存の COACH_ENTERED source で明示する。 */
+function currentCoachEditFieldOrigin(p: RunningPrescriptionValue, field: CoachEditField): CoachEditFieldOrigin {
+  switch (field) {
+    case "approachDistanceM":
+      return p.rep.kind === "ATTEMPTS" ? p.rep.approachDistanceM?.source ?? null : null;
+    default:
+      return currentEnvelopeFieldOrigin(p, field);
+  }
 }
 
 /** field をキーに最新の1件だけ残す（Provenance.coachEdits は append-only の履歴。配列順=時系列を仮定）。 */
-function latestCoachEditsByField(history: Provenance["coachEdits"]): Map<EnvelopeField, Provenance["coachEdits"][number]> {
-  const map = new Map<EnvelopeField, Provenance["coachEdits"][number]>();
+function latestCoachEditsByField(history: Provenance["coachEdits"]): Map<CoachEditField, Provenance["coachEdits"][number]> {
+  const map = new Map<CoachEditField, Provenance["coachEdits"][number]>();
   for (const entry of history) map.set(entry.field, entry);
   return map;
 }
 
-function coachFieldEditsForReplan(history: Provenance["coachEdits"]): CoachFieldEdit[] {
-  return [...latestCoachEditsByField(history).values()].map((e) => ({ field: e.field, value: e.to, unit: ENVELOPE_FIELD_UNIT[e.field] }));
+function coachFieldEditsForReplan(
+  history: Provenance["coachEdits"],
+  requestedEdits: readonly Pick<CoachFieldEdit, "field" | "value">[] = [],
+): CoachFieldEdit[] {
+  const values = new Map<CoachEditField, number>([...latestCoachEditsByField(history)].map(([field, entry]) => [field, entry.to]));
+  for (const edit of requestedEdits) values.set(edit.field, edit.value);
+  return [...values].map(([field, value]) => ({ field, value, unit: ENVELOPE_FIELD_UNIT[field] }));
+}
+
+/** Return only fields the completed prescription materialized under coach authority. */
+function coachManualInputFields(prescription: RunningPrescriptionValue): Set<string> {
+  return new Set(
+    prescription.rationale.flatMap((line) =>
+      line.code === "COACH_MANUAL_INPUT" && typeof line.params?.field === "string" ? [line.params.field] : [],
+    ),
+  );
+}
+
+/**
+ * Rationale is emitted from the planner's materializedCoachEdits set. Where a field has a FieldValue,
+ * require that value's actual origin to agree too; scalar/aggregate fields have rationale as their origin record.
+ */
+function isCoachAuthorityMaterialized(prescription: RunningPrescriptionValue, field: CoachEditField): boolean {
+  if (!coachManualInputFields(prescription).has(field)) return false;
+  const origin = currentCoachEditFieldOrigin(prescription, field);
+  if (field === "approachDistanceM") return origin === "COACH_ENTERED";
+  return origin === null || origin === "COACH";
+}
+
+/** Record only edits the completed prescription identifies as COACH-controlled; initial input has no fabricated `from`. */
+function initialCoachEditHistory(edits: readonly CoachFieldEdit[], prescription: RunningPrescriptionValue): Provenance["coachEdits"] {
+  if (edits.length === 0) return [];
+  const appliedEdits = edits.filter((edit) => isCoachAuthorityMaterialized(prescription, edit.field));
+  if (appliedEdits.length === 0) return [];
+  const at = nowAsIsoDateTime();
+  return appliedEdits.map(({ field, value }) => ({ at, field, to: currentCoachEditFieldValue(prescription, field) ?? value }));
 }
 
 function overrideTargetKey(target: CoachOverrideTarget): string {
@@ -610,6 +721,12 @@ export type PlanNewRunningItemInput = {
    * どの Method で使えるかは domain（MethodMeta.allowedIntensityReferences）が検証する。
    */
   coachReference: CoachReferenceInput | null;
+  /** 実際の plan 結果が示す overrideAllowed=true の blocking Rule ID だけを受け付ける。 */
+  eligibilityOverrideRuleIds: readonly string[];
+  eligibilityOverrideReason: string | null;
+  eligibilityOverrideConfirmedTwice: boolean | undefined;
+  /** MANUAL-only template の CoachFieldEdit。許可 template は service で限定する。 */
+  coachEdits: CoachFieldEdit[];
 };
 
 /** [R10-B1 §28] コーチから受け取るのは method/templateId/positionPreference だけ。他は server が解決する。 */
@@ -621,18 +738,63 @@ export async function planNewRunningItem(input: PlanNewRunningItemInput) {
   const resolved = resolveActiveRuleSetFor(plannedDate);
   const phase = menu.phase as TrainingPhase | null;
 
-  const request = await buildPlanRequest({
+  const selection = { method: input.method, templateId: input.templateId } as RunningSelection;
+
+  let request = await buildPlanRequest({
     menu,
     context,
     plannedDate,
-    selection: { method: input.method, templateId: input.templateId } as RunningSelection,
-    coachEdits: [],
+    selection,
+    coachEdits: input.coachEdits,
     overrides: [],
     coachReference: input.coachReference,
     positionPreference: input.positionPreference,
     excludeItemId: null,
     confirmedFindingCodes: input.confirmedFindingCodes,
   });
+
+  const requestedRuleIds = [...input.eligibilityOverrideRuleIds];
+  if (new Set(requestedRuleIds).size !== requestedRuleIds.length) reject({ code: "OVERRIDE_TARGET_INVALID" });
+  let newOverrides: CoachOverride[] = [];
+  let overrideHistory: Provenance["overrides"] = [];
+  if (requestedRuleIds.length > 0) {
+    if (input.eligibilityOverrideConfirmedTwice === undefined) reject({ code: "OVERRIDE_INPUT_INVALID", paths: ["confirmedTwice"] });
+
+    // Dry-run the exact request without overrides. A client-supplied Rule ID is eligible only when
+    // this current result names it as a blocking rule and marks that same blocker overrideAllowed.
+    const unmodified = planRunningPrescriptionWithRuleSet(request, resolved);
+    if (unmodified.status !== "INELIGIBLE") reject({ code: "OVERRIDE_TARGET_INVALID" });
+    const actualOverrideableBlockers = new Set(
+      unmodified.reasons.filter((reason) => reason.ruleId !== null && reason.overrideAllowed === true).map((reason) => reason.ruleId!),
+    );
+    if (requestedRuleIds.some((ruleId) => !actualOverrideableBlockers.has(ruleId))) reject({ code: "OVERRIDE_TARGET_INVALID" });
+
+    const actor = getCoachActorForServer();
+    const at = nowAsIsoDateTime();
+    const parsedOverrides = requestedRuleIds.map((ruleId) =>
+      coachOverrideSchema.safeParse({
+        target: { kind: "ELIGIBILITY", ruleId },
+        reason: input.eligibilityOverrideReason ?? "",
+        confirmedTwice: input.eligibilityOverrideConfirmedTwice,
+        actor,
+        at,
+      }),
+    );
+    const invalidPaths = parsedOverrides.flatMap((parsed) => (parsed.success ? [] : parsed.error.issues.map((issue) => String(issue.path[0] ?? ""))));
+    if (invalidPaths.length > 0) reject({ code: "OVERRIDE_INPUT_INVALID", paths: [...new Set(invalidPaths)] });
+    newOverrides = parsedOverrides.map((parsed) => {
+      if (!parsed.success) return reject({ code: "OVERRIDE_INPUT_INVALID", paths: ["target"] });
+      return parsed.data;
+    });
+    overrideHistory = newOverrides.map((override) => ({
+      at: override.at,
+      target: override.target,
+      reason: override.reason,
+      confirmedTwice: override.confirmedTwice,
+    }));
+    request = { ...request, overrides: newOverrides };
+  }
+
   const { prescription, sessionFindings, findingConfirmations } = runPlan(request, resolved, input.confirmedFindingCodes);
   const provenance = await buildProvenanceFor({
     prescription,
@@ -640,8 +802,8 @@ export async function planNewRunningItem(input: PlanNewRunningItemInput) {
     plannedDate,
     phase,
     ruleSet: resolved.ruleSet,
-    coachEdits: [],
-    overrides: [],
+    coachEdits: initialCoachEditHistory(request.coachEdits, prescription),
+    overrides: overrideHistory,
     findingConfirmations,
   });
 
@@ -678,6 +840,8 @@ async function finishReplan(args: {
   coachEdits: CoachFieldEdit[];
   overrides: CoachOverride[];
   newProvenanceCoachEdits: Provenance["coachEdits"];
+  /** 今回のActionが要求したcoach edits。保存履歴への追加は成功planのmaterialization確認後に行う。 */
+  currentCoachEdits?: readonly { field: CoachEditField; from: number; to: number; previouslyCoachControlled: boolean }[];
   newProvenanceOverrides: Provenance["overrides"];
   /** [R10-B4A] 今回の操作でコーチが明示確認した code。以前の findingConfirmations は引き継がない。 */
   confirmedFindingCodes: readonly string[];
@@ -700,13 +864,25 @@ async function finishReplan(args: {
     confirmedFindingCodes: args.confirmedFindingCodes,
   });
   const { prescription, sessionFindings, findingConfirmations } = runPlan(request, args.resolved, args.confirmedFindingCodes);
+  const appliedCurrentCoachEdits = (args.currentCoachEdits ?? []).flatMap((edit) => {
+    if (!isCoachAuthorityMaterialized(prescription, edit.field)) return [];
+    const finalValue = currentCoachEditFieldValue(prescription, edit.field);
+    if (finalValue === null) return [];
+    const numericValueChanged = edit.from !== finalValue;
+    const coachAuthorityAdopted = !edit.previouslyCoachControlled;
+    return numericValueChanged || coachAuthorityAdopted ? [{ ...edit, to: finalValue }] : [];
+  });
+  const persistedCoachEdits = [
+    ...args.newProvenanceCoachEdits,
+    ...appliedCurrentCoachEdits.map(({ field, from, to }) => ({ at: nowAsIsoDateTime(), field, from, to })),
+  ];
   const provenanceOut = await buildProvenanceFor({
     prescription,
     context: args.context,
     plannedDate: args.plannedDate,
     phase: args.menu.phase as TrainingPhase | null,
     ruleSet: args.resolved.ruleSet,
-    coachEdits: args.newProvenanceCoachEdits,
+    coachEdits: persistedCoachEdits,
     overrides: args.newProvenanceOverrides,
     findingConfirmations,
   });
@@ -722,45 +898,60 @@ async function finishReplan(args: {
 
 export type EditRunningItemInput = {
   itemId: string;
-  /** 1フィールドの数値編集（`coachReference` だけを更新する場合は省略）。 */
-  fieldEdit?: { field: EnvelopeField; value: number };
+  /** 今回要求する数値編集。通常UIは1フィールド、同一Actionの検証ケースでは複数も扱う。 */
+  fieldEdits?: readonly { field: CoachEditField; value: number }[];
   /** [R10-B4A.2] 強度の基準（TARGET_SPLIT 等）の明示更新。省略時は保存済みの参照をそのまま使う。 */
   coachReference?: CoachReferenceInput;
   confirmedFindingCodes: readonly string[];
 };
 
 /**
- * [R10-B1 §31/§32] coachEditable 内の1フィールド編集。domain の再検証（hard safety 含む）を必ず通す。
+ * [R10-B1 §31/§32] coachEditable 内の指定フィールド編集。domain の再検証（hard safety 含む）を必ず通す。
  * [R10-B4A.2] 強度の基準（coachReference）の明示更新も受け付け、新しい値で plan を再実行する。基準の変更を
  * coachEdits（EnvelopeField の編集履歴）へ偽装しない（実値は処方の intensity.reference に保存される）。
  */
 export async function editRunningItem(input: EditRunningItemInput) {
-  const fieldEdit = input.fieldEdit;
-  if (fieldEdit === undefined && input.coachReference === undefined) {
+  const fieldEdits = input.fieldEdits ?? [];
+  if (fieldEdits.length === 0 && input.coachReference === undefined) {
     // Action の入力検証が保証する前提（数値の編集か基準の更新のどちらかは必ずある）。
     throw new Error("editRunningItem には fieldEdit か coachReference のどちらかが必要です");
   }
-  if (fieldEdit !== undefined && UNSUPPORTED_EDIT_FIELDS.includes(fieldEdit.field)) {
-    reject({ code: "COACH_EDIT_FIELD_NOT_SUPPORTED", field: fieldEdit.field });
+  if (new Set(fieldEdits.map((edit) => edit.field)).size !== fieldEdits.length) {
+    reject({ code: "COACH_EDIT_FIELD_NOT_SUPPORTED", field: fieldEdits[0]!.field });
+  }
+  for (const edit of fieldEdits) {
+    if (UNSUPPORTED_EDIT_FIELDS.includes(edit.field)) reject({ code: "COACH_EDIT_FIELD_NOT_SUPPORTED", field: edit.field });
   }
 
   const ctx = await loadForReplan(input.itemId);
-  let coachEditHistory = ctx.provenance.coachEdits;
   let overrides = ctx.provenance.overrides;
-  if (fieldEdit !== undefined) {
-    const from = currentEnvelopeFieldValue(ctx.current, fieldEdit.field);
-    if (from === null) reject({ code: "COACH_EDIT_FIELD_NOT_SUPPORTED", field: fieldEdit.field });
+  const currentCoachEdits = fieldEdits.map((edit) => {
+    const from = currentCoachEditFieldValue(ctx.current, edit.field);
+    if (from === null) reject({ code: "COACH_EDIT_FIELD_NOT_SUPPORTED", field: edit.field });
+    const previousOrigin = currentCoachEditFieldOrigin(ctx.current, edit.field);
+    return {
+      field: edit.field,
+      from,
+      to: edit.value,
+      previouslyCoachControlled:
+        previousOrigin === "COACH" ||
+        previousOrigin === "COACH_ENTERED" ||
+        (previousOrigin === null && coachManualInputFields(ctx.current).has(edit.field)),
+    };
+  });
+  if (currentCoachEdits.length > 0) {
     // [R10-B1] 同じ field に coachEdit と FIELD override を同時に PlanRequest へ渡すと domain の
     // validation が拒否する（§18「出所の曖昧さ」防止）。今回の edit がその field を新たに「所有」するため、
     // その field を対象にしていた既存の override（あれば）は落とす（override → edit で上書きされる）。
-    overrides = overrides.filter((o) => !(o.target.kind === "FIELD" && o.target.field === fieldEdit.field));
-    coachEditHistory = [...coachEditHistory, { at: nowAsIsoDateTime(), field: fieldEdit.field, from, to: fieldEdit.value }];
+    const requestedFields = new Set(currentCoachEdits.map((edit) => edit.field));
+    overrides = overrides.filter((o) => !(o.target.kind === "FIELD" && requestedFields.has(o.target.field)));
   }
   return finishReplan({
     ...ctx,
-    coachEdits: coachFieldEditsForReplan(coachEditHistory),
+    coachEdits: coachFieldEditsForReplan(ctx.provenance.coachEdits, fieldEdits),
     overrides: coachOverridesForReplan(overrides, getCoachActorForServer()),
-    newProvenanceCoachEdits: coachEditHistory,
+    newProvenanceCoachEdits: ctx.provenance.coachEdits,
+    currentCoachEdits,
     newProvenanceOverrides: overrides,
     confirmedFindingCodes: input.confirmedFindingCodes,
     ...(input.coachReference !== undefined ? { coachReference: input.coachReference } : {}),

@@ -103,6 +103,16 @@ describe("R10-B4B: Menu ブロックへの統合", () => {
     expect(stripTags(markup)).toContain(PLANNED_DATE_REQUIRED_FOR_PICKER_JA);
     expect(rawKeyLeaks(markup)).toEqual([]);
   });
+
+  it("新規作成フォームは実際のブロック結果が返る前に例外設定欄を出さない", () => {
+    const markup = renderMarkup(RunningItemCreateForm as never, {
+      menuId: "menu-1",
+      blockId: "block-1",
+      picker: templatePickerForPlannedDate("2026-09-20"),
+    } as never);
+    expect(visibleText(markup)).not.toContain("コーチによる例外設定");
+    expect(visibleText(markup)).not.toContain("例外設定の理由");
+  });
 });
 
 describe("R10-B4B: legacy フォームからの案内", () => {

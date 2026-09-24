@@ -136,6 +136,27 @@ describe("R10-B4B: Action へ渡す FormData", () => {
     expect(withSplit.getAll("confirmedFindingCodes")).toEqual(["X_Y"]);
   });
 
+  it("新規作成の override には Rule ID・理由・二段階確認とコーチ入力値だけを送る", () => {
+    const withCoachOverride = planRunningItemFormData({
+      selection: { method: "TEMPO_INTENSIVE", templateId: "TI_COACH_DEFINED" },
+      positionPreference: null,
+      confirmedFindingCodes: [],
+      coachReferenceJson: null,
+      eligibilityOverrideRuleIds: ["ELIG_TI_ALL_PRE"],
+      eligibilityOverrideReason: "コーチが対象の状況を確認して実施します",
+      eligibilityOverrideFirstConfirmation: true,
+      eligibilityOverrideSecondConfirmation: true,
+      coachEdits: [{ field: "repDistanceM", value: 150, unit: "m" }],
+    });
+    expect(withCoachOverride.getAll("eligibilityOverrideRuleIds")).toEqual(["ELIG_TI_ALL_PRE"]);
+    expect(withCoachOverride.get("eligibilityOverrideReason")).toBe("コーチが対象の状況を確認して実施します");
+    expect(withCoachOverride.get("eligibilityOverrideFirstConfirmation")).toBe("true");
+    expect(withCoachOverride.get("eligibilityOverrideSecondConfirmation")).toBe("true");
+    expect(JSON.parse(String(withCoachOverride.get("coachEditsJson")))).toEqual([{ field: "repDistanceM", value: 150, unit: "m" }]);
+    expect(withCoachOverride.has("actor")).toBe(false);
+    expect(withCoachOverride.has("at")).toBe(false);
+  });
+
   it("目標スプリットの更新・再計算・設定保存も、送る値は最小限", () => {
     const split = coachReferenceEditFormData({
       itemId: "i1",

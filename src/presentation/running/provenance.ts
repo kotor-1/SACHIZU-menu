@@ -57,7 +57,12 @@ function changeValueLabel(field: keyof typeof EDITABLE_FIELD_DISPLAY, value: num
 function presentCoachEdits(edits: Provenance["coachEdits"]): ProvenanceChangesDto {
   const items: ProvenanceChangeDto[] = edits.map((e) => ({
     label: EDITABLE_FIELD_DISPLAY[e.field].label,
-    detail: `${changeValueLabel(e.field, e.from)} → ${changeValueLabel(e.field, e.to)}`,
+    detail:
+      e.from === undefined
+        ? `初回入力: ${changeValueLabel(e.field, e.to)}`
+        : e.from === e.to
+          ? `コーチ指定: ${changeValueLabel(e.field, e.to)}`
+          : `${changeValueLabel(e.field, e.from)} → ${changeValueLabel(e.field, e.to)}`,
     reason: null,
     atLabel: formatIsoDateJa(e.at),
   }));

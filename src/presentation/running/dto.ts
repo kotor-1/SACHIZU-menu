@@ -248,7 +248,7 @@ export type EditableFieldDto = {
   hardSafety: RangeDto | null;
   editable: boolean;
   /**
-   * [R10-B4A] 表示専用の field（aggregate / constraint 値、助走距離など）。現在値・範囲は表示できるが、
+   * [R10-B4A / G.6] 表示専用の field（aggregate / constraint 値、未入力の助走距離など）。現在値・範囲は表示できるが、
    * 直接編集・例外設定のボタンは出さない。EnvelopeField に存在することと直接編集できることは同義ではない。
    */
   readOnly: boolean;

@@ -7,9 +7,9 @@
  *   domain の `selectEnvelope()` で引く（active RuleSet で代用しない。一致しなければ出さない）。
  * - 現在値は「画面に表示できる値」だけ。totalReps / attempts は構造化 RationaleLine `COUNTS_RESOLVED.params.totalReps`
  *   から読み、範囲の中央値や他の量からの推定はしない。
- * - [R10-B4A] 直接編集できるのは、処方の中に一意に対応する一次 FieldValue を持つ field だけ。aggregate 型
- *   （`AGGREGATE_ENVELOPE_FIELDS`）・Envelope セルからだけ表示する field・助走距離は `readOnly=true`（現在値と範囲の
- *   表示だけで、編集・例外設定のボタンは出さない）。
+ * - [R10-B4A / G.6] 直接編集できるのは、処方の中に一意に対応する一次 FieldValue を持つ field と、既に coach-entered
+ *   値が保存された助走距離だけ。aggregate 型（`AGGREGATE_ENVELOPE_FIELDS`）・Envelope セルからだけ表示する field・
+ *   未入力の助走距離は `readOnly=true`（助走距離に編集用の Envelope 範囲や override は作らない）。
  * - `editable` / `overrideLayers` は表示上の目安であり、最終的な可否は domain の再計画が検証する。
  *   override に二重確認（confirmedTwice）が必要かは、presentation で規則を複製せず domain の
  *   `coachOverrideSchema` へ問い合わせて決める。
@@ -88,6 +88,8 @@ function fieldDto(args: {
   key: EditableFieldKey;
   currentValue: number | null;
   origin: FieldValue["origin"] | null;
+  /** Envelope origin enum に属さない既存source（例: coach-entered approach distance）の表示名。 */
+  originLabel?: string | null;
   ranges: Ranges;
   /** [R10-B4A] 表示専用（直接編集・例外設定のボタンを出さない）にする理由。 */
   readOnlyReason?: string;
@@ -113,7 +115,7 @@ function fieldDto(args: {
     unitLabel: UNIT_LABEL_JA[display.unit],
     currentValue,
     currentValueLabel: currentValue === null ? (args.emptyValueLabel ?? "表示できません") : formatValueJa(currentValue, display.unit),
-    originLabel: origin === null ? null : VALUE_ORIGIN_LABEL_JA[origin],
+    originLabel: origin === null ? (args.originLabel ?? null) : VALUE_ORIGIN_LABEL_JA[origin],
     recommended: rangeDto(ranges.recommended, key),
     coachEditable: rangeDto(ranges.coachEditable, key),
     hardSafety: rangeDto(ranges.hardSafety, key),
@@ -173,15 +175,17 @@ export function presentEditableFields(p: RunningPrescriptionValue, lookup: Exact
   if (rep.kind === "FLY") fields.push(fromFieldValue("buildUpM", rep.buildUpDistanceM), fromFieldValue("flyZoneM", rep.flyZoneDistanceM));
   if (rep.kind === "DURATION") fields.push(fromFieldValue("repDurationS", rep.durationS));
   if (rep.kind === "ATTEMPTS") {
-    // [R10-B4A] コーチ手入力専用の値（§7.4 R2 errata）。編集用の EnvelopeCell（推奨 / コーチ調整可能範囲）が RuleSet に
-    // 無く、Action / Provenance.coachEdits も対応していないため表示専用（APPROACH_DISTANCE_EDIT_SOURCE_MISSING）。
+    // コーチ手入力専用の値（§7.4 R2 errata）。Envelope 範囲や override は無いが、既に保存された coach-entered 値は
+    // domain の plausibility 検証を通す通常の coach edit Action で更新できる。未入力の値は edit から追加しない。
+    const hasCoachEnteredValue = rep.approachDistanceM?.source === "COACH_ENTERED";
     fields.push(
       fieldDto({
         key: "approachDistanceM",
         currentValue: rep.approachDistanceM?.value ?? null,
         origin: null,
+        originLabel: hasCoachEnteredValue ? "コーチ入力" : null,
         ranges: { recommended: null, coachEditable: null, hardSafety: null },
-        readOnlyReason: APPROACH_DISTANCE_READ_ONLY_REASON_JA,
+        ...(hasCoachEnteredValue ? {} : { readOnlyReason: APPROACH_DISTANCE_READ_ONLY_REASON_JA }),
         emptyValueLabel: "未入力",
       }),
     );

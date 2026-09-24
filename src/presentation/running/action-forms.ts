@@ -68,6 +68,11 @@ export type PlanRunningItemFormInput = {
   confirmedFindingCodes: readonly string[];
   /** [R10-B4A.2] コーチ入力の目標スプリット（送らないときは null）。 */
   coachReferenceJson: string | null;
+  eligibilityOverrideRuleIds?: readonly string[];
+  eligibilityOverrideReason?: string;
+  eligibilityOverrideFirstConfirmation?: boolean;
+  eligibilityOverrideSecondConfirmation?: boolean;
+  coachEdits?: readonly { field: string; value: number; unit: string }[];
 };
 
 export function planRunningItemFormData(input: PlanRunningItemFormInput): FormData {
@@ -76,6 +81,17 @@ export function planRunningItemFormData(input: PlanRunningItemFormInput): FormDa
   form.set("templateId", input.selection.templateId);
   form.set("positionPreference", input.positionPreference ?? "");
   if (input.coachReferenceJson !== null) form.set("coachReferenceJson", input.coachReferenceJson);
+  for (const ruleId of input.eligibilityOverrideRuleIds ?? []) form.append("eligibilityOverrideRuleIds", ruleId);
+  if ((input.eligibilityOverrideRuleIds?.length ?? 0) > 0) {
+    form.set("eligibilityOverrideReason", input.eligibilityOverrideReason ?? "");
+    if (input.eligibilityOverrideFirstConfirmation !== undefined) {
+      form.set("eligibilityOverrideFirstConfirmation", input.eligibilityOverrideFirstConfirmation ? "true" : "false");
+    }
+    if (input.eligibilityOverrideSecondConfirmation !== undefined) {
+      form.set("eligibilityOverrideSecondConfirmation", input.eligibilityOverrideSecondConfirmation ? "true" : "false");
+    }
+  }
+  if ((input.coachEdits?.length ?? 0) > 0) form.set("coachEditsJson", JSON.stringify(input.coachEdits));
   return withCodes(form, input.confirmedFindingCodes);
 }
 

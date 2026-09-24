@@ -27,7 +27,7 @@ import { parseForm } from "@/lib/form";
 import { isRunningV2UiEnabled } from "@/lib/feature-flags";
 import { RUNNING_TRAINING_METHODS, type Finding } from "@/domain/running";
 import { envelopeFieldSchema } from "@/domain/running/rules/schema";
-import { findingCodeSchema } from "@/domain/running/planning/schema";
+import { coachFieldEditSchema, findingCodeSchema } from "@/domain/running/planning/schema";
 import { coachManualReferenceInputSchema, toCoachReferenceInput } from "@/domain/running/planning/coachReference";
 import { parseJsonColumn } from "@/domain/running/persistence/jsonColumn";
 import { runningMenuContextSchema } from "@/domain/running/persistence/menuContext";
@@ -97,6 +97,7 @@ const OVERRIDE_INPUT_FIELD_MESSAGES: Record<string, string> = {
   reason: "理由を見直してください。",
   newValue: "値を見直してください。",
   target: "例外設定の対象を見直してください。",
+  eligibilityOverrideRuleIds: "現在の計画で解除可能な条件を選んでください。",
 };
 
 function rejectionMessageJa(rejection: RunningActionRejection): string {
@@ -132,6 +133,8 @@ function rejectionMessageJa(rejection: RunningActionRejection): string {
       return "計算結果が変わったため、確認をやり直してください。";
     case "OVERRIDE_INPUT_INVALID":
       return "例外設定の内容を確認してください。";
+    case "OVERRIDE_TARGET_INVALID":
+      return "現在の計画結果で実際に確認された、解除可能な条件を選んでください。";
     case "OVERRIDE_HISTORY_UNCONFIRMED":
       return "以前の例外設定に確認の記録が無いため、この操作はできません。例外設定をやり直してください。";
     case "PERSISTENCE_INVALID":
@@ -172,6 +175,8 @@ function toRunningActionFailure(e: unknown): RunningActionFailure {
       }
       return { ok: false, kind: "INVALID_INPUT", message, fieldErrors };
     }
+    case "OVERRIDE_TARGET_INVALID":
+      return { ok: false, kind: "INVALID_INPUT", message, fieldErrors: { eligibilityOverrideRuleIds: [OVERRIDE_INPUT_FIELD_MESSAGES.eligibilityOverrideRuleIds!] } };
     default:
       return { ok: false, kind: "REJECTED", message };
   }
@@ -229,6 +234,30 @@ const planRunningItemSchema = z.object({
   positionPreference: z.union([z.enum(["LOWER", "MIDDLE"]), z.literal("")]).transform((v) => (v === "" ? null : v)),
   confirmedFindingCodes: confirmedFindingCodesSchema,
   coachReferenceJson: coachReferenceJsonSchema,
+  eligibilityOverrideRuleIds: z.array(z.string().trim().min(1).max(120)).max(20),
+  eligibilityOverrideReason: z.string().max(1000).optional().transform((value) => (value ?? "").trim() || null),
+  eligibilityOverrideFirstConfirmation: z.enum(["true", "false"]).optional().transform((value) => (value === undefined ? undefined : value === "true")),
+  eligibilityOverrideSecondConfirmation: z.enum(["true", "false"]).optional().transform((value) => (value === undefined ? undefined : value === "true")),
+  coachEditsJson: z
+    .string()
+    .max(10000)
+    .optional()
+    .transform((raw, ctx) => {
+      if (raw === undefined || raw.trim() === "") return [];
+      let json: unknown;
+      try {
+        json = JSON.parse(raw);
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "コーチ入力の形式が正しくありません" });
+        return z.NEVER;
+      }
+      const parsed = z.array(coachFieldEditSchema).max(25).safeParse(json);
+      if (!parsed.success) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "コーチ入力の数値と単位を確認してください" });
+        return z.NEVER;
+      }
+      return parsed.data;
+    }),
 });
 
 /**
@@ -248,13 +277,30 @@ export async function planRunningItemAction(
   const flagOff = requireFlagOn();
   if (flagOff) return flagOff;
 
-  const parsed = parseForm(planRunningItemSchema, formData, [CONFIRMED_FINDING_CODES_KEY]);
+  const parsed = parseForm(planRunningItemSchema, formData, [CONFIRMED_FINDING_CODES_KEY, "eligibilityOverrideRuleIds"]);
   if (!parsed.ok) return invalidInput(parsed.result as { message: string; fieldErrors?: FieldErrors });
 
   let result: PlanRunningItemResult;
   try {
-    const { coachReferenceJson, ...rest } = parsed.data;
-    const created = await planNewRunningItem({ menuId, blockId, ...rest, coachReference: coachReferenceJson });
+    const {
+      coachReferenceJson,
+      coachEditsJson,
+      eligibilityOverrideFirstConfirmation,
+      eligibilityOverrideSecondConfirmation,
+      ...rest
+    } = parsed.data;
+    const eligibilityOverrideConfirmedTwice =
+      eligibilityOverrideFirstConfirmation === undefined || eligibilityOverrideSecondConfirmation === undefined
+        ? undefined
+        : eligibilityOverrideFirstConfirmation && eligibilityOverrideSecondConfirmation;
+    const created = await planNewRunningItem({
+      menuId,
+      blockId,
+      ...rest,
+      coachReference: coachReferenceJson,
+      coachEdits: coachEditsJson,
+      eligibilityOverrideConfirmedTwice,
+    });
     result = { id: created.item.id, sessionFindings: created.sessionFindings, sessionFindingViews: presentFindings(created.sessionFindings) };
   } catch (e) {
     return toRunningActionFailure(e);
@@ -268,11 +314,42 @@ export async function planRunningItemAction(
 // editRunningItemAction（§31/§32）
 // ---------------------------------------------------------------------------
 
+const fieldEditsJsonSchema = z
+  .string()
+  .max(10000)
+  .optional()
+  .transform((raw, ctx) => {
+    if (raw === undefined || raw.trim() === "") return undefined;
+    let json: unknown;
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "コーチ入力の形式が正しくありません" });
+      return z.NEVER;
+    }
+    const parsed = z
+      .array(z.object({ field: coachFieldEditSchema.shape.field, value: z.number().finite() }).strict())
+      .min(1)
+      .max(25)
+      .safeParse(json);
+    if (!parsed.success) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "コーチ入力の数値を確認してください" });
+      return z.NEVER;
+    }
+    if (new Set(parsed.data.map((edit) => edit.field)).size !== parsed.data.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "同じ項目を複数回指定できません" });
+      return z.NEVER;
+    }
+    return parsed.data;
+  });
+
 const editRunningItemSchema = z
   .object({
     itemId: requiredText("項目", 64),
-    field: z.union([envelopeFieldSchema, z.literal("")]).optional(),
+    field: z.union([coachFieldEditSchema.shape.field, z.literal("")]).optional(),
     value: z.union([z.coerce.number().finite(), z.literal("")]).optional(),
+    /** 複数項目を一回の同一Planで更新するAction用。通常の編集UIは従来のfield/valueを使う。 */
+    fieldEditsJson: fieldEditsJsonSchema,
     confirmedFindingCodes: confirmedFindingCodesSchema,
     /** [R10-B4A.2] 強度の基準（目標スプリット）の明示更新。未送信なら保存済みの基準をそのまま使う。 */
     coachReferenceJson: coachReferenceJsonSchema,
@@ -280,18 +357,27 @@ const editRunningItemSchema = z
   .transform((v, ctx) => {
     const hasField = v.field !== undefined && v.field !== "";
     const hasValue = v.value !== undefined && v.value !== "";
+    const hasFieldEdits = v.fieldEditsJson !== undefined;
     if (hasField !== hasValue) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "変更する項目と値を指定してください", path: [hasField ? "value" : "field"] });
       return z.NEVER;
     }
-    if (!hasField && v.coachReferenceJson === null) {
+    if (hasField && hasFieldEdits) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "編集形式はどちらか一方を指定してください", path: ["fieldEditsJson"] });
+      return z.NEVER;
+    }
+    if (!hasField && !hasFieldEdits && v.coachReferenceJson === null) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "変更する項目と値、または目標スプリットを指定してください", path: ["field"] });
       return z.NEVER;
     }
     return {
       itemId: v.itemId,
       confirmedFindingCodes: v.confirmedFindingCodes,
-      ...(hasField ? { fieldEdit: { field: v.field as z.infer<typeof envelopeFieldSchema>, value: v.value as number } } : {}),
+      ...(hasField
+        ? { fieldEdits: [{ field: v.field as z.infer<typeof coachFieldEditSchema.shape.field>, value: v.value as number }] }
+        : hasFieldEdits
+          ? { fieldEdits: v.fieldEditsJson }
+          : {}),
       ...(v.coachReferenceJson !== null ? { coachReference: v.coachReferenceJson } : {}),
     };
   });

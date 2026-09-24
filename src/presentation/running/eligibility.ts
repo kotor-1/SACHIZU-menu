@@ -25,3 +25,26 @@ export function presentEligibilityReasons(reasons: readonly EligibilityReason[])
   }
   return out;
 }
+
+const TI_GROUP_CREATE_UNAVAILABLE_MESSAGE =
+  "このグループ向け新規作成では、TIに必要な選手別の測定済み基準値を利用できません。コーチ入力値や適格性の例外設定で測定値を代替できないため、この画面からTIは追加できません。";
+
+export function groupCreateMethodPolicy(method: string | null): {
+  available: boolean;
+  eligibilityOverrideAvailable: boolean;
+  message: string | null;
+} {
+  if (method === "TEMPO_INTENSIVE") {
+    return { available: false, eligibilityOverrideAvailable: false, message: TI_GROUP_CREATE_UNAVAILABLE_MESSAGE };
+  }
+  return { available: true, eligibilityOverrideAvailable: true, message: null };
+}
+
+/** Create-form override controls are offered only for an actual Rule ID that domain marked overrideable. */
+export function eligibilityOverrideOptions(
+  reasons: readonly EligibilityReasonPresentationDto[],
+  method: string | null = null,
+): EligibilityReasonPresentationDto[] {
+  if (!groupCreateMethodPolicy(method).eligibilityOverrideAvailable) return [];
+  return reasons.filter((reason) => reason.overrideAllowed && reason.ruleIdInternal !== null);
+}

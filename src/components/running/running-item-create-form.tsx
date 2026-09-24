@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { INPUT_CLASS, buttonClass, cn } from "@/components/ui";
 import { planRunningItemAction } from "@/actions/running-actions";
+import { eligibilityOverrideOptions, groupCreateMethodPolicy } from "@/presentation/running/eligibility";
 import type { TemplatePickerProviderResult } from "@/actions/_running-template-options";
 import { planRunningItemFormData } from "@/presentation/running/action-forms";
 import type {
@@ -40,6 +41,11 @@ export function RunningItemCreateForm({
   const [selection, setSelection] = useState<RunningTemplateSelection | null>(null);
   const [positionPreference, setPositionPreference] = useState<"" | "LOWER" | "MIDDLE">("");
   const [segments, setSegments] = useState<TargetSplitSegmentDraft[]>([]);
+  const [eligibilityOverrideRuleIds, setEligibilityOverrideRuleIds] = useState<string[]>([]);
+  const [eligibilityOverrideReason, setEligibilityOverrideReason] = useState("");
+  const [eligibilityOverrideFirstConfirmation, setEligibilityOverrideFirstConfirmation] = useState(false);
+  const [eligibilityOverrideSecondConfirmation, setEligibilityOverrideSecondConfirmation] = useState(false);
+  const [coachEditValues, setCoachEditValues] = useState<Record<string, string>>({});
   const [pendingConfirmations, setPendingConfirmations] = useState<FindingPresentationDto[]>([]);
   const [confirmedKeys, setConfirmedKeys] = useState<string[]>([]);
   const [findings, setFindings] = useState<FindingPresentationDto[]>([]);
@@ -59,7 +65,17 @@ export function RunningItemCreateForm({
   const options = picker.picker.groups.flatMap((g) => g.options);
   const selected = selection === null ? null : options.find((o) => o.templateIdInternal === selection.templateId && o.methodInternal === selection.method) ?? null;
   const acceptsTargetSplit = selected?.acceptsCoachTargetSplit === true;
+  const methodPolicy = groupCreateMethodPolicy(selection?.method ?? null);
+  const isSes = selection?.method === "SPRINT_ENDURANCE_SHORT";
+  const isLongSpecialEnduranceI = selection?.method === "LONG_SPRINT_RACE_SPECIFIC" && selection.templateId === "LSR_SPECIAL_ENDURANCE_I";
+  const isEventApproach = selection?.method === "EVENT_APPROACH_SPEED";
+  const overrideableReasons = eligibilityOverrideOptions(reasons, selection?.method ?? null);
   const split = segments.length === 0 ? null : buildTargetSplitInput(segments);
+
+  const sesCoachFields = [{ field: "totalReps", label: "合計本数", unit: "reps" }] as const;
+  const longCoachFields = [{ field: "totalReps", label: "合計本数", unit: "reps" }] as const;
+  const eventApproachCoachFields = [{ field: "approachDistanceM", label: "助走距離", unit: "m" }] as const;
+  const coachInputFields = isSes ? sesCoachFields : isLongSpecialEnduranceI ? longCoachFields : isEventApproach ? eventApproachCoachFields : [];
 
   function submit() {
     if (selection === null) {
@@ -71,11 +87,21 @@ export function RunningItemCreateForm({
       return;
     }
     const codes = pendingConfirmations.filter((f) => f.requiresExplicitConfirmation && confirmedKeys.includes(f.confirmationKey)).map((f) => f.confirmationKey);
+    const coachEdits = coachInputFields.flatMap(({ field, unit }) => {
+          const valueText = coachEditValues[field] ?? "";
+          if (valueText.trim() === "") return [];
+          return [{ field, value: Number(valueText), unit }];
+        });
     const form = planRunningItemFormData({
       selection,
       positionPreference: positionPreference === "" ? null : positionPreference,
       confirmedFindingCodes: codes,
       coachReferenceJson: split !== null && split.ok ? split.json : null,
+      eligibilityOverrideRuleIds,
+      eligibilityOverrideReason,
+      eligibilityOverrideFirstConfirmation,
+      eligibilityOverrideSecondConfirmation,
+      coachEdits,
     });
 
     startTransition(async () => {
@@ -87,6 +113,11 @@ export function RunningItemCreateForm({
         setConfirmedKeys([]);
         setFindings(result.data.sessionFindingViews);
         setReasons([]);
+        setEligibilityOverrideRuleIds([]);
+        setEligibilityOverrideReason("");
+        setEligibilityOverrideFirstConfirmation(false);
+        setEligibilityOverrideSecondConfirmation(false);
+        setCoachEditValues({});
         onCreated?.();
         return;
       }
@@ -100,13 +131,59 @@ export function RunningItemCreateForm({
       }
       setPendingConfirmations([]);
       setFindings(result.kind === "PLAN_INELIGIBLE" || result.kind === "PLAN_BLOCKED" ? result.findings : []);
-      setReasons(result.kind === "PLAN_INELIGIBLE" ? result.reasons : []);
+      if (result.kind === "PLAN_INELIGIBLE") setReasons(result.reasons);
+      else if (result.kind !== "INVALID_INPUT") setReasons([]);
     });
   }
 
   return (
     <div className="min-w-0 space-y-4 rounded-lg border border-indigo-200 bg-indigo-50/50 p-3">
-      <MethodTemplatePicker picker={picker.picker} value={selection} onSelect={setSelection} idPrefix={`running-add-${blockId}`} disabled={pending} />
+      <MethodTemplatePicker
+        picker={picker.picker}
+        value={selection}
+        onSelect={(next) => {
+          setSelection(next);
+          setReasons([]);
+          setFindings([]);
+          setEligibilityOverrideRuleIds([]);
+          setEligibilityOverrideReason("");
+          setEligibilityOverrideFirstConfirmation(false);
+          setEligibilityOverrideSecondConfirmation(false);
+        }}
+        idPrefix={`running-add-${blockId}`}
+        disabled={pending}
+      />
+
+      {methodPolicy.message !== null && (
+        <p role="status" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          {methodPolicy.message}
+        </p>
+      )}
+
+      {coachInputFields.length > 0 && (
+        <section className="min-w-0 space-y-2 rounded-lg border border-slate-200 bg-white p-3">
+          <h4 className="text-sm font-semibold text-slate-800">コーチが入力する処方値</h4>
+          <p className="text-xs text-slate-600">入力した数値はコーチの判断として扱います。未入力の数値をAIやシステムが補うことはありません。</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {coachInputFields.map((field, index) => (
+              <div key={field.field}>
+                <label htmlFor={`running-add-${blockId}-ti-${index}`} className="mb-1 block text-xs font-medium text-slate-700">
+                  {field.label}
+                </label>
+                <input
+                  id={`running-add-${blockId}-ti-${index}`}
+                  type="number"
+                  step="any"
+                  className={INPUT_CLASS}
+                  value={coachEditValues[field.field] ?? ""}
+                  disabled={pending}
+                  onChange={(event) => setCoachEditValues((values) => ({ ...values, [field.field]: event.currentTarget.value }))}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="sm:max-w-xs">
         <label htmlFor={`running-add-${blockId}-position`} className="mb-1 block text-xs font-medium text-slate-700">
@@ -163,14 +240,76 @@ export function RunningItemCreateForm({
           {acceptsTargetSplit && segments.length === 0 && (
             <p className="text-xs text-amber-900">この型は、コーチ設定の目標スプリットを入力すると計画できる場合があります。</p>
           )}
+          {overrideableReasons.length > 0 && (
+            <fieldset className="space-y-2 border-t border-amber-200 pt-2">
+              <legend className="text-sm font-semibold text-amber-900">コーチによる例外設定</legend>
+              <p className="text-xs text-amber-900">現在の計画で解除可能と判定された条件だけが選べます。他の制約は引き続き評価されます。</p>
+              <div className="space-y-2">
+                {overrideableReasons.map((reason, index) => {
+                  const ruleId = reason.ruleIdInternal!;
+                  const checked = eligibilityOverrideRuleIds.includes(ruleId);
+                  return (
+                    <label key={reason.key} className="flex min-w-0 items-start gap-2 text-sm text-amber-950">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-5 w-5 shrink-0"
+                        checked={checked}
+                        disabled={pending}
+                        onChange={(event) => {
+                          const isChecked = event.currentTarget.checked;
+                          setEligibilityOverrideRuleIds((ids) => (isChecked ? [...new Set([...ids, ruleId])] : ids.filter((id) => id !== ruleId)));
+                        }}
+                        aria-label={`解除可能な条件 ${index + 1} の例外を申請`}
+                      />
+                      <span>{reason.message}（コーチ確認が必要）</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {eligibilityOverrideRuleIds.length > 0 && (
+                <div className="space-y-2 rounded-md bg-white p-3">
+                  <label htmlFor={`running-add-${blockId}-override-reason`} className="block text-xs font-medium text-slate-700">
+                    例外設定の理由（10文字以上）
+                  </label>
+                  <textarea
+                    id={`running-add-${blockId}-override-reason`}
+                    className={cn(INPUT_CLASS, "min-h-20")}
+                    value={eligibilityOverrideReason}
+                    disabled={pending}
+                    onChange={(event) => setEligibilityOverrideReason(event.currentTarget.value)}
+                  />
+                  <label className="flex items-start gap-2 text-xs text-slate-700">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-5 w-5 shrink-0"
+                      checked={eligibilityOverrideFirstConfirmation}
+                      disabled={pending}
+                      onChange={(event) => setEligibilityOverrideFirstConfirmation(event.currentTarget.checked)}
+                    />
+                    <span>この条件を例外として扱う判断を確認しました。</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-xs text-slate-700">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-5 w-5 shrink-0"
+                      checked={eligibilityOverrideSecondConfirmation}
+                      disabled={pending}
+                      onChange={(event) => setEligibilityOverrideSecondConfirmation(event.currentTarget.checked)}
+                    />
+                    <span>例外設定を保存することをもう一度確認しました。</span>
+                  </label>
+                </div>
+              )}
+            </fieldset>
+          )}
         </section>
       )}
 
       <FindingsList findings={findings} idPrefix={`running-add-${blockId}-findings`} heading="確認事項" />
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={buttonClass("primary", "lg")} disabled={pending} onClick={submit}>
-          この内容で追加
+        <button type="button" className={buttonClass("primary", "lg")} disabled={pending || !methodPolicy.available} onClick={submit}>
+          {methodPolicy.available ? "この内容で追加" : "この画面では追加できません"}
         </button>
         {onCancel && (
           <button type="button" className={buttonClass("ghost", "lg")} disabled={pending} onClick={onCancel}>

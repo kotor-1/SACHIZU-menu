@@ -11,8 +11,7 @@
  */
 import { z } from "zod";
 import { TRAINING_PHASES } from "../../menu/constants";
-import { envelopeFieldSchema } from "../rules/schema";
-import { coachOverrideTargetSchema, findingCodeSchema } from "../planning/schema";
+import { coachEditFieldSchema, coachOverrideTargetSchema, findingCodeSchema } from "../planning/schema";
 import { generationRecordSchema } from "../types/actor";
 import { INTENSITY_REFERENCE_KINDS } from "../types/intensity";
 import { historyCoverageLevelSchema } from "../types/load";
@@ -87,12 +86,13 @@ export const provenanceSchema = z
       z
         .object({
           at: isoDateTimeSchema,
-          field: envelopeFieldSchema,
-          from: z.number().finite(),
+          field: coachEditFieldSchema,
+          /** Initial coach input has no prior value; later edits record both endpoints. */
+          from: z.number().finite().optional(),
           to: z.number().finite(),
         })
         .strict(),
-    ),
+    ).default([]),
     overrides: z.array(
       z
         .object({

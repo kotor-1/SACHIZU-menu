@@ -107,6 +107,18 @@ describe("R10-B1.1: GROUP の ageBand / trainingAgeTier — provenance は正直
     expect(parsed.inputsDigest.trainingAgeTier).toBe("ADVANCED");
   });
 
+  it("初回 coachEdits と coachEdits field の無い旧 provenance を読み込める", () => {
+    const initialEdit = provenanceSchema.parse({
+      ...baseProvenance(),
+      coachEdits: [{ at: "2026-09-20T10:00:00+09:00", field: "totalReps", to: 2 }],
+    });
+    expect(initialEdit.coachEdits).toEqual([{ at: "2026-09-20T10:00:00+09:00", field: "totalReps", to: 2 }]);
+
+    const legacy: Record<string, unknown> = { ...baseProvenance() };
+    delete legacy.coachEdits;
+    expect(provenanceSchema.parse(legacy).coachEdits).toEqual([]);
+  });
+
   it("core の AgeBand / TrainingAgeTier 自体には UNKNOWN を混入させない", () => {
     expect(AGE_BANDS).toEqual(["U12", "U15", "U18", "ADULT"]);
     expect(ageBandSchema.safeParse("UNKNOWN").success).toBe(false);
