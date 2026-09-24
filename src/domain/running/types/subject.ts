@@ -55,7 +55,7 @@ export const maturityAssessmentSchema = z.object({
   method: maturityAssessmentMethodSchema,
   assessedAt: isoDateSchema.nullable(),
   heightHistory: z
-    .array(z.object({ date: isoDateSchema, heightCm: z.number().positive() }))
+    .array(z.object({ date: isoDateSchema, heightCm: z.number().positive().finite() }))
     .optional(),
   equation: maturityEquationSchema.nullable().optional(),
 });

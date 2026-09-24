@@ -46,6 +46,27 @@ import {
 
 const PLANS = { planAcc, planMvFly20, planSes, planLsrIncomplete, planTe, planTi, planRs, planAssisted, planEa, planStride };
 
+describe("R10-B3: interval plausibility wording", () => {
+  it("possible exceed の文言はpolicyとcertaintyの両方で分ける", () => {
+    const possibleFinding = (policy: NonNullable<Finding["plausibility"]>["policy"], ruleId: string): Finding => ({
+      code: "PLAUSIBILITY_NOT_DETERMINABLE",
+      severity: "BLOCK",
+      scope: "SESSION",
+      metric: ruleId,
+      plausibility: { ruleId, policy, certainty: "POSSIBLE_EXCEED", presentationKind: "INTERVAL_UNCERTAIN" },
+      evidenceIds: [],
+    });
+    const method = presentFindings([possibleFinding("METHOD_POLICY_HARD", "PLA_ITEM_DISTANCE_STANDARD")])[0]!;
+    const product = presentFindings([possibleFinding("PRODUCT_DATA_SANITY_HARD", "PLA_MENU_TOTAL_DISTANCE")])[0]!;
+    const review = presentFindings([possibleFinding("COACH_OVERRIDABLE_STRONG_REVIEW", "PLA_ITEM_TOTAL_DISTANCE")])[0]!;
+
+    expect(method.message).toMatch(/練習の型の定義から外れる可能性/);
+    expect(product.message).toMatch(/メニュー総距離の推定範囲が、アプリのデータ確認基準を超える可能性/);
+    expect(product.message).not.toMatch(/方法上/);
+    expect(review.message).toMatch(/通常の処方範囲を大きく外れる可能性/);
+  });
+});
+
 function savedItem(p: RunningPrescriptionValue, id = "item-1", sessionFindings: Finding[] = []): RunningItemPresentationDto {
   const result = presentSavedRunningMenuItem(
     {
@@ -287,7 +308,11 @@ describe("R10-B3: RunningItemEditor（controlled）", () => {
   });
 
   it("[R10-B4A] 助走距離（EVENT_APPROACH_SPEED）は編集用の範囲ソースが無いので read-only", () => {
-    const item = savedItem(planEa());
+    // Legacy saved plans without a distance remain renderable; new F1 planning blocks them as unevaluable.
+    const historical = structuredClone(planEa());
+    if (historical.rep.kind !== "ATTEMPTS") throw new Error("expected ATTEMPTS");
+    historical.rep.approachDistanceM = null;
+    const item = savedItem(historical);
     const approach = item.editor.fields.find((f) => f.keyInternal === "approachDistanceM")!;
     expect(approach).toMatchObject({ readOnly: true, editable: false, overrideLayers: [], currentValueLabel: "未入力" });
     expect(approach.notEditableReason).toMatch(/ルールセットに無い/);

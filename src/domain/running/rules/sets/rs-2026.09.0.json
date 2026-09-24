@@ -5280,7 +5280,7 @@
     },
     {
       "applicabilityNotes": ">7.2cm/年はmale academy footballで報告されたgrowth-velocity risk marker。女性・一般陸上へ外挿せず、rapidGrowthFlagのCHECK_ONLYとしてのみ使用する。hard stop/eligibility cutoffではない。",
-    "evidenceLevel": 3,
+      "evidenceLevel": 3,
       "id": "EV_GROWTH_VELOCITY_7_2",
       "population": {
         "ageBands": [
@@ -5290,9 +5290,9 @@
         ],
         "maturity": "ANY",
         "performanceLevels": "ANY",
-          "sexes": [
-            "MALE"
-          ],
+        "sexes": [
+          "MALE"
+        ],
         "sport": "TEAM_SPORT"
       },
       "provisional": true,
@@ -5832,13 +5832,17 @@
       },
       "field": null,
       "inputTarget": null,
-      "note": null,
+      "note": "METHOD_POLICY_HARD: 選択した方法の距離定義との不一致を検出する。生理学的・安全上の限界を示さない。",
       "outputTarget": "REP_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_ITEM_DISTANCE_STANDARD",
       "scope": "ITEM_FIELD",
-      "targetLabel": "1本の距離（ACC/MV合計/SES/RS/AS/STRIDE）",
-      "unit": "m"
+      "targetLabel": "1本の距離（ACC/MV合計/SES/RS/AS/STRIDEの方法定義）",
+      "unit": "m",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "METHOD_POLICY_HARD"
+      }
     },
     {
       "appliesToMethods": [
@@ -5854,17 +5858,20 @@
       },
       "field": null,
       "inputTarget": null,
-      "note": null,
+      "note": "METHOD_POLICY_HARD: 選択した方法・型の定義との不一致を検出する。生理学的・安全上の限界を示さない。",
       "outputTarget": "REP_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_ITEM_DISTANCE_LONG",
       "scope": "ITEM_FIELD",
       "targetLabel": "1本の距離（LONG）",
-      "unit": "m"
+      "unit": "m",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "METHOD_POLICY_HARD"
+      }
     },
     {
       "appliesToMethods": [
-        "TEMPO_EXTENSIVE",
         "TEMPO_INTENSIVE"
       ],
       "blockThreshold": {
@@ -5877,13 +5884,17 @@
       },
       "field": null,
       "inputTarget": null,
-      "note": null,
+      "note": "METHOD_POLICY_HARD: 選択した方法・型の定義との不一致を検出する。生理学的・安全上の限界を示さない。",
       "outputTarget": "REP_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_ITEM_DISTANCE_TEMPO",
       "scope": "ITEM_FIELD",
-      "targetLabel": "1本の距離（TE/TI）",
-      "unit": "m"
+      "targetLabel": "1本の距離（TI）",
+      "unit": "m",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "METHOD_POLICY_HARD"
+      }
     },
     {
       "appliesToMethods": [
@@ -5900,17 +5911,20 @@
       },
       "field": "buildUpM",
       "inputTarget": null,
-      "note": null,
+      "note": "METHOD_POLICY_HARD: 選択した方法・型の定義との不一致を検出する。生理学的・安全上の限界を示さない。",
       "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_BUILD_UP_M",
       "scope": "ITEM_FIELD",
       "targetLabel": "buildUpM",
-      "unit": "m"
+      "unit": "m",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "METHOD_POLICY_HARD"
+      }
     },
     {
       "appliesToMethods": [
-        "MAX_VELOCITY",
         "ASSISTED_SPRINT"
       ],
       "blockThreshold": {
@@ -5923,18 +5937,21 @@
       },
       "field": "flyZoneM",
       "inputTarget": null,
-      "note": null,
+      "note": "METHOD_POLICY_HARD: 選択した方法・型の定義との不一致を検出する。生理学的・安全上の限界を示さない。",
       "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_FLY_ZONE_M",
       "scope": "ITEM_FIELD",
       "targetLabel": "flyZoneM",
-      "unit": "m"
+      "unit": "m",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "METHOD_POLICY_HARD"
+      }
     },
     {
       "appliesToMethods": [
-        "SPRINT_ENDURANCE_SHORT",
-        "TEMPO_INTENSIVE"
+        "SPRINT_ENDURANCE_SHORT"
       ],
       "blockThreshold": {
         "max": 120,
@@ -5946,13 +5963,17 @@
       },
       "field": "repDurationS",
       "inputTarget": null,
-      "note": null,
+      "note": "METHOD_POLICY_HARD: 選択した方法・型の定義との不一致を検出する。生理学的・安全上の限界を示さない。",
       "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_REP_DURATION_NON_LONG",
       "scope": "ITEM_FIELD",
       "targetLabel": "1本の時間（LONG以外）",
-      "unit": "s"
+      "unit": "s",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "METHOD_POLICY_HARD"
+      }
     },
     {
       "appliesToMethods": null,
@@ -5966,13 +5987,17 @@
       },
       "field": "repsPerSet",
       "inputTarget": null,
-      "note": null,
+      "note": "COACH_OVERRIDABLE_STRONG_REVIEW: 通常の処方範囲を大きく外れた値。F1では未承認のため保存を止める。",
       "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_REPS_PER_SET",
       "scope": "ITEM_FIELD",
       "targetLabel": "repsPerSet",
-      "unit": "reps"
+      "unit": "reps",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": null,
@@ -5986,13 +6011,17 @@
       },
       "field": "sets",
       "inputTarget": null,
-      "note": null,
+      "note": "COACH_OVERRIDABLE_STRONG_REVIEW: 通常の処方範囲を大きく外れた値。F1では未承認のため保存を止める。",
       "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_SETS",
       "scope": "ITEM_FIELD",
       "targetLabel": "sets",
-      "unit": "sets"
+      "unit": "sets",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": null,
@@ -6006,13 +6035,17 @@
       },
       "field": "totalReps",
       "inputTarget": null,
-      "note": null,
+      "note": "COACH_OVERRIDABLE_STRONG_REVIEW: 通常の処方範囲を大きく外れた値。F1では未承認のため保存を止める。",
       "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_TOTAL_REPS",
       "scope": "ITEM_FIELD",
       "targetLabel": "totalReps",
-      "unit": "reps"
+      "unit": "reps",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": null,
@@ -6026,13 +6059,17 @@
       },
       "field": "repRestS",
       "inputTarget": null,
-      "note": null,
+      "note": "COACH_OVERRIDABLE_STRONG_REVIEW: 通常の処方範囲を大きく外れた値。F1では未承認のため保存を止める。",
       "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_REP_REST_S",
       "scope": "ITEM_FIELD",
       "targetLabel": "repRestS",
-      "unit": "s"
+      "unit": "s",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": null,
@@ -6046,13 +6083,17 @@
       },
       "field": "setRestS",
       "inputTarget": null,
-      "note": null,
+      "note": "COACH_OVERRIDABLE_STRONG_REVIEW: 通常の処方範囲を大きく外れた値。F1では未承認のため保存を止める。",
       "outputTarget": "PRESCRIPTION_FIELD",
       "ratioMultiplier": null,
       "ruleId": "PLA_SET_REST_S",
       "scope": "ITEM_FIELD",
       "targetLabel": "setRestS",
-      "unit": "s"
+      "unit": "s",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": null,
@@ -6066,13 +6107,17 @@
       },
       "field": "sessionVolumeM",
       "inputTarget": null,
-      "note": null,
+      "note": "COACH_OVERRIDABLE_STRONG_REVIEW: 通常の処方範囲を大きく外れた値。F1では未承認のため保存を止める。",
       "outputTarget": "ITEM_TOTAL_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_ITEM_TOTAL_DISTANCE",
       "scope": "ITEM_FIELD",
       "targetLabel": "1項目の総走行距離",
-      "unit": "m"
+      "unit": "m",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": null,
@@ -6086,13 +6131,17 @@
       },
       "field": null,
       "inputTarget": null,
-      "note": "監査C-1のペース走80km・インターバル25.6km事故の再発防止",
+      "note": "PRODUCT_DATA_SANITY_HARD: アプリ上のメニュー総距離入力境界。人体性能・生理学的限界ではない。",
       "outputTarget": "SESSION_TOTAL_DISTANCE",
       "ratioMultiplier": null,
       "ruleId": "PLA_MENU_TOTAL_DISTANCE",
       "scope": "MENU_TOTAL",
       "targetLabel": "メニュー全体の総走行距離",
-      "unit": "m"
+      "unit": "m",
+      "boundaryPolicies": {
+        "min": null,
+        "max": "PRODUCT_DATA_SANITY_HARD"
+      }
     },
     {
       "appliesToMethods": null,
@@ -6106,7 +6155,11 @@
       "ruleId": "PLA_SETS_REPS_MIXUP",
       "scope": "RATIO",
       "targetLabel": "sets/reps取り違え疑い",
-      "unit": "reps"
+      "unit": "reps",
+      "boundaryPolicies": {
+        "min": null,
+        "max": null
+      }
     },
     {
       "appliesToMethods": null,
@@ -6123,13 +6176,17 @@
         "event": "100m",
         "kind": "TIMED_MARK"
       },
-      "note": "confirm: < 9.0s または > 25s。block: < 5s または > 60s",
+      "note": "F14: selected 100m reference only; <5s is non-overridable data sanity, >60s is strong review (F1 blocks until approval exists). Unused history is DATA_QUALITY; 100m does not create numeric intensity authority.",
       "outputTarget": null,
       "ratioMultiplier": null,
       "ruleId": "PLA_INPUT_100M_RECORD",
       "scope": "INPUT",
       "targetLabel": "入力: 100m記録",
-      "unit": "s"
+      "unit": "s",
+      "boundaryPolicies": {
+        "min": "NON_OVERRIDABLE_DATA_SANITY_HARD",
+        "max": "COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": null,
@@ -6146,13 +6203,17 @@
         "event": "FLY10",
         "kind": "TIMED_MARK"
       },
-      "note": "confirm: < 0.80s または > 2.5s。block: < 0.5s または > 5s",
+      "note": "F15: selected Fly10 reference only; <0.5s is non-overridable data sanity, >5s is strong review (F1 blocks until approval exists). Unused history is DATA_QUALITY.",
       "outputTarget": null,
       "ratioMultiplier": null,
       "ruleId": "PLA_INPUT_FLY_10M",
       "scope": "INPUT",
       "targetLabel": "入力: fly 10m",
-      "unit": "s"
+      "unit": "s",
+      "boundaryPolicies": {
+        "min": "NON_OVERRIDABLE_DATA_SANITY_HARD",
+        "max": "COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": null,
@@ -6168,13 +6229,17 @@
       "inputTarget": {
         "kind": "HEIGHT_CM"
       },
-      "note": "confirm: < 100cm または > 220cm。block: < 50cm または > 260cm",
+      "note": "F16: only date-aware growth endpoints are reviewed; positive <50cm or >260cm is strong review (F1 blocks until approval exists). Future and unused points are DATA_QUALITY; no maximum age window is implied.",
       "outputTarget": null,
       "ratioMultiplier": null,
       "ruleId": "PLA_INPUT_HEIGHT",
       "scope": "INPUT",
       "targetLabel": "入力: 身長",
-      "unit": "cm"
+      "unit": "cm",
+      "boundaryPolicies": {
+        "min": "DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW",
+        "max": "DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW"
+      }
     },
     {
       "appliesToMethods": [
@@ -6195,7 +6260,11 @@
       "ruleId": "PLA_INPUT_APPROACH_DISTANCE",
       "scope": "INPUT",
       "targetLabel": "EVENT_APPROACH_SPEED approachDistanceM（手入力）",
-      "unit": "m"
+      "unit": "m",
+      "boundaryPolicies": {
+        "min": null,
+        "max": null
+      }
     }
   ],
   "readinessRules": [

@@ -217,7 +217,7 @@ export const APPROACH_LABEL_JA: Record<"SHORT" | "FULL", string> = {
 // Editor field（EnvelopeField + 助走距離）
 // ---------------------------------------------------------------------------
 
-export type FieldUnitKind = "m" | "s" | "reps" | "sets" | "percent";
+export type FieldUnitKind = "m" | "cm" | "s" | "reps" | "sets" | "percent";
 
 export const EDITABLE_FIELD_DISPLAY: Record<EnvelopeField | "approachDistanceM", { label: string; unit: FieldUnitKind }> = {
   repDistanceM: { label: "1本の距離", unit: "m" },
@@ -241,6 +241,7 @@ export const EDITABLE_FIELD_DISPLAY: Record<EnvelopeField | "approachDistanceM",
 
 export const UNIT_LABEL_JA: Record<FieldUnitKind, string> = {
   m: "m",
+  cm: "cm",
   s: "秒",
   reps: "本",
   sets: "セット",

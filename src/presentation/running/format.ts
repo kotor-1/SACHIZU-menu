@@ -53,7 +53,7 @@ export function formatIntervalJa(interval: { lower: number | null; upper: number
 
 /** domain の Unit（Finding.value / limit）を表示用の単位へ。表示に対応していない単位は null。 */
 export function fieldUnitOf(unit: string): FieldUnitKind | null {
-  return unit === "m" || unit === "s" || unit === "reps" || unit === "sets" || unit === "percent" ? unit : null;
+  return unit === "m" || unit === "cm" || unit === "s" || unit === "reps" || unit === "sets" || unit === "percent" ? unit : null;
 }
 
 const DATE_FMT = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" });

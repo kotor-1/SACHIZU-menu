@@ -66,7 +66,10 @@ export const planMvFly20 = () => plan("MAX_VELOCITY", "MV_FLY20", { subject: ath
 export const planSes = () => plan("SPRINT_ENDURANCE_SHORT", "SES_100", { subject: athlete({ marks: [FLY20_PHOTO] }) });
 export const planTi = () => plan("TEMPO_INTENSIVE", "TI_VITTORI_SE", { subject: athlete({ marks: [FLY20_PHOTO] }) });
 export const planStride = () => plan("STRIDE", "ST_RELAXED");
-export const planEa = () => plan("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", { coachReference: { kind: "COACH_DEFINED", label: "助走" } });
+export const planEa = () => plan("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", {
+  coachReference: { kind: "COACH_DEFINED", label: "助走" },
+  coachEdits: [{ field: "approachDistanceM", value: 30, unit: "m" }],
+});
 export const planAssisted = () =>
   plan("ASSISTED_SPRINT", "AS_DOWNHILL", {
     subject: athlete({ birthDate: iso("2000-01-01"), marks: [FLY20_PHOTO] }),

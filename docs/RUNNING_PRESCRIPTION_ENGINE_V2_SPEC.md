@@ -566,7 +566,8 @@ export type MaturityAssessment = {
 - [CHECK_ONLY] 年間成長速度の急増（Claude DR が narrative review の 7.2cm/年を報告）→ **`rapidGrowthFlag`**。
   - `rapidGrowthFlag` は male academy football の risk marker をコーチ確認へ渡すためだけの provisional check であり、hard stop、eligibility cutoff、female/general track threshold、または自動的な maturity/tier 変更ではない。
   - **[R3 implementation policy]** 成長速度の算出（初版 ENGINE-POLICY・provisional。医学的診断値ではない）:
-    1. `heightHistory` のうち、§8.5 の身長 plausibility が BLOCK の点と、`asOf` より未来の点を除外する。
+    1. `asOf` より未来の点を除外し、F1の date-aware selector が成長計算に使う同じ端点を確定する。端点の値で採否を変えない。
+       端点が§8.5のreview範囲を外れる場合はF1で計画をBLOCKし、成長速度計算には別の端点を代用しない。未来点・未選択の極端値はDATA_QUALITYとして隔離する。
     2. 残った有効点が **2点未満**なら算出しない（rapidGrowthFlag を無理に確定しない）。
     3. 有効点の **最古点と最新点の2点だけ**を使う（回帰・平滑化・区間の重み付けはしない）。
     4. 2点の間隔が **6か月以上**（実装上は 182 日以上。日付は date-only の通日番号差で計算し、
@@ -1191,7 +1192,8 @@ export type CoachOverride = {
 | eligibility「override 可」 | CoachOverride（理由 + 二重確認） |
 | eligibility「override 不可」（§4.4 / §8.2） | **不可** |
 | pain red flag による STOP / MEDICAL_EVALUATION_RECOMMENDED | **不可** |
-| plausibility BLOCK | **不可**（入力を修正する） |
+| plausibility METHOD_POLICY_HARD / PRODUCT_DATA_SANITY_HARD / NON_OVERRIDABLE_DATA_SANITY_HARD | **不可**（方法の定義または入力境界を修正する） |
+| plausibility COACH_OVERRIDABLE_STRONG_REVIEW（F1） | F1では未承認のためBLOCK。後続F2のruleId単位review contractが実装されるまで保存不可 |
 | hardSafety（将来の出典付き上限） | CoachOverride（理由 + 二重確認）。`nonOverridable` 指定のものは不可 |
 
 判断: [ENGINE-POLICY]（Fable「override は人間 role 限定・ログ必須」を型で実装）。
@@ -1207,9 +1209,9 @@ export type CoachOverride = {
 | --- | --- | --- |
 | 1本の距離（ACC/MV合計/SES/RS/AS/STRIDE） | > 150 m | > 300 m |
 | 1本の距離（LONG） | > 600 m | > 1000 m |
-| 1本の距離（TE/TI） | > 400 m | > 1000 m |
-| buildUpM / flyZoneM | > 70 / > 40 | > 120 / > 80 |
-| 1本の時間（LONG 以外） | > 20 s | > 120 s |
+| 1本の距離（TI。TEは固定template上300m以下） | > 400 m | > 1000 m |
+| buildUpM（MV/AS） / flyZoneM（AS。MVは固定template） | > 70 / > 40 | > 120 / > 80 |
+| SESの1本の時間（TIは距離方式） | > 20 s | > 120 s |
 | repsPerSet / sets / totalReps | > 12 / > 6 / > 30 | > 30 / > 20 / > 80 |
 | repRestS / setRestS | > 2400 / > 3000 | > 3600 / > 5400 |
 | 1項目の総走行距離 | > 3000 m | > 10000 m |
@@ -1219,6 +1221,10 @@ export type CoachOverride = {
 | 入力: fly 10m | < 0.80 s または > 2.5 s | < 0.5 s または > 5 s |
 | 入力: 身長 | < 100 cm または > 220 cm | < 50 cm または > 260 cm |
 
+- RuleSet は閾値の各側に machine-readable policy を持つ。距離・build/fly・duration の F01–F06 は METHOD_POLICY_HARD（選択した方法・型の定義であり、生理学的または安全上の絶対限界ではない）。STRIDE >300m は「このエンジンでは300m超をSTRIDEとして扱わない」という方法定義。
+- reps/sets/総本数/rest/項目総距離の F07–F12 は COACH_OVERRIDABLE_STRONG_REVIEW。menu総距離 F13 は PRODUCT_DATA_SANITY_HARD。F14/F15 は下限違反を NON_OVERRIDABLE_DATA_SANITY_HARD、上限違反を COACH_OVERRIDABLE_STRONG_REVIEW とし、F16の正値範囲外は選択された成長端点だけを DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW とする。F1はapproval pathを持たないため、これらreview対象もBLOCKのまま保存を止める。
+- 区間閾値は scalar比較へ潰さない。MAX L は `lower > L` を CONFIRMED_EXCEED、未確定で `upper > L` を POSSIBLE_EXCEED、`upper <= L` を CONFIRMED_WITHIN、それ以外を UNEVALUABLE とする。MIN は対称。等値は違反でない。POSSIBLE_EXCEEDとUNEVALUABLEはそれぞれ構造化Findingを出し、F1では安全側にBLOCKする。
+- F14/F15は今回選ばれた参照記録だけを入力境界判定する。未選択の過去記録はDATA_QUALITYへ隔離し、無関係な計画をBLOCKしない。日付・形状・非正値は既存の構造検証で拒否する。F16では未来点を成長計算から除外し、未選択の正値外れ点はDATA_QUALITYとする。
 - 監査 C-1 の「ペース走 80km」は項目 BLOCK と Session BLOCK の二重で止まる。「インターバル 25.6km」は項目 BLOCK（> 10000m）。
 
 ---

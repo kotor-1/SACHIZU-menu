@@ -67,7 +67,10 @@ vi.mock("@/infra/db/prisma", async (importOriginal) => {
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { prisma } from "@/infra/db/prisma";
 import { buildMenuPlannerPreview, type BuildMenuPlannerPreviewInput } from "@/application/menu-planner/preview";
-import { makeExercise, resetDb } from "../helpers";
+import { makeExercise as makeExerciseBase, resetDb } from "../helpers";
+
+const makeExercise = (overrides: Parameters<typeof makeExerciseBase>[0] = {}) =>
+  makeExerciseBase({ category: "WARM_UP", ...overrides });
 
 function runningContext(availableMinutes = 90) {
   return {

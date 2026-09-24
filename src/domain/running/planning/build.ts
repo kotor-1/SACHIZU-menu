@@ -19,7 +19,7 @@ import { runtimeSafetyPolicySnapshotSchema, type RuntimeSafetyPolicySnapshot } f
 import type { GenerationRecord } from "../types/actor";
 import { resolveSubjectProfile, type SubjectProfile } from "../context/subject";
 import { rationaleLine } from "../rationale/codes";
-import { checkInputPlausibility, normalizePlanRequest } from "./normalize";
+import { checkInputPlausibility, checkSelectedPerformanceInputPlausibility, normalizePlanRequest } from "./normalize";
 import { validateSelection, resolveStopPolicy } from "./selection";
 import { evaluateEligibility, type EligibilityEvaluation } from "./eligibility";
 import { selectEnvelope, type SelectedEnvelope } from "./envelope";
@@ -787,6 +787,10 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     return referenceResult.status === "INELIGIBLE" ? ineligible(referenceResult.reasons) : blocked(referenceResult.findings);
   }
   const plan = referenceResult.plan;
+  const selectedInputPlausibility = checkSelectedPerformanceInputPlausibility(request, ruleSet, plan.selectedInputMarks);
+  contextFindings.push(...selectedInputPlausibility.findings);
+  findings.push(...selectedInputPlausibility.findings);
+  if (selectedInputPlausibility.blocking.length > 0) return blocked(selectedInputPlausibility.blocking);
   if (recoveryStructure === "INCOMPLETE" && (plan.reference.kind !== "TARGET_SPLIT" || plan.reference.segments.length < 2)) {
     // 分割走の区間はコーチの TARGET_SPLIT（2区間以上）でしか決まらない。
     return ineligible([{ code: "REFERENCE_UNAVAILABLE", ruleId: null, overrideAllowed: false }]);

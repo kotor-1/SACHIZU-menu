@@ -293,7 +293,7 @@ describe("R12-A3G production composition integration", () => {
       data: {
         ownerId: DEFAULT_OWNER_ID,
         name: "A3G監査ドリル",
-        category: "DRILL",
+        category: "WARM_UP",
         metricType: "DISTANCE",
         status: "REVIEWED",
         defaultSets: 3,
@@ -304,7 +304,7 @@ describe("R12-A3G production composition integration", () => {
       data: {
         ownerId: DEFAULT_OWNER_ID,
         name: "A3G修正ドリル",
-        category: "DRILL",
+        category: "WARM_UP",
         metricType: "DISTANCE",
         status: "REVIEWED",
         defaultSets: 2,

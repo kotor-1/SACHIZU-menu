@@ -15,7 +15,6 @@ import type { MaturityAssessment, MaturityConfidence, MaturityStatus } from "../
 import type { IsoDate } from "../types/primitives";
 import type { RuleSet } from "../rules/schema";
 import type { ResolvedAgeBand } from "./ageBand";
-import { CONTEXT_PLAUSIBILITY_RULE_IDS, evaluateInputPlausibility } from "./plausibility";
 import { daysBetween } from "./dateMath";
 
 // ---------------------------------------------------------------------------
@@ -43,31 +42,57 @@ export type GrowthVelocityResult =
   | { available: true; cmPerYear: number; oldest: HeightHistoryPoint; newest: HeightHistoryPoint }
   | { available: false; reason: "NO_HEIGHT_HISTORY" | "INSUFFICIENT_VALID_POINTS" | "INTERVAL_TOO_SHORT" };
 
+export type HeightHistorySelection = {
+  /** The exact endpoints used by growth calculation; empty unless the required span exists. */
+  endpoints: readonly HeightHistoryPoint[];
+  futurePoints: readonly HeightHistoryPoint[];
+  unusedPastPoints: readonly HeightHistoryPoint[];
+  reason: "AVAILABLE" | "NO_HEIGHT_HISTORY" | "INSUFFICIENT_VALID_POINTS" | "INTERVAL_TOO_SHORT";
+};
+
+/** Shared, date-aware endpoint selector for both maturity and F16 input assessment. */
+export function selectHeightHistoryForGrowth(
+  heightHistory: readonly HeightHistoryPoint[] | undefined,
+  asOf: IsoDate,
+): HeightHistorySelection {
+  if (!heightHistory || heightHistory.length === 0) {
+    return { endpoints: [], futurePoints: [], unusedPastPoints: [], reason: "NO_HEIGHT_HISTORY" };
+  }
+  const futurePoints = heightHistory.filter((point) => point.date > asOf);
+  const past = heightHistory.map((point, index) => ({ point, index })).filter(({ point }) => point.date <= asOf);
+  if (past.length < 2) {
+    return { endpoints: [], futurePoints, unusedPastPoints: past.map(({ point }) => point), reason: "INSUFFICIENT_VALID_POINTS" };
+  }
+  const sorted = [...past].sort((a, b) => (a.point.date < b.point.date ? -1 : a.point.date > b.point.date ? 1 : a.index - b.index));
+  const oldest = sorted[0]!;
+  const newest = sorted[sorted.length - 1]!;
+  const days = daysBetween(oldest.point.date, newest.point.date);
+  if (days < MIN_GROWTH_INTERVAL_DAYS) {
+    return { endpoints: [], futurePoints, unusedPastPoints: past.map(({ point }) => point), reason: "INTERVAL_TOO_SHORT" };
+  }
+  const endpointIndices = new Set([oldest.index, newest.index]);
+  return {
+    endpoints: [oldest.point, newest.point],
+    futurePoints,
+    unusedPastPoints: past.filter(({ index }) => !endpointIndices.has(index)).map(({ point }) => point),
+    reason: "AVAILABLE",
+  };
+}
+
 /**
  * [DEVIATION] 正式仕様は heightHistory が複数点あるときの集計方法を
- * 定義していない。R3 では ENGINE-POLICY として最小限の決定的な方法を採る:
- * BLOCK plausibility の点・未来日付の点を除外した「有効な点」のうち
+ * 定義していない。F1では input policy と同じ date-aware selector で選んだ
  * **最古点と最新点の2点だけ**を使って年換算成長速度を計算する
  * （隠れた回帰・平滑化・複数区間の重み付け平均などは行わない）。
  */
 export function computeGrowthVelocity(
   heightHistory: readonly HeightHistoryPoint[] | undefined,
   asOf: IsoDate,
-  ruleSet: RuleSet,
 ): GrowthVelocityResult {
-  if (!heightHistory || heightHistory.length === 0) {
-    return { available: false, reason: "NO_HEIGHT_HISTORY" };
-  }
-  const validPoints = heightHistory.filter((p) => {
-    if (p.date > asOf) return false; // 未来の記録は使わない（§4.6 と同じ方針）
-    return evaluateInputPlausibility(ruleSet, CONTEXT_PLAUSIBILITY_RULE_IDS.HEIGHT, p.heightCm) !== "BLOCK";
-  });
-  if (validPoints.length < 2) {
-    return { available: false, reason: "INSUFFICIENT_VALID_POINTS" };
-  }
-  const sorted = [...validPoints].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-  const oldest = sorted[0];
-  const newest = sorted[sorted.length - 1];
+  const selection = selectHeightHistoryForGrowth(heightHistory, asOf);
+  if (selection.reason !== "AVAILABLE") return { available: false, reason: selection.reason };
+  const oldest = selection.endpoints[0]!;
+  const newest = selection.endpoints[1]!;
   const days = daysBetween(oldest.date, newest.date);
   if (days < MIN_GROWTH_INTERVAL_DAYS) {
     return { available: false, reason: "INTERVAL_TOO_SHORT" };
@@ -156,11 +181,11 @@ function resultWith(
  * ことを構造的に防ぐ）。
  */
 export function normalizeMaturity(input: MaturityNormalizationInput): NormalizedMaturity {
-  const { ageBand, maturity, asOf, ruleSet } = input;
+  const { ageBand, maturity, asOf } = input;
 
   // rapidGrowthFlag は method に関わらず heightHistory から独立に評価する。
   // E15ではCHECK_ONLYの監査情報として保持し、eligibility/tierの入力にはしない。
-  const growth = computeGrowthVelocity(maturity.heightHistory, asOf, ruleSet);
+  const growth = computeGrowthVelocity(maturity.heightHistory, asOf);
   const growthVelocityCmPerYear = growth.available ? growth.cmPerYear : null;
   const rapidGrowthFlag = growth.available && growth.cmPerYear > RAPID_GROWTH_THRESHOLD_CM_PER_YEAR;
 

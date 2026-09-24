@@ -17,7 +17,6 @@ import type { Confidence, IsoDate } from "../types/primitives";
 import type { IntensityReference } from "../types/intensity";
 import type { RuleSet } from "../rules/schema";
 import type { ResolvedAgeBand } from "./ageBand";
-import { CONTEXT_PLAUSIBILITY_RULE_IDS, evaluateInputPlausibility } from "./plausibility";
 import { daysBetween } from "./dateMath";
 
 // ---------------------------------------------------------------------------
@@ -138,15 +137,10 @@ function baseConfidenceForTiming(timing: TimedMark["timing"]): Confidence {
 // mark の使用可否（future / plausibility BLOCK の除外）
 // ---------------------------------------------------------------------------
 
-function isUsableMark(mark: TimedMark, asOf: IsoDate, ruleSet: RuleSet): boolean {
-  if (mark.date > asOf) return false; // 未来の記録は使わない（§4.6）
-  if (mark.event === "100m") {
-    return evaluateInputPlausibility(ruleSet, CONTEXT_PLAUSIBILITY_RULE_IDS.MARK_100M, mark.timeS) !== "BLOCK";
-  }
-  if (mark.event === "FLY10") {
-    return evaluateInputPlausibility(ruleSet, CONTEXT_PLAUSIBILITY_RULE_IDS.FLY_10M, mark.timeS) !== "BLOCK";
-  }
-  return true; // R2 に plausibility 定義が無いイベントは、ここでは弾かない
+function isUsableMark(mark: TimedMark, asOf: IsoDate): boolean {
+  // Numeric plausibility is assessed only after this selector identifies a record actually
+  // used by the current plan. Filtering here would silently substitute an older mark.
+  return mark.date <= asOf;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,21 +175,21 @@ export type ReferenceResolution = {
   unavailableReason: string | null;
 };
 
-function bestFlyMark(marks: readonly TimedMark[], asOf: IsoDate, ruleSet: RuleSet): TimedMark | null {
-  const usable = marks.filter((m) => isFlyMark(m) && isUsableMark(m, asOf, ruleSet));
+function bestFlyMark(marks: readonly TimedMark[], asOf: IsoDate): TimedMark | null {
+  const usable = marks.filter((m) => isFlyMark(m) && isUsableMark(m, asOf));
   if (usable.length === 0) return null;
   // 最新の記録を優先する（同一 confidence 帯なら新しい方が参考になる）。
   return [...usable].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))[0];
 }
 
-function bestSameDistanceMark(marks: readonly TimedMark[], asOf: IsoDate, ruleSet: RuleSet): TimedMark | null {
-  const usable = marks.filter((m) => !isFlyMark(m) && m.event !== "100m" && isUsableMark(m, asOf, ruleSet));
+function bestSameDistanceMark(marks: readonly TimedMark[], asOf: IsoDate): TimedMark | null {
+  const usable = marks.filter((m) => !isFlyMark(m) && m.event !== "100m" && isUsableMark(m, asOf));
   if (usable.length === 0) return null;
   return [...usable].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))[0];
 }
 
-function has100mOnly(marks: readonly TimedMark[], asOf: IsoDate, ruleSet: RuleSet): TimedMark | null {
-  const usable100m = marks.filter((m) => m.event === "100m" && isUsableMark(m, asOf, ruleSet));
+function has100mOnly(marks: readonly TimedMark[], asOf: IsoDate): TimedMark | null {
+  const usable100m = marks.filter((m) => m.event === "100m" && isUsableMark(m, asOf));
   return usable100m.length > 0 ? usable100m[0] : null;
 }
 
@@ -214,9 +208,9 @@ export function resolveReference(input: ReferenceResolutionInput): ReferenceReso
     throw new Error(`resolveReference: MethodMeta not found for ${method}`);
   }
 
-  const flyMark = bestFlyMark(marks, asOf, ruleSet);
-  const sameDistanceMark = bestSameDistanceMark(marks, asOf, ruleSet);
-  const only100m = has100mOnly(marks, asOf, ruleSet);
+  const flyMark = bestFlyMark(marks, asOf);
+  const sameDistanceMark = bestSameDistanceMark(marks, asOf);
+  const only100m = has100mOnly(marks, asOf);
 
   const candidateKinds: IntensityReference["kind"][] = [
     ...methodMeta.allowedIntensityReferences,

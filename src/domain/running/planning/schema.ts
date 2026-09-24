@@ -288,6 +288,24 @@ export const planRequestSchema = z
       }
     }
 
+    if (req.subject.kind === "ATHLETE") {
+      req.subject.profile.marks.forEach((mark, index) => {
+        if (!isValidCalendarDate(mark.date)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "記録日が実在する日付ではありません", path: ["subject", "profile", "marks", index, "date"] });
+        }
+      });
+    }
+    const maturityProfiles = req.subject.kind === "ATHLETE"
+      ? [{ path: ["subject", "profile"] as (string | number)[], maturity: req.subject.profile.maturity }]
+      : req.subject.profile.members.map((member, index) => ({ path: ["subject", "profile", "members", index] as (string | number)[], maturity: member.maturity }));
+    for (const { path, maturity } of maturityProfiles) {
+      maturity.heightHistory?.forEach((point, index) => {
+        if (!isValidCalendarDate(point.date)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "身長記録日が実在する日付ではありません", path: [...path, "maturity", "heightHistory", index, "date"] });
+        }
+      });
+    }
+
     if (req.actor.kind !== "COACH") {
       if (req.coachEdits.length > 0) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: `actor=${req.actor.kind} は coachEdits を持てません（§18）`, path: ["coachEdits"] });
@@ -414,7 +432,7 @@ export type PlanResult =
 export function itemFinding(
   code: string,
   severity: FindingSeverity,
-  extra: Partial<Pick<Finding, "metric" | "value" | "limit">> & { evidenceIds?: EvidenceId[] } = {},
+  extra: Partial<Pick<Finding, "metric" | "value" | "limit" | "plausibility">> & { evidenceIds?: EvidenceId[] } = {},
 ): Finding {
   return {
     code,
@@ -423,6 +441,7 @@ export function itemFinding(
     ...(extra.metric !== undefined ? { metric: extra.metric } : {}),
     ...(extra.value !== undefined ? { value: extra.value } : {}),
     ...(extra.limit !== undefined ? { limit: extra.limit } : {}),
+    ...(extra.plausibility !== undefined ? { plausibility: extra.plausibility } : {}),
     evidenceIds: extra.evidenceIds ?? [],
   };
 }

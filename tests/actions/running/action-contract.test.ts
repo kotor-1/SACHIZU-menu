@@ -27,7 +27,7 @@ vi.mock("next/navigation", () => ({
 const { planRunningItemAction, editRunningItemAction, overrideRunningItemAction, recalculateWithActiveRuleSetAction, updateRunningMenuContextAction } =
   await import("@/actions/running-actions");
 
-const PRODUCTION_HASH = "dca25fa7fc3d062c98f3a53e43488d8b5163196e35624ba5b67a1dbd750af30e";
+const PRODUCTION_HASH = "c73297f8850fe8d6a6bf7a4c918b49ceb6fb9477edc429352aecbeddf6b657ba";
 const SESSION_CONFIRM = "AGG_TOTAL_RUNNING_CONFIRM";
 const ITEM_CONFIRM = "PLAUSIBILITY_REQUIRE_CONFIRMATION";
 

@@ -141,7 +141,12 @@ import {
   type MenuPlannerAcceptDependencies,
 } from "@/application/menu-planner/accept";
 import { buildMenuPlannerPreviewForRevalidation } from "@/application/menu-planner/preview";
-import { makeExercise, resetDb } from "../helpers";
+import { makeExercise as makeExerciseBase, resetDb } from "../helpers";
+
+// These menu-planner tests exercise token/replay behavior; use a known non-running category so
+// F13 does not have to infer session distance from an UNKNOWN legacy drill category.
+const makeExercise = (overrides: Parameters<typeof makeExerciseBase>[0] = {}) =>
+  makeExerciseBase({ category: "WARM_UP", ...overrides });
 
 // ---------------------------------------------------------------------------
 // fixtures

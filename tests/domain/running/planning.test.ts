@@ -35,7 +35,7 @@ import type { Unit } from "@/domain/running/types/primitives";
 // ---------------------------------------------------------------------------
 
 const ruleSet = getRuleSet("rs-2026.09.0")!;
-const EXPECTED_HASH = "dca25fa7fc3d062c98f3a53e43488d8b5163196e35624ba5b67a1dbd750af30e";
+const EXPECTED_HASH = "c73297f8850fe8d6a6bf7a4c918b49ceb6fb9477edc429352aecbeddf6b657ba";
 const PLANNING_DATE = "2026-09-15";
 
 function iso(value: string): IsoDate {
@@ -376,23 +376,26 @@ describe("RuleSet binding", () => {
 // ---------------------------------------------------------------------------
 
 describe("step 1: input plausibility（R3 の評価関数と R2 の閾値を再利用）", () => {
-  it("T-PLA-03: 100m PB = 1.08 秒は BLOCKED", () => {
+  it("未使用の100m PB = 1.08 秒は無関係なMAX_INTENT計画をBLOCKしない", () => {
     const r = plan("ACCELERATION", "ACC_BLOCK_20", { subject: adultAdvanced({ marks: [{ ...PB100_HAND, timeS: 1.08 }] }) });
-    const findings = expectBlocked(r, "INPUT_PLAUSIBILITY_BLOCK");
-    expect(findings.find((f) => f.code === "INPUT_PLAUSIBILITY_BLOCK")?.metric).toContain("PLA_INPUT_100M_RECORD");
+    const p = expectOk(r);
+    expect(p.findings.some((f) => f.code === "INPUT_MARK_DATA_QUALITY" && f.plausibility?.ruleId === "PLA_INPUT_100M_RECORD")).toBe(true);
   });
 
-  it("confirm 範囲の入力は REQUIRE_CONFIRMATION の Finding を付けて続行", () => {
+  it("未使用の100m PBはF14の選択記録確認Findingを出さない", () => {
     const p = expectOk(plan("ACCELERATION", "ACC_BLOCK_20", { subject: u18PostDeveloping({ marks: [{ ...PB100_HAND, timeS: 8.5 }] }) }));
-    expect(p.findings).toContainEqual(expect.objectContaining({ code: "INPUT_PLAUSIBILITY_CONFIRM", severity: "REQUIRE_CONFIRMATION" }));
+    expect(p.findings.some((f) => f.code === "INPUT_PLAUSIBILITY_CONFIRM" && f.metric?.includes("PLA_INPUT_100M_RECORD"))).toBe(false);
   });
 
-  it("身長の BLOCK（1700cm）は BLOCKED", () => {
-    const maturity = { ...POST_MEDIUM, heightHistory: [{ date: iso("2026-01-01"), heightCm: 1700 }] };
+  it("成長計算に使う端点が範囲外ならreview-eligible BLOCKED", () => {
+    const maturity = { ...POST_MEDIUM, heightHistory: [
+      { date: iso("2025-01-01"), heightCm: 170 },
+      { date: iso("2026-01-01"), heightCm: 1700 },
+    ] };
     expectBlocked(plan("STRIDE", "ST_RELAXED", { subject: u18PostDeveloping({ maturity }) }), "INPUT_PLAUSIBILITY_BLOCK");
   });
 
-  it("未来の birthDate は BLOCKED、未来の記録は使わず INFO を付ける", () => {
+  it("未来の birthDate は BLOCKED、未来の記録は使わず DATA_QUALITY を付ける", () => {
     expectBlocked(plan("STRIDE", "ST_RELAXED", { subject: athlete({ birthDate: iso("2027-01-01") }) }), "INPUT_BIRTHDATE_IN_FUTURE");
     const p = expectOk(
       plan("TEMPO_EXTENSIVE", "TE_200", { subject: adultAdvanced({ marks: [{ ...FLY20_PHOTO, date: iso("2026-10-01") }] }) }),
@@ -828,12 +831,14 @@ describe("manual-only cells（recommended=null）", () => {
     const far = expectOk(plan("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", { coachReference: ref, coachEdits: [{ field: "approachDistanceM", value: 70, unit: "m" }] }));
     expect(far.findings).toContainEqual(expect.objectContaining({ code: "INPUT_PLAUSIBILITY_CONFIRM", severity: "REQUIRE_CONFIRMATION" }));
 
-    const noApproach = expectOk(plan("EVENT_APPROACH_SPEED", "EA_JUMP_SHORT_APPROACH", { coachReference: ref }));
-    if (noApproach.rep.kind !== "ATTEMPTS") throw new Error("expected ATTEMPTS");
-    expect(noApproach.rep.approach).toBe("SHORT");
-    expect(noApproach.rep.approachDistanceM).toBeNull();
-    expect(noApproach.exposure.totalRunningDistanceM).toMatchObject({ lower: null, upper: null, source: "UNKNOWN" });
-    expect(noApproach.exposure.nearMaxSprintVolumeM).toMatchObject({ lower: 0, upper: 0, source: "RULE_DEFINITION" });
+    const noApproach = expectBlocked(
+      plan("EVENT_APPROACH_SPEED", "EA_JUMP_SHORT_APPROACH", { coachReference: ref }),
+      "PLAUSIBILITY_NOT_DETERMINABLE",
+    );
+    expect(noApproach.find((f) => f.code === "PLAUSIBILITY_NOT_DETERMINABLE")?.plausibility).toMatchObject({
+      ruleId: "PLA_ITEM_TOTAL_DISTANCE",
+      certainty: "UNEVALUABLE",
+    });
 
     expectIneligible(plan("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", {}), "REFERENCE_UNAVAILABLE");
     expectBlocked(plan("ACCELERATION", "ACC_BLOCK_20", { subject: u18PostDeveloping(), coachEdits: [{ field: "approachDistanceM", value: 30, unit: "m" }] }), "COACH_EDIT_NOT_APPLICABLE");
@@ -1587,10 +1592,10 @@ describe("R4 correction: structured rule logic（conditionNote / ID / 名前を�
     const adv = expectOk(planRunningPrescriptionWithRuleSet(makeRequest("LONG_SPRINT_RACE_SPECIFIC", "LSR_BROKEN_400", { coachReference: ref }), resolved(renamed)));
     expect(adv.monitoringSnapshot.stopPolicy.appliesToEligibilityPath).toBe("AUTO_CONDITIONS_MET");
     // plausibility は inputTarget で選ばれる
-    expectBlocked(
+    const unusedMarkPlan = expectOk(
       planRunningPrescriptionWithRuleSet(makeRequest("STRIDE", "ST_RELAXED", { subject: adultAdvanced({ marks: [{ ...PB100_HAND, timeS: 1.08 }] }) }), resolved(renamed)),
-      "INPUT_PLAUSIBILITY_BLOCK",
     );
+    expect(unusedMarkPlan.findings.some((f) => f.code === "INPUT_MARK_DATA_QUALITY" && f.plausibility?.policy === "DATA_QUALITY" && f.plausibility.ruleId.startsWith("RULE_"))).toBe(true);
   });
 
   it("構造化 metadata を変えると挙動がそれに従う（approachType / fixedDistanceField / resistanceBand / autoGenerationLimits / appliesToEligibilityPath / inputTarget）", () => {
@@ -1612,7 +1617,10 @@ describe("R4 correction: structured rule logic（conditionNote / ID / 名前を�
     const pla100 = rs.plausibility.find((p) => p.inputTarget?.kind === "TIMED_MARK" && p.inputTarget.event === "100m")!;
     pla100.inputTarget = { kind: "TIMED_MARK", event: "200m" };
 
-    const ea = expectOk(planRunningPrescriptionWithRuleSet(makeRequest("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", { coachReference: { kind: "COACH_DEFINED", label: "助走" } }), resolved(rs)));
+    const ea = expectOk(planRunningPrescriptionWithRuleSet(makeRequest("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", {
+      coachReference: { kind: "COACH_DEFINED", label: "助走" },
+      coachEdits: [{ field: "approachDistanceM", value: 38, unit: "m" }],
+    }), resolved(rs)));
     if (ea.rep.kind !== "ATTEMPTS") throw new Error("expected ATTEMPTS");
     expect(ea.rep.approach).toBe("SHORT");
 
@@ -1636,9 +1644,10 @@ describe("R4 correction: structured rule logic（conditionNote / ID / 名前を�
     expect(lsr.stopPolicyId).toBe("SP_LSR_INCOMPLETE_STRICT"); // path を入れ替えたので AUTO 経路でも STRICT 側が選ばれる
 
     expect(planRunningPrescriptionWithRuleSet(makeRequest("STRIDE", "ST_RELAXED", { subject: adultAdvanced({ marks: [{ ...PB100_HAND, timeS: 1.08 }] }) }), resolved(rs)).status).toBe("OK");
+    // The 200m mark is assessed only when selected by the current reference plan.
     expectBlocked(
       planRunningPrescriptionWithRuleSet(
-        makeRequest("STRIDE", "ST_RELAXED", { subject: adultAdvanced({ marks: [{ event: "200m", timeS: 1.08, date: iso("2026-06-01"), timing: "HAND" }] }) }),
+        makeRequest("TEMPO_EXTENSIVE", "TE_200", { subject: adultAdvanced({ marks: [{ event: "200m", timeS: 1.08, date: iso("2026-06-01"), timing: "HAND" }] }) }),
         resolved(rs),
       ),
       "INPUT_PLAUSIBILITY_BLOCK",
@@ -1771,7 +1780,6 @@ describe("R4 correction: sets=1 の構造正規化規則", () => {
   it("sets セルの無い template は sets=1（STRUCTURAL_FIXED・evidence なし・position なし）を snapshot し、rationale で推奨でないことを示す", () => {
     const cases: PlanResult[] = [
       plan("RESISTED_SPRINT", "RS_HILL_SHORT", {}),
-      plan("EVENT_APPROACH_SPEED", "EA_JUMP_SHORT_APPROACH", { coachReference: { kind: "COACH_DEFINED", label: "助走" } }),
       plan("LONG_SPRINT_RACE_SPECIFIC", "LSR_BROKEN_400", { coachReference: splitRef([[300, 36, 38], [100, 13, 14]]) }),
     ];
     for (const r of cases) {
@@ -1788,6 +1796,11 @@ describe("R4 correction: sets=1 の構造正規化規則", () => {
       });
       expect(p.rationale.map((l) => l.code)).toContain("STRUCTURAL_SINGLE_SET");
     }
+    // 走行距離が未確定の項目は「安全」とみなさず、F1では保存を止める。
+    expectBlocked(
+      plan("EVENT_APPROACH_SPEED", "EA_JUMP_SHORT_APPROACH", { coachReference: { kind: "COACH_DEFINED", label: "助走" } }),
+      "PLAUSIBILITY_NOT_DETERMINABLE",
+    );
     // sets セルを持つ Method は構造正規化を使わない
     expect(expectOk(plan("ACCELERATION", "ACC_BLOCK_20", { subject: u18PostDeveloping() })).sets.origin).toBe("SOLVER_DERIVED");
   });

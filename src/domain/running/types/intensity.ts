@@ -84,7 +84,7 @@ export const surfaceSchema = z.enum(SURFACES);
 export const timedMarkSchema = z
   .object({
     event: timedMarkEventSchema,
-    timeS: z.number().positive(),
+    timeS: z.number().positive().finite(),
     date: isoDateSchema,
     timing: timingMethodSchema,
     videoFps: z.number().positive().optional(),

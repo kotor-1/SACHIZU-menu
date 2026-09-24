@@ -15,7 +15,10 @@ import type { MenuIntentParser } from "@/domain/menu-planner";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { prisma } from "@/infra/db/prisma";
 import { verifyHmacToken } from "@/infra/security/hmac-token";
-import { makeExercise, resetDb } from "../helpers";
+import { makeExercise as makeExerciseBase, resetDb } from "../helpers";
+
+const makeExercise = (overrides: Parameters<typeof makeExerciseBase>[0] = {}) =>
+  makeExerciseBase({ category: "WARM_UP", ...overrides });
 
 const SIGNING_KEY = "a3e-test-signing-key-0123456789-abcdef";
 const ISSUED_AT = new Date("2026-09-20T07:00:00.000Z");

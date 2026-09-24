@@ -6,9 +6,72 @@
  * 閾値は一切ハードコードせず RuleSet の `plausibility`（scope=INPUT）から読む。
  */
 import type { PlausibilityInputTarget, RuleSet } from "../rules/schema";
+import type { PlausibilityCertainty, PlausibilityPolicy } from "../types/findings";
 
 export const INPUT_PLAUSIBILITY_VERDICTS = ["OK", "REQUIRE_CONFIRMATION", "BLOCK"] as const;
 export type InputPlausibilityVerdict = (typeof INPUT_PLAUSIBILITY_VERDICTS)[number];
+
+export type PlausibilityBoundarySide = "MIN" | "MAX";
+export type QuantityBounds = { lower: number | null; upper: number | null };
+
+export function plausibilityMetadata(
+  ruleId: string,
+  policy: PlausibilityPolicy | "DATA_QUALITY",
+  certainty: PlausibilityCertainty,
+  boundary?: { side: PlausibilityBoundarySide; threshold: number },
+) {
+  const presentationKind =
+    certainty === "POSSIBLE_EXCEED" || certainty === "UNEVALUABLE"
+      ? "INTERVAL_UNCERTAIN"
+      : policy === "DATA_QUALITY"
+        ? "DATA_QUALITY"
+        : policy === "METHOD_POLICY_HARD"
+          ? "METHOD_POLICY"
+          : policy === "PRODUCT_DATA_SANITY_HARD" || policy === "NON_OVERRIDABLE_DATA_SANITY_HARD"
+            ? "PRODUCT_DATA_SANITY"
+            : "STRONG_REVIEW_REQUIRED";
+  return { ruleId, policy, certainty, presentationKind, ...(boundary ? { boundary } : {}) } as const;
+}
+
+/** Compare an interval to one inclusive policy boundary. Equality is within the boundary. */
+export function evaluatePlausibilityBoundary(
+  value: QuantityBounds,
+  threshold: number,
+  side: PlausibilityBoundarySide,
+): PlausibilityCertainty {
+  if (side === "MAX") {
+    if (value.lower !== null && value.lower > threshold) return "CONFIRMED_EXCEED";
+    if (value.upper !== null && value.upper > threshold) return "POSSIBLE_EXCEED";
+    if (value.upper !== null && value.upper <= threshold) return "CONFIRMED_WITHIN";
+    return "UNEVALUABLE";
+  }
+  if (value.upper !== null && value.upper < threshold) return "CONFIRMED_EXCEED";
+  if (value.lower !== null && value.lower < threshold) return "POSSIBLE_EXCEED";
+  if (value.lower !== null && value.lower >= threshold) return "CONFIRMED_WITHIN";
+  return "UNEVALUABLE";
+}
+
+/** Evaluate both configured sides of a threshold, preserving the strongest evidence. */
+export function evaluatePlausibilityThreshold(
+  value: QuantityBounds,
+  threshold: { min: number | null; max: number | null } | null,
+): { certainty: PlausibilityCertainty; side: PlausibilityBoundarySide | null; threshold: number | null } {
+  if (threshold === null) return { certainty: "CONFIRMED_WITHIN", side: null, threshold: null };
+  const results = ([
+    threshold.min === null ? null : { side: "MIN" as const, threshold: threshold.min },
+    threshold.max === null ? null : { side: "MAX" as const, threshold: threshold.max },
+  ]).filter((entry): entry is { side: PlausibilityBoundarySide; threshold: number } => entry !== null)
+    .map((entry) => ({ ...entry, certainty: evaluatePlausibilityBoundary(value, entry.threshold, entry.side) }));
+  const rank: Record<PlausibilityCertainty, number> = {
+    CONFIRMED_EXCEED: 4,
+    POSSIBLE_EXCEED: 3,
+    UNEVALUABLE: 2,
+    CONFIRMED_WITHIN: 1,
+    DATA_QUALITY: 0,
+  };
+  const strongest = results.sort((a, b) => rank[b.certainty] - rank[a.certainty])[0];
+  return strongest ?? { certainty: "CONFIRMED_WITHIN", side: null, threshold: null };
+}
 
 /** R3 が参照する3つの入力 plausibility ruleId（R2 JSON 側の定義そのまま）。 */
 export const CONTEXT_PLAUSIBILITY_RULE_IDS = {

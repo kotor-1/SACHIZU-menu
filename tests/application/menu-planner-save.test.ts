@@ -29,7 +29,10 @@ import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { prisma } from "@/infra/db/prisma";
 import { buildMenuPlannerDraftIdentityDigest } from "@/infra/repositories/menu-planner-draft-repository";
 import { verifyHmacToken } from "@/infra/security/hmac-token";
-import { makeExercise, resetDb } from "../helpers";
+import { makeExercise as makeExerciseBase, resetDb } from "../helpers";
+
+const makeExercise = (overrides: Parameters<typeof makeExerciseBase>[0] = {}) =>
+  makeExerciseBase({ category: "WARM_UP", ...overrides });
 
 const OWNER = DEFAULT_OWNER_ID;
 const OTHER_OWNER = "other-owner";

@@ -1071,21 +1071,21 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
     return JSON.stringify(value);
   }
 
-  it("既存の科学的データ・数値は R4/R6 の metadata 追加で1バイトも変わっていない（R3 commit 時点の内容の SHA-256）", async () => {
+  it("既存の閾値・数値データはF1のpolicy/scope metadata変更で変わっていない", async () => {
     const { createHash } = await import("node:crypto");
     const raw = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../src/domain/running/rules/sets/rs-2026.09.0.json"), "utf-8"));
     const NEW_KEYS: Record<string, string[]> = {
       templates: ["approachType", "resistanceBand", "fixedDistanceField"],
       eligibility: ["conditions", "autoGenerationLimits"],
       stopPolicies: ["appliesToEligibilityPath", "runtime"],
-      plausibility: ["inputTarget", "outputTarget"],
+      plausibility: ["inputTarget", "outputTarget", "boundaryPolicies", "appliesToMethods", "targetLabel", "note"],
     };
     const EXPECTED: Record<string, string> = {
       methods: "b048e8197b8f0b0ab617aaa8ec57a195d3b600ce531ea3ceda6fa9555ec2f3ee",
       timingTolerances: "8b0d3b0264e7629f8157e93c1353ac511ea1bb709f6bb07bc63e65560ed6c04e",
       constraints: "cebe8dd9bfd111a78e6107b7d9640c81be6f1e4e43c5b514772fe463fe479a17",
       stopPolicies: "2550dabf2fc0bb93672c8aad4c64cb3cccd9d7f8f2e9523e58f1fdd68a2f6eff",
-      plausibility: "fb7c3e69b4c62adf83d431204aa66bc858b93e391764782f8425e84adbdf922b",
+      plausibility: "54c6a55a16b4b7c0c7553af2c34b11e4854eccebbe611134f5b001bcc86dd509",
       eligibility: "ffb3a80c2117700bae73784411d1e9d923c7898d14f47e3c804c6deb65abc202",
       templates: "4a42d63c2f254f6e8a2871790114abe594417601fc3a192bd6d2c7ff1071ddee",
     };
@@ -1259,6 +1259,23 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
       PLA_INPUT_FLY_10M: { kind: "TIMED_MARK", event: "FLY10" },
       PLA_INPUT_HEIGHT: { kind: "HEIGHT_CM" },
       PLA_INPUT_APPROACH_DISTANCE: { kind: "COACH_EDIT_APPROACH_DISTANCE_M" },
+    });
+  });
+
+  it("F1 plausibility boundaries keep frozen policy per threshold side and remove dead method scopes", () => {
+    const byId = Object.fromEntries(rs.plausibility.map((rule) => [rule.ruleId, rule]));
+    expect(byId.PLA_ITEM_DISTANCE_STANDARD?.boundaryPolicies).toEqual({ min: null, max: "METHOD_POLICY_HARD" });
+    expect(byId.PLA_ITEM_DISTANCE_TEMPO?.boundaryPolicies).toEqual({ min: null, max: "METHOD_POLICY_HARD" });
+    expect(byId.PLA_ITEM_DISTANCE_TEMPO?.appliesToMethods).toEqual(["TEMPO_INTENSIVE"]);
+    expect(byId.PLA_FLY_ZONE_M?.appliesToMethods).toEqual(["ASSISTED_SPRINT"]);
+    expect(byId.PLA_REP_DURATION_NON_LONG?.appliesToMethods).toEqual(["SPRINT_ENDURANCE_SHORT"]);
+    expect(byId.PLA_REPS_PER_SET?.boundaryPolicies.max).toBe("COACH_OVERRIDABLE_STRONG_REVIEW");
+    expect(byId.PLA_MENU_TOTAL_DISTANCE?.boundaryPolicies.max).toBe("PRODUCT_DATA_SANITY_HARD");
+    expect(byId.PLA_INPUT_100M_RECORD?.boundaryPolicies).toEqual({ min: "NON_OVERRIDABLE_DATA_SANITY_HARD", max: "COACH_OVERRIDABLE_STRONG_REVIEW" });
+    expect(byId.PLA_INPUT_FLY_10M?.boundaryPolicies).toEqual({ min: "NON_OVERRIDABLE_DATA_SANITY_HARD", max: "COACH_OVERRIDABLE_STRONG_REVIEW" });
+    expect(byId.PLA_INPUT_HEIGHT?.boundaryPolicies).toEqual({
+      min: "DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW",
+      max: "DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW",
     });
   });
 

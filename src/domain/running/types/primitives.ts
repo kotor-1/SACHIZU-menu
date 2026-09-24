@@ -47,7 +47,7 @@ export type IsoDateTime = z.infer<typeof isoDateTimeSchema>;
 // Unit
 // ---------------------------------------------------------------------------
 
-export const UNITS = ["m", "s", "reps", "sets", "percent", "mps", "contacts", "h"] as const;
+export const UNITS = ["m", "cm", "s", "reps", "sets", "percent", "mps", "contacts", "h"] as const;
 export const unitSchema = z.enum(UNITS);
 export type Unit = z.infer<typeof unitSchema>;
 

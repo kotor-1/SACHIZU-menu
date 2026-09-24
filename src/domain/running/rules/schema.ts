@@ -45,6 +45,7 @@ import { INTENSITY_REFERENCE_KINDS, TIMED_MARK_EVENTS, timedMarkEventSchema, tim
 import { RED_FLAGS, bodyRegionSchema, readinessActionCodeSchema, redFlagSchema, safetyOutcomeSchema } from "../types/readiness";
 import { evidenceRecordSchema } from "../evidence/schema";
 import { stopPolicyRuntimeIssues, stopPolicyRuntimeSchema } from "../types/monitoring";
+import { plausibilityPolicySchema } from "../types/findings";
 
 // ---------------------------------------------------------------------------
 // Template id 名前空間チェック（§3.3, §22 R2 完了条件）
@@ -585,6 +586,11 @@ export const plausibilityRuleSchema = z
     unit: z.string().min(1),
     confirmThreshold: thresholdSchema,
     blockThreshold: thresholdSchema,
+    /** Each hard threshold is classified as product/method policy or a reviewable/data-sanity boundary. */
+    boundaryPolicies: z.object({
+      min: plausibilityPolicySchema.nullable(),
+      max: plausibilityPolicySchema.nullable(),
+    }),
     /** scope="RATIO" のときのみ設定（例: totalReps ≥ recommended.totalReps.max × 3）。 */
     ratioMultiplier: z.number().positive().nullable(),
     note: z.string().nullable(),
@@ -634,6 +640,21 @@ export const plausibilityRuleSchema = z
         message: "scope=RATIO のとき confirmThreshold/blockThreshold は null（比率のみで判定）",
         path: ["confirmThreshold"],
       });
+    }
+    if (rule.blockThreshold === null) {
+      if (rule.boundaryPolicies.min !== null || rule.boundaryPolicies.max !== null) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "blockThreshold が null の行に block boundary policy は指定できません", path: ["boundaryPolicies"] });
+      }
+    } else {
+      for (const side of ["min", "max"] as const) {
+        if ((rule.blockThreshold[side] === null) !== (rule.boundaryPolicies[side] === null)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `blockThreshold.${side} と boundaryPolicies.${side} は同時に指定してください`,
+            path: ["boundaryPolicies", side],
+          });
+        }
+      }
     }
   });
 export type PlausibilityRule = z.infer<typeof plausibilityRuleSchema>;

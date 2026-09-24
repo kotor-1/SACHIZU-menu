@@ -53,7 +53,7 @@ function athleteSubject(): Subject {
 
 const SPLIT = toCoachReferenceInput({ kind: "TARGET_SPLIT", segments: [{ distanceM: 300, targetTimeS: 38 }] });
 
-function request(o: { method?: string; templateId?: string; subject?: Subject; actor?: unknown; coachReference?: unknown } = {}) {
+function request(o: { method?: string; templateId?: string; subject?: Subject; actor?: unknown; coachReference?: unknown; coachEdits?: unknown[] } = {}) {
   return {
     planningDate: iso("2026-09-20"),
     selection: { method: o.method ?? "LONG_SPRINT_RACE_SPECIFIC", templateId: o.templateId ?? "LSR_SPECIAL_ENDURANCE_I" },
@@ -62,7 +62,7 @@ function request(o: { method?: string; templateId?: string; subject?: Subject; a
     history: null,
     readiness: null,
     positionPreference: null,
-    coachEdits: [],
+    coachEdits: o.coachEdits ?? [],
     overrides: [],
     coachReference: "coachReference" in o ? o.coachReference : SPLIT,
     actor: o.actor ?? COACH,
@@ -184,6 +184,7 @@ describe("R10-B4A.2: GROUP semantics と confidence", () => {
         method: "EVENT_APPROACH_SPEED",
         templateId: "EA_JUMP_SHORT_APPROACH",
         subject: groupSubject({ trainingAge: { structuredSprintYears: 1, coachAssignedTier: "DEVELOPING" } }),
+        coachEdits: [{ field: "approachDistanceM", value: 30, unit: "m" }],
       }) as never,
     );
     if (developing.status !== "OK") throw new Error(JSON.stringify(developing));

@@ -10,7 +10,7 @@
 import { FINDING_SEVERITIES, type Finding, type FindingSeverity } from "@/domain/running/types/findings";
 import { RUNNING_TRAINING_METHODS, type RunningTrainingMethod } from "@/domain/running/types/method";
 import type { FindingDetailDto, FindingPresentationDto } from "./dto";
-import { findingMessageJa } from "./finding-messages";
+import { findingMessageJa, plausibilityFindingMessageJa } from "./finding-messages";
 import { fieldUnitOf, formatIntervalJa, formatRangeJa } from "./format";
 import {
   EDITABLE_FIELD_DISPLAY,
@@ -63,7 +63,9 @@ function detailKey(d: FindingDetailDto): string {
 export function presentFindings(findings: readonly Finding[]): FindingPresentationDto[] {
   const groups = new Map<string, Finding[]>();
   for (const f of findings) {
-    const groupKey = `${f.scope}|${f.code}`;
+    const groupKey = f.plausibility
+      ? `${f.scope}|${f.code}|${f.plausibility.presentationKind}|${f.plausibility.certainty}`
+      : `${f.scope}|${f.code}`;
     const list = groups.get(groupKey);
     if (list) list.push(f);
     else groups.set(groupKey, [f]);
@@ -75,7 +77,9 @@ export function presentFindings(findings: readonly Finding[]): FindingPresentati
     const first = list[0]!;
     const severities = [...new Set(list.map((f) => f.severity))].sort((a, b) => severityRank(b) - severityRank(a));
     const strongest = severities[0]!;
-    const { message, known } = findingMessageJa(first.code);
+    const baseMessage = findingMessageJa(first.code);
+    const message = first.plausibility ? plausibilityFindingMessageJa(first.plausibility) : baseMessage.message;
+    const known = baseMessage.known;
 
     const details: FindingDetailDto[] = [];
     const seen = new Set<string>();

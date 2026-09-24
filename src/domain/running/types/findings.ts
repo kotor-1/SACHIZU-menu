@@ -21,6 +21,43 @@ export type FindingSeverity = z.infer<typeof findingSeveritySchema>;
 export const FINDING_SCOPES = ["ITEM", "SESSION", "WEEK"] as const;
 export const findingScopeSchema = z.enum(FINDING_SCOPES);
 
+export const PLAUSIBILITY_POLICIES = [
+  "METHOD_POLICY_HARD",
+  "PRODUCT_DATA_SANITY_HARD",
+  "COACH_OVERRIDABLE_STRONG_REVIEW",
+  "NON_OVERRIDABLE_DATA_SANITY_HARD",
+  "DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW",
+] as const;
+export const plausibilityPolicySchema = z.enum(PLAUSIBILITY_POLICIES);
+export type PlausibilityPolicy = z.infer<typeof plausibilityPolicySchema>;
+
+export const PLAUSIBILITY_CERTAINTIES = [
+  "CONFIRMED_EXCEED",
+  "POSSIBLE_EXCEED",
+  "CONFIRMED_WITHIN",
+  "UNEVALUABLE",
+  "DATA_QUALITY",
+] as const;
+export const plausibilityCertaintySchema = z.enum(PLAUSIBILITY_CERTAINTIES);
+export type PlausibilityCertainty = z.infer<typeof plausibilityCertaintySchema>;
+
+export const PLAUSIBILITY_PRESENTATION_KINDS = [
+  "METHOD_POLICY",
+  "PRODUCT_DATA_SANITY",
+  "STRONG_REVIEW_REQUIRED",
+  "DATA_QUALITY",
+  "INTERVAL_UNCERTAIN",
+] as const;
+export const plausibilityPresentationKindSchema = z.enum(PLAUSIBILITY_PRESENTATION_KINDS);
+
+export const findingPlausibilitySchema = z.object({
+  ruleId: z.string().min(1),
+  policy: z.union([plausibilityPolicySchema, z.literal("DATA_QUALITY")]),
+  certainty: plausibilityCertaintySchema,
+  presentationKind: plausibilityPresentationKindSchema,
+  boundary: z.object({ side: z.enum(["MIN", "MAX"]), threshold: z.number() }).optional(),
+});
+
 export const findingSchema = z.object({
   code: z.string().min(1),
   severity: findingSeveritySchema,
@@ -28,6 +65,8 @@ export const findingSchema = z.object({
   metric: z.string().optional(),
   value: anyUnitQuantityIntervalSchema.optional(),
   limit: anyUnitRangeSchema.optional(),
+  /** Structured, rule-bound plausibility classification. Optional for legacy snapshots. */
+  plausibility: findingPlausibilitySchema.optional(),
   evidenceIds: z.array(evidenceIdSchema),
 });
 export type Finding = z.infer<typeof findingSchema>;

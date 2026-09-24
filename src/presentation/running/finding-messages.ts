@@ -31,7 +31,7 @@ export const FINDING_MESSAGE_JA: Readonly<Record<string, string>> = {
   PLAN_REQUEST_INVALID: "入力内容に不備があるため、処方を作成できません。",
   INPUT_BIRTHDATE_IN_FUTURE: "生年月日が未来の日付になっています。",
   INPUT_MARK_IN_FUTURE_IGNORED: "計画日より後の日付の記録があったため、その記録は使っていません。",
-  INPUT_PLAUSIBILITY_BLOCK: "入力された記録の値がありえない範囲のため、この内容では作成できません。",
+  INPUT_PLAUSIBILITY_BLOCK: "選択された記録が入力境界を外れているため、この内容では作成できません。",
   INPUT_PLAUSIBILITY_CONFIRM: "入力された記録の値が通常と大きく異なります。値を確認してください。",
   COACH_REFERENCE_INVALID: "入力した強度の基準は、この練習の型では使えません。",
   LONG_SPLIT_REQUIRES_TARGET_SPLIT: "分割走には、区間ごとの目標タイムの入力が必要です。",
@@ -100,7 +100,7 @@ export const FINDING_MESSAGE_JA: Readonly<Record<string, string>> = {
   AGG_INCOMPLETE_DATA: "量が不明な項目があるため、練習全体の合計は目安です。",
   AGG_NOT_DETERMINABLE: "量が不明な項目があるため、合計の判定ができません。",
   AGG_LEGACY_CATEGORY_UNKNOWN: "分類を判定できない従来形式の項目があり、合計への反映が不確かです。",
-  PLAUSIBILITY_BLOCK: "値がありえない範囲です。",
+  PLAUSIBILITY_BLOCK: "選択した練習の型または処方値の確認が必要です。",
   PLAUSIBILITY_REQUIRE_CONFIRMATION: "値が通常と大きく異なります。",
   PLAUSIBILITY_NOT_DETERMINABLE: "値が不明な部分があるため、妥当性を確認できません。",
 
@@ -162,6 +162,49 @@ export const ELIGIBILITY_REASON_MESSAGE_JA: Record<EligibilityReasonCode, string
 export function findingMessageJa(code: string): { message: string; known: boolean } {
   const message = Object.prototype.hasOwnProperty.call(FINDING_MESSAGE_JA, code) ? FINDING_MESSAGE_JA[code] : undefined;
   return message === undefined ? { message: UNKNOWN_FINDING_MESSAGE_JA, known: false } : { message, known: true };
+}
+
+/** Rule-level plausibility metadata determines wording; no threshold is described as a scientific absolute. */
+export function plausibilityFindingMessageJa(finding: {
+  presentationKind: "METHOD_POLICY" | "PRODUCT_DATA_SANITY" | "STRONG_REVIEW_REQUIRED" | "DATA_QUALITY" | "INTERVAL_UNCERTAIN";
+  policy: string;
+  certainty: string;
+  ruleId?: string;
+}): string {
+  if (finding.presentationKind === "INTERVAL_UNCERTAIN") {
+    const unevaluable = finding.certainty === "UNEVALUABLE";
+    if (finding.policy === "METHOD_POLICY_HARD") {
+      return unevaluable
+        ? "選択した練習の型に対する距離・時間の範囲を判定できません。練習の型・距離・時間を確認してください。"
+        : "推定区間の一部が選択した練習の型の定義から外れる可能性があります。練習の型・距離・時間を確認してください。";
+    }
+    if (finding.policy === "PRODUCT_DATA_SANITY_HARD" || finding.policy === "NON_OVERRIDABLE_DATA_SANITY_HARD") {
+      if (unevaluable) {
+        return finding.ruleId === "PLA_MENU_TOTAL_DISTANCE"
+          ? "メニュー総距離を判定できません。距離・重複入力を確認してください。"
+          : "推定区間をアプリのデータ確認基準と照合できません。値・単位を確認してください。";
+      }
+      return finding.ruleId === "PLA_MENU_TOTAL_DISTANCE"
+        ? "メニュー総距離の推定範囲が、アプリのデータ確認基準を超える可能性があります。距離・重複入力を確認してください。"
+        : "推定区間がアプリのデータ確認基準を超える可能性があります。値・単位を確認してください。";
+    }
+    return unevaluable
+      ? "推定区間を判定できません。値・単位・目的を確認してください。"
+      : "推定区間の一部が通常の処方範囲を大きく外れる可能性があります。値・単位・目的を確認してください。";
+  }
+  if (finding.presentationKind === "METHOD_POLICY") {
+    return "選択した練習の型の定義と値が一致しません。練習の型・距離・時間を確認してください。";
+  }
+  if (finding.presentationKind === "DATA_QUALITY") {
+    return "この記録は今回の計画では使っていません。日付・値・単位を確認してください。";
+  }
+  if (finding.policy === "DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW") {
+    return "成長計算に使う計測点が一般的な入力範囲を外れています。計測日と単位を確認してください。";
+  }
+  if (finding.presentationKind === "PRODUCT_DATA_SANITY") {
+    return "アプリの入力境界を超えています。値・単位・項目数を確認してください。";
+  }
+  return "通常の処方範囲を大きく外れています。値・単位・目的を確認してください。";
 }
 
 export function eligibilityReasonMessageJa(code: string): string {

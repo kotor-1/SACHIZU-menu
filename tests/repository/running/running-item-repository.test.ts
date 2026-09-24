@@ -152,9 +152,11 @@ describe("RUNNING_V2 MenuItem: 保存と読込", () => {
     expect(lsrCols.restSeconds).toBe(lsr.rest.repRestS.value);
 
     const ea = planEa();
-    expect(ea.rep.kind === "ATTEMPTS" && ea.rep.approachDistanceM).toBeNull();
-    expect(projectRunningPrescription(ea).distanceMeters).toBeNull();
-    const withApproach = clone(ea);
+    const withoutApproach = clone(ea);
+    if (withoutApproach.rep.kind !== "ATTEMPTS") throw new Error("fixture");
+    withoutApproach.rep.approachDistanceM = null; // historical projection remains nullable
+    expect(projectRunningPrescription(withoutApproach).distanceMeters).toBeNull();
+    const withApproach = clone(withoutApproach);
     if (withApproach.rep.kind !== "ATTEMPTS") throw new Error("fixture");
     withApproach.rep.approachDistanceM = { value: 35, unit: "m", source: "COACH_ENTERED" };
     expect(projectRunningPrescription(withApproach).distanceMeters).toBe(35);

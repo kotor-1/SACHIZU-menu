@@ -227,17 +227,16 @@ describe("normalizeMaturity — GROWTH_VELOCITY データ不足（要件14）", 
     expect(result.constraintCategory).toBe("EFFECTIVE_UNKNOWN");
   });
 
-  it("height に BLOCK 値（>260cm）が含まれる点は成長速度計算から除外する（要件37）", () => {
+  it("成長速度は日付で選んだ端点だけから計算し、中間outlierは使用しない", () => {
     const velocity = computeGrowthVelocity(
       [
         { date: iso("2025-01-01"), heightCm: 170 },
-        { date: iso("2025-06-15"), heightCm: 999 }, // BLOCK
+        { date: iso("2025-06-15"), heightCm: 999 }, // intermediate, unused
         { date: iso("2026-01-01"), heightCm: 173 },
       ],
       iso("2026-01-01"),
-      ruleSet,
     );
-    // BLOCK点を除外しても2点残るので計算はできるが、999は使われていないことを oldest/newest で確認。
+    // 端点ではない999は計算に使われないことを oldest/newest で確認。
     expect(velocity.available).toBe(true);
     if (velocity.available) {
       expect(velocity.oldest.heightCm).toBe(170);
@@ -591,7 +590,7 @@ describe("context input plausibility (R2 RuleSet 由来。閾値をここに複�
     expect(evaluateInputPlausibility(ruleSet, CONTEXT_PLAUSIBILITY_RULE_IDS.HEIGHT, 261)).toBe("BLOCK");
   });
 
-  it("BLOCK 判定された100m記録は resolveReference の usableMark として使われない（要件36）", () => {
+  it("plausibility境界は参照候補の選択をすり替えず、selected markとして後段へ渡す", () => {
     const result = resolveReference({
       method: "SPRINT_ENDURANCE_SHORT",
       marks: [{ event: "100m", timeS: 3.0, date: iso("2026-01-01"), timing: "HAND" }], // BLOCK (<5s)
@@ -600,7 +599,7 @@ describe("context input plausibility (R2 RuleSet 由来。閾値をここに複�
       asOf: iso("2026-01-01"),
       ruleSet,
     });
-    expect(result.usableMark).toBeNull();
+    expect(result.usableMark).toEqual({ event: "100m", timeS: 3.0, date: iso("2026-01-01"), timing: "HAND" });
   });
 });
 

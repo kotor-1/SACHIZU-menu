@@ -125,7 +125,10 @@ const as = () =>
       { field: "intensityPercent", value: 103, unit: "percent" },
     ],
   });
-const ea = () => planned("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", { coachReference: { kind: "COACH_DEFINED", label: "助走" } }); // SP_EA, 5 attempts
+const ea = () => planned("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", {
+  coachReference: { kind: "COACH_DEFINED", label: "助走" },
+  coachEdits: [{ field: "approachDistanceM", value: 30, unit: "m" }],
+}); // SP_EA, 5 attempts
 const stride = () => planned("STRIDE", "ST_RELAXED"); // SP_STRIDE, 1×3
 
 type ObsInput = Partial<RepObservation>;
@@ -904,10 +907,16 @@ describe("実測露出（MEASURED / PLANNED fallback / 累積）", () => {
     expect(decisions[1].cumulativeHighSpeedExposureM.upper).toBeLessThan(p.exposure.plannedHighSpeedExposureM.upper!);
   });
 
-  it("露出が不明な処方（EA 助走距離なし）は累積も null（0 にしない）", () => {
-    const d = runSequence(ea(), [{ timeS: null }, { timeS: null }]).last;
-    expect(d.cumulativeHighSpeedExposureM.lower).toBeNull();
-    expect(d.cumulativeHighSpeedExposureM.upper).toBeNull();
+  it("EA 助走距離が未入力で距離区間を評価できない場合は、F1で監視対象の保存を止める", () => {
+    const result = planRunningPrescription(makeRequest("EVENT_APPROACH_SPEED", "EA_JUMP_FULL_APPROACH", {
+      coachReference: { kind: "COACH_DEFINED", label: "助走" },
+    }));
+    expect(result.status).toBe("BLOCKED");
+    if (result.status !== "BLOCKED") throw new Error("unreachable");
+    expect(result.findings).toContainEqual(expect.objectContaining({
+      code: "PLAUSIBILITY_NOT_DETERMINABLE",
+      plausibility: expect.objectContaining({ ruleId: "PLA_ITEM_TOTAL_DISTANCE", certainty: "UNEVALUABLE" }),
+    }));
   });
 
   it("セッション全体の曝露上限は評価しない（NOT_EVALUATED。上限内と楽観しない）", () => {

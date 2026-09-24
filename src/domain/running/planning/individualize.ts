@@ -3,7 +3,8 @@
  *
  * - 参照の解決は R3 `resolveReference()`（performance.ts）をそのまま使う。1つの kind だけを
  *   評価するため、MethodMeta の候補を1件に絞った RuleSet ビューを渡す（鮮度・計時法・
- *   plausibility・fly split の区間計算を R4 で書き直さない）。
+ *   mark 選択・fly split の区間計算を R4 で書き直さない）。選択済み mark の plausibility は
+ *   置換せず、選択後に F1 input policy が評価する。
  * - 100m PB → Vmax の推定はしない（R3 と同じ。`vmaxEstimationModels: []`）。
  * - 候補の優先順位は MethodMeta.allowedIntensityReferences（→ intensityFallback）の順。
  * - 記録の距離・fly 区間・同距離の判定・sled の band は RuleSet の構造化データ（eventDefinitions /
@@ -93,6 +94,8 @@ export function measuredVmaxFor(velocities: AthleteVelocities, candidates: reado
 
 export type ReferencePlan = {
   reference: IntensityReference;
+  /** Timed marks selected as inputs for this plan; never a new numeric authority by itself. */
+  selectedInputMarks: readonly TimedMark[];
   /** [R4 errata] 参照が performance データを必要としない場合は NOT_REQUIRED（HIGH と区別する）。 */
   inputData: InputDataConfidence;
   velocity: VelocityResolution | null;
@@ -179,6 +182,7 @@ export function resolvePlanningReference(args: {
   const candidates = referenceCandidates(methodMeta);
   const coachRef: CoachReferenceInput | null = request.coachReference;
   const definitions = ruleSet.eventDefinitions;
+  const athlete = request.subject.kind === "ATHLETE" ? request.subject.profile : null;
 
   if (coachRef !== null) {
     if (!candidates.includes(coachRef.kind)) {
@@ -192,13 +196,13 @@ export function resolvePlanningReference(args: {
     }
   }
 
-  const athlete = request.subject.kind === "ATHLETE" ? request.subject.profile : null;
   let earlierApplicable = false;
 
-  const finish = (plan: ReferencePlan): ReferenceResult => ({
+  const finish = (plan: Omit<ReferencePlan, "selectedInputMarks"> & { selectedInputMarks?: readonly TimedMark[] }): ReferenceResult => ({
     ok: true,
     plan: {
       ...plan,
+      selectedInputMarks: plan.selectedInputMarks ?? [],
       // §4.1: GROUP の上限（最大 LOW）は参照データに依存するときだけ適用する。NOT_REQUIRED は上限の対象外。
       inputData: plan.inputData === "NOT_REQUIRED" ? "NOT_REQUIRED" : minConfidence(plan.inputData, profile.inputDataConfidenceCap),
     },
@@ -219,6 +223,9 @@ export function resolvePlanningReference(args: {
       // LOW（§4.6 表。例: MV の MAX_INTENT、TE の RELAXED_SUBMAX、sled の MAX_INTENT）。
       return finish({
         reference: { kind } as IntensityReference,
+        // A usable 100m mark may be returned as contextual metadata by R3, but
+        // data-free references do not use it to determine a numeric result.
+        selectedInputMarks: [],
         inputData: earlierApplicable ? "LOW" : "NOT_REQUIRED",
         velocity: null,
         timing: null,
@@ -230,7 +237,15 @@ export function resolvePlanningReference(args: {
     if (kind === "MEASURED_VMAX") {
       const v = measuredVmaxFor(velocities, candidates);
       if (v) {
-        return finish({ reference: { kind: "MEASURED_VMAX", vmax: v.velocity }, inputData: v.confidence, velocity: v, timing: velocityTiming(v) });
+        return finish({
+          reference: { kind: "MEASURED_VMAX", vmax: v.velocity },
+          // Preserve the exact fly mark if this MEASURED_VMAX fallback was
+          // derived from it, so F15 evaluates the datum that supplied the value.
+          selectedInputMarks: v.mark ? [v.mark] : [],
+          inputData: v.confidence,
+          velocity: v,
+          timing: velocityTiming(v),
+        });
       }
     } else if (kind === "FLY_SPLIT") {
       const v = velocities.flySplit;
@@ -238,6 +253,7 @@ export function resolvePlanningReference(args: {
       if (v && v.mark && def !== null && def.segment === "FLY_ZONE") {
         return finish({
           reference: { kind: "FLY_SPLIT", flyZoneM: def.distanceM, mark: v.mark },
+          selectedInputMarks: [v.mark],
           inputData: v.confidence,
           velocity: v,
           timing: v.mark.timing,
@@ -261,6 +277,7 @@ export function resolvePlanningReference(args: {
       if (resolved.kind === "SAME_DISTANCE_BEST" && mark && def !== null) {
         return finish({
           reference: { kind: "SAME_DISTANCE_BEST", distanceM: def.distanceM, mark },
+          selectedInputMarks: [mark],
           inputData: resolved.confidence,
           velocity: null,
           timing: mark.timing,

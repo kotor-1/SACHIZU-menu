@@ -9,11 +9,14 @@
 import { describe, expect, it } from "vitest";
 
 import { checkLegacyItemPlausibility, checkOutputPlausibility, checkSessionPlausibility } from "@/domain/running/plausibility/output";
-import { evaluateInputPlausibility, evaluateInputPlausibilityFor } from "@/domain/running/plausibility/input";
+import { evaluateInputPlausibility, evaluateInputPlausibilityFor, evaluatePlausibilityBoundary, evaluatePlausibilityThreshold } from "@/domain/running/plausibility/input";
 import * as contextPlausibility from "@/domain/running/context/plausibility";
+import { checkInputPlausibility, checkSelectedPerformanceInputPlausibility, normalizePlanRequest } from "@/domain/running/planning/normalize";
+import { selectHeightHistoryForGrowth } from "@/domain/running/context/maturity";
 import { evaluateSessionAggregation } from "@/domain/running/aggregation";
 import { planRunningPrescription } from "@/domain/running/planning";
 import type { PlanRequest, PlanResult } from "@/domain/running/planning/schema";
+import type { RunningPrescriptionValue } from "@/domain/running/types/prescription";
 import { getRuleSet } from "@/domain/running/rules/loader";
 import { ruleSetSchema, type RuleSet } from "@/domain/running/rules/schema";
 import { createCoachActor } from "@/domain/running/types/actor";
@@ -134,10 +137,11 @@ describe("T-PLA-03: 入力 plausibility（canonical 化しても R3 の挙動を
     expect(evaluateInputPlausibilityFor(ruleSet, { kind: "TIMED_MARK", event: "FLY10" }, 1.2)).toBe("OK");
   });
 
-  it("planning の step 1 でも 100m = 1.08 秒は BLOCKED（R3 回帰）", () => {
+  it("未使用の100m記録は極端な値でも無関係なMAX_INTENT計画をBLOCKしない", () => {
     const subject = athlete({ marks: [{ event: "100m", timeS: 1.08, date: iso("2026-08-01"), timing: "HAND" }] });
     const r = planRunningPrescription(makeRequest("ACCELERATION", "ACC_BLOCK_20", { subject }));
-    expect(r.status).toBe("BLOCKED");
+    expect(r.status).toBe("OK");
+    expect(r.status === "OK" && r.prescription.findings.some((f) => f.code === "INPUT_MARK_DATA_QUALITY" && f.plausibility?.ruleId === "PLA_INPUT_100M_RECORD")).toBe(true);
   });
 });
 
@@ -181,8 +185,202 @@ describe("T-PLA-01: 80km 事故（項目 BLOCK と Session BLOCK の二重で止
 
   it("Session 合計の upper が不明なら「安全」と断定しない", () => {
     const session = checkSessionPlausibility({ lower: 100, upper: null, unit: "m", source: "UNKNOWN", confidence: "NONE" }, ruleSet);
-    expect(session.blocked).toBe(false);
-    expect(codes(session.findings)).toContain("PLAUSIBILITY_NOT_DETERMINABLE");
+    expect(session.blocked).toBe(true);
+    expect(session.findings.find((f) => f.code === "PLAUSIBILITY_NOT_DETERMINABLE")?.plausibility?.certainty).toBe("UNEVALUABLE");
+  });
+});
+
+describe("F1: policy-normalized plausibility certainty and selected input scope", () => {
+  it("MAX/MIN interval classification distinguishes confirmed, possible, within, unevaluable, and equality", () => {
+    expect(evaluatePlausibilityThreshold({ lower: 301, upper: 350 }, { min: null, max: 300 })).toMatchObject({ certainty: "CONFIRMED_EXCEED", side: "MAX", threshold: 300 });
+    expect(evaluatePlausibilityThreshold({ lower: null, upper: 301 }, { min: null, max: 300 })).toMatchObject({ certainty: "POSSIBLE_EXCEED", side: "MAX", threshold: 300 });
+    expect(evaluatePlausibilityThreshold({ lower: 100, upper: 300 }, { min: null, max: 300 }).certainty).toBe("CONFIRMED_WITHIN");
+    expect(evaluatePlausibilityThreshold({ lower: 100, upper: null }, { min: null, max: 300 }).certainty).toBe("UNEVALUABLE");
+    expect(evaluatePlausibilityBoundary({ lower: 5, upper: 5 }, 5, "MIN")).toBe("CONFIRMED_WITHIN");
+    expect(evaluatePlausibilityBoundary({ lower: 4, upper: 5 }, 5, "MIN")).toBe("POSSIBLE_EXCEED");
+    expect(evaluatePlausibilityBoundary({ lower: 4, upper: 4.9 }, 5, "MIN")).toBe("CONFIRMED_EXCEED");
+  });
+
+  it("F14 ignores unused 100m history in data-free MAX_INTENT and is invariant to record order", () => {
+    const old = { event: "100m" as const, timeS: 61, date: iso("2024-08-01"), timing: "HAND" as const };
+    const recent = { event: "100m" as const, timeS: 11, date: iso("2026-08-01"), timing: "HAND" as const };
+    const run = (marks: typeof old[]) => planRunningPrescription(makeRequest("ACCELERATION", "ACC_BLOCK_20", {
+      subject: athlete({ marks }),
+    }));
+    const oldFirst = run([old, recent]);
+    const recentFirst = run([recent, old]);
+
+    expect(oldFirst.status).toBe("OK");
+    expect(recentFirst.status).toBe("OK");
+    expect(oldFirst).toEqual(recentFirst);
+    expect(oldFirst.status === "OK" && oldFirst.prescription.intensity.reference.kind).toBe("MAX_INTENT");
+    expect(oldFirst.status === "OK" && oldFirst.prescription.findings.some((f) => f.code === "INPUT_MARK_DATA_QUALITY" && f.plausibility?.ruleId === "PLA_INPUT_100M_RECORD")).toBe(true);
+    expect(oldFirst.status === "BLOCKED" && oldFirst.findings.some((f) => f.plausibility?.ruleId === "PLA_INPUT_100M_RECORD")).toBe(false);
+  });
+
+  it("100m is not a selected reference in the current planner: even extreme marks remain data quality on unrelated plans", () => {
+    for (const timeS of [4.99, 5, 60, 60.01]) {
+      const result = planRunningPrescription(makeRequest("ACCELERATION", "ACC_BLOCK_20", {
+        subject: athlete({ marks: [{ event: "100m", timeS, date: iso("2026-08-01"), timing: "HAND" }] }),
+      }));
+      expect(result.status).toBe("OK");
+      expect(result.status === "OK" && result.prescription.findings.some((f) => f.code === "INPUT_PLAUSIBILITY_BLOCK" && f.plausibility?.ruleId === "PLA_INPUT_100M_RECORD")).toBe(false);
+    }
+  });
+
+  it("unused extreme performance history is data quality, not a global plan blocker", () => {
+    const request = makeRequest("ACCELERATION", "ACC_BLOCK_20", {
+      subject: athlete({ marks: [{ event: "100m", timeS: 61, date: iso("2026-08-01"), timing: "HAND" }] }),
+    });
+    const checked = checkSelectedPerformanceInputPlausibility(request, ruleSet, []);
+    expect(checked.blocking).toHaveLength(0);
+    expect(checked.findings.find((f) => f.code === "INPUT_MARK_DATA_QUALITY")?.plausibility).toMatchObject({
+      ruleId: "PLA_INPUT_100M_RECORD", policy: "DATA_QUALITY", certainty: "DATA_QUALITY", presentationKind: "DATA_QUALITY",
+    });
+  });
+
+  it("F16 checks the same dated endpoints used for growth; future and unused outliers are quarantined", () => {
+    const profile = (heightHistory: { date: IsoDate; heightCm: number }[]) => athlete({
+      maturity: { status: "POST", confidence: "HIGH", method: "GROWTH_VELOCITY", assessedAt: iso("2026-01-01"), heightHistory },
+    });
+    const endpointOutlier = profile([
+      { date: iso("2025-01-01"), heightCm: 170 },
+      { date: iso("2026-01-01"), heightCm: 49.9 },
+    ]);
+    const blocked = checkInputPlausibility(makeRequest("ACCELERATION", "ACC_BLOCK_20", { subject: endpointOutlier }), ruleSet);
+    expect(blocked.blocking[0]?.plausibility).toMatchObject({
+      ruleId: "PLA_INPUT_HEIGHT", policy: "DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW", certainty: "CONFIRMED_EXCEED",
+    });
+
+    const history = [
+      { date: iso("2025-01-01"), heightCm: 170 },
+      { date: iso("2025-06-01"), heightCm: 999 },
+      { date: iso("2026-01-01"), heightCm: 173 },
+      { date: iso("2027-01-01"), heightCm: 999 },
+    ];
+    const selected = selectHeightHistoryForGrowth(history, iso("2026-01-01"));
+    expect(selected.endpoints.map((p) => p.heightCm)).toEqual([170, 173]);
+    expect(selected.futurePoints.map((p) => p.heightCm)).toEqual([999]);
+    const quality = checkInputPlausibility(makeRequest("ACCELERATION", "ACC_BLOCK_20", { subject: profile(history) }), ruleSet);
+    expect(quality.blocking).toHaveLength(0);
+    expect(quality.findings.filter((f) => f.code === "INPUT_HEIGHT_DATA_QUALITY")).toHaveLength(1);
+    expect(quality.findings.filter((f) => f.code === "INPUT_HEIGHT_FUTURE_IGNORED")).toHaveLength(1);
+  });
+
+  it("F07–F12 retain a BLOCK gate with strong-review policy metadata until F2 approval exists", () => {
+    const planned = planRunningPrescription(makeRequest("ACCELERATION", "ACC_BLOCK_20"));
+    if (planned.status !== "OK") throw new Error(JSON.stringify(planned));
+    const mutated = structuredClone(planned.prescription);
+    mutated.repsPerSet.value = 31;
+    const reviewed = checkOutputPlausibility(mutated, ruleSet);
+    expect(reviewed.blocked).toBe(true);
+    expect(reviewed.findings.find((f) => f.plausibility?.ruleId === "PLA_REPS_PER_SET")?.plausibility).toMatchObject({
+      policy: "COACH_OVERRIDABLE_STRONG_REVIEW", certainty: "CONFIRMED_EXCEED",
+    });
+    const atBoundary = structuredClone(planned.prescription);
+    atBoundary.repsPerSet.value = 30;
+    expect(checkOutputPlausibility(atBoundary, ruleSet).blocked).toBe(false);
+  });
+
+  it("F01–F06 confirmed method-boundary violations remain typed method-policy blocks", () => {
+    const planned = planRunningPrescription(makeRequest("ACCELERATION", "ACC_BLOCK_20"));
+    if (planned.status !== "OK") throw new Error(JSON.stringify(planned));
+    const makeRep = (method: RunningPrescriptionValue["method"], rep: unknown) => ({
+      ...structuredClone(planned.prescription), method, rep,
+    }) as RunningPrescriptionValue;
+    const field = (value: number, unit: "m" | "s") => ({ value, unit });
+    const cases: { ruleId: string; prescription: RunningPrescriptionValue }[] = [
+      { ruleId: "PLA_ITEM_DISTANCE_STANDARD", prescription: makeRep("ACCELERATION", { kind: "DISTANCE", distanceM: field(301, "m") }) },
+      { ruleId: "PLA_ITEM_DISTANCE_LONG", prescription: makeRep("LONG_SPRINT_RACE_SPECIFIC", { kind: "DISTANCE", distanceM: field(1001, "m") }) },
+      { ruleId: "PLA_ITEM_DISTANCE_TEMPO", prescription: makeRep("TEMPO_INTENSIVE", { kind: "DISTANCE", distanceM: field(1001, "m") }) },
+      { ruleId: "PLA_BUILD_UP_M", prescription: makeRep("MAX_VELOCITY", { kind: "FLY", buildUpDistanceM: field(121, "m"), flyZoneDistanceM: field(10, "m") }) },
+      { ruleId: "PLA_FLY_ZONE_M", prescription: makeRep("ASSISTED_SPRINT", { kind: "FLY", buildUpDistanceM: field(10, "m"), flyZoneDistanceM: field(81, "m") }) },
+      { ruleId: "PLA_REP_DURATION_NON_LONG", prescription: makeRep("SPRINT_ENDURANCE_SHORT", { kind: "DURATION", durationS: field(121, "s"), displayDistanceM: { lower: null, upper: null, unit: "m", source: "UNKNOWN", confidence: "NONE" } }) },
+    ];
+    for (const { ruleId, prescription } of cases) {
+      const checked = checkOutputPlausibility(prescription, ruleSet);
+      expect(checked.blocked, ruleId).toBe(true);
+      expect(checked.findings.find((f) => f.plausibility?.ruleId === ruleId)?.plausibility, ruleId).toMatchObject({
+        policy: "METHOD_POLICY_HARD", certainty: "CONFIRMED_EXCEED", presentationKind: "METHOD_POLICY",
+      });
+    }
+    const standard = makeRep("ACCELERATION", { kind: "DISTANCE", distanceM: field(300, "m") });
+    expect(checkOutputPlausibility(standard, ruleSet).findings.some((f) => f.plausibility?.ruleId === "PLA_ITEM_DISTANCE_STANDARD" && f.severity === "BLOCK")).toBe(false);
+  });
+
+  it("F13 is a product/data boundary; a possible or unevaluable interval blocks without claiming confirmed exceedance", () => {
+    const equal = checkSessionPlausibility({ lower: 30000, upper: 30000, unit: "m", source: "PLANNED", confidence: "HIGH" }, ruleSet);
+    expect(equal.blocked).toBe(false);
+    const possible = checkSessionPlausibility({ lower: null, upper: 30001, unit: "m", source: "UNKNOWN", confidence: "LOW" }, ruleSet);
+    expect(possible.blocked).toBe(true);
+    expect(possible.findings[0]?.plausibility).toMatchObject({
+      ruleId: "PLA_MENU_TOTAL_DISTANCE", policy: "PRODUCT_DATA_SANITY_HARD", certainty: "POSSIBLE_EXCEED", presentationKind: "INTERVAL_UNCERTAIN",
+    });
+    const unevaluable = checkSessionPlausibility({ lower: null, upper: null, unit: "m", source: "UNKNOWN", confidence: "NONE" }, ruleSet);
+    expect(unevaluable.blocked).toBe(true);
+    expect(unevaluable.findings[0]?.plausibility?.certainty).toBe("UNEVALUABLE");
+  });
+
+  it("F15 gates the exact Fly10 mark that supplied MEASURED_VMAX; unused and direct-reference records do not block", () => {
+    const selected = (timeS: number, date = "2026-08-01") => planRunningPrescription(makeRequest("TEMPO_EXTENSIVE", "TE_100", {
+      subject: athlete({ marks: [{ event: "FLY10", timeS, date: iso(date), timing: "PHOTO_CELL" }] }),
+    }));
+    const below = selected(0.49);
+    expect(below.status).toBe("BLOCKED");
+    expect(below.status === "BLOCKED" && below.findings.find((f) => f.code === "INPUT_PLAUSIBILITY_BLOCK")?.plausibility).toMatchObject({
+      ruleId: "PLA_INPUT_FLY_10M", policy: "NON_OVERRIDABLE_DATA_SANITY_HARD", certainty: "CONFIRMED_EXCEED",
+    });
+    expect(below.status === "BLOCKED" && below.findings.some((f) => f.metric === "selected.FLY10@2026-08-01")).toBe(true);
+    const above = selected(5.1);
+    expect(above.status).toBe("BLOCKED");
+    expect(above.status === "BLOCKED" && above.findings.find((f) => f.code === "INPUT_PLAUSIBILITY_BLOCK")?.plausibility).toMatchObject({
+      ruleId: "PLA_INPUT_FLY_10M", policy: "COACH_OVERRIDABLE_STRONG_REVIEW", certainty: "CONFIRMED_EXCEED",
+    });
+    expect(above.status === "BLOCKED" && above.findings.some((f) => f.metric === "selected.FLY10@2026-08-01")).toBe(true);
+
+    for (const timeS of [0.5, 5]) {
+      const boundary = selected(timeS);
+      expect(boundary.status === "BLOCKED" && boundary.findings.some((f) => f.plausibility?.ruleId === "PLA_INPUT_FLY_10M" && f.code === "INPUT_PLAUSIBILITY_BLOCK")).toBe(false);
+    }
+
+    const latest = { event: "FLY10" as const, timeS: 0.7, date: iso("2026-08-01"), timing: "PHOTO_CELL" as const };
+    const oldExtreme = { event: "FLY10" as const, timeS: 5.1, date: iso("2025-08-01"), timing: "PHOTO_CELL" as const };
+    const multi = planRunningPrescription(makeRequest("TEMPO_EXTENSIVE", "TE_100", {
+      subject: athlete({ marks: [oldExtreme, latest] }),
+    }));
+    expect(multi.status).toBe("OK");
+    expect(multi.status === "OK" && multi.prescription.intensity.reference.kind).toBe("MEASURED_VMAX");
+    expect(multi.status === "OK" && multi.prescription.findings.some((f) => f.code === "INPUT_MARK_DATA_QUALITY" && f.metric?.includes("FLY10@2025-08-01"))).toBe(true);
+    expect(multi.status === "OK" && multi.prescription.findings.some((f) => f.code === "INPUT_PLAUSIBILITY_CONFIRM" && f.metric === "PLA_INPUT_FLY_10M:selected.FLY10@2026-08-01")).toBe(true);
+    expect(multi.status === "OK" && multi.prescription.findings.some((f) => f.plausibility?.ruleId === "PLA_INPUT_FLY_10M" && f.code === "INPUT_PLAUSIBILITY_BLOCK")).toBe(false);
+
+    const future = planRunningPrescription(makeRequest("ACCELERATION", "ACC_BLOCK_20", {
+      subject: athlete({ marks: [{ event: "FLY10", timeS: 5.1, date: iso("2026-10-01"), timing: "PHOTO_CELL" }] }),
+    }));
+    expect(future.status, JSON.stringify(future)).toBe("OK");
+    expect(future.status === "OK" && future.prescription.intensity.reference.kind).toBe("MAX_INTENT");
+    expect(future.status === "OK" && future.prescription.findings.some((f) => f.code === "INPUT_MARK_IN_FUTURE_IGNORED" && f.metric?.includes("FLY10"))).toBe(true);
+    expect(future.status === "OK" && future.prescription.findings.some((f) => f.code === "INPUT_PLAUSIBILITY_BLOCK" && f.plausibility?.ruleId === "PLA_INPUT_FLY_10M")).toBe(false);
+
+    const directVmax = planRunningPrescription(makeRequest("TEMPO_EXTENSIVE", "TE_100", { subject: athlete({ vmax: {
+      valueMps: 9, lowerMps: 8.9, upperMps: 9.1, source: "RADAR_LASER", confidence: "HIGH", measuredAt: iso("2026-08-01"),
+    }, marks: [{ event: "FLY10", timeS: 5.1, date: iso("2026-08-01"), timing: "PHOTO_CELL" }] }) }));
+    expect(directVmax.status).toBe("OK");
+    expect(directVmax.status === "OK" && directVmax.prescription.findings.some((f) => f.code === "INPUT_MARK_DATA_QUALITY" && f.metric?.includes("FLY10@2026-08-01"))).toBe(true);
+    expect(directVmax.status === "OK" && directVmax.prescription.findings.some((f) => f.code === "INPUT_PLAUSIBILITY_BLOCK" && f.plausibility?.ruleId === "PLA_INPUT_FLY_10M")).toBe(false);
+  });
+
+  it("F16 endpoints at 50/260 are not review blocks; structurally invalid measurement dates fail normalization", () => {
+    const subject = athlete({ maturity: {
+      status: "POST", confidence: "HIGH", method: "GROWTH_VELOCITY", assessedAt: iso("2026-01-01"),
+      heightHistory: [{ date: iso("2025-01-01"), heightCm: 170 }, { date: iso("2026-01-01"), heightCm: 260 }],
+    } });
+    const checked = checkInputPlausibility(makeRequest("ACCELERATION", "ACC_BLOCK_20", { subject }), ruleSet);
+    expect(checked.blocking.some((f) => f.plausibility?.ruleId === "PLA_INPUT_HEIGHT")).toBe(false);
+    const invalid = makeRequest("ACCELERATION", "ACC_BLOCK_20", {
+      subject: athlete({ marks: [{ event: "100m", timeS: 11, date: iso("2026-02-30"), timing: "HAND" }] }),
+    });
+    expect(normalizePlanRequest(invalid).ok).toBe(false);
   });
 });
 
