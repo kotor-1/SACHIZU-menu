@@ -82,6 +82,9 @@ export function ProvenancePanel({ provenance }: { provenance: ProvenancePresenta
         <Row label="例外設定">
           <Changes changes={provenance.overrides} />
         </Row>
+        <Row label="コーチの妥当性確認">
+          <Changes changes={provenance.plausibilityReviews} />
+        </Row>
       </dl>
       {provenance.aiProposal !== null && (
         <section className="space-y-1 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2">

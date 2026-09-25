@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { INPUT_CLASS, buttonClass, cn } from "@/components/ui";
 import { planRunningItemAction } from "@/actions/running-actions";
+import type { PlausibilityIssue, PlausibilityReviewRequest } from "@/domain/running/types/plausibilityReview";
 import { eligibilityOverrideOptions, groupCreateMethodPolicy } from "@/presentation/running/eligibility";
 import type { TemplatePickerProviderResult } from "@/actions/_running-template-options";
 import { planRunningItemFormData } from "@/presentation/running/action-forms";
@@ -13,9 +14,11 @@ import type {
   TargetSplitSegmentDraft,
 } from "@/presentation/running/dto";
 import { POSITION_PREFERENCE_LABEL_JA } from "@/presentation/running/labels";
+import { presentPlausibilityReviewIssues } from "@/presentation/running/review-issues";
 import { buildTargetSplitInput } from "@/presentation/running/target-split";
 import { FindingsList } from "./findings-list";
 import { MethodTemplatePicker } from "./method-template-picker";
+import { PlausibilityReviewForm } from "./plausibility-review-form";
 import { TargetSplitEditor } from "./target-split-editor";
 
 /**
@@ -49,6 +52,7 @@ export function RunningItemCreateForm({
   const [pendingConfirmations, setPendingConfirmations] = useState<FindingPresentationDto[]>([]);
   const [confirmedKeys, setConfirmedKeys] = useState<string[]>([]);
   const [findings, setFindings] = useState<FindingPresentationDto[]>([]);
+  const [reviewIssues, setReviewIssues] = useState<PlausibilityIssue[] | null>(null);
   const [reasons, setReasons] = useState<EligibilityReasonPresentationDto[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [succeeded, setSucceeded] = useState(false);
@@ -77,7 +81,7 @@ export function RunningItemCreateForm({
   const eventApproachCoachFields = [{ field: "approachDistanceM", label: "助走距離", unit: "m" }] as const;
   const coachInputFields = isSes ? sesCoachFields : isLongSpecialEnduranceI ? longCoachFields : isEventApproach ? eventApproachCoachFields : [];
 
-  function submit() {
+  function submit(reviews?: PlausibilityReviewRequest[]) {
     if (selection === null) {
       setMessage("練習の型を選んでください。");
       return;
@@ -102,6 +106,7 @@ export function RunningItemCreateForm({
       eligibilityOverrideFirstConfirmation,
       eligibilityOverrideSecondConfirmation,
       coachEdits,
+      plausibilityReviewRequests: reviews,
     });
 
     startTransition(async () => {
@@ -113,6 +118,7 @@ export function RunningItemCreateForm({
         setConfirmedKeys([]);
         setFindings(result.data.sessionFindingViews);
         setReasons([]);
+        setReviewIssues(null);
         setEligibilityOverrideRuleIds([]);
         setEligibilityOverrideReason("");
         setEligibilityOverrideFirstConfirmation(false);
@@ -127,10 +133,13 @@ export function RunningItemCreateForm({
         setConfirmedKeys([]);
         setFindings([]);
         setReasons([]);
+        setReviewIssues(null);
         return;
       }
       setPendingConfirmations([]);
       setFindings(result.kind === "PLAN_INELIGIBLE" || result.kind === "PLAN_BLOCKED" ? result.findings : []);
+      // [OPEN20 F4] review 可能な blocker だけを review フォームへ。hard / data-quality はここに入らない。
+      setReviewIssues(result.kind === "PLAN_BLOCKED" && result.reviewError === "REVIEW_REQUIRED" && (result.reviewIssues?.length ?? 0) > 0 ? result.reviewIssues! : null);
       if (result.kind === "PLAN_INELIGIBLE") setReasons(result.reasons);
       else if (result.kind !== "INVALID_INPUT") setReasons([]);
     });
@@ -145,6 +154,7 @@ export function RunningItemCreateForm({
           setSelection(next);
           setReasons([]);
           setFindings([]);
+          setReviewIssues(null);
           setEligibilityOverrideRuleIds([]);
           setEligibilityOverrideReason("");
           setEligibilityOverrideFirstConfirmation(false);
@@ -307,8 +317,17 @@ export function RunningItemCreateForm({
 
       <FindingsList findings={findings} idPrefix={`running-add-${blockId}-findings`} heading="確認事項" />
 
+      {reviewIssues !== null && (
+        <PlausibilityReviewForm
+          issues={presentPlausibilityReviewIssues(reviewIssues)}
+          idPrefix={`running-add-${blockId}-review`}
+          disabled={pending}
+          onSubmit={(requests) => submit(requests)}
+        />
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={buttonClass("primary", "lg")} disabled={pending || !methodPolicy.available} onClick={submit}>
+        <button type="button" className={buttonClass("primary", "lg")} disabled={pending || !methodPolicy.available} onClick={() => submit()}>
           {methodPolicy.available ? "この内容で追加" : "この画面では追加できません"}
         </button>
         {onCancel && (

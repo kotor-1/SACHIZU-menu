@@ -10,6 +10,7 @@
  *   - 値をここで補完・丸めしない（数値の検証は domain、確認の要否は Action が決める）。
  *   - `confirmedTwice` は必ず明示的に "true" / "false" を送る（未送信にしない）。
  */
+import type { PlausibilityReviewRequest } from "@/domain/running/types/plausibilityReview";
 import type {
   RunningCoachReferenceEditRequest,
   RunningFieldEditRequest,
@@ -19,9 +20,16 @@ import type {
 } from "./dto";
 
 export const CONFIRMED_FINDING_CODES_FIELD = "confirmedFindingCodes";
+export const PLAUSIBILITY_REVIEWS_FIELD = "plausibilityReviewsJson";
 
 function withCodes(form: FormData, codes: readonly string[]): FormData {
   for (const code of codes) form.append(CONFIRMED_FINDING_CODES_FIELD, code);
+  return form;
+}
+
+/** [OPEN20 F4] 承認済み review リクエストを JSON 文字列として載せる（無ければ何もしない）。 */
+function withReviews(form: FormData, reviews: readonly PlausibilityReviewRequest[] | undefined): FormData {
+  if (reviews !== undefined && reviews.length > 0) form.set(PLAUSIBILITY_REVIEWS_FIELD, JSON.stringify(reviews));
   return form;
 }
 
@@ -30,14 +38,14 @@ export function fieldEditFormData(request: RunningFieldEditRequest): FormData {
   form.set("itemId", request.itemId);
   form.set("field", request.field);
   form.set("value", String(request.value));
-  return withCodes(form, request.confirmedFindingCodes);
+  return withReviews(withCodes(form, request.confirmedFindingCodes), request.plausibilityReviewRequests);
 }
 
 export function coachReferenceEditFormData(request: RunningCoachReferenceEditRequest): FormData {
   const form = new FormData();
   form.set("itemId", request.itemId);
   form.set("coachReferenceJson", JSON.stringify(request.coachReference));
-  return withCodes(form, request.confirmedFindingCodes);
+  return withReviews(withCodes(form, request.confirmedFindingCodes), request.plausibilityReviewRequests);
 }
 
 export function overrideFormData(request: RunningOverrideRequest): FormData {
@@ -53,13 +61,13 @@ export function overrideFormData(request: RunningOverrideRequest): FormData {
   } else {
     form.set("ruleId", request.ruleId);
   }
-  return withCodes(form, request.confirmedFindingCodes);
+  return withReviews(withCodes(form, request.confirmedFindingCodes), request.plausibilityReviewRequests);
 }
 
 export function recalculateFormData(request: RunningRecalculateRequest): FormData {
   const form = new FormData();
   form.set("itemId", request.itemId);
-  return withCodes(form, request.confirmedFindingCodes);
+  return withReviews(withCodes(form, request.confirmedFindingCodes), request.plausibilityReviewRequests);
 }
 
 export type PlanRunningItemFormInput = {
@@ -73,6 +81,8 @@ export type PlanRunningItemFormInput = {
   eligibilityOverrideFirstConfirmation?: boolean;
   eligibilityOverrideSecondConfirmation?: boolean;
   coachEdits?: readonly { field: string; value: number; unit: string }[];
+  /** [OPEN20 F4] 現在の review issue に対する承認（無ければ省略）。 */
+  plausibilityReviewRequests?: readonly PlausibilityReviewRequest[];
 };
 
 export function planRunningItemFormData(input: PlanRunningItemFormInput): FormData {
@@ -92,7 +102,7 @@ export function planRunningItemFormData(input: PlanRunningItemFormInput): FormDa
     }
   }
   if ((input.coachEdits?.length ?? 0) > 0) form.set("coachEditsJson", JSON.stringify(input.coachEdits));
-  return withCodes(form, input.confirmedFindingCodes);
+  return withReviews(withCodes(form, input.confirmedFindingCodes), input.plausibilityReviewRequests);
 }
 
 export function runningContextFormData(json: string): FormData {

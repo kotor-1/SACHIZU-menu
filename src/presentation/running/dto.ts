@@ -11,6 +11,7 @@ import type { FindingSeverity } from "@/domain/running/types/findings";
 import type { RunningTrainingMethod } from "@/domain/running/types/method";
 import type { SessionTemplateId } from "@/domain/running/types/template";
 import type { EnvelopeField } from "@/domain/running/rules/schema";
+import type { PlausibilityReviewRequest } from "@/domain/running/types/plausibilityReview";
 
 // ---------------------------------------------------------------------------
 // Findings
@@ -167,6 +168,8 @@ export type ProvenancePresentationDto =
       evidence: EvidencePresentationDto;
       coachEdits: ProvenanceChangesDto;
       overrides: ProvenanceChangesDto;
+      /** [OPEN20 F4] 保存された PlausibilityReview（コーチの妥当性確認）。reason・時刻のみ表示。 */
+      plausibilityReviews: ProvenanceChangesDto;
     };
 
 // ---------------------------------------------------------------------------
@@ -332,6 +335,8 @@ export type RunningFieldEditRequest = {
   displayedFromValue: number | null;
   /** [R10-B4A] 直前の Action 結果（CONFIRMATION_REQUIRED）で示された Finding を、コーチが明示確認した code。 */
   confirmedFindingCodes: string[];
+  /** [OPEN20 F4] 現在の review issue に対する承認（無ければ省略）。 */
+  plausibilityReviewRequests?: PlausibilityReviewRequest[];
 };
 
 /** B4 で overrideRunningItemAction へ接続する。reason の長さ等の最終検証は domain。 */
@@ -345,15 +350,54 @@ export type RunningOverrideRequest =
       reason: string;
       confirmedTwice: boolean;
       confirmedFindingCodes: string[];
+      plausibilityReviewRequests?: PlausibilityReviewRequest[];
     }
-  | { itemId: string; kind: "ELIGIBILITY"; ruleId: string; reason: string; confirmedTwice: boolean; confirmedFindingCodes: string[] };
+  | { itemId: string; kind: "ELIGIBILITY"; ruleId: string; reason: string; confirmedTwice: boolean; confirmedFindingCodes: string[]; plausibilityReviewRequests?: PlausibilityReviewRequest[] };
 
 /** [R10-B4A.2] B4-B で editRunningItemAction（coachReferenceJson）へ接続する。 */
 export type RunningCoachReferenceEditRequest = {
   itemId: string;
   coachReference: { kind: "TARGET_SPLIT"; segments: { distanceM: number; targetTimeS: number }[] };
   confirmedFindingCodes: string[];
+  plausibilityReviewRequests?: PlausibilityReviewRequest[];
 };
 
 /** [R10-B4A] B4-B で recalculateWithActiveRuleSetAction へ接続する。 */
-export type RunningRecalculateRequest = { itemId: string; confirmedFindingCodes: string[] };
+export type RunningRecalculateRequest = { itemId: string; confirmedFindingCodes: string[]; plausibilityReviewRequests?: PlausibilityReviewRequest[] };
+
+// ---------------------------------------------------------------------------
+// [OPEN20 F4] Plausibility review
+// ---------------------------------------------------------------------------
+
+/**
+ * コーチが review を送る対象の issue の表示 DTO（PlausibilityIssue → 表示）。
+ * `issueDigest` / `ruleIdInternal` は内部値で、DOM テキストとして描画しない。
+ * certainty は CONFIRMED / POSSIBLE で文言を必ず変える（§8: POSSIBLE を断定しない）。
+ */
+export type PlausibilityReviewIssuePresentationDto = {
+  /** React key / リクエストに載せる値（表示しない）。 */
+  issueDigest: string;
+  /** 内部値（表示しない）。 */
+  ruleIdInternal: string;
+  /** 確認対象（例:「1セットの本数」「計測したタイム」）。 */
+  subjectLabel: string;
+  /** 現在値・推定範囲（例:「31本」「31〜34本」）。不明・非対応単位は null。 */
+  valueLabel: string | null;
+  /** 基準（例:「上限 30本」「下限 50cm」）。非対応単位は null。 */
+  thresholdLabel: string | null;
+  /** 判定文（CONFIRMED / POSSIBLE で異なる。例:「上限を超えています」「上限を超えている可能性があります」）。 */
+  certaintyLabel: string;
+  certaintyInternal: "CONFIRMED_EXCEED" | "POSSIBLE_EXCEED";
+  /** 対象スコープ（「この項目」「入力・記録」「練習全体」）。 */
+  scopeLabel: string;
+  /** 1文にまとめた説明（読み上げ・テスト用）。 */
+  message: string;
+};
+
+/** review フォームの入力下書き（reason + 2段階確認）。confirmations は未入力時 false。 */
+export type PlausibilityReviewDraft = {
+  issueDigest: string;
+  reason: string;
+  firstConfirmed: boolean;
+  secondConfirmed: boolean;
+};

@@ -11,9 +11,11 @@
 import { SOURCE_TYPES, type SourceType } from "@/domain/running/evidence/schema";
 import type { Provenance } from "@/domain/running/persistence/provenance";
 import type { RuleSet } from "@/domain/running/rules/schema";
+import type { PlausibilityIssue } from "@/domain/running/types/plausibilityReview";
 import type { EvidencePresentationDto, ProvenanceChangeDto, ProvenanceChangesDto, ProvenancePresentationDto } from "./dto";
 import { presentConfidence } from "./confidence";
 import { formatIsoDateJa, formatValueJa } from "./format";
+import { presentPlausibilityReviewIssues } from "./review-issues";
 import {
   EDITABLE_FIELD_DISPLAY,
   EVIDENCE_SOURCE_TYPE_LABEL_JA,
@@ -91,6 +93,20 @@ function presentOverrides(overrides: Provenance["overrides"]): ProvenanceChanges
   return { summaryLabel: items.length === 0 ? "なし" : `あり（${items.length}件）`, items };
 }
 
+/** [OPEN20 F4] 保存されたコーチの妥当性確認（reason・時刻のみ。digest / ruleId は出さない）。 */
+function presentPlausibilityReviews(reviews: NonNullable<Provenance["plausibilityReviews"]>): ProvenanceChangesDto {
+  const items: ProvenanceChangeDto[] = reviews.map((review) => {
+    const [issue] = presentPlausibilityReviewIssues([review as unknown as PlausibilityIssue]);
+    return {
+      label: issue !== undefined ? `コーチが妥当性を確認（${issue.subjectLabel}）` : "コーチが妥当性を確認",
+      detail: null,
+      reason: review.reason,
+      atLabel: formatIsoDateJa(review.at),
+    };
+  });
+  return { summaryLabel: items.length === 0 ? "なし" : `あり（${items.length}件）`, items };
+}
+
 export function presentProvenance(provenance: Provenance | null, lookup: ExactRuleSetLookup): ProvenancePresentationDto {
   if (provenance === null) return { status: "UNAVAILABLE", message: PROVENANCE_UNAVAILABLE_MESSAGE_JA };
 
@@ -125,5 +141,6 @@ export function presentProvenance(provenance: Provenance | null, lookup: ExactRu
     evidence: presentEvidence(provenance.evidenceIds, lookup),
     coachEdits: presentCoachEdits(provenance.coachEdits),
     overrides: presentOverrides(provenance.overrides),
+    plausibilityReviews: presentPlausibilityReviews(provenance.plausibilityReviews ?? []),
   };
 }

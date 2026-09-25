@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader, Field, INPUT_CLASS, cn } from "@/components
 import { SubmitButton } from "@/components/submit-button";
 import { createSessionFromMenuAction } from "@/actions/session-actions";
 import { SessionConfirmationPanel, sessionConfirmationFailureOf } from "./session-confirmation-panel";
+import { SessionPlausibilityReviewPanel } from "./session-plausibility-review-panel";
 import { TRAINING_PHASE_LABEL, type TrainingPhase } from "@/domain/menu/constants";
 import { todayInputValue } from "@/lib/format";
 
@@ -28,6 +29,9 @@ export function NewSessionFromMenu({
   const input = cn(INPUT_CLASS, "h-10 py-0");
   const confirmation = runningV2Enabled ? sessionConfirmationFailureOf(state) : null;
   const [confirmationReady, setConfirmationReady] = useState(false);
+  const reviewIssues = runningV2Enabled && state && !state.ok && state.kind === "REJECTED" && state.reviewIssues?.length ? state.reviewIssues : null;
+  const [reviewReady, setReviewReady] = useState(false);
+  const blockedOnReview = reviewIssues !== null && !reviewReady;
 
   return (
     <Card className="border-indigo-200">
@@ -97,7 +101,9 @@ export function NewSessionFromMenu({
 
             <SessionConfirmationPanel failure={confirmation} idPrefix="new-session" onReadyChange={setConfirmationReady} />
 
-            <SubmitButton pendingLabel="作成中…" disabled={confirmation !== null && !confirmationReady}>
+            <SessionPlausibilityReviewPanel issues={reviewIssues} idPrefix="new-session" onReadyChange={setReviewReady} />
+
+            <SubmitButton pendingLabel="作成中…" disabled={blockedOnReview || (confirmation !== null && !confirmationReady)}>
               {confirmation === null ? "練習記録を作成" : "確認のうえ作成する"}
             </SubmitButton>
           </form>

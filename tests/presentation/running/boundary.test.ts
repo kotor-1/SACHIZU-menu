@@ -77,6 +77,7 @@ const PURE_COMPONENTS = [
   "findings-list.tsx",
   "method-template-picker.tsx",
   "monitor-banner.tsx",
+  "plausibility-review-form.tsx",
   "provenance-panel.tsx",
   "running-item-editor.tsx",
   "target-split-editor.tsx",
@@ -109,6 +110,7 @@ describe("R10-B3: component の境界", () => {
     expect(clientFiles.sort()).toEqual(
       [
         `${COMPONENT_DIR}/method-template-picker.tsx`,
+        `${COMPONENT_DIR}/plausibility-review-form.tsx`,
         `${COMPONENT_DIR}/readiness-form.tsx`,
         `${COMPONENT_DIR}/rep-logger.tsx`,
         `${COMPONENT_DIR}/runtime-coach-review-panel.tsx`,

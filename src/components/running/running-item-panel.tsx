@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { buttonClass, cn } from "@/components/ui";
 import { editRunningItemAction, overrideRunningItemAction, recalculateWithActiveRuleSetAction, type RunningActionResult } from "@/actions/running-actions";
+import type { PlausibilityIssue, PlausibilityReviewRequest } from "@/domain/running/types/plausibilityReview";
 import { coachReferenceEditFormData, fieldEditFormData, overrideFormData, recalculateFormData } from "@/presentation/running/action-forms";
 import type {
   EditableFieldKey,
@@ -15,9 +16,11 @@ import type {
   TargetSplitSegmentDraft,
 } from "@/presentation/running/dto";
 import type { SavedRunningItemPresentation } from "@/presentation/running/server";
+import { presentPlausibilityReviewIssues } from "@/presentation/running/review-issues";
 import { buildCoachReferenceEditRequest, targetSplitDraftsFrom } from "@/presentation/running/target-split";
 import { ConfidenceBadge } from "./confidence-badge";
 import { FindingsList } from "./findings-list";
+import { PlausibilityReviewForm } from "./plausibility-review-form";
 import { RunningDoseSummary, RunningItemEditor } from "./running-item-editor";
 import { TargetSplitEditor } from "./target-split-editor";
 
@@ -50,11 +53,13 @@ function LoadedRunningItemPanel({ menuId, item }: { menuId: string; item: Runnin
   const [confirmedKeys, setConfirmedKeys] = useState<string[]>([]);
   const [pendingConfirmations, setPendingConfirmations] = useState<FindingPresentationDto[]>([]);
   const [segments, setSegments] = useState<TargetSplitSegmentDraft[]>(targetSplitDraftsFrom(item.editor.targetSplit.current));
+  const [reviewIssues, setReviewIssues] = useState<PlausibilityIssue[] | null>(null);
+  const [reviewResubmit, setReviewResubmit] = useState<((requests: PlausibilityReviewRequest[]) => void) | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [succeeded, setSucceeded] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function run(call: () => Promise<RunningActionResult<unknown>>) {
+  function run(call: () => Promise<RunningActionResult<unknown>>, resubmit?: (reviews: PlausibilityReviewRequest[]) => void) {
     startTransition(async () => {
       const result = await call();
       setSucceeded(result.ok);
@@ -64,21 +69,41 @@ function LoadedRunningItemPanel({ menuId, item }: { menuId: string; item: Runnin
         setConfirmedKeys([]);
         setFieldDrafts({});
         setOverrideState(null);
+        setReviewIssues(null);
+        setReviewResubmit(null);
         return;
       }
       if (result.kind === "CONFIRMATION_REQUIRED" || result.kind === "CONFIRMATION_STATE_STALE") {
         setPendingConfirmations(result.findings);
         // 以前の結果に対する確認は引き継がない。
         setConfirmedKeys([]);
+        setReviewIssues(null);
+        setReviewResubmit(null);
         return;
       }
       setPendingConfirmations([]);
+      const hasReview = result.kind === "PLAN_BLOCKED" && result.reviewError === "REVIEW_REQUIRED" && (result.reviewIssues?.length ?? 0) > 0;
+      setReviewIssues(hasReview ? result.reviewIssues! : null);
+      setReviewResubmit(hasReview ? (resubmit ?? null) : null);
     });
   }
 
-  const onEditRequest = (request: RunningFieldEditRequest) => run(() => editRunningItemAction(menuId, null, fieldEditFormData(request)));
-  const onOverrideRequest = (request: RunningOverrideRequest) => run(() => overrideRunningItemAction(menuId, null, overrideFormData(request)));
-  const onRecalculateRequest = (request: RunningRecalculateRequest) => run(() => recalculateWithActiveRuleSetAction(menuId, null, recalculateFormData(request)));
+  /** 同じ操作を review 付きで再実行する re-entrant なハンドラ。 */
+  function resubmittable(call: (reviews?: PlausibilityReviewRequest[]) => Promise<RunningActionResult<unknown>>) {
+    const invoke = (reviews?: PlausibilityReviewRequest[]) =>
+      run(
+        () => call(reviews),
+        (next) => invoke(next),
+      );
+    return invoke;
+  }
+
+  const onEditRequest = (request: RunningFieldEditRequest) =>
+    resubmittable((reviews) => editRunningItemAction(menuId, null, fieldEditFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
+  const onOverrideRequest = (request: RunningOverrideRequest) =>
+    resubmittable((reviews) => overrideRunningItemAction(menuId, null, overrideFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
+  const onRecalculateRequest = (request: RunningRecalculateRequest) =>
+    resubmittable((reviews) => recalculateWithActiveRuleSetAction(menuId, null, recalculateFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
 
   const confirmedCodesForSplit = pendingConfirmations
     .filter((f) => f.requiresExplicitConfirmation && confirmedKeys.includes(f.confirmationKey))
@@ -145,12 +170,25 @@ function LoadedRunningItemPanel({ menuId, item }: { menuId: string; item: Runnin
                 className={buttonClass("secondary", "lg")}
                 disabled={pending || !item.canEdit || !splitRequest.ok}
                 onClick={() => {
-                  if (splitRequest.ok) run(() => editRunningItemAction(menuId, null, coachReferenceEditFormData(splitRequest.request)));
+                  if (splitRequest.ok) {
+                    resubmittable((reviews) =>
+                      editRunningItemAction(menuId, null, coachReferenceEditFormData({ ...splitRequest.request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })),
+                    )();
+                  }
                 }}
               >
                 この目標スプリットで計算し直す
               </button>
             </section>
+          )}
+
+          {reviewIssues !== null && reviewResubmit !== null && (
+            <PlausibilityReviewForm
+              issues={presentPlausibilityReviewIssues(reviewIssues)}
+              idPrefix={`running-item-${item.id}-review`}
+              disabled={pending}
+              onSubmit={reviewResubmit}
+            />
           )}
         </div>
       )}
