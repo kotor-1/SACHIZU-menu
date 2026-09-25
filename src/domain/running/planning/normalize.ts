@@ -1,6 +1,6 @@
 /** Running Prescription Engine v2 — input normalization and selected-input plausibility. */
 import type { PlausibilityRule, RuleSet } from "../rules/schema";
-import type { Finding, PlausibilityCertainty, PlausibilityPolicy } from "../types/findings";
+import type { Finding, FindingSourceRecord, PlausibilityCertainty, PlausibilityPolicy } from "../types/findings";
 import type { IsoDate, Unit } from "../types/primitives";
 import type { TimedMark } from "../types/intensity";
 import type { MaturityAssessment, Subject } from "../types/subject";
@@ -43,12 +43,19 @@ function policyFinding(
   threshold: number | null,
   severity: "BLOCK" | "WARN" | "INFO",
   code = "INPUT_PLAUSIBILITY_BLOCK",
+  sourceRecord?: FindingSourceRecord,
 ): Finding {
   const unit = rule.unit as Unit;
   return itemFinding(code, severity, {
     metric,
     value: { lower: value, upper: value, unit, source: "MEASURED", confidence: "HIGH" },
-    plausibility: plausibilityMetadata(rule.ruleId, policy, certainty, side !== null && threshold !== null ? { side, threshold } : undefined),
+    plausibility: plausibilityMetadata(
+      rule.ruleId,
+      policy,
+      certainty,
+      side !== null && threshold !== null ? { side, threshold } : undefined,
+      sourceRecord,
+    ),
   });
 }
 
@@ -65,13 +72,25 @@ function applyScalarRule(
   value: number,
   metric: string,
   out: InputPlausibilityResult,
+  sourceRecord?: FindingSourceRecord,
 ): void {
   const bounds = { lower: value, upper: value };
   const block = evaluatePlausibilityThreshold(bounds, rule.blockThreshold);
   if (block.certainty !== "CONFIRMED_WITHIN") {
     const policy = block.side === null ? null : boundaryPolicy(rule, block.side);
     if (policy !== null) {
-      out.blocking.push(policyFinding(rule, metric, value, policy, block.certainty, block.side, block.threshold, "BLOCK"));
+      out.blocking.push(policyFinding(
+        rule,
+        metric,
+        value,
+        policy,
+        block.certainty,
+        block.side,
+        block.threshold,
+        "BLOCK",
+        "INPUT_PLAUSIBILITY_BLOCK",
+        sourceRecord,
+      ));
       return;
     }
   }
@@ -86,10 +105,14 @@ function applyScalarRule(
   }
 }
 
-function maturityInputs(subject: Subject): { label: string; maturity: MaturityAssessment }[] {
+function maturityInputs(subject: Subject): { label: string; maturity: MaturityAssessment; memberIdentity: string | null }[] {
   return subject.kind === "ATHLETE"
-    ? [{ label: "athlete", maturity: subject.profile.maturity }]
-    : subject.profile.members.map((member, index) => ({ label: `members[${index}]`, maturity: member.maturity }));
+    ? [{ label: "athlete", maturity: subject.profile.maturity, memberIdentity: null }]
+    : subject.profile.members.map((member, index) => ({
+        label: `members[${index}]`,
+        maturity: member.maturity,
+        memberIdentity: member.memberId ?? null,
+      }));
 }
 
 function inspectHeightHistory(
@@ -97,6 +120,7 @@ function inspectHeightHistory(
   planningDate: IsoDate,
   rule: PlausibilityRule,
   label: string,
+  memberIdentity: string | null,
   out: InputPlausibilityResult,
 ): void {
   const history = maturity.heightHistory ?? [];
@@ -105,7 +129,12 @@ function inspectHeightHistory(
     out.findings.push(dataQualityFinding(rule.ruleId, "INPUT_HEIGHT_FUTURE_IGNORED", `${label}.height@${point.date}`, { value: point.heightCm, unit: "cm" }));
   }
   for (const point of selection.endpoints) {
-    applyScalarRule(rule, point.heightCm, `${label}.height@${point.date}`, out);
+    applyScalarRule(rule, point.heightCm, `${label}.height@${point.date}`, out, {
+      kind: "HEIGHT_POINT",
+      memberIdentity,
+      date: point.date,
+      heightCm: point.heightCm,
+    });
   }
   for (const point of selection.unusedPastPoints) {
     const assessment = evaluatePlausibilityThreshold({ lower: point.heightCm, upper: point.heightCm }, rule.blockThreshold);
@@ -134,7 +163,9 @@ export function checkInputPlausibility(request: PlanRequest, ruleSet: RuleSet): 
 
   const heightRule = ruleForInput(ruleSet, "HEIGHT_CM");
   if (heightRule) {
-    for (const { label, maturity } of maturityInputs(subject)) inspectHeightHistory(maturity, planningDate, heightRule, label, out);
+    for (const { label, maturity, memberIdentity } of maturityInputs(subject)) {
+      inspectHeightHistory(maturity, planningDate, heightRule, label, memberIdentity, out);
+    }
   }
 
   const approachRule = ruleForInput(ruleSet, "COACH_EDIT_APPROACH_DISTANCE_M");
@@ -156,7 +187,10 @@ export function checkInputPlausibility(request: PlanRequest, ruleSet: RuleSet): 
 }
 
 function sameMark(a: TimedMark, b: TimedMark): boolean {
-  return a.event === b.event && a.date === b.date && a.timeS === b.timeS && a.timing === b.timing && a.videoFps === b.videoFps;
+  return a.event === b.event && a.date === b.date && a.timeS === b.timeS && a.timing === b.timing &&
+    (a.videoFps ?? null) === (b.videoFps ?? null) && (a.wind ?? null) === (b.wind ?? null) &&
+    (a.startType ?? null) === (b.startType ?? null) && (a.surface ?? null) === (b.surface ?? null) &&
+    (a.spikes ?? null) === (b.spikes ?? null);
 }
 
 function markIdentity(mark: TimedMark): string {
@@ -164,7 +198,26 @@ function markIdentity(mark: TimedMark): string {
 }
 
 function compareMarkIdentity(a: TimedMark, b: TimedMark): number {
-  return markIdentity(a).localeCompare(markIdentity(b));
+  const left = markIdentity(a);
+  const right = markIdentity(b);
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function findingMarkIdentity(mark: TimedMark): FindingSourceRecord {
+  return {
+    kind: "TIMED_MARK",
+    record: {
+      event: mark.event,
+      date: mark.date,
+      timeS: mark.timeS,
+      timing: mark.timing,
+      ...(mark.videoFps !== undefined ? { videoFps: mark.videoFps } : {}),
+      ...(mark.wind !== undefined ? { wind: mark.wind } : {}),
+      ...(mark.startType !== undefined ? { startType: mark.startType } : {}),
+      ...(mark.surface !== undefined ? { surface: mark.surface } : {}),
+      ...(mark.spikes !== undefined ? { spikes: mark.spikes } : {}),
+    },
+  };
 }
 
 /** Evaluate only performance records selected into the current reference plan; quarantine other extremes. */
@@ -184,7 +237,7 @@ export function checkSelectedPerformanceInputPlausibility(
 
   for (const mark of selected) {
     const rule = ruleForInput(ruleSet, "TIMED_MARK", mark.event);
-    if (rule) applyScalarRule(rule, mark.timeS, `selected.${mark.event}@${mark.date}`, out);
+    if (rule) applyScalarRule(rule, mark.timeS, `selected.${mark.event}@${mark.date}`, out, findingMarkIdentity(mark));
   }
   for (const mark of [...marks].sort(compareMarkIdentity)) {
     if (mark.date > request.planningDate || selected.has(mark)) continue;

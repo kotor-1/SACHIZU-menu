@@ -130,6 +130,9 @@ export const groupProfileMemberSchema = athleteProfileSchema.pick({
   maturity: true,
   trainingAge: true,
   primaryEvent: true,
+}).extend({
+  /** Stable logical member identity for audit bindings; optional for legacy group inputs. */
+  memberId: z.string().trim().min(1).max(128).optional(),
 });
 export type GroupProfileMember = z.infer<typeof groupProfileMemberSchema>;
 

@@ -10,9 +10,12 @@
  * repository が `acceptedByCoachAt` / `engineVersion` 等を書き換えることはない。
  */
 import { z } from "zod";
+import { canonicalStringify, sha256Utf8Hex } from "../../shared/canonical-json";
 import { TRAINING_PHASES } from "../../menu/constants";
 import { coachEditFieldSchema, coachOverrideTargetSchema, findingCodeSchema } from "../planning/schema";
 import { generationRecordSchema } from "../types/actor";
+import { appliedPlausibilityReviewSchema } from "../types/plausibilityReview";
+import { canonicalPlausibilityIssueIdentity } from "../plausibility/review";
 import { INTENSITY_REFERENCE_KINDS } from "../types/intensity";
 import { historyCoverageLevelSchema } from "../types/load";
 import {
@@ -121,6 +124,8 @@ export const provenanceSchema = z
       .array(z.object({ code: findingCodeSchema, at: isoDateTimeSchema }).strict())
       .max(50)
       .optional(),
+    /** OPEN20 F2 audit records; absent remains valid for all historical provenance. */
+    plausibilityReviews: z.array(appliedPlausibilityReviewSchema).max(50).optional(),
   })
   .strict()
   .superRefine((p, ctx) => {
@@ -131,6 +136,28 @@ export const provenanceSchema = z
     if (new Set(confirmedCodes).size !== confirmedCodes.length) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "findingConfirmations に code の重複があります", path: ["findingConfirmations"] });
     }
+    const reviews = p.plausibilityReviews ?? [];
+    const reviewDigests = reviews.map((review) => review.issueDigest);
+    if (new Set(reviewDigests).size !== reviewDigests.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "plausibilityReviews に issueDigest の重複があります", path: ["plausibilityReviews"] });
+    }
+    reviews.forEach((review, index) => {
+      if (review.ruleSet.version !== p.ruleSet.version || review.ruleSet.contentHash !== p.ruleSet.contentHash) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "plausibilityReview の RuleSet identity が provenance と一致しません",
+          path: ["plausibilityReviews", index, "ruleSet"],
+        });
+      }
+      const recomputedIssueDigest = sha256Utf8Hex(canonicalStringify(canonicalPlausibilityIssueIdentity(review)));
+      if (review.issueDigest !== recomputedIssueDigest) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "plausibilityReview.issueDigest がreview identityと一致しません",
+          path: ["plausibilityReviews", index, "issueDigest"],
+        });
+      }
+    });
   });
 export type Provenance = z.infer<typeof provenanceSchema>;
 
@@ -168,6 +195,8 @@ export function buildProvenance(args: {
   aiReason: string | null;
   /** [R10-B4A] 今回の plan 結果に対してコーチが明示確認した code（空なら key を持たない）。 */
   findingConfirmations?: NonNullable<Provenance["findingConfirmations"]>;
+  /** [OPEN20 F2] Explicitly supplied reviews only; ordinary F1 saves omit this key. */
+  plausibilityReviews?: NonNullable<Provenance["plausibilityReviews"]>;
 }): Provenance {
   const { prescription } = args;
   return provenanceSchema.parse({
@@ -182,6 +211,7 @@ export function buildProvenance(args: {
     overrides: args.overrides,
     aiReason: args.aiReason,
     ...(args.findingConfirmations !== undefined && args.findingConfirmations.length > 0 ? { findingConfirmations: args.findingConfirmations } : {}),
+    ...(args.plausibilityReviews !== undefined ? { plausibilityReviews: args.plausibilityReviews } : {}),
   });
 }
 

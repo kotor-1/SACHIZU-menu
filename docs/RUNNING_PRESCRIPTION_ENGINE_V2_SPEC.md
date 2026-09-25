@@ -1193,7 +1193,7 @@ export type CoachOverride = {
 | eligibility「override 不可」（§4.4 / §8.2） | **不可** |
 | pain red flag による STOP / MEDICAL_EVALUATION_RECOMMENDED | **不可** |
 | plausibility METHOD_POLICY_HARD / PRODUCT_DATA_SANITY_HARD / NON_OVERRIDABLE_DATA_SANITY_HARD | **不可**（方法の定義または入力境界を修正する） |
-| plausibility COACH_OVERRIDABLE_STRONG_REVIEW（F1） | F1では未承認のためBLOCK。後続F2のruleId単位review contractが実装されるまで保存不可 |
+| plausibility COACH_OVERRIDABLE_STRONG_REVIEW（F1/F2） | F1では未承認のためBLOCK。F2はruleId単位のdigest-bound review contractとprovenance schemaだけを実装し、planner / save のBLOCKは維持する。保存経路への適用はF3 |
 | hardSafety（将来の出典付き上限） | CoachOverride（理由 + 二重確認）。`nonOverridable` 指定のものは不可 |
 
 判断: [ENGINE-POLICY]（Fable「override は人間 role 限定・ログ必須」を型で実装）。
@@ -1222,9 +1222,25 @@ export type CoachOverride = {
 | 入力: 身長 | < 100 cm または > 220 cm | < 50 cm または > 260 cm |
 
 - RuleSet は閾値の各側に machine-readable policy を持つ。距離・build/fly・duration の F01–F06 は METHOD_POLICY_HARD（選択した方法・型の定義であり、生理学的または安全上の絶対限界ではない）。STRIDE >300m は「このエンジンでは300m超をSTRIDEとして扱わない」という方法定義。
-- reps/sets/総本数/rest/項目総距離の F07–F12 は COACH_OVERRIDABLE_STRONG_REVIEW。menu総距離 F13 は PRODUCT_DATA_SANITY_HARD。F14/F15 は下限違反を NON_OVERRIDABLE_DATA_SANITY_HARD、上限違反を COACH_OVERRIDABLE_STRONG_REVIEW とし、F16の正値範囲外は選択された成長端点だけを DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW とする。F1はapproval pathを持たないため、これらreview対象もBLOCKのまま保存を止める。
+- reps/sets/総本数/rest/項目総距離の F07–F12 は COACH_OVERRIDABLE_STRONG_REVIEW。menu総距離 F13 は PRODUCT_DATA_SANITY_HARD。F14/F15 は下限違反を NON_OVERRIDABLE_DATA_SANITY_HARD、上限違反を COACH_OVERRIDABLE_STRONG_REVIEW とし、F16の正値範囲外は選択された成長端点だけを DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW とする。F1/F2ではreview requestをplannerへ接続しないため、これらreview対象もBLOCKのまま保存を止める。
 - 区間閾値は scalar比較へ潰さない。MAX L は `lower > L` を CONFIRMED_EXCEED、未確定で `upper > L` を POSSIBLE_EXCEED、`upper <= L` を CONFIRMED_WITHIN、それ以外を UNEVALUABLE とする。MIN は対称。等値は違反でない。POSSIBLE_EXCEEDとUNEVALUABLEはそれぞれ構造化Findingを出し、F1では安全側にBLOCKする。
 - F14/F15は今回選ばれた参照記録だけを入力境界判定する。未選択の過去記録はDATA_QUALITYへ隔離し、無関係な計画をBLOCKしない。日付・形状・非正値は既存の構造検証で拒否する。F16では未来点を成長計算から除外し、未選択の正値外れ点はDATA_QUALITYとする。
+- OPEN20 Phase 4B-F2の `PlausibilityIssue` は `ruleId` / `findingCode` / scope / target / scalar-or-interval observation / boundary side + threshold / certainty / RuleSet version + contentHash / current context digestを含む。issue digestはこれらのcanonical JSONをSHA-256し、object key順に依存しない。array indexでtimed markやheight pointを識別しない。F14/F15はsubject identity・event・date・time・timing methodで、F16はsubjectまたはmember identity・date・heightでrecord digestを作る。
+- F2.1ではreview contextを部分JSONで受けず、validated `PlanRequest` と出力findingの現在処方からdomain helperがsemantic projectionを構築する。処方のrep構造・sets/reps・rests・intensity/reference・距離/時間/approach等を含み、表示label・配列挿入順・一時時刻は含めない。選択されたtimed mark / height findingはfinding内にsource identityを保持し、builderは完全一致する現request内のrecordだけを再解決する。group memberには後方互換optionalなstable `memberId` を使い、無いmemberの身長reviewはfail closed。
+- F2 closureでは `review-context.ts` にschema由来の全key inventoryを集約する。rep / intensity referenceのexhaustive switch + `assertNever`、optional keyを含むmapped projectionにより、新variant / semantic fieldの未対応をtypecheckで検出する。FieldValueはvalueだけでなくunit・recommended/coachEditable/hardSafety・position/originを、区間はlower/upper/unit/source/confidenceを保持する。共通部分はsets/reps（totalRepsは積）・全rest・intensity/reference・exposure・tier・recovery・monitoringの実行条件・confidence・readiness/safety・loadSnapshot・planningControls・RuleSetを拘束する。coach editのunit、overrideのtarget/value/confirmation、計画日時・履歴・大会・他項目も含む。`plannedAt` は48h/72h評価に影響する予定時刻なのでUTC instantへ正規化して拘束する（creation/audit時刻とは別）。
+
+| Rep variant | canonical review contextに含むsemantic fields |
+| --- | --- |
+| DISTANCE | kind、distanceMの全FieldValue semantics |
+| DURATION | kind、durationSの全FieldValue semantics、displayDistanceMの全区間（exposureが未更新でも独立に拘束） |
+| SPLIT | kind、順序付きsegments、各distanceM / restAfterS |
+| FLY | kind、buildUpDistanceM / flyZoneDistanceM、decelerationDistanceM、totalRunningDistanceM、plannedHighSpeedExposureMの全区間（nullも保持） |
+| ATTEMPTS | kind、approach、approachDistanceMのvalue / unit / source（未入力nullも区別） |
+
+- citation、localized説明、group表示label、derived Finding/rationale、generatedByやoverrideの監査時刻はcontext identityに含めない。`COACH_DEFINED.label` は唯一の処方指示本文なので例外としてsemanticに含める。集合的な配列はcanonical sortするが、split順、同日recordの選択tie priority、first-match分類bandなど実行結果を変える順序は維持する。重複field edit / 同target overrideは曖昧なためreview contextを拒否する。非有限数値もfail closed。
+- source recordの存在確認だけでは選択済みとみなさない。input Findingは現在request・RuleSetでplannerを再評価し、source identityを含め一意一致するものだけをissue化する（旧Fly10がraw marksに残っていても、直接Vmax等へ選択が移れば拒否）。outputも現在処方からFindingを再計算する。review validatorはINPUT / OUTPUT両方を再計算したissueと照合し、古いFinding、本文を再hashした偽issue、F14の存在しないselected runtime pathを受け付けない。F14 MAXの表現はdomain policy builderでのみ検証し、MIN hardは常にreview不可。
+- F2のreview requestは `issueDigest`・理由（trim後10〜1000文字）・二つの `true` confirmationだけを受ける。serverは現在のplan finding、RuleSet、contextから作ったissueを一意照合し、actorと時刻をserver側で付けた `AppliedPlausibilityReview` を返す。F07–F15の `COACH_OVERRIDABLE_STRONG_REVIEW` と、F16選択端点の `DATE_AWARE_COACH_OVERRIDABLE_STRONG_REVIEW` だけをreview対象にする。hard / product-data / data-quality / unevaluable finding、古い値・context・RuleSet、未一致または重複digestは拒否する。
+- Provenance parse時はAppliedReviewのissue identityを再canonicalize / SHA-256再計算し、保存digestとの一致を必須にする（reason / actor / timestamp / confirmationはissue identity外）。optional `plausibilityReviews` はschemaVersion 1のまま追加し、旧データのfield欠落を許容する。同一issueDigest重複は拒否し、各reviewのRuleSet identityは親provenanceと一致させる。UTF-8 16KB上限を維持する。F2/F2.1では通常saveからreviewsを書かず、reviewでPLAN_BLOCKEDを解除せず、Menu→Sessionへ伝播せず、UI / AI authorityを追加しない。これらのruntime適用はF3以降。
 - 監査 C-1 の「ペース走 80km」は項目 BLOCK と Session BLOCK の二重で止まる。「インターバル 25.6km」は項目 BLOCK（> 10000m）。
 
 ---

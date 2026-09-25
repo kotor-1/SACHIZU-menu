@@ -115,6 +115,25 @@ export {
   type RationaleLine,
 } from "./types/findings";
 
+// --- OPEN20 PlausibilityReview contract --------------------------------------
+// Shapes are public domain contracts only; authorization and save integration
+// remain in server/application layers and are intentionally not exposed here.
+export {
+  plausibilityReviewContextSchema,
+  plausibilityIssueTargetSchema,
+  plausibilityIssueObservationSchema,
+  plausibilityIssueSchema,
+  plausibilityReviewRequestSchema,
+  appliedPlausibilityReviewSchema,
+  type PlausibilityReviewContext,
+  type PlausibilityIssueTarget,
+  type PlausibilityIssueObservation,
+  type PlausibilityIssue,
+  type PlausibilityIssueDraft,
+  type PlausibilityReviewRequest,
+  type AppliedPlausibilityReview,
+} from "./types/plausibilityReview";
+
 // --- Readiness の入力型（§13.1） ---------------------------------------------
 export {
   readinessActionCodeSchema,

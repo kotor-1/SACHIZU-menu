@@ -6,6 +6,30 @@
  */
 import { z } from "zod";
 import { anyUnitQuantityIntervalSchema, anyUnitRangeSchema, evidenceIdSchema } from "./primitives";
+import { isoDateSchema } from "./primitives";
+import { timedMarkEventSchema, timingMethodSchema } from "./intensity";
+
+/** Exact semantic source metadata retained on planner-produced input findings. */
+export const findingSourceRecordSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("TIMED_MARK"), record: z.object({
+    event: timedMarkEventSchema,
+    timeS: z.number().positive().finite(),
+    date: isoDateSchema,
+    timing: timingMethodSchema,
+    videoFps: z.number().positive().optional(),
+    wind: z.number().nullable().optional(),
+    startType: z.enum(["BLOCK", "THREE_POINT", "STANDING", "FLYING"]).optional(),
+    surface: z.enum(["TRACK", "GRASS", "ARTIFICIAL", "ROAD", "OTHER"]).nullable().optional(),
+    spikes: z.boolean().nullable().optional(),
+  }).strict() }).strict(),
+  z.object({
+    kind: z.literal("HEIGHT_POINT"),
+    memberIdentity: z.string().trim().min(1).max(128).nullable(),
+    date: isoDateSchema,
+    heightCm: z.number().positive().finite(),
+  }).strict(),
+]);
+export type FindingSourceRecord = z.infer<typeof findingSourceRecordSchema>;
 
 export const FINDING_SEVERITIES = [
   "INFO",
@@ -56,6 +80,8 @@ export const findingPlausibilitySchema = z.object({
   certainty: plausibilityCertaintySchema,
   presentationKind: plausibilityPresentationKindSchema,
   boundary: z.object({ side: z.enum(["MIN", "MAX"]), threshold: z.number() }).optional(),
+  /** Server/domain-produced input findings bind review targets to the selected source record. */
+  sourceRecord: findingSourceRecordSchema.optional(),
 });
 
 export const findingSchema = z.object({

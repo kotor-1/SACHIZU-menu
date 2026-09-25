@@ -6,7 +6,7 @@
  * 閾値は一切ハードコードせず RuleSet の `plausibility`（scope=INPUT）から読む。
  */
 import type { PlausibilityInputTarget, RuleSet } from "../rules/schema";
-import type { PlausibilityCertainty, PlausibilityPolicy } from "../types/findings";
+import type { FindingSourceRecord, PlausibilityCertainty, PlausibilityPolicy } from "../types/findings";
 
 export const INPUT_PLAUSIBILITY_VERDICTS = ["OK", "REQUIRE_CONFIRMATION", "BLOCK"] as const;
 export type InputPlausibilityVerdict = (typeof INPUT_PLAUSIBILITY_VERDICTS)[number];
@@ -19,6 +19,7 @@ export function plausibilityMetadata(
   policy: PlausibilityPolicy | "DATA_QUALITY",
   certainty: PlausibilityCertainty,
   boundary?: { side: PlausibilityBoundarySide; threshold: number },
+  sourceRecord?: FindingSourceRecord,
 ) {
   const presentationKind =
     certainty === "POSSIBLE_EXCEED" || certainty === "UNEVALUABLE"
@@ -30,7 +31,14 @@ export function plausibilityMetadata(
           : policy === "PRODUCT_DATA_SANITY_HARD" || policy === "NON_OVERRIDABLE_DATA_SANITY_HARD"
             ? "PRODUCT_DATA_SANITY"
             : "STRONG_REVIEW_REQUIRED";
-  return { ruleId, policy, certainty, presentationKind, ...(boundary ? { boundary } : {}) } as const;
+  return {
+    ruleId,
+    policy,
+    certainty,
+    presentationKind,
+    ...(boundary ? { boundary } : {}),
+    ...(sourceRecord ? { sourceRecord } : {}),
+  } as const;
 }
 
 /** Compare an interval to one inclusive policy boundary. Equality is within the boundary. */

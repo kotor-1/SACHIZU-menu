@@ -1,5 +1,7 @@
 import type { FindingSeverity } from "@/domain/running/types/findings";
 
+export { canonicalStringify } from "../shared/canonical-json";
+
 export const MENU_PLANNER_PREVIEW_SCHEMA_VERSION = 1 as const;
 export const MENU_PLANNER_ENGINE_ID = "R12_A2_DETERMINISTIC_PREVIEW" as const;
 export const RUNNING_PLANNER_ENGINE_ID = "RUNNING_PRESCRIPTION_ENGINE_V2" as const;
@@ -125,45 +127,6 @@ export type MenuPlannerMaterializationDigestInput = {
   estimatedTime: unknown;
   acceptance: { canSave: boolean; blockingFindingCodes: readonly string[] };
 };
-
-/**
- * Recursive canonical JSON serializer.
- * - object key は lexical order
- * - array order は caller が意味のある順序として確定したものを保持
- * - null は保持し、undefined は object では omitted、array では JSON の null 相当
- * - Date は ISO 文字列へ正規化
- */
-export function canonicalStringify(value: unknown): string {
-  const active = new Set<object>();
-
-  function encode(current: unknown): string {
-    if (current === null) return "null";
-    if (typeof current === "string") return JSON.stringify(current);
-    if (typeof current === "boolean") return current ? "true" : "false";
-    if (typeof current === "number") {
-      if (!Number.isFinite(current)) throw new Error("Canonical value must be finite");
-      return JSON.stringify(current);
-    }
-    if (typeof current === "bigint") return JSON.stringify(`${current.toString()}n`);
-    if (current instanceof Date) return JSON.stringify(current.toISOString());
-    if (typeof current !== "object") throw new Error("Canonical value must be JSON-compatible");
-
-    if (active.has(current)) throw new Error("Canonical value cannot contain cycles");
-    active.add(current);
-    try {
-      if (Array.isArray(current)) {
-        return `[${current.map((entry) => (entry === undefined ? "null" : encode(entry))).join(",")}]`;
-      }
-      const record = current as Record<string, unknown>;
-      const keys = Object.keys(record).filter((key) => record[key] !== undefined).sort();
-      return `{${keys.map((key) => `${JSON.stringify(key)}:${encode(record[key])}`).join(",")}}`;
-    } finally {
-      active.delete(current);
-    }
-  }
-
-  return encode(value);
-}
 
 function compareById(left: { id: string }, right: { id: string }): number {
   return left.id.localeCompare(right.id);
