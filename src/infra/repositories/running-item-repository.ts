@@ -26,14 +26,14 @@ import type { RunningPrescriptionValue } from "@/domain/running/types/prescripti
 export { RunningPersistenceError };
 export type { RunningMenuItemPersistInput };
 
-export async function createRunningMenuItem(menuBlockId: string, input: RunningMenuItemPersistInput) {
+export async function createRunningMenuItem(menuBlockId: string, input: RunningMenuItemPersistInput, serverItemId?: string) {
   const { record } = buildRunningMenuItemRecord(input);
   const max = await prisma.menuItem.aggregate({
     where: { menuBlockId },
     _max: { sortOrder: true },
   });
   return prisma.menuItem.create({
-    data: { ...record, menuBlockId, sortOrder: (max._max.sortOrder ?? -1) + 1 },
+    data: { ...record, ...(serverItemId ? { id: serverItemId } : {}), menuBlockId, sortOrder: (max._max.sortOrder ?? -1) + 1 },
   });
 }
 

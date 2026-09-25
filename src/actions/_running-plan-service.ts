@@ -19,6 +19,10 @@
  * 数値ポリシー（rest の式・年齢係数・Method 総量定数・強度閾値等）はここに複製しない。
  * すべて domain engine（`planRunningPrescriptionWithRuleSet`）に委譲する。
  */
+import { createHash } from "node:crypto";
+import { evaluateReviewedRunningPlan } from "@/application/running-review-runtime";
+import type { AppliedPlausibilityReview, PlausibilityIssue, PlausibilityReviewRequest } from "@/domain/running/types/plausibilityReview";
+import { buildPlausibilityReviewContextDigest } from "@/application/running-plausibility-review";
 import {
   getActiveRuleSet,
   getRuleSetByIdentity,
@@ -43,7 +47,6 @@ import {
   type CoachReferenceInput,
   type EligibilityReason,
   type PlanRequest,
-  type PlanResult,
 } from "@/domain/running/planning";
 import { AGGREGATE_ENVELOPE_FIELDS, coachOverrideSchema, isValidCalendarDate, type CoachEditField } from "@/domain/running/planning/schema";
 import { evaluateFindingConfirmation, requiredConfirmationCodes } from "@/domain/running/planning/confirmation";
@@ -91,7 +94,7 @@ export type RunningActionRejection =
       /** [R10-B4A.2] この Method の RuleSet（MethodMeta.allowedIntensityReferences）がコーチ入力の TARGET_SPLIT を受け付けるか。 */
       acceptsCoachTargetSplit: boolean;
     }
-  | { code: "PLAN_BLOCKED"; findings: readonly Finding[] }
+  | { code: "PLAN_BLOCKED"; findings: readonly Finding[]; reviewIssues?: PlausibilityIssue[]; reviewError?: "REVIEW_REQUIRED" | "REVIEW_INVALID" }
   /** [R10-B4A] 現在の plan 結果に、コーチの明示確認が足りない REQUIRE_CONFIRMATION がある。 */
   | { code: "CONFIRMATION_REQUIRED"; requiredFindingCodes: readonly string[]; findings: readonly Finding[] }
   /** [R10-B4A] 現在の plan 結果に存在しない code の確認が送られてきた（以前の結果の確認を流用しない）。 */
@@ -624,6 +627,7 @@ async function buildProvenanceFor(args: {
   coachEdits: Provenance["coachEdits"];
   overrides: Provenance["overrides"];
   findingConfirmations: NonNullable<Provenance["findingConfirmations"]>;
+  plausibilityReviews: AppliedPlausibilityReview[];
 }): Promise<Provenance> {
   const { prescription, context, plannedDate, phase, ruleSet, coachEdits, overrides, findingConfirmations } = args;
   const competitions = await competitionRefs();
@@ -635,6 +639,7 @@ async function buildProvenanceFor(args: {
     overrides,
     aiReason: null,
     findingConfirmations,
+    ...(args.plausibilityReviews.length > 0 ? { plausibilityReviews: args.plausibilityReviews } : {}),
   });
 }
 
@@ -647,6 +652,7 @@ type PlanOutcome = {
   sessionFindings: Finding[];
   /** [R10-B4A] 今回の結果に対してコーチが明示確認した code の監査記録（無ければ空）。 */
   findingConfirmations: NonNullable<Provenance["findingConfirmations"]>;
+  plausibilityReviews: AppliedPlausibilityReview[];
 };
 
 /**
@@ -656,8 +662,14 @@ type PlanOutcome = {
  * 永続化しない（他項目の追加・削除のたびに古くなる）。呼び出し元（Action）が保存結果と一緒に
  * 都度返し、将来の UI（R10-B3）がその場で表示できるようにする。
  */
-function runPlan(request: PlanRequest, resolved: ResolvedRuleSet, confirmedFindingCodes: readonly string[]): PlanOutcome {
-  const result: PlanResult = planRunningPrescriptionWithRuleSet(request, resolved);
+function runPlan(request: PlanRequest, resolved: ResolvedRuleSet, confirmedFindingCodes: readonly string[], review: {
+  menuId: string; itemId: string; requests?: readonly PlausibilityReviewRequest[]; storedReviews?: readonly AppliedPlausibilityReview[];
+}): PlanOutcome {
+  const evaluated = evaluateReviewedRunningPlan({
+    request, resolved, subjectIdentity: `menu:${review.menuId}:group`, itemIdentity: `menu:${review.menuId}:item:${review.itemId}`,
+    requests: review.requests, storedReviews: review.storedReviews,
+  });
+  const result = evaluated.result;
   if (result.status === "INELIGIBLE") {
     // [R10-B4A.2] 基準が足りない理由を UI が案内できるよう、RuleSet のデータ（許可された参照 kind）だけを添える（判定はしない）。
     const methodMeta = resolved.ruleSet.methods.find((m) => m.method === request.selection.method);
@@ -668,7 +680,7 @@ function runPlan(request: PlanRequest, resolved: ResolvedRuleSet, confirmedFindi
       acceptsCoachTargetSplit: (methodMeta?.allowedIntensityReferences as readonly string[] | undefined)?.includes("TARGET_SPLIT") ?? false,
     });
   }
-  if (result.status === "BLOCKED" && result.confirmationRequired === undefined) reject({ code: "PLAN_BLOCKED", findings: result.findings });
+  if (result.status === "BLOCKED" && result.confirmationRequired === undefined) reject({ code: "PLAN_BLOCKED", findings: result.findings, reviewIssues: evaluated.issues, reviewError: evaluated.reviewError });
 
   // [R10-B4A] 確認は常に「現在の入力で再実行した結果」に対して判定する（以前の結果の確認を流用しない）。
   const currentFindings = result.status === "OK" ? [...result.prescription.findings, ...result.sessionFindings] : result.findings;
@@ -681,13 +693,14 @@ function runPlan(request: PlanRequest, resolved: ResolvedRuleSet, confirmedFindi
     reject({ code: "CONFIRMATION_REQUIRED", requiredFindingCodes: outcome.requiredFindingCodes, findings: confirmationFindings });
   }
   // 確認がそろっていれば domain は OK を返す。そろっているのに BLOCKED なら確認では解除できない停止として扱う。
-  if (result.status !== "OK") return reject({ code: "PLAN_BLOCKED", findings: result.findings });
+  if (result.status !== "OK") return reject({ code: "PLAN_BLOCKED", findings: result.findings, reviewIssues: evaluated.issues, reviewError: evaluated.reviewError });
 
   const at = nowAsIsoDateTime();
   return {
     prescription: result.prescription,
     sessionFindings: result.sessionFindings,
     findingConfirmations: outcome.confirmedCodes.map((code) => ({ code, at })),
+    plausibilityReviews: evaluated.reviews,
   };
 }
 
@@ -709,7 +722,11 @@ function toPersistenceRejection(e: unknown): never {
 // 公開 API（running-actions.ts から呼ぶ）
 // ---------------------------------------------------------------------------
 
-export type PlanNewRunningItemInput = {
+type ReviewSubmission = { plausibilityReviewRequests?: readonly PlausibilityReviewRequest[] };
+
+export type PlanNewRunningItemInput = ReviewSubmission & {
+  /** Explicit coach field overrides; review approval remains an independent gate. */
+  fieldOverrides?: readonly { field: EnvelopeField; layer: "COACH_EDITABLE" | "HARD_SAFETY"; newValue: number; reason: string; confirmedTwice: boolean }[];
   menuId: string;
   blockId: string;
   method: string;
@@ -740,13 +757,22 @@ export async function planNewRunningItem(input: PlanNewRunningItemInput) {
 
   const selection = { method: input.method, templateId: input.templateId } as RunningSelection;
 
+  const fieldOverrides = (input.fieldOverrides ?? []).map((override) => {
+    const parsed = coachOverrideSchema.safeParse({
+      target: { kind: "FIELD", field: override.field, layer: override.layer }, newValue: override.newValue,
+      reason: override.reason, confirmedTwice: override.confirmedTwice, actor: getCoachActorForServer(), at: nowAsIsoDateTime(),
+    });
+    if (!parsed.success) return reject({ code: "OVERRIDE_INPUT_INVALID", paths: parsed.error.issues.map((issue) => String(issue.path[0] ?? "")) });
+    return parsed.data;
+  });
+
   let request = await buildPlanRequest({
     menu,
     context,
     plannedDate,
     selection,
     coachEdits: input.coachEdits,
-    overrides: [],
+    overrides: fieldOverrides,
     coachReference: input.coachReference,
     positionPreference: input.positionPreference,
     excludeItemId: null,
@@ -756,7 +782,9 @@ export async function planNewRunningItem(input: PlanNewRunningItemInput) {
   const requestedRuleIds = [...input.eligibilityOverrideRuleIds];
   if (new Set(requestedRuleIds).size !== requestedRuleIds.length) reject({ code: "OVERRIDE_TARGET_INVALID" });
   let newOverrides: CoachOverride[] = [];
-  let overrideHistory: Provenance["overrides"] = [];
+  let overrideHistory: Provenance["overrides"] = fieldOverrides.map((override) => ({
+    at: override.at, target: override.target, to: override.newValue, reason: override.reason, confirmedTwice: override.confirmedTwice,
+  }));
   if (requestedRuleIds.length > 0) {
     if (input.eligibilityOverrideConfirmedTwice === undefined) reject({ code: "OVERRIDE_INPUT_INVALID", paths: ["confirmedTwice"] });
 
@@ -786,16 +814,23 @@ export async function planNewRunningItem(input: PlanNewRunningItemInput) {
       if (!parsed.success) return reject({ code: "OVERRIDE_INPUT_INVALID", paths: ["target"] });
       return parsed.data;
     });
-    overrideHistory = newOverrides.map((override) => ({
+    overrideHistory = [...overrideHistory, ...newOverrides.map((override) => ({
       at: override.at,
       target: override.target,
       reason: override.reason,
       confirmedTwice: override.confirmedTwice,
-    }));
-    request = { ...request, overrides: newOverrides };
+    }))];
+    request = { ...request, overrides: [...fieldOverrides, ...newOverrides] };
   }
 
-  const { prescription, sessionFindings, findingConfirmations } = runPlan(request, resolved, input.confirmedFindingCodes);
+  // Stable across retries before the first write; persisted as the actual row identity.
+  // A subsequent creation sees a different item inventory and cannot reuse this review.
+  const itemId = "running-" + createHash("sha256").update(JSON.stringify({
+    menuId: menu.id, blockId: input.blockId, items: menu.blocks.flatMap((block) => block.items.map((item) => item.id)).sort(),
+  })).digest("hex").slice(0, 48);
+  const { prescription, sessionFindings, findingConfirmations, plausibilityReviews } = runPlan(request, resolved, input.confirmedFindingCodes, {
+    menuId: menu.id, itemId, requests: input.plausibilityReviewRequests,
+  });
   const provenance = await buildProvenanceFor({
     prescription,
     context,
@@ -805,11 +840,12 @@ export async function planNewRunningItem(input: PlanNewRunningItemInput) {
     coachEdits: initialCoachEditHistory(request.coachEdits, prescription),
     overrides: overrideHistory,
     findingConfirmations,
+    plausibilityReviews,
   });
 
   let saved;
   try {
-    saved = await createRunningMenuItem(input.blockId, persistInput(prescription, provenance, null));
+    saved = await createRunningMenuItem(input.blockId, persistInput(prescription, provenance, null), itemId);
   } catch (e) {
     return toPersistenceRejection(e);
   }
@@ -830,7 +866,8 @@ async function loadForReplan(itemId: string) {
   return { menu, item, current, provenance, context, plannedDate, resolved };
 }
 
-async function finishReplan(args: {
+async function finishReplan(args: ReviewSubmission & {
+  provenance: Provenance;
   menu: MenuDetail;
   item: MenuItemDetail;
   context: RunningMenuContext;
@@ -863,7 +900,9 @@ async function finishReplan(args: {
     excludeItemId: args.item.id,
     confirmedFindingCodes: args.confirmedFindingCodes,
   });
-  const { prescription, sessionFindings, findingConfirmations } = runPlan(request, args.resolved, args.confirmedFindingCodes);
+  const { prescription, sessionFindings, findingConfirmations, plausibilityReviews } = runPlan(request, args.resolved, args.confirmedFindingCodes, {
+    menuId: args.menu.id, itemId: args.item.id, requests: args.plausibilityReviewRequests, storedReviews: args.provenance.plausibilityReviews,
+  });
   const appliedCurrentCoachEdits = (args.currentCoachEdits ?? []).flatMap((edit) => {
     if (!isCoachAuthorityMaterialized(prescription, edit.field)) return [];
     const finalValue = currentCoachEditFieldValue(prescription, edit.field);
@@ -885,6 +924,7 @@ async function finishReplan(args: {
     coachEdits: persistedCoachEdits,
     overrides: args.newProvenanceOverrides,
     findingConfirmations,
+    plausibilityReviews,
   });
 
   let saved;
@@ -896,7 +936,7 @@ async function finishReplan(args: {
   return { item: saved, sessionFindings };
 }
 
-export type EditRunningItemInput = {
+export type EditRunningItemInput = ReviewSubmission & {
   itemId: string;
   /** 今回要求する数値編集。通常UIは1フィールド、同一Actionの検証ケースでは複数も扱う。 */
   fieldEdits?: readonly { field: CoachEditField; value: number }[];
@@ -954,11 +994,12 @@ export async function editRunningItem(input: EditRunningItemInput) {
     currentCoachEdits,
     newProvenanceOverrides: overrides,
     confirmedFindingCodes: input.confirmedFindingCodes,
+    plausibilityReviewRequests: input.plausibilityReviewRequests,
     ...(input.coachReference !== undefined ? { coachReference: input.coachReference } : {}),
   });
 }
 
-export type OverrideRunningItemInput = {
+export type OverrideRunningItemInput = ReviewSubmission & {
   itemId: string;
   target: CoachOverrideTarget;
   newValue?: number;
@@ -1009,10 +1050,11 @@ export async function overrideRunningItem(input: OverrideRunningItemInput) {
     newProvenanceCoachEdits: coachEditsWithoutThisField,
     newProvenanceOverrides: newOverrideHistory,
     confirmedFindingCodes: input.confirmedFindingCodes,
+    plausibilityReviewRequests: input.plausibilityReviewRequests,
   });
 }
 
-export type RecalculateRunningItemInput = { itemId: string; confirmedFindingCodes: readonly string[] };
+export type RecalculateRunningItemInput = ReviewSubmission & { itemId: string; confirmedFindingCodes: readonly string[] };
 
 /**
  * [R10-B1 §35/§36] 明示的な再計算だけが active 版へ更新する。coachEdits はそのまま新しい RuleSet へ渡し、
@@ -1034,8 +1076,38 @@ export async function recalculateRunningItem(input: RecalculateRunningItemInput)
     newProvenanceCoachEdits: ctx.provenance.coachEdits,
     newProvenanceOverrides: [],
     confirmedFindingCodes: input.confirmedFindingCodes,
+    plausibilityReviewRequests: input.plausibilityReviewRequests,
   });
   return { item: saved, sessionFindings, overridesDropped: hadOverrides };
 }
 
 export { projectRunningPrescription };
+
+/** Session creation checks current source state without modifying the saved prescription. */
+export async function revalidateSavedPlausibilityReviews(menu: MenuDetail, item: MenuItemDetail) {
+  const current = parseStoredPrescription(item);
+  const provenance = parseStoredProvenance(item);
+  const context = parseRunningMenuContext(menu);
+  const plannedDate = requirePlannedDate(context);
+  const resolved = resolveExactRuleSetOrReject(item);
+  const active = resolveActiveRuleSetFor(plannedDate);
+  if (active.contentHash !== resolved.contentHash || active.ruleSet.ruleSetVersion !== resolved.ruleSet.ruleSetVersion) {
+    return { valid: false, issues: [] };
+  }
+  if (!current.planningControls) return { valid: false, issues: [] };
+  const request = await buildPlanRequest({
+    menu, context, plannedDate,
+    selection: { method: current.method, templateId: current.templateId } as RunningSelection,
+    coachEdits: coachFieldEditsForReplan(provenance.coachEdits),
+    overrides: coachOverridesForReplan(provenance.overrides, getCoachActorForServer()),
+    coachReference: coachReferenceFromPrescription(current), positionPreference: current.planningControls.positionPreference,
+    excludeItemId: item.id, confirmedFindingCodes: (provenance.findingConfirmations ?? []).map((confirmation) => confirmation.code),
+  });
+  const identity = { subjectIdentity: `menu:${menu.id}:group`, itemIdentity: `menu:${menu.id}:item:${item.id}` };
+  const evaluated = evaluateReviewedRunningPlan({ request, resolved, ...identity, storedReviews: provenance.plausibilityReviews });
+  if (evaluated.result.status !== "OK") return { valid: false, issues: evaluated.issues };
+  const valid = buildPlausibilityReviewContextDigest({ request, ...identity, prescription: current }) ===
+    buildPlausibilityReviewContextDigest({ request, ...identity, prescription: evaluated.result.prescription }) &&
+    evaluated.reviews.length === (provenance.plausibilityReviews ?? []).length;
+  return { valid, issues: evaluated.issues };
+}

@@ -19,6 +19,8 @@
  *   - 失敗結果は `kind` 付きの discriminated union。Finding / 不適格理由は B3 の presentation mapper で日本語化して返す
  *     （Finding code・enum を message に出さない。code は内部 payload としてだけ持つ）。
  */
+import { plausibilityReviewsJsonSchema } from "./_plausibility-review-input";
+import type { PlausibilityIssue } from "@/domain/running/types/plausibilityReview";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { FieldErrors } from "@/domain/shared/result";
@@ -70,7 +72,7 @@ export type RunningActionFailure =
       acceptsCoachTargetSplit: boolean;
     }
   /** 計画できない（BLOCK 等）。 */
-  | { ok: false; kind: "PLAN_BLOCKED"; message: string; findings: FindingPresentationDto[] };
+  | { ok: false; kind: "PLAN_BLOCKED"; message: string; findings: FindingPresentationDto[]; reviewIssues?: PlausibilityIssue[]; reviewError?: "REVIEW_REQUIRED" | "REVIEW_INVALID" };
 
 export type RunningActionResult<T> = { ok: true; data: T; message?: string } | RunningActionFailure;
 
@@ -166,7 +168,7 @@ function toRunningActionFailure(e: unknown): RunningActionFailure {
         acceptsCoachTargetSplit: rejection.acceptsCoachTargetSplit,
       };
     case "PLAN_BLOCKED":
-      return { ok: false, kind: "PLAN_BLOCKED", message, findings: presentFindings(rejection.findings) };
+      return { ok: false, kind: "PLAN_BLOCKED", message, findings: presentFindings(rejection.findings), reviewIssues: rejection.reviewIssues, reviewError: rejection.reviewError };
     case "OVERRIDE_INPUT_INVALID": {
       const fieldErrors: FieldErrors = {};
       for (const path of rejection.paths) {
@@ -229,10 +231,22 @@ const coachReferenceJsonSchema = z
 // ---------------------------------------------------------------------------
 
 const planRunningItemSchema = z.object({
+  fieldOverridesJson: z.string().max(30000).optional().transform((raw, ctx) => {
+    if (!raw?.trim()) return [];
+    try {
+      const parsed = z.array(z.object({ field: envelopeFieldSchema, layer: z.enum(["COACH_EDITABLE", "HARD_SAFETY"]),
+        newValue: z.number().finite(), reason: z.string().trim().min(10).max(1000), confirmedTwice: z.boolean(),
+      }).strict()).max(25).safeParse(JSON.parse(raw));
+      if (parsed.success) return parsed.data;
+    } catch { /* Safe form error below. */ }
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "例外設定の対象・理由・確認を見直してください" });
+    return z.NEVER;
+  }),
   method: z.enum(RUNNING_TRAINING_METHODS),
   templateId: requiredText("テンプレート", 64),
   positionPreference: z.union([z.enum(["LOWER", "MIDDLE"]), z.literal("")]).transform((v) => (v === "" ? null : v)),
   confirmedFindingCodes: confirmedFindingCodesSchema,
+  plausibilityReviewsJson: plausibilityReviewsJsonSchema,
   coachReferenceJson: coachReferenceJsonSchema,
   eligibilityOverrideRuleIds: z.array(z.string().trim().min(1).max(120)).max(20),
   eligibilityOverrideReason: z.string().max(1000).optional().transform((value) => (value ?? "").trim() || null),
@@ -284,6 +298,8 @@ export async function planRunningItemAction(
   try {
     const {
       coachReferenceJson,
+      fieldOverridesJson,
+      plausibilityReviewsJson,
       coachEditsJson,
       eligibilityOverrideFirstConfirmation,
       eligibilityOverrideSecondConfirmation,
@@ -298,6 +314,8 @@ export async function planRunningItemAction(
       blockId,
       ...rest,
       coachReference: coachReferenceJson,
+      fieldOverrides: fieldOverridesJson,
+      plausibilityReviewRequests: plausibilityReviewsJson,
       coachEdits: coachEditsJson,
       eligibilityOverrideConfirmedTwice,
     });
@@ -351,6 +369,7 @@ const editRunningItemSchema = z
     /** 複数項目を一回の同一Planで更新するAction用。通常の編集UIは従来のfield/valueを使う。 */
     fieldEditsJson: fieldEditsJsonSchema,
     confirmedFindingCodes: confirmedFindingCodesSchema,
+  plausibilityReviewsJson: plausibilityReviewsJsonSchema,
     /** [R10-B4A.2] 強度の基準（目標スプリット）の明示更新。未送信なら保存済みの基準をそのまま使う。 */
     coachReferenceJson: coachReferenceJsonSchema,
   })
@@ -373,6 +392,7 @@ const editRunningItemSchema = z
     return {
       itemId: v.itemId,
       confirmedFindingCodes: v.confirmedFindingCodes,
+      plausibilityReviewRequests: v.plausibilityReviewsJson,
       ...(hasField
         ? { fieldEdits: [{ field: v.field as z.infer<typeof coachFieldEditSchema.shape.field>, value: v.value as number }] }
         : hasFieldEdits
@@ -434,9 +454,10 @@ const overrideTargetFormSchema = z
      */
     confirmedTwice: z.enum(["true", "false"], { errorMap: () => ({ message: "確認の状態を指定してください" }) }).transform((v) => v === "true"),
     confirmedFindingCodes: confirmedFindingCodesSchema,
+  plausibilityReviewsJson: plausibilityReviewsJsonSchema,
   })
   .transform((v, ctx) => {
-    const common = { itemId: v.itemId, reason: v.reason, confirmedTwice: v.confirmedTwice, confirmedFindingCodes: v.confirmedFindingCodes };
+    const common = { plausibilityReviewRequests: v.plausibilityReviewsJson, itemId: v.itemId, reason: v.reason, confirmedTwice: v.confirmedTwice, confirmedFindingCodes: v.confirmedFindingCodes };
     if (v.targetKind === "ELIGIBILITY") {
       if (!v.ruleId) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "対象の規則を選んでください", path: ["ruleId"] });
@@ -493,7 +514,7 @@ export async function overrideRunningItemAction(
 // recalculateWithActiveRuleSetAction（§35）
 // ---------------------------------------------------------------------------
 
-const recalculateSchema = z.object({ itemId: requiredText("項目", 64), confirmedFindingCodes: confirmedFindingCodesSchema });
+const recalculateSchema = z.object({ itemId: requiredText("項目", 64), confirmedFindingCodes: confirmedFindingCodesSchema, plausibilityReviewsJson: plausibilityReviewsJsonSchema });
 
 /**
  * [§35] 明示ボタン用。この Action だけが active RuleSet（`RunningMenuContext.plannedDate` 基準）へ
@@ -514,7 +535,7 @@ export async function recalculateWithActiveRuleSetAction(
   let sessionFindings: Finding[];
   let overridesDropped = false;
   try {
-    const result = await recalculateRunningItem(parsed.data);
+    const result = await recalculateRunningItem({ ...parsed.data, plausibilityReviewRequests: parsed.data.plausibilityReviewsJson });
     sessionFindings = result.sessionFindings;
     overridesDropped = result.overridesDropped;
   } catch (e) {

@@ -61,6 +61,7 @@ import { validatePrescriptionAgainstRuleSet } from "./validatePrescription";
 import { evaluateSessionAggregation } from "../aggregation";
 import { checkOutputPlausibility, checkSessionPlausibility } from "../plausibility/output";
 import { requiredConfirmationCodes } from "./confirmation";
+import { isReviewablePlausibilityPolicy } from "../plausibility/review";
 import { resolveCompetitionAndPhase } from "../competition";
 import { evaluateWeeklyContext } from "../weekly";
 import { hasUsedTemplateWithinDays } from "../weekly/events";
@@ -658,7 +659,24 @@ function buildRuntimeSafetyPolicySnapshot(ruleSet: RuleSet): RuntimeSafetyPolicy
   return parsed.success ? parsed.data : null;
 }
 
+export type PlausibilityCandidateResult = PlanResult | {
+  status: "REVIEW_CANDIDATE";
+  prescription: RunningPrescriptionValue;
+  sessionFindings: Finding[];
+};
+
 export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet, depth = 0): PlanResult {
+  const result = buildPlan(raw, resolved, depth, false);
+  if (result.status === "REVIEW_CANDIDATE") throw new Error("Unexpected review candidate");
+  return result;
+}
+
+/** Server evaluation seam. A candidate is unapproved and must never be saved directly. */
+export function evaluatePlausibilityCandidate(raw: unknown, resolved: ResolvedRuleSet): PlausibilityCandidateResult {
+  return buildPlan(raw, resolved, 0, true);
+}
+
+function buildPlan(raw: unknown, resolved: ResolvedRuleSet, depth: number, collectReviews: boolean): PlausibilityCandidateResult {
   const { ruleSet, contentHash } = resolved;
 
   // ---- step 1: normalization + input plausibility ----
@@ -666,6 +684,10 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
   // PlanRequest が parse できない場合は RuleSet 選択以前なので RULESET_DRAFT を付けない。
   if (!normalized.ok) return { status: "BLOCKED", findings: normalized.findings };
   const request = normalized.request;
+  const canCollect = collectReviews && request.actor.kind === "COACH";
+  const canDefer = (finding: Finding) => canCollect &&
+    isReviewablePlausibilityPolicy(finding.plausibility?.policy ?? "") &&
+    (finding.plausibility?.certainty === "CONFIRMED_EXCEED" || finding.plausibility?.certainty === "POSSIBLE_EXCEED");
   const method = request.selection.method;
 
   // [R4 errata] 結果の種類（OK / INELIGIBLE / BLOCKED）に依らない横断情報。不適格の理由そのものは含めない。
@@ -682,7 +704,8 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
     findings: [...contextFindings, ...extra],
   });
 
-  if (plausibility.blocking.length > 0) return blocked(plausibility.blocking);
+  if (plausibility.blocking.some((finding) => !canDefer(finding))) return blocked(plausibility.blocking);
+  contextFindings.push(...plausibility.blocking);
 
   // ---- step 2: pain / safety gate（§13.2）----
   // envelope / placement より前に止める。STOP はどの actor の override でも解除できない。
@@ -790,7 +813,9 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
   const selectedInputPlausibility = checkSelectedPerformanceInputPlausibility(request, ruleSet, plan.selectedInputMarks);
   contextFindings.push(...selectedInputPlausibility.findings);
   findings.push(...selectedInputPlausibility.findings);
-  if (selectedInputPlausibility.blocking.length > 0) return blocked(selectedInputPlausibility.blocking);
+  if (selectedInputPlausibility.blocking.some((finding) => !canDefer(finding))) return blocked(selectedInputPlausibility.blocking);
+  contextFindings.push(...selectedInputPlausibility.blocking);
+  findings.push(...selectedInputPlausibility.blocking);
   if (recoveryStructure === "INCOMPLETE" && (plan.reference.kind !== "TARGET_SPLIT" || plan.reference.segments.length < 2)) {
     // 分割走の区間はコーチの TARGET_SPLIT（2区間以上）でしか決まらない。
     return ineligible([{ code: "REFERENCE_UNAVAILABLE", ruleId: null, overrideAllowed: false }]);
@@ -1080,6 +1105,12 @@ export function planWithResolvedRuleSet(raw: unknown, resolved: ResolvedRuleSet,
   });
   const sessionPlausibility = checkSessionPlausibility(aggregate.totalRunningDistanceM, ruleSet);
   const sessionFindings: Finding[] = [...aggregate.findings, ...sessionPlausibility.findings];
+
+  // Keep every blocker, including other hard gates. Application review satisfaction
+  // must bind individual current findings and check all remaining gates before saving.
+  if (canCollect && prescription.findings.some((finding) => finding.severity === "BLOCK" && canDefer(finding))) {
+    return { status: "REVIEW_CANDIDATE", prescription, sessionFindings };
+  }
 
   if (itemPlausibility.blocked) return blocked(itemPlausibility.findings.filter((f) => f.severity === "BLOCK"));
   if (sessionPlausibility.blocked) return blocked(sessionFindings);

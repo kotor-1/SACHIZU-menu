@@ -21,7 +21,7 @@ import { actualRepLogStateV1Schema, readRepLogStartState, serializeActualRepLogS
 import { quantityIntervalSchema } from "@/domain/running/types/primitives";
 import { safetyOutcomeSchema } from "@/domain/running/types/readiness";
 import { terminalMonitorActionSchema } from "@/domain/running/persistence/executionState";
-import { buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "./session-fingerprint";
+import { buildReviewMenuContextFingerprint, buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "./session-fingerprint";
 
 const sessionDetailInclude = {
   items: {
@@ -211,7 +211,17 @@ export async function createSessionFromMenu(
     });
     if (!menu) throw new Error("メニューが見つかりません");
 
+    for (const item of menu.blocks.flatMap((block) => block.items)) {
+      if (item.prescriptionKind !== "RUNNING_V2") continue;
+      let raw: unknown;
+      try { raw = JSON.parse(item.provenanceJson ?? "null"); } catch { raw = null; }
+      if (raw && typeof raw === "object" && "plausibilityReviews" in raw &&
+          (!Array.isArray(raw.plausibilityReviews) || raw.plausibilityReviews.length > 0) &&
+          !planningEvaluation?.reviewedItemIds?.includes(item.id)) throw new PlanningEvaluationStaleError();
+    }
     if (planningEvaluation !== undefined) {
+      if (planningEvaluation.sourceMenuContextFingerprint !== undefined &&
+          buildReviewMenuContextFingerprint(menu, input.date) !== planningEvaluation.sourceMenuContextFingerprint) throw new PlanningEvaluationStaleError();
       const fingerprintItems: FingerprintMenuItemInput[] = menu.blocks.flatMap((block) =>
         block.items.map((item) => ({
           id: item.id,
@@ -220,6 +230,7 @@ export async function createSessionFromMenu(
           ruleSetVersion: item.ruleSetVersion,
           ruleSetContentHash: item.ruleSetContentHash,
           prescriptionJson: item.prescriptionJson,
+          provenanceJson: item.provenanceJson,
           sets: item.sets,
           reps: item.reps,
           distanceMeters: item.distanceMeters,

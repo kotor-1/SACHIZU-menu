@@ -16,3 +16,8 @@ export function buildSourceMenuFingerprint(items: readonly FingerprintMenuItemIn
 }
 
 export type { FingerprintMenuItemInput };
+
+/** Current menu source context, separate from historical Session snapshots. */
+export function buildReviewMenuContextFingerprint(menu: { id: string; phase: string | null; runningContextJson: string | null }, sessionDate: string): string {
+  return createHash("sha256").update(JSON.stringify({ menuId: menu.id, phase: menu.phase, runningContextJson: menu.runningContextJson, sessionDate })).digest("hex");
+}

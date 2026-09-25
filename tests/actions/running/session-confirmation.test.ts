@@ -66,6 +66,7 @@ async function menuFingerprint(menuId: string) {
         ruleSetVersion: item.ruleSetVersion,
         ruleSetContentHash: item.ruleSetContentHash,
         prescriptionJson: item.prescriptionJson,
+          provenanceJson: item.provenanceJson,
         sets: item.sets,
         reps: item.reps,
         distanceMeters: item.distanceMeters,

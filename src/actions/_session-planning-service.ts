@@ -18,7 +18,17 @@
  * domain（`src/domain/running/**`）は Prisma を import できないため、repository 呼び出しは
  * すべてここに置く（このファイル自身も Prisma を直接叩かない。repository を経由する）。
  */
-import { resolveSubjectProfile, type Finding, type Subject } from "@/domain/running";
+import { evaluateLegacySessionReviews } from "@/application/legacy-session-plausibility-review";
+import type { PlausibilityIssue, PlausibilityReviewRequest } from "@/domain/running/types/plausibilityReview";
+import { checkOutputPlausibility, checkSessionPlausibility } from "@/domain/running/plausibility/output";
+import { provenanceSchema } from "@/domain/running/persistence/provenance";
+import { validateRunningMenuItemRecord } from "@/domain/running/persistence/runningItem";
+import { parseJsonColumn } from "@/domain/running/persistence/jsonColumn";
+import { canonicalStringify } from "@/domain/shared/canonical-json";
+import { runningMenuContextSchema } from "@/domain/running/persistence/menuContext";
+import { getCoachActorForServer } from "./_actor";
+import { revalidateSavedPlausibilityReviews } from "./_running-plan-service";
+import { getActiveRuleSet, resolveSubjectProfile, type Finding, type Subject } from "@/domain/running";
 import { resolveCompetitionDay } from "@/domain/running/competition";
 import { requiredConfirmationCodes } from "@/domain/running/planning/confirmation";
 import { evaluateWeeklyContext } from "@/domain/running/weekly";
@@ -33,8 +43,8 @@ import type { IsoDate, IsoDateTime } from "@/domain/running/types/primitives";
 import { findMenu, type MenuDetail } from "@/infra/repositories/menu-repository";
 import { listCompetitionRefs } from "@/infra/repositories/competition-repository";
 import { listLoadHistory } from "@/infra/repositories/load-history-repository";
-import { buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "@/infra/repositories/session-fingerprint";
-import { evaluateStoredRunningMenu } from "./_running-menu-evaluation";
+import { buildReviewMenuContextFingerprint, buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "@/infra/repositories/session-fingerprint";
+import { evaluateStoredRunningMenu, legacyAggregationSummary } from "./_running-menu-evaluation";
 
 /**
  * [R11-B1] 現在の評価で明示確認が必要な内容（severity = REQUIRE_CONFIRMATION）。
@@ -46,7 +56,7 @@ export type SessionPlanningDecision =
   /** RUNNING_V2 項目が無い（legacy-only）。B2 前と同じ挙動を維持し、評価を渡さない（§6/§7）。 */
   | { kind: "SKIP" }
   /** aggregate に BLOCK がある。Session row を1件も作らせない（§20/§21。確認では解除できない） */
-  | { kind: "REJECT"; message: string }
+  | { kind: "REJECT"; message: string; reviewIssues?: PlausibilityIssue[] }
   | {
       kind: "EVALUATED";
       evaluation: SessionPlanningEvaluationInput;
@@ -115,6 +125,7 @@ function fingerprintItemsOf(menu: MenuDetail): FingerprintMenuItemInput[] {
       ruleSetVersion: item.ruleSetVersion,
       ruleSetContentHash: item.ruleSetContentHash,
       prescriptionJson: item.prescriptionJson,
+          provenanceJson: item.provenanceJson,
       sets: item.sets,
       reps: item.reps,
       distanceMeters: item.distanceMeters,
@@ -131,19 +142,23 @@ function fingerprintItemsOf(menu: MenuDetail): FingerprintMenuItemInput[] {
 // 本体
 // ---------------------------------------------------------------------------
 
-export async function buildSessionPlanningEvaluation(input: { menuTemplateId: string; date: string }): Promise<SessionPlanningDecision> {
+export async function buildSessionPlanningEvaluation(input: { menuTemplateId: string; date: string; plausibilityReviewRequests?: readonly PlausibilityReviewRequest[] }): Promise<SessionPlanningDecision> {
   const menu = await findMenu(input.menuTemplateId);
   if (!menu) return { kind: "SKIP" }; // メニュー未検出は repository 側で最終的にエラーになる。ここでは評価しない。
 
   const allRows = menu.blocks.flatMap((block) => block.items);
   const v2Rows = allRows.filter((item) => item.prescriptionKind === "RUNNING_V2");
-  if (v2Rows.length === 0) return { kind: "SKIP" }; // §6/§7: legacy-only は R9 の fallback を維持する
+  if (v2Rows.length === 0) return input.plausibilityReviewRequests?.length ? { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA } : { kind: "SKIP" }; // §6/§7: legacy-only は R9 の fallback を維持する
 
   const { plannedDate: sessionDate } = plannedDateTimeOf(input.date);
   if (sessionDate === null) return { kind: "SKIP" }; // Action 側の schema 検証を通っていれば通常起きない
 
   const sourceMenuFingerprint = buildSourceMenuFingerprint(fingerprintItemsOf(menu));
   const findings: Finding[] = [];
+  const hasStoredReview = v2Rows.some((item) => {
+    try { return (JSON.parse(item.provenanceJson ?? "null")?.plausibilityReviews?.length ?? 0) > 0; }
+    catch { return item.provenanceJson?.includes("plausibilityReviews") ?? false; }
+  });
 
   type NotEvaluatedReason = (typeof PLANNING_NOT_EVALUATED_REASONS)[number];
   const notEvaluatedBoth = (reason: NotEvaluatedReason) =>
@@ -170,6 +185,7 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
   });
   if (evaluated.status === "SKIP") return { kind: "SKIP" };
   if (evaluated.status === "NOT_EVALUATED") {
+    if (hasStoredReview || input.plausibilityReviewRequests?.length) return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA };
     // 個々の SNAPSHOT_JSON_INVALID + REQUIRE_COACH_REVIEW finding は repository 側の
     // `snapshotItemFindings`（sessionSnapshot.ts）が item ごとに必ず付ける。ここで重複させない。
     if (evaluated.reason !== "SNAPSHOT_JSON_INVALID") findings.push(coachReviewFinding(evaluated.reason));
@@ -177,7 +193,38 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
   }
   const { ruleSet, ruleSetRef, context, parsedV2, aggregate } = evaluated;
 
-  const aggregationGateFindings = [...aggregate.findings, ...evaluated.plausibilityFindings];
+  // The separately loaded context must still be the context in the evaluated menu snapshot.
+  const capturedContext = parseJsonColumn(menu.runningContextJson, runningMenuContextSchema, { rejectHealthKeys: true });
+  if (!capturedContext.ok || canonicalStringify(capturedContext.value) !== canonicalStringify(context)) return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA };
+  const reviewedItemIds: string[] = [];
+  for (const { itemId, prescription } of parsedV2) {
+    const row = v2Rows.find((item) => item.id === itemId)!;
+    const provenance = parseJsonColumn(row.provenanceJson, provenanceSchema, { rejectHealthKeys: true });
+    const output = checkOutputPlausibility(prescription, ruleSet);
+    if (hasStoredReview || output.blocked || prescription.findings.some((finding) => finding.severity === "BLOCK" && finding.plausibility)) {
+      if (!provenance.ok) return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA };
+      if (provenance.value.plausibilityReviews?.length || output.blocked || prescription.findings.some((finding) => finding.severity === "BLOCK" && finding.plausibility)) {
+        try {
+          validateRunningMenuItemRecord(row, "READ");
+          if (context.plannedDate !== sessionDate) return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA };
+          const checked = await revalidateSavedPlausibilityReviews(menu, row);
+          if (!checked.valid) return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA, reviewIssues: checked.issues };
+          reviewedItemIds.push(itemId);
+        } catch { return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA }; }
+      }
+    }
+  }
+  const legacy = evaluateLegacySessionReviews({
+    menuId: menu.id, sessionDate: input.date, context, sourceMenuFingerprint,
+    items: allRows.filter((item) => item.prescriptionKind !== "RUNNING_V2").map((item) => ({ id: item.id, summary: legacyAggregationSummary(item) })),
+    resolved: { ruleSet, contentHash: ruleSetRef.contentHash }, requests: input.plausibilityReviewRequests, actor: getCoachActorForServer(),
+  });
+  if (!legacy.valid) return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA, reviewIssues: legacy.issues };
+  if (legacy.reviews.length > 0) {
+    const active = getActiveRuleSet(sessionDate);
+    if (active.contentHash !== ruleSetRef.contentHash || active.ruleSet.ruleSetVersion !== ruleSetRef.version) return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA, reviewIssues: legacy.issues };
+  }
+  const aggregationGateFindings = [...aggregate.findings, ...checkSessionPlausibility(aggregate.totalRunningDistanceM, ruleSet).findings, ...(legacy.gateFindings ?? legacy.findings)];
   if (aggregationGateFindings.some((f) => f.severity === "BLOCK")) {
     return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA };
   }
@@ -224,6 +271,9 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
       weeklyContext,
       findings,
       sourceMenuFingerprint,
+      ...(reviewedItemIds.length ? { reviewedItemIds } : {}),
+      ...(legacy.reviews.length ? { legacyPlausibilityReviews: legacy.reviews } : {}),
+      sourceMenuContextFingerprint: buildReviewMenuContextFingerprint(menu, input.date),
     },
     confirmationRequired,
   };

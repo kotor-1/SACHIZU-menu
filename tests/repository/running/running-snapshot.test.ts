@@ -472,6 +472,7 @@ describe("SessionPlanningEvaluationInput（R10 application layer → repository 
         ruleSetVersion: item.ruleSetVersion,
         ruleSetContentHash: item.ruleSetContentHash,
         prescriptionJson: item.prescriptionJson,
+          provenanceJson: item.provenanceJson,
         sets: item.sets,
         reps: item.reps,
         distanceMeters: item.distanceMeters,

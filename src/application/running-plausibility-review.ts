@@ -15,7 +15,7 @@ import {
 } from "@/domain/running/plausibility/review";
 import { selectHeightHistoryForGrowth, type HeightHistoryPoint } from "@/domain/running/context/maturity";
 import { checkOutputPlausibility } from "@/domain/running/plausibility/output";
-import { planWithResolvedRuleSet } from "@/domain/running/planning/build";
+import { evaluatePlausibilityCandidate, planWithResolvedRuleSet } from "@/domain/running/planning/build";
 import { planRequestSchema } from "@/domain/running/planning/schema";
 import type { PlausibilityRule, RuleSet } from "@/domain/running/rules/schema";
 import { appliedPlausibilityReviewSchema, plausibilityIssueSchema, plausibilityReviewRequestSchema, sha256DigestSchema,
@@ -203,8 +203,9 @@ function sameReviewFinding(candidate: Finding, finding: Finding): boolean {
 
 /** Re-use the planner's selection policy; presence in the mark list alone does not mean selected. */
 function currentInputFindings(planningInput: PlausibilityReviewPlanningInput, resolved: ResolvedPlausibilityReviewRuleSet): readonly Finding[] {
-  const result = planWithResolvedRuleSet(planningInput.request, { ...resolved, isDraftFallback: resolved.ruleSet.status === "DRAFT" });
-  return result.status === "OK" ? result.prescription.findings : result.findings;
+  const run = planningInput.prescription ? evaluatePlausibilityCandidate : planWithResolvedRuleSet;
+  const result = run(planningInput.request, { ...resolved, isDraftFallback: resolved.ruleSet.status === "DRAFT" });
+  return result.status === "OK" || result.status === "REVIEW_CANDIDATE" ? result.prescription.findings : result.findings;
 }
 
 /** Build a digest-bearing issue only from a current server finding and full current planning state. */

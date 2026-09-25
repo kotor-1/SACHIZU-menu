@@ -1,5 +1,7 @@
 "use server";
 
+import { plausibilityReviewsJsonSchema } from "./_plausibility-review-input";
+import type { PlausibilityIssue } from "@/domain/running/types/plausibilityReview";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -52,7 +54,7 @@ export type SessionCreationFailure =
   /** 入力の形式が正しくない。 */
   | { ok: false; kind: "INVALID_INPUT"; message: string; fieldErrors?: FieldErrors }
   /** 作成できない（BLOCK・メニュー未検出など）。確認では解除できない。 */
-  | { ok: false; kind: "REJECTED"; message: string }
+  | { ok: false; kind: "REJECTED"; message: string; reviewIssues?: PlausibilityIssue[] }
   /** 明示確認が必要（1回目、またはチェック漏れ）。Session は作らない。 */
   | {
       ok: false;
@@ -119,19 +121,21 @@ export async function createSessionFromMenuAction(
     const failure = confirmationInput.result as { message: string; fieldErrors?: FieldErrors };
     return { ok: false, kind: "INVALID_INPUT", message: failure.message, fieldErrors: failure.fieldErrors };
   }
+  const reviewInput = plausibilityReviewsJsonSchema.safeParse(formData.get("plausibilityReviewsJson") ?? undefined);
+  if (!reviewInput.success) return { ok: false, kind: "INVALID_INPUT", message: "レビューの対象・理由・2段階の確認を見直してください" };
   const input = parsed.data;
   const { confirmedFindingCodes, confirmationChallenge } = confirmationInput.data;
 
   let decision: SessionPlanningDecision;
   try {
-    decision = await buildSessionPlanningEvaluation(input);
+    decision = await buildSessionPlanningEvaluation({ ...input, plausibilityReviewRequests: reviewInput.data });
   } catch (error) {
     if (error instanceof LoadHistoryResolutionError) {
       return { ok: false, kind: "REJECTED", message: "大会実績の履歴を確認できないため、セッションを作成できません。大会実績を確認してください。" };
     }
     return { ok: false, kind: "REJECTED", message: "セッションの計画評価を完了できませんでした。" };
   }
-  if (decision.kind === "REJECT") return { ok: false, kind: "REJECTED", message: decision.message };
+  if (decision.kind === "REJECT") return { ok: false, kind: "REJECTED", message: decision.message, ...(decision.reviewIssues ? { reviewIssues: decision.reviewIssues } : {}) };
 
   let evaluation = decision.kind === "EVALUATED" ? decision.evaluation : undefined;
   const submitted = { confirmedFindingCodes, confirmationChallenge };

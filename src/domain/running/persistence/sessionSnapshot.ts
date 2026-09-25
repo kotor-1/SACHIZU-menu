@@ -10,6 +10,9 @@
  *     `SessionPlanningEvaluationInput` として渡す。渡されなければ NOT_EVALUATED（PLANNING_EVALUATION_NOT_SUPPLIED）。
  */
 import { z } from "zod";
+import { canonicalStringify, sha256Utf8Hex } from "../../shared/canonical-json";
+import { canonicalPlausibilityIssueIdentity } from "../plausibility/review";
+import { appliedPlausibilityReviewSchema } from "../types/plausibilityReview";
 import { sessionAggregateSchema } from "../aggregation/schema";
 import { isValidCalendarDate } from "../planning/schema";
 import { findingSchema, type Finding, type FindingSeverity } from "../types/findings";
@@ -146,6 +149,15 @@ export const findingConfirmationsSchema = z
   .optional();
 export type FindingConfirmationRecord = { code: string; at: IsoDateTime };
 
+const legacySessionReviewsSchema = z.array(z.object({
+  menuItemId: z.string().min(1), review: appliedPlausibilityReviewSchema,
+}).strict()).max(50).superRefine((entries, ctx) => {
+  if (new Set(entries.map(({ review }) => review.issueDigest)).size !== entries.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Duplicate review" });
+  for (const { review } of entries) {
+    if (sha256Utf8Hex(canonicalStringify(canonicalPlausibilityIssueIdentity(review))) !== review.issueDigest) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Review digest mismatch" });
+  }
+}).optional();
+
 export const sessionPlanningEvaluationInputSchema = z
   .object({
     aggregation: aggregationEvaluationInputSchema,
@@ -163,6 +175,9 @@ export const sessionPlanningEvaluationInputSchema = z
      * （client が送った任意文字列は保存しない）。確認しても Finding は消さない（§23 別管理）。
      */
     findingConfirmations: findingConfirmationsSchema,
+    legacyPlausibilityReviews: legacySessionReviewsSchema,
+    reviewedItemIds: z.array(z.string().min(1)).max(1000).optional(),
+    sourceMenuContextFingerprint: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
   })
   .strict();
 export type SessionPlanningEvaluationInput = z.input<typeof sessionPlanningEvaluationInputSchema>;
@@ -179,6 +194,7 @@ export type FingerprintMenuItemInput = {
   ruleSetVersion: string | null;
   ruleSetContentHash: string | null;
   prescriptionJson: string | null;
+  provenanceJson?: string | null;
   sets: number | null;
   reps: number | null;
   distanceMeters: number | null;
@@ -197,6 +213,7 @@ export type FingerprintCanonicalItem = {
   ruleSetVersion: string | null;
   ruleSetContentHash: string | null;
   prescriptionJson: string | null;
+  provenanceJson?: string | null;
   sets: number | null;
   reps: number | null;
   distanceMeters: number | null;
@@ -225,6 +242,7 @@ export function canonicalSourceMenuFingerprintPayload(items: readonly Fingerprin
     ruleSetVersion: i.ruleSetVersion,
     ruleSetContentHash: i.ruleSetContentHash,
     prescriptionJson: i.prescriptionJson,
+    provenanceJson: i.provenanceJson ?? null,
     sets: i.sets,
     reps: i.reps,
     distanceMeters: i.distanceMeters,
@@ -342,6 +360,8 @@ function canonicalWeeklyResult(result: ParsedWeeklyResult) {
 }
 
 export type CanonicalSessionConfirmationEvaluationPayload = {
+  legacyReviewDigests?: { menuItemId: string; issueDigest: string }[];
+  sourceMenuContextFingerprint?: string;
   schemaVersion: 1;
   sourceMenuFingerprint: string;
   aggregation:
@@ -398,6 +418,7 @@ export function canonicalSessionConfirmationEvaluationPayload(
           }
         : { status: "NOT_EVALUATED", reasons: sortedCopy(parsed.weeklyContext.reasons) },
     findings: stableFindings(parsed.findings),
+    ...(parsed.legacyPlausibilityReviews ? { legacyReviewDigests: parsed.legacyPlausibilityReviews.map(({ menuItemId, review }) => ({ menuItemId, issueDigest: review.issueDigest })).sort((a,b) => a.issueDigest.localeCompare(b.issueDigest)) } : {}),
   };
 }
 
@@ -503,6 +524,9 @@ export const planningSnapshotSchema = z
      * 旧 snapshot はこの key を持たない（optional。schemaVersion は 1 のまま）。
      */
     findingConfirmations: findingConfirmationsSchema,
+    legacyPlausibilityReviews: legacySessionReviewsSchema,
+    reviewedItemIds: z.array(z.string().min(1)).max(1000).optional(),
+    sourceMenuContextFingerprint: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
   })
   .strict()
   .superRefine((snapshot, ctx) => {
@@ -624,6 +648,11 @@ export function snapshotItemFindings(items: readonly SnapshotItemInput[]): Findi
 function evaluationIssues(evaluation: z.output<typeof sessionPlanningEvaluationInputSchema>, items: readonly SnapshotItemInput[]): string[] {
   const issues: string[] = [];
   const v2Items = items.filter((i) => i.prescriptionKind === "RUNNING_V2");
+  for (const { menuItemId, review } of evaluation.legacyPlausibilityReviews ?? []) {
+    if (!items.some((item) => item.menuItemId === menuItemId && item.prescriptionKind !== "RUNNING_V2") ||
+        evaluation.aggregation.status !== "EVALUATED" || review.ruleSet.version !== evaluation.aggregation.ruleSet.version ||
+        review.ruleSet.contentHash !== evaluation.aggregation.ruleSet.contentHash) issues.push("Legacy review binding mismatch");
+  }
   const sameRuleSet = (item: SnapshotItemInput, ref: { version: string; contentHash: string }) =>
     item.ruleSetVersion === ref.version && item.ruleSetContentHash === ref.contentHash;
 
@@ -692,6 +721,9 @@ export function buildPlanningSnapshot(args: {
         : evaluation.weeklyContext,
     findings: [...evaluation.findings, ...snapshotFindings],
     sourceMenuFingerprint: evaluation.sourceMenuFingerprint,
+    ...(evaluation.legacyPlausibilityReviews?.length ? { legacyPlausibilityReviews: evaluation.legacyPlausibilityReviews } : {}),
+    ...(evaluation.reviewedItemIds ? { reviewedItemIds: evaluation.reviewedItemIds } : {}),
+    ...(evaluation.sourceMenuContextFingerprint ? { sourceMenuContextFingerprint: evaluation.sourceMenuContextFingerprint } : {}),
     // [R11-B1] 確認が無い作成では key 自体を持たせない（旧 snapshot と同じ形）。
     ...(evaluation.findingConfirmations !== undefined && evaluation.findingConfirmations.length > 0
       ? { findingConfirmations: evaluation.findingConfirmations }
