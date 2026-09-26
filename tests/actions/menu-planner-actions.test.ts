@@ -218,7 +218,7 @@ describe("R12-A3G production composition integration", () => {
         const selected = actual.getActiveRuleSet(date);
         return ruleSetMode === "ACTIVE"
           ? { ...selected, isDraftFallback: false, ruleSet: { ...selected.ruleSet, status: "ACTIVE" } }
-          : selected;
+          : { ...selected, isDraftFallback: true, ruleSet: { ...selected.ruleSet, status: "DRAFT" } };
       },
     };
   });

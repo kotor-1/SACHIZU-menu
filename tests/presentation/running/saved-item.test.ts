@@ -42,6 +42,7 @@ function setup() {
   const evidenceId = MV_EVIDENCE_ID();
   // A: 保存時の版。フライ20m の出典は「メタ分析」にしておく。
   const ruleSetA = ruleSetVariant("rs-test-A", (rs) => {
+    rs.status = "DRAFT";
     rs.templates.find((t) => t.id === "MV_FLY20")!.labelJa = "フライ20m";
     rs.evidence = rs.evidence.map((e) => (e.id === evidenceId ? { ...e, sourceType: "META_ANALYSIS", evidenceLevel: 1 } : e));
   });

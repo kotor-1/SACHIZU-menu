@@ -333,7 +333,7 @@ describe("RUNNING_V2 MenuItem: 書込み前の拒否（§19.2）", () => {
     const cases: [string, object, RegExp][] = [
       ["version", { ...base, ruleSet: { ...base.ruleSet, version: "rs-2099.01.0" } }, /ruleSet.version/],
       ["hash", { ...base, ruleSet: { ...base.ruleSet, contentHash: "f".repeat(64) } }, /ruleSet.contentHash/],
-      ["status", { ...base, ruleSet: { ...base.ruleSet, status: "ACTIVE" } }, /ruleSet.status/],
+      ["status", { ...base, ruleSet: { ...base.ruleSet, status: "DRAFT" } }, /ruleSet.status/],
       ["confidence", { ...base, confidence: { ...base.confidence, prescription: "HIGH" } }, /confidence/],
       ["evidence missing", { ...base, evidenceIds: base.evidenceIds.slice(1) }, /evidenceIds/],
       ["evidence extra", { ...base, evidenceIds: [...base.evidenceIds, "EV_NOT_USED"] }, /evidenceIds/],

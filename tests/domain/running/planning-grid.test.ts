@@ -215,7 +215,7 @@ function checkOkPrescription(p: RunningPrescriptionValue, label: string, req: Pl
 
   expect(runningPrescriptionSchema.safeParse(p).success, label).toBe(true);
   expect(validatePrescriptionAgainstRuleSet(p, ruleSet, CONTENT_HASH), label).toEqual([]);
-  expect(p.ruleSet, label).toEqual({ version: "rs-2026.09.0", contentHash: CONTENT_HASH, status: "DRAFT" });
+  expect(p.ruleSet, label).toEqual({ version: "rs-2026.09.0", contentHash: CONTENT_HASH, status: "ACTIVE" });
   // [R9] loadSnapshot は plan 時点の MethodMeta のコピー（metadata のみ）
   const methodMeta = ruleSet.methods.find((m) => m.method === p.method)!;
   expect(p.loadSnapshot, label).toEqual({ loadClass: methodMeta.loadClass, weeklyLoadCategory: methodMeta.weeklyLoadCategory });
@@ -436,7 +436,8 @@ describe("R4 planning grid（§20.1 PROPERTY / BOUNDARY）", () => {
                 grid.trainingAgeSeen.add(trainingAge);
 
                 const resultFindings = result.status === "OK" ? result.prescription.findings : result.findings;
-                expect(resultFindings.map((f) => f.code), label).toContain("RULESET_DRAFT");
+                // [OPEN20 activation] RuleSet は ACTIVE のため RULESET_DRAFT を付けない。
+                expect(resultFindings.map((f) => f.code), label).not.toContain("RULESET_DRAFT");
                 if (result.status === "OK") {
                   const key = `${template.method}/${actor.kind}`;
                   grid.byMethodActorOk[key] = (grid.byMethodActorOk[key] ?? 0) + 1;

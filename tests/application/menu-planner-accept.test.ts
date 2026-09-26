@@ -812,10 +812,10 @@ describe("R12-A3A revalidate — stale detection", () => {
     await expectStale(ctx.token, "CONTEXT_BINDING_STALE");
   });
 
-  it("RuleSet の status が DRAFT→ACTIVE に変わると STALE（silent accept しない）", async () => {
+  it("RuleSet の status が ACTIVE→DRAFT に変わると STALE（silent accept しない）", async () => {
     const ctx = await issuedToken();
-    expect((claimsOf(ctx.token).ruleSet as { status: string }).status).toBe("DRAFT");
-    ruleSetStatusOverride.value = "ACTIVE";
+    expect((claimsOf(ctx.token).ruleSet as { status: string }).status).toBe("ACTIVE");
+    ruleSetStatusOverride.value = "DRAFT";
     await expectStale(ctx.token, "CONTEXT_BINDING_STALE");
   });
 

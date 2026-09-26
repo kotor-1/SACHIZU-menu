@@ -615,7 +615,7 @@ describe("step 14: planning への接続", () => {
     const r = expectOk(planRunningPrescription(makeRequest("ACCELERATION", "ACC_BLOCK_20")));
     expect(r.prescription.readinessApplied).toEqual([]);
     expect(r.prescription.safetyOutcome).toBe("NONE");
-    expect(r.prescription.ruleSet.status).toBe("DRAFT");
+    expect(r.prescription.ruleSet.status).toBe("ACTIVE");
   });
 
   it("root public API は evaluateSessionAggregation / checkOutputPlausibility だけ（内部は出さない）", () => {

@@ -1065,7 +1065,7 @@ export type Envelope = {
 | vdecPercent（sled） | 専用 classification bands を snapshot（LIGHT: x<10、MODERATE: 10≤x<15、15≤x≤30: unresolved review、VERY_HEAVY: x>30） | 同左 | Petrakos は classification/check の根拠。classification は load prescription ではない。15–30 は named empirical band にしない |
 | vdec 実測 | 無い場合 band は `measured:false`・confidence LOW。VERY_HEAVY は COACH_REVIEW | 同左 | EP / CHECK_ONLY |
 | HILL | vdec を使わない（平地参照が無い） | 同左 | EP（Fable M-13） |
-| repDistanceM | 10–20 / 10–30 | 10–30 / 10–40 | **EP**（§5.6 の Evidence には usage=PRESCRIPTION でこの数値を直接裏付ける記録が無いため、DEV・ADV とも ENGINE_POLICY として扱う。研究が存在しないという意味ではなく、初版 EvidenceRecord 構造では数値処方へ直接使える一次根拠を登録できていないための保守的処理。§24 OPEN-23 参照） |
+| repDistanceM | 10–20 / 10–30 | 10–30 / 10–40 | DEV=ENGINE_POLICY、ADV=SOURCE_BACKED（OPEN-23: Haugen 2019 Table 2 の Resisted sprints 10–30m=BEST_PRACTICE_SYNTHESIS）。Vdec 分類は load classification であり repDistance 処方ではない |
 | totalReps | 4–6 / 3–8 | 4–8 / 3–10 | EP |
 | repRestS | 120–240 / 90–360 | 180–360 / 120–480 | EP（Perplexity 3–6分） |
 | sessionVolumeM | 40–120 / 30–160 | 50–200 / 40–240 | EP（Perplexity DR 構成） |

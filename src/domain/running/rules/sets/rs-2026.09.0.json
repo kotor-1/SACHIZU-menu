@@ -6479,7 +6479,7 @@
     }
   ],
   "ruleSetVersion": "rs-2026.09.0",
-  "status": "DRAFT",
+  "status": "ACTIVE",
   "stopPolicies": [
     {
       "appliesToEligibilityPath": "ANY",

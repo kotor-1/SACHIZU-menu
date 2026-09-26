@@ -157,7 +157,7 @@ describe("R10-B3: MethodTemplatePicker", () => {
     // RuleSet に説明文フィールドは無いので DTO にも持たない（捏造しない）
     expect(Object.keys(picker.groups[0]!.options[0]!)).not.toContain("description");
     expect(JSON.stringify(picker).length).toBeLessThan(JSON.stringify(rs).length / 10);
-    expect(picker.ruleSetNoticeLabel).toBe("ルールセット 暫定版");
+    expect(picker.ruleSetNoticeLabel).toBeNull();
 
     const trees = expandTree(MethodTemplatePickerView({ picker, value: null, onSelect: () => {}, idPrefix: "p", query: "", onQueryChange: () => {} }));
     const groupHeading = findAll(trees, (n) => n.type === "h4" && textOf(n) === "最高速度")[0]!;

@@ -171,10 +171,10 @@ describe("manifestSchema", () => {
     }
   });
 
-  it("manifest.json の rs-2026.09.0 は status=DRAFT である（ACTIVE化しない、§25 Final GO/NO-GO）", () => {
+  it("manifest.json の rs-2026.09.0 は status=ACTIVE である（OPEN20 activation 済み）", () => {
     const manifest = readManifest(path.join(REAL_RULES_DIR, "manifest.json"));
     const entry = manifest.find((e) => e.version === "rs-2026.09.0");
     expect(entry).toBeDefined();
-    expect(entry?.status).toBe("DRAFT");
+    expect(entry?.status).toBe("ACTIVE");
   });
 });

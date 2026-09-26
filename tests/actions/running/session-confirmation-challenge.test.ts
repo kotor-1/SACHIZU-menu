@@ -43,7 +43,7 @@ function confirmFinding(overrides: Partial<Finding> = {}): Finding {
 const withValue = (lower: number, upper: number): Finding =>
   confirmFinding({ value: { lower, upper, unit: "m", source: "RULE_DEFINITION", confidence: "HIGH" } as Finding["value"] });
 
-const RULE_SET = { version: "rs-2026.09.0", contentHash: "bade42b0180b4731937db9d0b0acb7f1cd1fb0ea42c2c5f8e99f3f4f030ee92d" };
+const RULE_SET = { version: "rs-2026.09.0", contentHash: "c7533c64cf2d51fc84ecb2dc32b551a84b938c492f5ec55c139fc27b65ebd8d8" };
 
 /** 本物の R6 集計結果（`SessionAggregate`）。fixture を手書きしない。 */
 function aggregateResult(competitionDay = false) {

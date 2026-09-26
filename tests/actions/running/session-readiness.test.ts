@@ -164,9 +164,9 @@ describe("R11-B2 Action + real persistence", () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it("real production DRAFT succeeds; loader unavailable never falls back to plan", async () => {
+  it("real production ACTIVE succeeds; loader unavailable never falls back to plan", async () => {
     const { session } = await makeReadinessSession();
-    expect(loader.getActiveRuleSet("2026-09-20").isDraftFallback).toBe(true);
+    expect(loader.getActiveRuleSet("2026-09-20").isDraftFallback).toBe(false);
     expect(await call(session.id)).toMatchObject({ ok: true });
     const before = await itemsOf(session.id);
     vi.spyOn(loader, "getActiveRuleSet").mockImplementation(() => { throw new Error("private detail"); });

@@ -30,20 +30,20 @@ function loadFixture(name: string): RuleSet {
 // ---------------------------------------------------------------------------
 
 describe("loader: getRuleSet / getActiveRuleSet", () => {
-  it("getRuleSet('rs-2026.09.0') は DRAFT の RuleSet を返す", () => {
+  it("getRuleSet('rs-2026.09.0') は ACTIVE の RuleSet を返す", () => {
     const rs = getRuleSet("rs-2026.09.0");
     expect(rs).not.toBeNull();
-    expect(rs?.status).toBe("DRAFT");
+    expect(rs?.status).toBe("ACTIVE");
   });
 
   it("存在しない version は null を返す", () => {
     expect(getRuleSet("rs-9999.99.9")).toBeNull();
   });
 
-  it("ACTIVE 版が無いため getActiveRuleSet は DRAFT に fallback し isDraftFallback=true を返す（rs-2026.09.0 を ACTIVE にしてはいけない）", () => {
+  it("ACTIVE 版（rs-2026.09.0）があるため getActiveRuleSet は isDraftFallback=false を返す", () => {
     const result = getActiveRuleSet("2030-01-01");
-    expect(result.isDraftFallback).toBe(true);
-    expect(result.ruleSet.status).toBe("DRAFT");
+    expect(result.isDraftFallback).toBe(false);
+    expect(result.ruleSet.status).toBe("ACTIVE");
     expect(result.ruleSet.ruleSetVersion).toBe("rs-2026.09.0");
   });
 
@@ -601,7 +601,7 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
     expect(r3).toContain("complexity");
     expect(r3).toContain("requiresPhaseEvaluation");
     expect(r3).toContain("U15 ASSISTED_SPRINT");
-    expect(rs.status).toBe("DRAFT");
+    expect(rs.status).toBe("ACTIVE");
     expect(rs.validFrom).toBe("2026-09-15");
   });
 
@@ -663,8 +663,8 @@ describe("rs-2026.09.0 completeness (§22 R2 completion criteria)", () => {
     ]);
   });
 
-  it("status=DRAFT である（一次資料未照合のため ACTIVE 化しない、§25）", () => {
-    expect(rs.status).toBe("DRAFT");
+  it("status=ACTIVE である（OPEN20 一次資料照合・human approval 済み）", () => {
+    expect(rs.status).toBe("ACTIVE");
   });
 
   it("Evidence の verification は一次照合済みと二次報告を区別する", () => {
@@ -1096,7 +1096,7 @@ describe("R4 structured metadata（rs-2026.09.0）", () => {
       );
       expect(createHash("sha256").update(canonical(rows)).digest("hex"), section).toBe(expected);
     }
-    expect(rs.status).toBe("DRAFT");
+    expect(rs.status).toBe("ACTIVE");
     expect(rs.validFrom).toBe("2026-09-15");
     expect(rs.ruleSetVersion).toBe("rs-2026.09.0");
   });

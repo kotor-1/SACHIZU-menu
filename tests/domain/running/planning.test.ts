@@ -35,7 +35,7 @@ import type { Unit } from "@/domain/running/types/primitives";
 // ---------------------------------------------------------------------------
 
 const ruleSet = getRuleSet("rs-2026.09.0")!;
-const EXPECTED_HASH = "bade42b0180b4731937db9d0b0acb7f1cd1fb0ea42c2c5f8e99f3f4f030ee92d";
+const EXPECTED_HASH = "c7533c64cf2d51fc84ecb2dc32b551a84b938c492f5ec55c139fc27b65ebd8d8";
 const PLANNING_DATE = "2026-09-15";
 
 function iso(value: string): IsoDate {
@@ -144,8 +144,7 @@ function expectBlocked(r: PlanResult, code: string) {
 function expectIneligible(r: PlanResult, code: string) {
   expect(r.status, describeResult(r)).toBe("INELIGIBLE");
   if (r.status !== "INELIGIBLE") throw new Error("unreachable");
-  // [R4 errata] DRAFT RuleSet を使った INELIGIBLE でも RULESET_DRAFT が観測できる
-  expect(r.findings.map((f) => f.code)).toContain("RULESET_DRAFT");
+  // [OPEN20 activation] RuleSet は ACTIVE のため RULESET_DRAFT は付かない。
   expect(r.reasons.map((x) => x.code)).toContain(code);
   expect(r.substitutes).toEqual([]);
   return r.reasons;
@@ -344,17 +343,17 @@ describe("PlanRequestSchema", () => {
 // ---------------------------------------------------------------------------
 
 describe("RuleSet binding", () => {
-  it("getActiveRuleSet は検証済み manifest の contentHash を返す（DRAFT fallback）", () => {
+  it("getActiveRuleSet は検証済み manifest の contentHash を返す（ACTIVE。DRAFT fallback しない）", () => {
     const active = getActiveRuleSet(PLANNING_DATE);
     expect(active.ruleSet.ruleSetVersion).toBe("rs-2026.09.0");
-    expect(active.isDraftFallback).toBe(true);
+    expect(active.isDraftFallback).toBe(false);
     expect(active.contentHash).toBe(EXPECTED_HASH);
   });
 
-  it("処方に version / contentHash / status を埋め込み、RULESET_DRAFT（INFO）を付ける", () => {
+  it("処方に version / contentHash / status を埋め込む（ACTIVE のため RULESET_DRAFT は付けない）", () => {
     const p = expectOk(plan("ACCELERATION", "ACC_BLOCK_20", { subject: u18PostDeveloping() }));
-    expect(p.ruleSet).toEqual({ version: "rs-2026.09.0", contentHash: EXPECTED_HASH, status: "DRAFT" });
-    expect(p.findings).toContainEqual(expect.objectContaining({ code: "RULESET_DRAFT", severity: "INFO" }));
+    expect(p.ruleSet).toEqual({ version: "rs-2026.09.0", contentHash: EXPECTED_HASH, status: "ACTIVE" });
+    expect(p.findings.map((f) => f.code)).not.toContain("RULESET_DRAFT");
   });
 
   it("決定的: 同じ PlanRequest は同じ PlanResult", () => {
@@ -1433,12 +1432,11 @@ describe("rationale（日本語レンダラ）", () => {
     }
   });
 
-  it("tier・template・根拠・位置・参照・confidence・rest・コーチ入力・暫定ルールを説明する", () => {
+  it("tier・template・根拠・位置・参照・confidence・rest・コーチ入力を説明する（ACTIVE のため RULESET_DRAFT は出ない）", () => {
     const acc = expectOk(samples[0][1]);
     const codes = acc.rationale.map((l) => l.code);
     expect(codes).toEqual(
       expect.arrayContaining([
-        "RULESET_DRAFT",
         "TEMPLATE_SELECTED",
         "TIER",
         "ELIGIBILITY",
@@ -1455,7 +1453,8 @@ describe("rationale（日本語レンダラ）", () => {
     const override = expectOk(samples[9][1]);
     expect(override.rationale.map((l) => l.code)).toContain("COACH_OVERRIDE_APPLIED");
     const text = renderRationaleJa(acc.rationale).join("\n");
-    expect(text).toContain("暫定");
+    // [OPEN20 activation] RuleSet は ACTIVE のため「暫定版」を表示しない。
+    expect(text).not.toContain("暫定");
     expect(text).toContain("レスト");
   });
 
@@ -1717,20 +1716,22 @@ describe("R4 correction: monitoringSnapshot（§17.1）", () => {
 });
 
 describe("R4 correction: PlanResult findings", () => {
-  it("DRAFT RuleSet を選んだ後の結果（OK / INELIGIBLE / BLOCKED）はすべて RULESET_DRAFT を持つ。parse 不能な PlanRequest には付けない", () => {
+  it("ACTIVE RuleSet を選んだ後の結果（OK / INELIGIBLE / BLOCKED）は RULESET_DRAFT を持たない。parse 不能な PlanRequest にも付けない", () => {
     const ok = expectOk(plan("STRIDE", "ST_WARMUP", { subject: u18PostDeveloping() }));
-    expect(findingCodes(ok)).toContain("RULESET_DRAFT");
+    expect(findingCodes(ok)).not.toContain("RULESET_DRAFT");
 
     const inel = plan("ACCELERATION", "ACC_BLOCK_30", { subject: u15Unknown(), actor: AI });
     if (inel.status !== "INELIGIBLE") throw new Error("expected INELIGIBLE");
-    expect(inel.findings.map((f) => f.code)).toEqual(expect.arrayContaining(["RULESET_DRAFT", "PHASE_COMPETITION_NOT_EVALUATED", "WEEKLY_CONTEXT_NOT_EVALUATED"]));
+    expect(inel.findings.map((f) => f.code)).toEqual(expect.arrayContaining(["PHASE_COMPETITION_NOT_EVALUATED", "WEEKLY_CONTEXT_NOT_EVALUATED"]));
+    expect(inel.findings.map((f) => f.code)).not.toContain("RULESET_DRAFT");
     // 理由（EligibilityReason）と Finding を二重化しない
     const reasonCodes = new Set<string>(inel.reasons.map((r) => r.code));
     expect(inel.findings.some((f) => reasonCodes.has(f.code))).toBe(false);
 
     const blocked = plan("ACCELERATION", "ACC_BLOCK_10", { actor: AI });
     if (blocked.status !== "BLOCKED") throw new Error("expected BLOCKED");
-    expect(blocked.findings.map((f) => f.code)).toEqual(expect.arrayContaining(["RULESET_DRAFT", "ENVELOPE_INFEASIBLE"]));
+    expect(blocked.findings.map((f) => f.code)).toEqual(expect.arrayContaining(["ENVELOPE_INFEASIBLE"]));
+    expect(blocked.findings.map((f) => f.code)).not.toContain("RULESET_DRAFT");
 
     const invalid = planRunningPrescription({ ...makeRequest("STRIDE", "ST_WARMUP"), ruleSetVersion: "x" } as unknown as PlanRequest);
     if (invalid.status !== "BLOCKED") throw new Error("expected BLOCKED");

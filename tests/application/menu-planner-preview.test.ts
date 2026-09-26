@@ -229,7 +229,7 @@ describe("R12-A2 deterministic MenuPlannerPreview application", () => {
     expect(JSON.stringify(result.preview)).not.toContain("coachEdits");
     expect(JSON.stringify(result.preview)).not.toContain("confirmedFindingCodes");
     expect(JSON.stringify(result.preview)).not.toContain("acceptedByCoachAt");
-    expect(result.preview.ruleSet.status).toBe("DRAFT");
+    expect(result.preview.ruleSet.status).toBe("ACTIVE");
   });
 
   it("preserves ordered mixed items and creates contiguous block groups", async () => {

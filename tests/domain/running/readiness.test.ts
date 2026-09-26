@@ -629,7 +629,7 @@ describe("PlanRequest は判断だけを受け取る（生の健康情報を受�
     for (const broken of [
       { ...decision, ruleSet: { ...decision.ruleSet, version: "rs-2026.08.0" } },
       { ...decision, ruleSet: { ...decision.ruleSet, contentHash: "0".repeat(64) } },
-      { ...decision, ruleSet: { ...decision.ruleSet, status: "ACTIVE" as const } },
+      { ...decision, ruleSet: { ...decision.ruleSet, status: "DRAFT" as const } },
     ]) {
       const r = plan("ACCELERATION", "ACC_BLOCK_20", { readiness: broken });
       expect(r.status).toBe("BLOCKED");
@@ -902,7 +902,7 @@ describe("root public API", () => {
     const a = resolveReadinessAction(report({ soreness: 3, sleepQuality: 2 }), context());
     const b = resolveReadinessAction(report({ soreness: 3, sleepQuality: 2 }), context());
     expect(a).toEqual(b);
-    expect(a.ruleSet).toEqual({ version: "rs-2026.09.0", contentHash: EXPECTED_HASH, status: "DRAFT" });
+    expect(a.ruleSet).toEqual({ version: "rs-2026.09.0", contentHash: EXPECTED_HASH, status: "ACTIVE" });
     expect(a.evaluatedFor).toEqual({ method: "ACCELERATION", loadClass: "HIGH_NEURAL" });
   });
 
