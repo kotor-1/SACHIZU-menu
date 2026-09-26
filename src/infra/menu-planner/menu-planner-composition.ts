@@ -29,6 +29,7 @@ import {
   type SaveAiMenuDraftResult,
 } from "@/application/menu-planner/save";
 import {
+  MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID,
   exerciseCandidateDtoSchema,
   menuPlannerProviderRequestSchema,
   type MenuPlannerProviderRequest,
@@ -166,13 +167,22 @@ function buildCatalog(
 async function loadAuthoritativeParserContext({
   ownerId,
   contextMenuTemplateId,
+  inlineRunningContextJson,
 }: {
   ownerId: string;
   contextMenuTemplateId: string;
+  inlineRunningContextJson?: string;
 }): Promise<
   | { ok: true; context: MenuPlannerAuthoritativeParserContext }
   | { ok: false; error: AuthoritativeContextError }
 > {
+  // [R12 unified composer] 参照メニューを持たない新規メニュー。context はコーチの入力（preview と同じ JSON）。
+  const isInline = contextMenuTemplateId === MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID;
+  if (isInline !== (inlineRunningContextJson !== undefined)) {
+    return contextError("RUNNING_CONTEXT_UNAVAILABLE", "計画対象のグループ条件を確認できません。");
+  }
+  if (inlineRunningContextJson !== undefined) return buildParserContextFromRunningContext(ownerId, inlineRunningContextJson);
+
   let menu;
   try {
     menu = await findMenuForOwner(contextMenuTemplateId, ownerId);
@@ -180,13 +190,26 @@ async function loadAuthoritativeParserContext({
     return contextError("CONTEXT_MENU_READ_FAILED", "計画の参照メニューを読み取れません。");
   }
   if (menu === null) return contextError("CONTEXT_MENU_UNAVAILABLE", "計画の参照メニューを確認できません。");
+  return buildParserContextFromRunningContext(ownerId, menu.runningContextJson);
+}
 
-  const parsedContext = parseJsonColumn(menu.runningContextJson, runningMenuContextSchema, { rejectHealthKeys: true });
+/**
+ * [R12 unified composer] 参照メニューを介さず、running context JSON から直接 A3C-safe な
+ * subject/catalog projection を作る（新規メニューの AI 生成用）。
+ */
+export async function buildParserContextFromRunningContext(
+  ownerId: string,
+  runningContextJson: string | null,
+): Promise<
+  | { ok: true; context: MenuPlannerAuthoritativeParserContext }
+  | { ok: false; error: AuthoritativeContextError }
+> {
+  const parsedContext = parseJsonColumn(runningContextJson, runningMenuContextSchema, { rejectHealthKeys: true });
   if (!parsedContext.ok || parsedContext.value.subject.kind !== "GROUP") {
     return contextError("RUNNING_CONTEXT_UNAVAILABLE", "計画対象のグループ条件を確認できません。");
   }
   if (parsedContext.value.plannedDate === null) {
-    return contextError("PLANNED_DATE_UNAVAILABLE", "計画日が設定された参照メニューを使用してください。");
+    return contextError("PLANNED_DATE_UNAVAILABLE", "計画日が設定されたメニューにしてください。");
   }
 
   let selectedRuleSet: ReturnType<typeof getActiveRuleSet>;
@@ -302,4 +325,45 @@ export function createMenuPlannerProductionComposition(): MenuPlannerServerCompo
       );
     },
   };
+}
+
+/**
+ * [R12 unified composer] 参照メニューを介さず、コーチが入力した running context で AI 生成する。
+ * `contextMenuTemplateId` は inline sentinel。OPEN20 / proposal gate / A3A 署名は既存 generate と同じ経路。
+ * AI 生成の時点では何も保存しない（MenuTemplate は保存 Action で初めて作る）。
+ */
+export async function generateMenuDraftFromRunningContext(input: {
+  menuName: string;
+  runningContextJson: string;
+  coachRequest: unknown;
+}): Promise<GenerateMenuPlannerPreviewResult> {
+  return createMenuPlannerProductionComposition().generate({
+    schemaVersion: 1,
+    ownerId: DEFAULT_OWNER_ID,
+    contextMenuTemplateId: MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID,
+    menuName: input.menuName,
+    coachRequest: input.coachRequest,
+    inlineRunningContextJson: input.runningContextJson,
+  });
+}
+
+/**
+ * [R12 unified composer] 署名済み preview を保存する（A3B の検証・TOCTOU 再計算・freshness gate をそのまま通す）。
+ * inline context は client の再送値だが authority ではない：再計算した contextFingerprint が
+ * 署名済みの値と違えば STALE で拒否される。AI 項目の id は dry-run と一致させるため決定的に採番する。
+ * ambient transaction の中で呼ばれた場合は、その transaction に合流する。
+ */
+export async function saveSignedMenuDraftForComposer(input: {
+  token: string;
+  inlineRunningContextJson: string | null;
+}): Promise<SaveAiMenuDraftResult> {
+  // 既存 save と同じく OPEN20 gate は token 発行（generate）側。署名済み token が無ければここへ来ない。
+  return saveAiMenuDraft(
+    {
+      ownerId: DEFAULT_OWNER_ID,
+      token: input.token,
+      ...(input.inlineRunningContextJson !== null ? { inlineRunningContextJson: input.inlineRunningContextJson } : {}),
+    },
+    { ...productionDependencies().accept, database: prisma, deterministicItemIds: true },
+  );
 }

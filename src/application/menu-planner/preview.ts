@@ -5,6 +5,7 @@ import { engineVersion } from "@/actions/_engine-version";
 
 import {
   AI_REASON_SANITIZED,
+  MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID,
   MENU_PLANNER_POLICY_ID,
   aiPlannerProposalSchema,
   canonicalizeMenuPlannerIntentRequest,
@@ -97,6 +98,11 @@ const previewInputSchema = z
       .pipe(z.string().min(1).max(120)),
     intent: z.unknown(),
     proposal: z.unknown(),
+    /**
+     * [R12 unified composer] `contextMenuTemplateId === MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID` のときだけ必須。
+     * 参照メニューの代わりにコーチが入力した running context を使う（contextFingerprint に binding される）。
+     */
+    inlineRunningContextJson: z.string().min(1).max(20000).optional(),
   })
   .strict();
 
@@ -113,6 +119,8 @@ export type BuildMenuPlannerPreviewInput = {
   menuName: string;
   intent: MenuPlannerIntentRequest;
   proposal: unknown;
+  /** [R12 unified composer] inline context source のときだけ。 */
+  inlineRunningContextJson?: string;
 };
 
 /**
@@ -392,8 +400,28 @@ function rowBindingOf(row: PlannerExerciseRow): MenuPlannerContextBindingInput["
   };
 }
 
+/** preview が参照メニューから読む field だけ。inline context source はこの形の仮想メニューを作る。 */
+type PreviewSourceMenu = Pick<MenuDetail, "id" | "ownerId" | "status" | "phase" | "estimatedMinutes" | "runningContextJson" | "blocks">;
+
+/**
+ * [R12 unified composer] 参照メニューを持たない新規メニュー用の仮想 source。
+ * 既存項目は無く（blocks = []）、期分け・想定時間は未設定。id は sentinel なので
+ * 実在メニューの fingerprint と衝突しない。running context の検証は通常の経路（parseJsonColumn）が行う。
+ */
+function inlineContextSourceMenu(ownerId: string, runningContextJson: string): PreviewSourceMenu {
+  return {
+    id: MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID,
+    ownerId,
+    status: "DRAFT",
+    phase: null,
+    estimatedMinutes: null,
+    runningContextJson,
+    blocks: [],
+  };
+}
+
 function sourceMenuBindingOf(
-  menu: MenuDetail,
+  menu: PreviewSourceMenu,
   runningContext: RunningMenuContext,
 ): MenuPlannerContextBindingInput["sourceMenu"] {
   return {
@@ -922,7 +950,7 @@ async function loadHistory(ownerId: string, plannedAt: string | null, db?: Prism
   };
 }
 
-function phaseOf(menu: MenuDetail): TrainingPhase | null {
+function phaseOf(menu: PreviewSourceMenu): TrainingPhase | null {
   if (menu.phase === null) return null;
   return z.enum(TRAINING_PHASES).parse(menu.phase);
 }
@@ -996,6 +1024,7 @@ async function buildMenuPlannerPreviewInternal(
     contextMenuTemplateId: string;
     menuName: string;
     proposal?: unknown;
+    inlineRunningContextJson?: string;
   };
   let parsedInput: ParsedPreviewCommonInput;
 
@@ -1028,9 +1057,17 @@ async function buildMenuPlannerPreviewInternal(
     return failure("AI_OUTPUT_INVALID", "CLARIFICATION_NOT_ALLOWED", "追加質問を含む提案はプレビューできません。");
   }
 
-  let menu: MenuDetail | null;
+  const isInlineContextSource = parsedInput.contextMenuTemplateId === MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID;
+  if (isInlineContextSource !== (parsedInput.inlineRunningContextJson !== undefined)) {
+    // inline source なのに context が無い / 参照メニューなのに inline context が混ざる、はどちらも曖昧な入力。
+    return failure("INVALID_INPUT", "PREVIEW_INPUT_INVALID", "プレビュー入力を確認できません。");
+  }
+
+  let menu: PreviewSourceMenu | null;
   try {
-    menu = await findMenuForOwner(parsedInput.contextMenuTemplateId, parsedInput.ownerId, options.db);
+    menu = isInlineContextSource
+      ? inlineContextSourceMenu(parsedInput.ownerId, parsedInput.inlineRunningContextJson!)
+      : await findMenuForOwner(parsedInput.contextMenuTemplateId, parsedInput.ownerId, options.db);
   } catch {
     // `null` below means that the authoritative source menu is no longer
     // visible to this owner (deleted, archived, or otherwise ineligible).

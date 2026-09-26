@@ -13,6 +13,7 @@ import { z } from "zod";
 
 import {
   createMenuPlannerProductionComposition,
+  generateMenuDraftFromRunningContext,
   isMenuPlannerFeatureEnabled,
 } from "@/infra/menu-planner/menu-planner-composition";
 import { MENU_PLANNER_SCHEMA_VERSION } from "@/domain/menu-planner";
@@ -20,7 +21,15 @@ import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { HMAC_TOKEN_MAX_LENGTH } from "@/infra/security/hmac-token";
 import type { GenerateMenuPlannerPreviewResult } from "@/application/menu-planner/generate";
 import type { ReviseMenuPlannerPreviewResult } from "@/application/menu-planner/revise";
-import type { SaveAiMenuDraftResult } from "@/application/menu-planner/save";
+import type { SaveAiMenuDraftError, SaveAiMenuDraftResult } from "@/application/menu-planner/save";
+import {
+  commitComposedMenu,
+  composerDraftInputSchema,
+  dryRunComposedMenu,
+  type ComposerDraftFailure,
+  type ComposerRunningItemView,
+} from "./_menu-composer-service";
+import type { RunningActionFailure } from "./running-actions";
 
 const generateActionInputSchema = z
   .object({
@@ -157,6 +166,101 @@ export async function saveMenuPlannerAction(input: unknown): Promise<SaveMenuPla
       revalidatePath(`/menus/${result.menuId}`);
     }
     return result;
+  } catch {
+    return unexpectedSaveFailure();
+  }
+}
+
+// --- [R12 unified composer] 参照メニューを介さない新規メニュー AI 生成 / 保存前編集 / 保存 ---
+
+const generateDraftActionInputSchema = z
+  .object({
+    schemaVersion: z.literal(MENU_PLANNER_SCHEMA_VERSION),
+    menuName: z.string().trim().min(1).max(120),
+    runningContextJson: z.string().min(1).max(20000),
+    coachRequest: z.unknown(),
+  })
+  .strict();
+
+export type GenerateMenuDraftActionResult = GenerateMenuPlannerPreviewResult | { ok: false; error: MenuPlannerActionError };
+
+/**
+ * 統合 Composer 用。参照メニューではなく、コーチが入力した running context で AI 生成する。
+ * 何も保存しない（署名済み preview と acceptToken だけを返す）。
+ */
+export async function generateMenuDraftAction(input: unknown): Promise<GenerateMenuDraftActionResult> {
+  const parsed = generateDraftActionInputSchema.safeParse(input);
+  if (!parsed.success) return invalidInput();
+  if (!isMenuPlannerFeatureEnabled()) return featureDisabled();
+
+  try {
+    return await generateMenuDraftFromRunningContext({
+      menuName: parsed.data.menuName,
+      runningContextJson: parsed.data.runningContextJson,
+      coachRequest: parsed.data.coachRequest,
+    });
+  } catch {
+    return unexpectedGenerateFailure();
+  }
+}
+
+export type SaveMenuDraftActionResult =
+  | { ok: true; menuId: string; alreadySaved: boolean }
+  | { ok: false; error: MenuPlannerActionError | SaveAiMenuDraftError }
+  | { ok: false; error: { kind: "RUNNING_EDIT_REJECTED"; code: "RUNNING_EDIT_REJECTED"; message: string }; opIndex: number; failure: RunningActionFailure };
+
+function composerFailure(outcome: ComposerDraftFailure): SaveMenuDraftActionResult {
+  if (outcome.scope === "DRAFT") return { ok: false, error: outcome.error };
+  return {
+    ok: false,
+    error: { kind: "RUNNING_EDIT_REJECTED", code: "RUNNING_EDIT_REJECTED", message: outcome.failure.message },
+    opIndex: outcome.opIndex,
+    failure: outcome.failure,
+  };
+}
+
+/**
+ * 統合 Composer の保存。
+ *
+ * coach-editable: メニュー名（`MenuTemplate.name`）、ブロック内の順序、項目の削除・追加・種目差し替え、
+ * notes、RUNNING_V2 の coachEditable 処方（既存 running edit Action の検証を通ったものだけ）。
+ * AI proposal 自体は署名済み token から server が再計算したものだけを保存する（client の数値は使わない）。
+ * materialize → 編集反映 → running 調整を 1 transaction で行い、どこかで失敗すれば何も保存しない。
+ */
+export async function saveMenuDraftAction(input: unknown): Promise<SaveMenuDraftActionResult> {
+  const parsed = composerDraftInputSchema.safeParse(input);
+  if (!parsed.success) return invalidInput();
+  if (!isMenuPlannerFeatureEnabled()) return featureDisabled();
+
+  try {
+    const outcome = await commitComposedMenu(parsed.data);
+    if (!outcome.ok) return composerFailure(outcome);
+    revalidatePath("/menus");
+    revalidatePath(`/menus/${outcome.menuId}`);
+    return { ok: true, menuId: outcome.menuId, alreadySaved: outcome.alreadySaved };
+  } catch {
+    return unexpectedSaveFailure();
+  }
+}
+
+export type PreviewMenuDraftRunningActionResult =
+  | { ok: true; running: ComposerRunningItemView[]; message: string | null }
+  | Extract<SaveMenuDraftActionResult, { ok: false }>;
+
+/**
+ * 保存前の RUNNING_V2 表示・調整。保存と同じ処理を 1 transaction で実行して必ず rollback する。
+ * 何も保存しない。返すのは再計算後の RUNNING_V2 項目の表示 DTO（既存 RunningItemPanel と同じ形）だけ。
+ */
+export async function previewMenuDraftRunningAction(input: unknown): Promise<PreviewMenuDraftRunningActionResult> {
+  const parsed = composerDraftInputSchema.safeParse(input);
+  if (!parsed.success) return invalidInput();
+  if (!isMenuPlannerFeatureEnabled()) return featureDisabled();
+  if (parsed.data.acceptToken === null) return invalidInput();
+
+  try {
+    const outcome = await dryRunComposedMenu(parsed.data);
+    if (!outcome.ok) return composerFailure(outcome) as Extract<SaveMenuDraftActionResult, { ok: false }>;
+    return outcome;
   } catch {
     return unexpectedSaveFailure();
   }

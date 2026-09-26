@@ -43,6 +43,8 @@ export type SaveAiMenuDraftResult =
 export type SaveAiMenuDraftDependencies = MenuPlannerAcceptDependencies & {
   /** server composition / tests only。client inputから渡さない。 */
   database?: PrismaClient;
+  /** [R12 unified composer] AI 項目の id を targetMenuId から決定的に採番する（server composition only）。 */
+  deterministicItemIds?: boolean;
 };
 
 function saveFailed(): { ok: false; error: SaveAiMenuDraftError } {
@@ -161,7 +163,10 @@ export async function saveAiMenuDraft(
         return resultForExistingTarget(verified.verified.claims.targetMenuId, "DRAFT");
       }
 
-      const revalidated = await revalidateVerifiedMenuPlannerAccept(verified.verified, { db: tx });
+      const revalidated = await revalidateVerifiedMenuPlannerAccept(verified.verified, {
+        db: tx,
+        ...(input.inlineRunningContextJson !== undefined ? { inlineRunningContextJson: input.inlineRunningContextJson } : {}),
+      });
       if (!revalidated.ok) return revalidated;
 
       const acceptedAt = deps.now();
@@ -182,6 +187,7 @@ export async function saveAiMenuDraft(
           targetMenuId: revalidated.materialization.targetMenuId,
         },
         tx,
+        { deterministicItemIds: deps.deterministicItemIds === true },
       );
       return { ok: true as const, menuId: saved.menuId, status: saved.status, alreadySaved: false };
     });

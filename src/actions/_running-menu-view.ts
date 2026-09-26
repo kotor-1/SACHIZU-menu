@@ -77,6 +77,7 @@ export async function buildRunningMenuView(menu: MenuDetail): Promise<RunningMen
       provenanceJson: row.provenanceJson,
       ruleSetVersion: row.ruleSetVersion,
       ruleSetContentHash: row.ruleSetContentHash,
+      note: row.note,
     });
   }
 

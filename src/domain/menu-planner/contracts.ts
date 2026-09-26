@@ -16,6 +16,16 @@ import type { AiSafeSubjectContext } from "@/domain/running/readiness/aiSafeCont
 export const MENU_PLANNER_SCHEMA_VERSION = 1 as const;
 export const MENU_PLANNER_POLICY_ID = "R12_MENU_INTENT_V1" as const;
 
+/**
+ * [R12 unified composer] 参照メニューを持たない新規メニュー生成で `contextMenuTemplateId` に入れる sentinel。
+ *
+ * このとき running context は DB の参照メニューではなく、コーチが Composer に入力した
+ * `inlineRunningContextJson` から読む。token の claim には context を載せない（subject を token に載せない）。
+ * 保存時は client が同じ JSON をもう一度送り、server が再計算した contextFingerprint が
+ * 署名済みの fingerprint と一致しなければ STALE として拒否する（改ざん・変更は保存できない）。
+ */
+export const MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID = "__inline_context__" as const;
+
 const CONTROL_OR_BIDI_PATTERN =
   /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const HTML_PATTERN = /<\/?[a-z][^>]*>/iu;

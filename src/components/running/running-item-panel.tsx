@@ -33,7 +33,34 @@ import { TargetSplitEditor } from "./target-split-editor";
  *   - 保存に失敗しても入力は消さない。確認が必要になったら、その Finding だけをチェック対象にする。
  *   - 保存済みの版（RuleSet）は動かさない。「現行ルールで再計算」を押したときだけ Action 側が版を進める。
  */
-export function RunningItemPanel({ menuId, presentation }: { menuId: string; presentation: SavedRunningItemPresentation }) {
+/**
+ * 処方調整の送り先。既定は保存済みメニューの Server Action（menuId に bind）。
+ * [R12 unified composer] 保存前の下書きでは、同じ Action を rollback 付きの transaction で実行する
+ * 送り先に差し替える（検証・確認・review の扱いはこのコンポーネントも Action も変わらない）。
+ */
+export type RunningItemOperations = {
+  edit: (form: FormData) => Promise<RunningActionResult<unknown>>;
+  override: (form: FormData) => Promise<RunningActionResult<unknown>>;
+  recalculate: (form: FormData) => Promise<RunningActionResult<unknown>>;
+};
+
+function savedMenuOperations(menuId: string): RunningItemOperations {
+  return {
+    edit: (form) => editRunningItemAction(menuId, null, form),
+    override: (form) => overrideRunningItemAction(menuId, null, form),
+    recalculate: (form) => recalculateWithActiveRuleSetAction(menuId, null, form),
+  };
+}
+
+export function RunningItemPanel({
+  menuId,
+  presentation,
+  operations,
+}: {
+  menuId: string;
+  presentation: SavedRunningItemPresentation;
+  operations?: RunningItemOperations;
+}) {
   if (presentation.status === "UNREADABLE") {
     return (
       <div className="min-w-0 rounded-lg border border-rose-200 bg-rose-50 p-3">
@@ -43,10 +70,10 @@ export function RunningItemPanel({ menuId, presentation }: { menuId: string; pre
     );
   }
   if (presentation.status === "NOT_RUNNING_V2") return null;
-  return <LoadedRunningItemPanel menuId={menuId} item={presentation.item} />;
+  return <LoadedRunningItemPanel item={presentation.item} note={presentation.note ?? null} operations={operations ?? savedMenuOperations(menuId)} />;
 }
 
-function LoadedRunningItemPanel({ menuId, item }: { menuId: string; item: RunningItemPresentationDto }) {
+function LoadedRunningItemPanel({ item, note, operations }: { item: RunningItemPresentationDto; note: string | null; operations: RunningItemOperations }) {
   const [open, setOpen] = useState(false);
   const [fieldDrafts, setFieldDrafts] = useState<Partial<Record<EditableFieldKey, string>>>({});
   const [overrideState, setOverrideState] = useState<OverrideDraft | null>(null);
@@ -99,11 +126,11 @@ function LoadedRunningItemPanel({ menuId, item }: { menuId: string; item: Runnin
   }
 
   const onEditRequest = (request: RunningFieldEditRequest) =>
-    resubmittable((reviews) => editRunningItemAction(menuId, null, fieldEditFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
+    resubmittable((reviews) => operations.edit(fieldEditFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
   const onOverrideRequest = (request: RunningOverrideRequest) =>
-    resubmittable((reviews) => overrideRunningItemAction(menuId, null, overrideFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
+    resubmittable((reviews) => operations.override(overrideFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
   const onRecalculateRequest = (request: RunningRecalculateRequest) =>
-    resubmittable((reviews) => recalculateWithActiveRuleSetAction(menuId, null, recalculateFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
+    resubmittable((reviews) => operations.recalculate(recalculateFormData({ ...request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })))();
 
   const confirmedCodesForSplit = pendingConfirmations
     .filter((f) => f.requiresExplicitConfirmation && confirmedKeys.includes(f.confirmationKey))
@@ -128,6 +155,7 @@ function LoadedRunningItemPanel({ menuId, item }: { menuId: string; item: Runnin
         <div className="mt-1.5">
           <RunningDoseSummary dose={item.dose} />
         </div>
+        {note !== null && <p className="mt-1.5 text-xs break-words text-slate-600">メモ：{note}</p>}
         {!open && item.findings.length > 0 && <FindingsList findings={item.findings} idPrefix={`running-item-${item.id}-summary-findings`} heading="確認事項" />}
         {message !== null && (
           <p role="status" className={cn("mt-1.5 text-xs", succeeded ? "text-emerald-700" : "text-rose-700")}>
@@ -172,7 +200,7 @@ function LoadedRunningItemPanel({ menuId, item }: { menuId: string; item: Runnin
                 onClick={() => {
                   if (splitRequest.ok) {
                     resubmittable((reviews) =>
-                      editRunningItemAction(menuId, null, coachReferenceEditFormData({ ...splitRequest.request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })),
+                      operations.edit(coachReferenceEditFormData({ ...splitRequest.request, ...(reviews ? { plausibilityReviewRequests: reviews } : {}) })),
                     )();
                   }
                 }}

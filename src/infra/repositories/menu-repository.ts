@@ -380,3 +380,94 @@ export async function reorderMenuItems(blockId: string, orderedItemIds: readonly
     }
   });
 }
+
+// --- 統合 Composer の保存（編集結果の reconcile） -----------------------------
+
+/**
+ * 統合 Composer の draft 編集結果。
+ * AI 由来の項目は「materialize 済み AI ブロックの index + preview 順 index」で参照し、
+ * 手動・種目差し替え・LEGACY 編集後の項目は `MenuItemInput`（menuItemInputSchema 検証済み）で新規作成する。
+ */
+export type ComposedBlockEditItem =
+  | { kind: "AI"; previewIndex: number; note?: string | null }
+  | { kind: "MANUAL"; values: MenuItemInput };
+
+export type ComposedBlockEdit = {
+  name: string;
+  /** AI ブロックなら materialize 済みブロックの index（sortOrder 順）。コーチが足したブロックは null。 */
+  aiBlockIndex: number | null;
+  items: ComposedBlockEditItem[];
+};
+
+/**
+ * 統合 Composer の保存：materialize 済み（または空）のメニューへ、コーチの編集結果を反映する。
+ * `prisma.$transaction` なので、ambient transaction の中で呼ばれれば materialize と同じ transaction に合流する。
+ *
+ * コーチが変えてよいのは「メニュー名・ブロック内の順序・項目の削除 / 追加 / 差し替え・notes」。
+ * AI 項目の処方（RUNNING_V2 / LEGACY の数値・provenance）はここでは書き換えない
+ * （RUNNING_V2 の数値調整は既存の running edit Action が別途、domain の再検証付きで行う）。
+ * - AI 項目は保持し、`note` が指定されていれば note だけ更新する。
+ * - 参照されなかった AI 項目は削除する。ブロック内の sortOrder は送られた順に振り直す。
+ */
+export async function applyComposedMenuEdits(
+  menuId: string,
+  blocks: readonly ComposedBlockEdit[],
+  menuName: string,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.menuTemplate.update({ where: { id: menuId }, data: { name: menuName } });
+
+    const existing = await tx.menuBlock.findMany({
+      where: { menuTemplateId: menuId },
+      include: { items: { orderBy: { sortOrder: "asc" } } },
+      orderBy: { sortOrder: "asc" },
+    });
+    const usedAiBlocks = new Set<number>();
+
+    for (const [blockIndex, composed] of blocks.entries()) {
+      let blockId: string;
+      let existingItems: (typeof existing)[number]["items"] = [];
+      if (composed.aiBlockIndex !== null) {
+        const source = existing[composed.aiBlockIndex];
+        if (source === undefined || usedAiBlocks.has(composed.aiBlockIndex)) throw new Error("COMPOSED_BLOCK_INVALID");
+        usedAiBlocks.add(composed.aiBlockIndex);
+        blockId = source.id;
+        existingItems = source.items;
+        await tx.menuBlock.update({ where: { id: blockId }, data: { sortOrder: blockIndex } });
+      } else {
+        const created = await tx.menuBlock.create({
+          data: { menuTemplateId: menuId, name: composed.name, note: null, sortOrder: blockIndex },
+          select: { id: true },
+        });
+        blockId = created.id;
+      }
+
+      const keptIds: string[] = [];
+      for (const item of composed.items) {
+        if (item.kind === "AI") {
+          const existingItem = existingItems[item.previewIndex];
+          if (existingItem === undefined || keptIds.includes(existingItem.id)) throw new Error("COMPOSED_ITEM_INVALID");
+          if (item.note !== undefined) {
+            await tx.menuItem.update({ where: { id: existingItem.id }, data: { note: item.note } });
+          }
+          keptIds.push(existingItem.id);
+        } else {
+          const created = await tx.menuItem.create({
+            data: { ...item.values, menuBlockId: blockId, sortOrder: keptIds.length },
+            select: { id: true },
+          });
+          keptIds.push(created.id);
+        }
+      }
+
+      await tx.menuItem.deleteMany({ where: { menuBlockId: blockId, id: { notIn: keptIds } } });
+      for (const [index, id] of keptIds.entries()) {
+        await tx.menuItem.update({ where: { id }, data: { sortOrder: index } });
+      }
+    }
+
+    // コーチが Composer から丸ごと消した AI ブロック（通常 UI では起きないが、送られなかったものは残さない）。
+    const droppedBlockIds = existing.filter((_, index) => !usedAiBlocks.has(index)).map((block) => block.id);
+    if (droppedBlockIds.length > 0) await tx.menuBlock.deleteMany({ where: { id: { in: droppedBlockIds } } });
+  });
+}

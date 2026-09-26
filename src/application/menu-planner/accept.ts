@@ -158,6 +158,11 @@ export type IssueMenuPlannerSignedPreviewInput = {
    * a verified prior accept-token claim; it is never part of a client request.
    */
   trustedTargetMenuId?: string;
+  /**
+   * [R12 unified composer] `contextMenuTemplateId` が inline sentinel のときの running context。
+   * claim には載せない（contextFingerprint だけが binding する）。
+   */
+  inlineRunningContextJson?: string;
 };
 
 /** client へ返してよい部分だけ。token は opaque な文字列として扱う。 */
@@ -230,6 +235,7 @@ export async function issueMenuPlannerSignedPreview(
     // （`intent` は runtime では `z.unknown()`、`proposal` は型も unknown）。
     intent: input.intent as BuildMenuPlannerPreviewInput["intent"],
     proposal: input.proposal,
+    ...(input.inlineRunningContextJson !== undefined ? { inlineRunningContextJson: input.inlineRunningContextJson } : {}),
   });
   if (!previewResult.ok) return { ok: false, error: fromPlannerError(previewResult.error, false) };
 
@@ -304,6 +310,11 @@ export type RevalidateMenuPlannerAcceptInput = {
   token: string;
   /** trusted caller（将来は Server Action が authenticated principal から渡す）。 */
   ownerId: string;
+  /**
+   * [R12 unified composer] inline context source の token を保存するときだけ client が再送する running context。
+   * authority ではない：再計算した contextFingerprint が署名済み fingerprint と一致しなければ STALE で拒否される。
+   */
+  inlineRunningContextJson?: string;
 };
 
 /**
@@ -388,9 +399,10 @@ export function verifyMenuPlannerAcceptToken(
  */
 export async function revalidateVerifiedMenuPlannerAccept(
   verified: VerifiedMenuPlannerAccept,
-  options: { db?: PrismaDbClient } = {},
+  options: { db?: PrismaDbClient; inlineRunningContextJson?: string } = {},
 ): Promise<RevalidateMenuPlannerAcceptResult> {
   const { claims } = verified;
+  const { inlineRunningContextJson, ...previewOptions } = options;
   // authoritative recompute。token の数値ではなく、server が読み直した context から A2 を再実行する。
   const recomputed = await buildMenuPlannerPreviewForRevalidation({
     schemaVersion: MENU_PLANNER_PREVIEW_SCHEMA_VERSION,
@@ -399,9 +411,10 @@ export async function revalidateVerifiedMenuPlannerAccept(
     menuName: claims.menuName,
     constraints: claims.constraints,
     proposal: claims.proposal,
+    ...(inlineRunningContextJson !== undefined ? { inlineRunningContextJson } : {}),
     // 発行時に確定した sanitizer の判定を replay する（token の proposal は sanitize 済みのため、
     // そのまま再 sanitize すると AI_REASON_SANITIZED が消えて digest が一致しなくなる）。
-  }, { requestDigest: claims.requestDigest, reasonSanitized: claims.reasonSanitized }, options);
+  }, { requestDigest: claims.requestDigest, reasonSanitized: claims.reasonSanitized }, previewOptions);
   if (!recomputed.ok) {
     return { ok: false, error: fromPlannerError(recomputed.error, true) };
   }
@@ -459,5 +472,8 @@ export async function revalidateMenuPlannerAccept(
 ): Promise<RevalidateMenuPlannerAcceptResult> {
   const verified = verifyMenuPlannerAcceptToken(input, deps);
   if (!verified.ok) return verified;
-  return revalidateVerifiedMenuPlannerAccept(verified.verified);
+  return revalidateVerifiedMenuPlannerAccept(
+    verified.verified,
+    input.inlineRunningContextJson !== undefined ? { inlineRunningContextJson: input.inlineRunningContextJson } : {},
+  );
 }

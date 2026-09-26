@@ -417,6 +417,7 @@ export function isMenuPlannerDraftIdentityEquivalent(
 export async function createMenuPlannerDraft(
   input: MenuPlannerDraftSaveInput,
   db: PrismaDbClient,
+  options: { deterministicItemIds?: boolean } = {},
 ): Promise<{ menuId: string; status: "DRAFT" }> {
   const menu = await db.menuTemplate.create({
     data: {
@@ -445,13 +446,25 @@ export async function createMenuPlannerDraft(
       });
     for (const [itemIndex, itemInput] of blockInput.items.entries()) {
       await db.menuItem.create({
-        data: itemData(itemInput, block.id, itemIndex),
+        data: {
+          ...itemData(itemInput, block.id, itemIndex),
+          ...(options.deterministicItemIds === true ? { id: menuPlannerDraftItemId(input.targetMenuId, blockIndex, itemIndex) } : {}),
+        },
       });
     }
   }
 
   if (menu.status !== "DRAFT") throw new Error("DRAFT_STATUS_INVARIANT_FAILED");
   return { menuId: menu.id, status: "DRAFT" };
+}
+
+/**
+ * [R12 unified composer] 署名済み targetMenuId から決まる AI 項目の id。
+ * 保存前の dry-run と本保存で同じ id になるため、item identity に結び付く PlausibilityReview の
+ * issueDigest が両者で一致する（review を dry-run で承認 → 本保存で同じ承認が有効）。
+ */
+export function menuPlannerDraftItemId(targetMenuId: string, blockIndex: number, itemIndex: number): string {
+  return `${targetMenuId}-b${blockIndex}-i${itemIndex}`;
 }
 
 export function isTargetConflict(error: unknown): boolean {

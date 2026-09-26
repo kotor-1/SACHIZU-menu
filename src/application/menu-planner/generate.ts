@@ -46,6 +46,8 @@ const generateInputSchema = z
     contextMenuTemplateId: z.string().trim().min(1).max(64),
     menuName: z.string().trim().min(1).max(120),
     coachRequest: z.unknown(),
+    /** [R12 unified composer] inline context source（参照メニュー無し）のときだけ。 */
+    inlineRunningContextJson: z.string().min(1).max(20000).optional(),
   })
   .strict();
 
@@ -78,6 +80,7 @@ export type MenuPlannerBeforePreviewContext = Readonly<{
 export type LoadMenuPlannerAuthoritativeParserContext = (input: {
   ownerId: string;
   contextMenuTemplateId: string;
+  inlineRunningContextJson?: string;
 }) => Promise<
   | { ok: true; context: MenuPlannerAuthoritativeParserContext }
   | { ok: false; error: MenuPlannerGenerateContextError }
@@ -184,6 +187,9 @@ export async function generateMenuPlannerPreview(
     loaded = await deps.loadAuthoritativeParserContext({
       ownerId: parsedInput.data.ownerId,
       contextMenuTemplateId: parsedInput.data.contextMenuTemplateId,
+      ...(parsedInput.data.inlineRunningContextJson !== undefined
+        ? { inlineRunningContextJson: parsedInput.data.inlineRunningContextJson }
+        : {}),
     });
   } catch {
     return authoritativeContextFailure();
@@ -262,6 +268,9 @@ export async function generateMenuPlannerPreview(
         intent: parserRequest.request.coachRequest,
         // A3C already returned the only accepted, sanitized proposal shape.
         proposal: parsed.proposal,
+        ...(parsedInput.data.inlineRunningContextJson !== undefined
+          ? { inlineRunningContextJson: parsedInput.data.inlineRunningContextJson }
+          : {}),
       },
       deps.accept,
     );

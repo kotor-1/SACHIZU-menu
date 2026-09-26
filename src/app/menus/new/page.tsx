@@ -1,23 +1,26 @@
 import { PageHeader } from "@/components/ui";
-import { EMPTY_MENU_FORM, MenuForm } from "@/components/menu/menu-form";
-import { createMenuAction } from "@/actions/menu-actions";
+import { UnifiedMenuComposer } from "@/components/menu/unified-menu-composer";
+import { listExercisesForPicker } from "@/infra/repositories/exercise-repository";
 
 export const metadata = { title: "メニューを作成｜SACHIZU" };
 
-export default function NewMenuPage() {
+/** 種目ピッカーは DB 由来。ビルド時に固定しないよう request time で読む。 */
+export const dynamic = "force-dynamic";
+
+/**
+ * 統合メニュー Composer。AI 生成と手動編集を 1 つの画面に統合する。
+ * AI 生成結果は保存前の下書きとして同じ画面に表示され、保存して初めて MenuTemplate になる。
+ */
+export default async function NewMenuPage() {
+  const exercises = await listExercisesForPicker();
+
   return (
     <>
       <PageHeader
         title="メニューを作成"
-        description="まず名前と狙いを決めます。種目の中身は次の画面で組み立てます。"
+        description="希望を自然文で伝えると AI が下書きを作ります。そのまま並べ替え・編集して保存できます。"
       />
-      <MenuForm
-        action={createMenuAction}
-        initial={EMPTY_MENU_FORM}
-        submitLabel="作成して中身を組む"
-        cancelHref="/menus"
-        showDefaultBlocksOption
-      />
+      <UnifiedMenuComposer exercises={exercises} />
     </>
   );
 }

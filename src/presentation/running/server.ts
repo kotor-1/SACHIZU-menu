@@ -34,12 +34,15 @@ export type SavedRunningMenuItemRow = {
   provenanceJson: string | null;
   ruleSetVersion: string | null;
   ruleSetContentHash: string | null;
+  /** コーチのメモ（MenuItem.note）。処方の数値には関与しない表示用。 */
+  note?: string | null;
 };
 
 export type RuleSetIdentityResolver = (identity: { version: string; contentHash: string }) => RuleSetIdentityResult;
 
 export type SavedRunningItemPresentation =
-  | { status: "OK"; item: RunningItemPresentationDto }
+  /** `note` はコーチのメモがあるときだけ付く（無ければ key ごと無い）。 */
+  | { status: "OK"; item: RunningItemPresentationDto; note?: string }
   /** 処方 JSON を読めない（壊れている）。題名だけ表示し、数値は出さない。 */
   | { status: "UNREADABLE"; id: string; title: string; message: string }
   | { status: "NOT_RUNNING_V2"; id: string };
@@ -98,5 +101,6 @@ export function presentSavedRunningMenuItem(
       sessionFindings: options.sessionFindings,
       eligibilityReasons: options.eligibilityReasons,
     }),
+    ...(row.note != null && row.note.trim() !== "" ? { note: row.note.trim() } : {}),
   };
 }

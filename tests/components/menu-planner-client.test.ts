@@ -39,9 +39,9 @@ describe("R12-A3H MenuPlanner UI boundary", () => {
     expect(client).not.toMatch(/from ["']@\/application\//);
     expect(client).not.toMatch(/from ["']@\/infra\//);
     expect(client).not.toMatch(/@prisma\/client|OPENAI_API_KEY|provider|model|RuleSet loader/);
-    expect(page).toMatch(/listMenusForPicker/);
-    expect(page).toMatch(/menu\.id.*menu\.name/);
-    expect(page).not.toMatch(/src\/domain\/running\/rules|catalog|subject|provider|model|ownerId/);
+    // 旧プランナー入口は統合 Composer（/menus/new）への転送のみ。DB / running 内部へ触れない。
+    expect(page).toMatch(/redirect\(["']\/menus\/new["']\)/);
+    expect(page).not.toMatch(/@\/infra\/repositories|listMenusForPicker|@prisma\/client|catalog|subject|provider|model|ownerId/);
   });
 
   it("does not add client-side persistence or prescription calculations", () => {

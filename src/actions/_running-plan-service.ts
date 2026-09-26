@@ -240,7 +240,9 @@ function otherAggregationItems(menu: MenuDetail, excludeItemId: string | null): 
           reps: item.reps,
           distanceMeters: item.distanceMeters,
           durationSeconds: item.durationSeconds,
-          restSeconds: item.restSeconds,
+          // legacy aggregation は 0 を「レスト未指定」と同じに扱う（legacyItemSummarySchema は正の値か null）。
+          // preview（menu-planner）の legacyAggregationItem と同じ正規化。0 のままだと plan request 全体が BLOCK になる。
+          restSeconds: item.restSeconds === 0 ? null : item.restSeconds,
         },
       });
     }
