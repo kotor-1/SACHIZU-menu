@@ -3731,10 +3731,11 @@
             "unit": "percent"
           },
           "evidenceIds": [
-            "EV_ENGINE_POLICY"
+            "EV_VITTORI_1981_PRIMARY",
+            "EV_HAUGEN_2019_VOLUME_TABLE"
           ],
           "hardSafety": null,
-          "judgement": "ENGINE_POLICY",
+          "judgement": "SOURCE_BACKED",
           "recommended": {
             "max": 95,
             "min": 90,
@@ -4188,10 +4189,10 @@
             "unit": "m"
           },
           "evidenceIds": [
-            "EV_ENGINE_POLICY"
+            "EV_HAUGEN_2019_VOLUME_TABLE"
           ],
           "hardSafety": null,
-          "judgement": "ENGINE_POLICY",
+          "judgement": "SOURCE_BACKED",
           "recommended": {
             "max": 30,
             "min": 10,
@@ -4873,7 +4874,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "10–50m / 約2–7分はHaugen/UKAのbest-practice synthesis。youth 20m/約2分、elite 40m block/約7分はcoach examplesであり、DEV/ADV tier境界や普遍的実験閾値ではない。",
+      "applicabilityNotes": "Acceleration: 10–50m / 約2–7分、session volume 100–300m は Haugen の best-practice synthesis。youth 20m/約2分、elite 40m block/約7分は coach examples であり、DEV/ADV tier 境界や普遍的実験閾値ではない。",
       "evidenceLevel": 4,
       "id": "EV_HAUGEN_2019_ACC_EXAMPLES",
       "population": {
@@ -4888,9 +4889,9 @@
       },
       "provisional": true,
       "reference": {
-        "citation": "Haugen 2019 (UKA classification via Deep Research reports)",
-        "doi": null,
-        "url": null,
+        "citation": "Haugen T, Seiler S, Sandbakk Ø, Tønnessen E. The Training and Development of Elite Sprint Performance. Sports Medicine - Open 2019;5:44.",
+        "doi": "10.1186/s40798-019-0221-0",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6872694/",
         "year": 2019
       },
       "reportedBy": [
@@ -4903,7 +4904,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "build 20–60m / fly 10–30m / recovery 4–15分はbest-practice core。youth/eliteの分割例はcoach examplesであり、DEV/ADV境界の直接実験値ではない。",
+      "applicabilityNotes": "Maximal velocity: build 20–40m / fly 10–30m / recovery 4–15分、session fly volume 50–150m（flying start除外）は best-practice core。fly-zone length（10–30m）と session total fly volume（50–150m）は別。youth/elite の分割例は coach examples であり、DEV/ADV 境界の直接実験値ではない。",
       "evidenceLevel": 4,
       "id": "EV_HAUGEN_2019_MV_EXAMPLES",
       "population": {
@@ -4918,9 +4919,9 @@
       },
       "provisional": true,
       "reference": {
-        "citation": "Haugen 2019 (via Deep Research reports)",
-        "doi": null,
-        "url": null,
+        "citation": "Haugen T, Seiler S, Sandbakk Ø, Tønnessen E. The Training and Development of Elite Sprint Performance. Sports Medicine - Open 2019;5:44.",
+        "doi": "10.1186/s40798-019-0221-0",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6872694/",
         "year": 2019
       },
       "reportedBy": [
@@ -4963,7 +4964,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "Acc 100–300m / MV fly 50–150m / SES 300–900m / Tempo 1000–2000m。Perplexity・Gemini DR報告。Claude DRはAcc 100–160mと報告しており不一致（OPEN-07）。一次資料未照合。",
+      "applicabilityNotes": "Table 2「Summary of best practice sprint training recommendations」より（OPEN20 照合）。Acc 100–300m / MV fly 50–150m（flying start除外）/ SES 300–900m / Speed endurance 600–2000m / Tempo 1000–2000m / Resisted 50–200m（10–30m）。これは best-practice synthesis（著者の推奨であり、世界級スプリンターの実測 training data ではない）。Claude DR の「Acc 100–160m」は誤報告と確定（OPEN-07）。",
       "evidenceLevel": 4,
       "id": "EV_HAUGEN_2019_VOLUME_TABLE",
       "population": {
@@ -4975,9 +4976,9 @@
       },
       "provisional": true,
       "reference": {
-        "citation": "Haugen 2019 volume table (via Deep Research reports)",
-        "doi": null,
-        "url": null,
+        "citation": "Haugen T, Seiler S, Sandbakk Ø, Tønnessen E. The Training and Development of Elite Sprint Performance. Sports Medicine - Open 2019;5:44.",
+        "doi": "10.1186/s40798-019-0221-0",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6872694/",
         "year": 2019
       },
       "reportedBy": [
@@ -5020,7 +5021,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "一次資料で確認した歴史的コーチング方法。60/80mおよび60/80/100m framework、phase/distance dependentなmicro rest約1:30–4:00、macro rest約6–12分、near-maximal約95–98%の構造を記録する。現代の一般/ユース自動処方ではない。",
+      "applicabilityNotes": "一次資料で確認した歴史的コーチング方法。60/80mおよび60/80/100m framework、phase/distance dependentなmicro rest約1:30–4:00、macro rest約6–12分、near-maximal約95–98%の構造を記録する。Haugen 2019 Table 2 の Speed endurance（60–80m, 90–95%）が独立に corroborate。EVIDENCE_INFORMED（Special Endurance / 速度持久）。現代の一般/ユース自動処方ではない。",
       "evidenceLevel": 4,
       "id": "EV_VITTORI_1981_PRIMARY",
       "population": {
@@ -5111,7 +5112,7 @@
       "verification": "SECONDARY_REPORT_ONLY"
     },
     {
-      "applicabilityNotes": "強度帯（95–100 / 76–94 / <75%）、完全/不完全回復の分類。数値根拠ではなく分類の CHECK_ONLY。",
+      "applicabilityNotes": "強度帯（95–100 / 76–94 / <75%）、完全/不完全回復の分類。数値根拠ではなく分類の CHECK_ONLY。KNOWN_PRIMARY_SOURCE_GAP: UKA 2019 原文は未入手（secondary 経由のみ）。「疾走1秒につき1–2分の recovery」は heuristic（BEST_PRACTICE_SYNTHESIS）であり、hard physiological law / universal recovery rule ではない。",
       "evidenceLevel": 4,
       "id": "EV_UKA_CLASSIFICATION",
       "population": {

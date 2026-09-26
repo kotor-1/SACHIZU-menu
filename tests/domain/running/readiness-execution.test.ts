@@ -15,7 +15,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("R11-B2 production equivalence classes", () => {
   it("120 complete planning results match the current F1 DRAFT RuleSet golden", () => {
-    expect(readinessPlanningRegressionDigest()).toEqual({ count: 120, sha256: "079c6351740842ec0d5f65c18c2ed62093c92c1edeee355b36f74c63cc11b22b" });
+    expect(readinessPlanningRegressionDigest()).toEqual({ count: 120, sha256: "06e853f04d51fb1635bbde8ef9fd21458076343ab60231f4e9c99689890beac6" });
   });
   it("all 580 R5 outputs / 19 tuples / 30 item states survive versioned round-trip", () => {
     // Exhaust the finite wellness grid, then quotient only by complete R5 wellness outputs

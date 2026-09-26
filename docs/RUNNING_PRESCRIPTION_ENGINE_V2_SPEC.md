@@ -3243,19 +3243,19 @@ export type AiPlannerProposal = {
 | ID | 論点 | 本書での暫定扱い | 決める人・時期 |
 | --- | --- | --- | --- |
 | OPEN-01 | 選手個人（Athlete）の永続化と ATHLETE subject の UI | 型のみ。v2 は GROUP | プロダクト判断・R11 後 |
-| OPEN-02 | 100m PB → Vmax 推定モデル | 実装しない（`vmaxEstimationModels: []`） | 一次資料のある推定式が見つかったら改版 |
+| OPEN-02 | 100m PB → Vmax 推定モデル | 実装しない（`vmaxEstimationModels: []`）。単一 PB→Vmax の検証済みモデルは無し（Vmax 導出には split time が要る）。UNSUPPORTED | CLOSED（OPEN20 一次資料照合） |
 | OPEN-03 | HAND の距離依存項、FAT 専用 tolerance | HAND 0.25s（距離項 0）、FAT は PHOTO_CELL と同値 | 実測データ・計測文献 |
 | OPEN-04 | RADAR/LASER の tolerance（m/s 単位） | COACH_ONLY | 同上 |
 | OPEN-05 | 18–19歳の晩熟例の maturity 自動 POST | ADULT は自動 POST | コーチ判断 |
 | OPEN-06 | 高強度予算（按分和 ≤ 1.0）の妥当性 | WARN のみ・provisional | 運用ログ + 研究 |
-| OPEN-07 | ACCELERATION の session volume（100–300m か 100–160m か） | ADV 推奨 100–300m | 一次資料照合（Haugen 2019 本文） |
-| OPEN-08 | DEV MV の fly volume 20–40m の出典（ChatGPT プリセットか Haugen youth 例か） | EP 扱い | 一次資料照合 |
+| OPEN-07 | ACCELERATION の session volume（100–300m か 100–160m か） | ADV 100–300m=BEST_PRACTICE_SYNTHESIS（Haugen Table 2）、DEV 60–160m=ENGINE_POLICY | CLOSED（OPEN20 一次資料照合） |
+| OPEN-08 | DEV MV の fly volume 20–40m の出典（ChatGPT プリセットか Haugen youth 例か） | DEV 20–40m=ENGINE_POLICY、ADV 50–150m=BEST_PRACTICE_SYNTHESIS（Haugen）。fly-zone length と session fly volume は別 | CLOSED（OPEN20 一次資料照合） |
 | OPEN-09 | DEVELOPMENTAL（POST）の LONG FULL の数値 | 手動のみ・EP 値 | コーチ + 研究 |
 | OPEN-10 | DEVELOPMENTAL の TEMPO_EXTENSIVE 総量 | 400–1000m・EP | 同上 |
 | OPEN-11 | コーチ独自の SessionTemplate を作れるようにするか | 作れない（ルールセット定数） | プロダクト判断 |
-| OPEN-12 | TEMPO_INTENSIVE の強度帯（70–90 / 75–90 / 76–94 / 80–89 が不一致） | COACH_DEFINED は編集可 70–94 | 一次資料照合 |
-| OPEN-13 | EVENT_APPROACH_SPEED の試技数上限 | DEV 3–6 / ADV 4–8・EP | 跳躍・ハードル専門の研究 |
-| OPEN-14 | UKA「疾走1秒につき1–2分」と youth 例の不整合 | 使わない | 一次資料照合 |
+| OPEN-12 | TEMPO_INTENSIVE の強度帯（70–90 / 75–90 / 76–94 / 80–89 が不一致） | VITTORI_SE 90–95%=EVIDENCE_INFORMED（Special Endurance / 速度持久。intensive tempo 80–90% とは別概念）、COACH_DEFINED 70–94%=ENGINE_POLICY。intensityPercent は reference velocity 比 | CLOSED（OPEN20 一次資料照合） |
+| OPEN-13 | EVENT_APPROACH_SPEED の試技数上限 | DEV 3–6 / ADV 4–8=ENGINE_POLICY（一次実験研究による hard ceiling は無し。quality stop は monitoring が扱う） | CLOSED（OPEN20 一次資料照合） |
+| OPEN-14 | UKA「疾走1秒につき1–2分」と youth 例の不整合 | BEST_PRACTICE_SYNTHESIS/heuristic（hard physiological law / universal rule ではない）。Haugen full-recovery 帯が独立 support。KNOWN_PRIMARY_SOURCE_GAP（UKA 2019 原文未入手） | CLOSED（OPEN20 一次資料照合） |
 | OPEN-15 | 痛み部位など健康情報の保存・傷害履歴・保護者同意 | 保存しない | 法務・プロダクト判断 |
 | OPEN-16 | プライオ接地数・筋力負荷のセッション上限 | 上限なし（表示のみ） | 研究 |
 | OPEN-17 | 高速曝露の週次急増ガード | 未実装 | 研究 |
@@ -3264,7 +3264,7 @@ export type AiPlannerProposal = {
 | OPEN-20 | ルールセットを ACTIVE にする承認者と一次資料照合の手順 | 全版 DRAFT | ユーザー（コーチ）＋照合担当 |
 | OPEN-21 | Special Endurance I/II の距離・時間境界 | template 名だけ持ち境界を定義しない | 研究 |
 | OPEN-22 | `plannedDate` が無いテンプレートの週次評価 | 練習作成時にのみ評価 | UX 判断 |
-| OPEN-23 | RESISTED_SPRINT の repDistanceM（10–30/10–40m 等）を裏付ける usage=PRESCRIPTION の一次資料 | §5.6 に該当 Evidence が無いため ENGINE_POLICY（R2 で SOURCE_BACKED から降格。§7.4 RESISTED_SPRINT errata参照） | 一次資料照合 |
+| OPEN-23 | RESISTED_SPRINT の repDistanceM（10–30/10–40m 等）を裏付ける usage=PRESCRIPTION の一次資料 | ADV 10–30m=BEST_PRACTICE_SYNTHESIS（Haugen Table 2）、DEV 10–20m=ENGINE_POLICY。Petrakos の Vdec は load classification であり repDistance prescription ではない | CLOSED（OPEN20 一次資料照合） |
 
 ---
 

@@ -913,18 +913,19 @@ describe("numerical transcription audit against §7.4", () => {
     expect(rs.evidence.find((e) => e.id === "EV_JAAF_WIND_SPRINT")!.usage).toBe("CONTEXT_ONLY");
   });
 
-  it("RESISTED_SPRINT: repDistanceM は ADV/DEV とも judgement=ENGINE_POLICY で EV_ENGINE_POLICY のみを参照する（R2 errata: §5.6にusage=PRESCRIPTIONの直接根拠が無いためSBから降格）", () => {
+  it("RESISTED_SPRINT: repDistanceM は DEV=ENGINE_POLICY、ADV=SOURCE_BACKED（OPEN-23: Haugen 10–30m BEST_PRACTICE_SYNTHESIS）", () => {
     const devVol = rs.envelopes.find(
       (e) => e.method === "RESISTED_SPRINT" && e.tier === "DEVELOPMENTAL" && e.fields.repDistanceM,
     )!;
     const advVol = rs.envelopes.find(
       (e) => e.method === "RESISTED_SPRINT" && e.tier === "ADVANCED" && e.fields.repDistanceM,
     )!;
-    for (const env of [devVol, advVol]) {
-      expect(env.fields.repDistanceM!.judgement).toBe("ENGINE_POLICY");
-      expect(env.fields.repDistanceM!.evidenceIds).toEqual(["EV_ENGINE_POLICY"]);
-      expect(env.fields.repDistanceM!.evidenceIds).not.toContain("EV_RESISTED_META_2024_2025");
-    }
+    expect(devVol.fields.repDistanceM!.judgement).toBe("ENGINE_POLICY");
+    expect(devVol.fields.repDistanceM!.evidenceIds).toEqual(["EV_ENGINE_POLICY"]);
+    expect(advVol.fields.repDistanceM!.judgement).toBe("SOURCE_BACKED");
+    expect(advVol.fields.repDistanceM!.evidenceIds).toEqual(["EV_HAUGEN_2019_VOLUME_TABLE"]);
+    expect(devVol.fields.repDistanceM!.evidenceIds).not.toContain("EV_RESISTED_META_2024_2025");
+    expect(advVol.fields.repDistanceM!.evidenceIds).not.toContain("EV_RESISTED_META_2024_2025");
   });
 
   it("RESISTED_SPRINT: HEAVY (RS_SLED_HEAVY) は DEVELOPMENTAL tier の Envelope を持たない（DEVでは不適格）", () => {

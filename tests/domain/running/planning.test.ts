@@ -35,7 +35,7 @@ import type { Unit } from "@/domain/running/types/primitives";
 // ---------------------------------------------------------------------------
 
 const ruleSet = getRuleSet("rs-2026.09.0")!;
-const EXPECTED_HASH = "c73297f8850fe8d6a6bf7a4c918b49ceb6fb9477edc429352aecbeddf6b657ba";
+const EXPECTED_HASH = "bade42b0180b4731937db9d0b0acb7f1cd1fb0ea42c2c5f8e99f3f4f030ee92d";
 const PLANNING_DATE = "2026-09-15";
 
 function iso(value: string): IsoDate {
@@ -1318,7 +1318,9 @@ describe("step 10: confidence", () => {
   });
 
   it("POLICY_ONLY は REQUIRE_COACH_REVIEW + 暫定ルール表示", () => {
-    const p = expectOk(plan("RESISTED_SPRINT", "RS_HILL_SHORT", {}));
+    // [OPEN20 OPEN-23] RESISTED_SPRINT ADV は BEST_PRACTICE_SYNTHESIS に昇格したため、全 ENGINE_POLICY の
+    // POLICY_ONLY 例は STRIDE（全 cell が EV_ENGINE_POLICY）に置き換える。
+    const p = expectOk(plan("STRIDE", "ST_RELAXED", {}));
     expect(p.confidence.prescription).toBe("POLICY_ONLY");
     expect(p.confidence.directness).toBe("NOT_APPLICABLE");
     expect(findingCodes(p)).toEqual(expect.arrayContaining(["CONFIDENCE_POLICY_ONLY", "PROVISIONAL_RULE_ONLY"]));

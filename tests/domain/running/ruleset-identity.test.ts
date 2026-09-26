@@ -7,7 +7,7 @@ import { getActiveRuleSet, getRuleSetByIdentity } from "@/domain/running";
 
 const PLANNING_DATE = "2026-09-15";
 const PRODUCTION_VERSION = "rs-2026.09.0";
-const PRODUCTION_HASH = "c73297f8850fe8d6a6bf7a4c918b49ceb6fb9477edc429352aecbeddf6b657ba";
+const PRODUCTION_HASH = "bade42b0180b4731937db9d0b0acb7f1cd1fb0ea42c2c5f8e99f3f4f030ee92d";
 
 describe("getRuleSetByIdentity", () => {
   it("version + hash が完全一致すれば OK（manifest 検証済みの contentHash と一致する）", () => {

@@ -30,7 +30,9 @@ export const METHOD_LABEL_JA: Record<RunningTrainingMethod, string> = {
   SPRINT_ENDURANCE_SHORT: "短時間スプリント持久",
   LONG_SPRINT_RACE_SPECIFIC: "ロングスプリント",
   TEMPO_EXTENSIVE: "テンポ（エクステンシブ）",
-  TEMPO_INTENSIVE: "テンポ（インテンシブ）",
+  // [OPEN20 OPEN-12] 内部キー TEMPO_INTENSIVE は互換のため維持。表示は Special Endurance（Vittori）
+  // であることを明確化する（US 文献の「intensive tempo 80–90%」とは別概念）。
+  TEMPO_INTENSIVE: "速度持久（Special Endurance）",
   RESISTED_SPRINT: "抵抗走",
   ASSISTED_SPRINT: "アシステッド",
   EVENT_APPROACH_SPEED: "助走・種目特異",
