@@ -21,6 +21,8 @@ import {
   findMenuItemPrescriptionKind,
   moveBlock,
   moveMenuItem,
+  reorderBlocks,
+  reorderMenuItems,
   updateBlock,
   updateMenu,
   updateMenuItem,
@@ -206,5 +208,26 @@ export async function moveMenuItemAction(formData: FormData): Promise<void> {
   const direction = formData.get("direction") === "up" ? "up" : "down";
   if (!itemId) return;
   await moveMenuItem(itemId, direction);
+  revalidatePath(`/menus/${menuId}`);
+}
+
+// --- ドラッグ&ドロップによる並べ替え -------------------------------------
+
+/**
+ * ブロックの並べ替え（ドラッグ&ドロップ）。client は「現在表示している全ブロック ID の新順序」だけを送る。
+ * 実際の整合（集合一致・重複なし・atomic）は repository 側で検証する。
+ */
+export async function reorderMenuBlocksAction(menuId: string, orderedBlockIds: string[]): Promise<void> {
+  if (orderedBlockIds.length > 100) return;
+  await reorderBlocks(menuId, orderedBlockIds);
+  revalidatePath(`/menus/${menuId}`);
+}
+
+/**
+ * 同一ブロック内の項目の並べ替え（ドラッグ&ドロップ）。RUNNING_V2 / LEGACY を問わず順序だけを変える。
+ */
+export async function reorderMenuItemsAction(menuId: string, blockId: string, orderedItemIds: string[]): Promise<void> {
+  if (orderedItemIds.length > 1000) return;
+  await reorderMenuItems(blockId, orderedItemIds);
   revalidatePath(`/menus/${menuId}`);
 }

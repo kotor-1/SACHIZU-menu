@@ -284,6 +284,27 @@ export async function moveBlock(id: string, direction: "up" | "down") {
   ]);
 }
 
+/**
+ * メニュー内のブロックを指定された順序に並べ替える（sortOrder = 配列 index）。
+ * 対象ブロックがメニューに属し、ID の集合が一致・重複なしであることを検証してから atomic に更新する。
+ */
+export async function reorderBlocks(menuId: string, orderedBlockIds: readonly string[]) {
+  return prisma.$transaction(async (tx) => {
+    const blocks = await tx.menuBlock.findMany({ where: { menuTemplateId: menuId }, select: { id: true } });
+    const current = blocks.map((block) => block.id).sort();
+    const requested = [...orderedBlockIds].sort();
+    if (current.length !== requested.length || current.some((id, index) => id !== requested[index])) {
+      throw new Error("並び順の対象ブロックが一致しません");
+    }
+    if (new Set(orderedBlockIds).size !== orderedBlockIds.length) {
+      throw new Error("並び順に重複したブロックがあります");
+    }
+    for (let index = 0; index < orderedBlockIds.length; index++) {
+      await tx.menuBlock.update({ where: { id: orderedBlockIds[index]! }, data: { sortOrder: index } });
+    }
+  });
+}
+
 // --- アイテム（処方）--------------------------------------------------------
 
 export async function addMenuItem(menuBlockId: string, input: MenuItemInput) {
@@ -336,4 +357,26 @@ export async function moveMenuItem(id: string, direction: "up" | "down") {
     prisma.menuItem.update({ where: { id: item.id }, data: { sortOrder: neighbor.sortOrder } }),
     prisma.menuItem.update({ where: { id: neighbor.id }, data: { sortOrder: item.sortOrder } }),
   ]);
+}
+
+/**
+ * 同じブロック内の項目を指定された順序に並べ替える（sortOrder = 配列 index）。
+ * 対象項目がブロックに属し、ID の集合が一致・重複なしであることを検証してから atomic に更新する。
+ * RUNNING_V2 / LEGACY を問わず順序だけを変える（処方・snapshot には触れない）。
+ */
+export async function reorderMenuItems(blockId: string, orderedItemIds: readonly string[]) {
+  return prisma.$transaction(async (tx) => {
+    const items = await tx.menuItem.findMany({ where: { menuBlockId: blockId }, select: { id: true } });
+    const current = items.map((item) => item.id).sort();
+    const requested = [...orderedItemIds].sort();
+    if (current.length !== requested.length || current.some((id, index) => id !== requested[index])) {
+      throw new Error("並び順の対象項目が一致しません");
+    }
+    if (new Set(orderedItemIds).size !== orderedItemIds.length) {
+      throw new Error("並び順に重複した項目があります");
+    }
+    for (let index = 0; index < orderedItemIds.length; index++) {
+      await tx.menuItem.update({ where: { id: orderedItemIds[index]! }, data: { sortOrder: index } });
+    }
+  });
 }

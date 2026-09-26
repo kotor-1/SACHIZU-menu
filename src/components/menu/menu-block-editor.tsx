@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge, Card, CardBody, CardHeader, buttonClass, cn } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -9,12 +9,14 @@ import {
   MenuItemForm,
   type MenuItemFormValues,
 } from "./menu-item-form";
+import { SortableList } from "./sortable-list";
 import {
   addMenuItemAction,
   deleteBlockAction,
   deleteMenuItemAction,
   moveBlockAction,
   moveMenuItemAction,
+  reorderMenuItemsAction,
 } from "@/actions/menu-actions";
 import { updateMenuItemAction } from "@/actions/menu-actions";
 import { RunningItemCreateForm } from "@/components/running/running-item-create-form";
@@ -106,6 +108,24 @@ export function MenuBlockEditor({
   const [adding, setAdding] = useState(false);
   const [addingRunning, setAddingRunning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // ドラッグ&ドロップ用の optimistic な項目順序。server の block.items が変わったら同期する。
+  const [orderedItems, setOrderedItems] = useState<MenuBlockDetail["items"]>(block.items);
+  useEffect(() => {
+    setOrderedItems(block.items);
+  }, [block.items]);
+
+  /** ドラッグ&ドロップ後の項目並べ替え。optimistic に反映し、server が整合を検証して永続化する。 */
+  async function handleItemReorder(orderedItemIds: string[]) {
+    const byId = new Map(block.items.map((item) => [item.id, item]));
+    const next = orderedItemIds.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+    if (next.length !== block.items.length) return; // 集合不一致は無視（server が最終検証）
+    setOrderedItems(next);
+    try {
+      await reorderMenuItemsAction(menuId, block.id, orderedItemIds);
+    } catch {
+      setOrderedItems(block.items);
+    }
+  }
 
   /**
    * 編集フォームの種目リスト。
@@ -180,8 +200,11 @@ export function MenuBlockEditor({
           <p className="py-2 text-sm text-slate-400">まだ種目がありません。</p>
         )}
 
-        <ol className="space-y-2">
-          {block.items.map((item, index) => {
+        <SortableList
+          items={orderedItems}
+          onReorder={handleItemReorder}
+          renderItem={(item, dragHandle) => {
+            const index = orderedItems.findIndex((candidate) => candidate.id === item.id);
             const prescription = formatPrescription(item);
             const name = item.exercise?.name ?? item.displayName ?? "（名称未設定）";
             const runningItem = running?.items[item.id] ?? null;
@@ -189,8 +212,8 @@ export function MenuBlockEditor({
             // [R10-B4B] 走トレーニングの項目は専用の表示・編集で出す（legacy の汎用編集は使えない）。
             if (runningItem !== null) {
               return (
-                <li key={item.id} className="flex items-start gap-2">
-                  <span className="mt-2 w-5 shrink-0 text-xs font-medium text-slate-400">{index + 1}.</span>
+                <div className="flex items-start gap-2">
+                  {dragHandle}
                   <div className="min-w-0 flex-1">
                     <RunningItemPanel menuId={menuId} presentation={runningItem} />
                   </div>
@@ -207,7 +230,7 @@ export function MenuBlockEditor({
                       fields={{ menuId, itemId: item.id, direction: "down" }}
                       label="↓"
                       title="下へ"
-                      disabled={index === block.items.length - 1}
+                      disabled={index === orderedItems.length - 1}
                     />
                     <form action={deleteMenuItemAction}>
                       <input type="hidden" name="menuId" value={menuId} />
@@ -217,35 +240,28 @@ export function MenuBlockEditor({
                       </ConfirmSubmitButton>
                     </form>
                   </div>
-                </li>
+                </div>
               );
             }
 
             if (editingId === item.id) {
               return (
-                <li key={item.id}>
-                  <MenuItemForm
-                    action={updateMenuItemAction.bind(null, menuId, item.id)}
-                    exercises={optionsFor(item)}
-                    initial={toFormValues(item)}
-                    submitLabel="保存"
-                    onCancel={() => setEditingId(null)}
-                    onSuccess={() => setEditingId(null)}
-                    compact
-                    phase={phase}
-                  />
-                </li>
+                <MenuItemForm
+                  action={updateMenuItemAction.bind(null, menuId, item.id)}
+                  exercises={optionsFor(item)}
+                  initial={toFormValues(item)}
+                  submitLabel="保存"
+                  onCancel={() => setEditingId(null)}
+                  onSuccess={() => setEditingId(null)}
+                  compact
+                  phase={phase}
+                />
               );
             }
 
             return (
-              <li
-                key={item.id}
-                className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2"
-              >
-                <span className="mt-0.5 w-5 shrink-0 text-xs font-medium text-slate-400">
-                  {index + 1}.
-                </span>
+              <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+                {dragHandle}
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -287,7 +303,7 @@ export function MenuBlockEditor({
                     fields={{ menuId, itemId: item.id, direction: "down" }}
                     label="↓"
                     title="下へ"
-                    disabled={index === block.items.length - 1}
+                    disabled={index === orderedItems.length - 1}
                   />
                   <button
                     type="button"
@@ -312,10 +328,10 @@ export function MenuBlockEditor({
                     </ConfirmSubmitButton>
                   </form>
                 </div>
-              </li>
+              </div>
             );
-          })}
-        </ol>
+          }}
+        />
 
         {adding ? (
           <MenuItemForm

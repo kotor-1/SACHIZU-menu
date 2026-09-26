@@ -10,6 +10,8 @@ import {
   findMenu,
   moveBlock,
   moveMenuItem,
+  reorderBlocks,
+  reorderMenuItems,
   updateMenuItem,
 } from "@/infra/repositories/menu-repository";
 import { createExercise } from "@/infra/repositories/exercise-repository";
@@ -155,6 +157,59 @@ describe("menu repository", () => {
 
       const detail = await findMenu(menu.id);
       expect(detail!.blocks.map((b) => b.name)).toEqual(["ブロックB", "ブロックA"]);
+    });
+
+    it("reorderMenuItems persists an arbitrary order and survives reload", async () => {
+      const menu = await createMenu(menuInput(), false);
+      const block = await addBlock(menu.id, { name: "ドリル", note: null });
+      const a = await addMenuItem(block.id, menuItemInput({ displayName: "A" }));
+      const b = await addMenuItem(block.id, menuItemInput({ displayName: "B" }));
+      const c = await addMenuItem(block.id, menuItemInput({ displayName: "C" }));
+
+      await reorderMenuItems(block.id, [c.id, a.id, b.id]);
+
+      const detail = await findMenu(menu.id);
+      expect(detail!.blocks[0].items.map((i) => i.displayName)).toEqual(["C", "A", "B"]);
+      expect(detail!.blocks[0].items.map((i) => i.sortOrder)).toEqual([0, 1, 2]);
+    });
+
+    it("reorderMenuItems rejects a mismatched or duplicate ID list atomically", async () => {
+      const menu = await createMenu(menuInput(), false);
+      const block = await addBlock(menu.id, { name: "ドリル", note: null });
+      const a = await addMenuItem(block.id, menuItemInput({ displayName: "A" }));
+      const b = await addMenuItem(block.id, menuItemInput({ displayName: "B" }));
+
+      // missing one item / foreign item
+      await expect(reorderMenuItems(block.id, [a.id])).rejects.toThrow();
+      await expect(reorderMenuItems(block.id, [a.id, b.id, "missing"])).rejects.toThrow();
+      await expect(reorderMenuItems(block.id, [a.id, a.id])).rejects.toThrow();
+
+      // original order unchanged after each rejected write
+      const detail = await findMenu(menu.id);
+      expect(detail!.blocks[0].items.map((i) => i.displayName)).toEqual(["A", "B"]);
+    });
+
+    it("reorderBlocks persists an arbitrary block order", async () => {
+      const menu = await createMenu(menuInput(), false);
+      const first = await addBlock(menu.id, { name: "A", note: null });
+      const second = await addBlock(menu.id, { name: "B", note: null });
+      const third = await addBlock(menu.id, { name: "C", note: null });
+
+      await reorderBlocks(menu.id, [third.id, first.id, second.id]);
+
+      const detail = await findMenu(menu.id);
+      expect(detail!.blocks.map((b) => b.name)).toEqual(["C", "A", "B"]);
+    });
+
+    it("reorderBlocks rejects a mismatched block list atomically", async () => {
+      const menu = await createMenu(menuInput(), false);
+      const first = await addBlock(menu.id, { name: "A", note: null });
+      await addBlock(menu.id, { name: "B", note: null });
+
+      await expect(reorderBlocks(menu.id, [first.id])).rejects.toThrow();
+
+      const detail = await findMenu(menu.id);
+      expect(detail!.blocks.map((b) => b.name)).toEqual(["A", "B"]);
     });
   });
 

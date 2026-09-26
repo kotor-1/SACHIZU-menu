@@ -117,7 +117,7 @@ export function runningSelectionValues() {
 }
 
 /** B4B 実装前の実出力（flag OFF ではこれと一致し続ける）。 */
-export const LEGACY_BLOCK_BUTTONS = ["↑", "↑", "↓", "↓", "✎", "✕", "削除", "＋ このブロックに種目を追加"];
+export const LEGACY_BLOCK_BUTTONS = ["↑", "↑", "↓", "↓", "✎", "✕", "削除", "⠿", "＋ このブロックに種目を追加"];
 export const LEGACY_BLOCK_FIELDS = [
   "blockId",
   "blockId",
@@ -148,5 +148,5 @@ export const LEGACY_ITEM_FORM_FIELDS = [
   "restSeconds",
   "sets",
 ];
-export const LEGACY_BLOCK_TEXT = "主運動 アップ後 ↑ ↓ 削除 1. スキップドリル 3set × 10回 / レスト 1分 ていねいに ↑ ↓ ✎ ✕ ＋ このブロックに種目を追加";
+export const LEGACY_BLOCK_TEXT = "主運動 アップ後 ↑ ↓ 削除 ⠿ スキップドリル 3set × 10回 / レスト 1分 ていねいに ↑ ↓ ✎ ✕ ＋ このブロックに種目を追加";
 
