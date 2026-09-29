@@ -9,6 +9,7 @@ import {
   saveMenuDraftAction,
   type PreviewMenuDraftRunningActionResult,
 } from "@/actions/menu-planner-actions";
+import { generateRunningMenuPreviewAction, type RunningMenuPreviewActionResult } from "@/actions/running-menu-preview-actions";
 import type { RunningActionResult } from "@/actions/running-actions";
 import { SortableList } from "@/components/menu/sortable-list";
 import { EMPTY_MENU_ITEM_FORM, MenuItemForm, type MenuItemFormValues } from "@/components/menu/menu-item-form";
@@ -62,6 +63,19 @@ type Phase = "IDLE" | "GENERATING" | "PREVIEW" | "SAVING" | "ERROR";
 type ItemMode = { key: string; mode: "EDIT" | "REPLACE" | "NOTE" | "RUNNING" } | null;
 
 const MANUAL_BLOCK_KEY = "__manual__";
+type NewRunningPreview = Extract<RunningMenuPreviewActionResult, { ok: true }>;
+
+function newRunningContext(draft: RunningContextDraft) {
+  const member = draft.members[0];
+  const ageGroup = ({ U12: "ELEMENTARY", U15: "JUNIOR_HIGH", U18: "HIGH_SCHOOL", ADULT: "ADULT" } as const)[member?.ageBandOverride as "U12" | "U15" | "U18" | "ADULT"];
+  const event = member?.primaryEvent === "100m" || member?.primaryEvent === "200m" ? member.primaryEvent : undefined;
+  const minutes = draft.availableMinutes.trim() === "" ? undefined : Number(draft.availableMinutes);
+  return {
+    ...(ageGroup ? { ageGroup } : {}),
+    ...(event ? { event } : {}),
+    ...(minutes !== undefined && Number.isInteger(minutes * 60) && minutes > 0 ? { availableTimeSeconds: minutes * 60 } : {}),
+  };
+}
 
 /** 手動追加項目の client 側 key を一意にするための module スコープ counter。 */
 let manualItemIdCounter = 0;
@@ -181,6 +195,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
   const [acceptToken, setAcceptToken] = useState<string | null>(null);
   const [runningOps, setRunningOps] = useState<RunningOp[]>([]);
   const [runningViews, setRunningViews] = useState<Record<string, SavedRunningItemPresentation>>({});
+  const [newRunningPreview, setNewRunningPreview] = useState<NewRunningPreview | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [addingBlockKey, setAddingBlockKey] = useState<string | null>(null);
   const [itemMode, setItemMode] = useState<ItemMode>(null);
@@ -191,12 +206,14 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
   const busy = phase === "GENERATING" || phase === "SAVING";
 
   function updateContext(patch: Partial<RunningContextDraft>) {
+    setNewRunningPreview(null);
     setRunningContext((d) => ({ ...d, ...patch }));
   }
   function ensureMember() {
     if (runningContext.members.length === 0) updateContext({ members: [emptyMemberDraft()] });
   }
   function updateMember(index: number, patch: Partial<RunningContextDraft["members"][number]>) {
+    setNewRunningPreview(null);
     setRunningContext((d) => ({ ...d, members: d.members.map((m, i) => (i === index ? { ...m, ...patch } : m)) }));
   }
 
@@ -241,15 +258,37 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
   function submitGenerate() {
     const normalizedName = menuName.trim();
     const normalizedRequest = requestText.trim();
-    const context = buildRunningContextJson(runningContext);
     if (normalizedName.length === 0) return setErrorMessage("メニュー名を入力してください。");
     if (normalizedRequest.length === 0) return setErrorMessage("作りたい練習内容を入力してください。");
-    if (!context.ok) return setErrorMessage(context.message);
+    if (runningContext.availableMinutes.trim() !== "" && newRunningContext(runningContext).availableTimeSeconds === undefined) return setErrorMessage("練習時間は0より大きい分数で入力してください。");
 
     startTransition(async () => {
       setPhase("GENERATING");
       setErrorMessage(null);
       try {
+        const newResult = await generateRunningMenuPreviewAction({ requestText: normalizedRequest, context: newRunningContext(runningContext) });
+        if (!newResult.ok) {
+          setErrorMessage(newResult.message);
+          setPhase("ERROR");
+          return;
+        }
+        if (newResult.running !== null) {
+          setNewRunningPreview(newResult);
+          setBlocks((prev) => prev.filter((b) => b.key === MANUAL_BLOCK_KEY));
+          setAcceptToken(null);
+          setGeneratedContextJson(null);
+          setRunningOps([]);
+          setRunningViews({});
+          setPhase("PREVIEW");
+          return;
+        }
+        // Exercise-only keeps the existing signed, editable, persistable flow.
+        const context = buildRunningContextJson(runningContext);
+        if (!context.ok) {
+          setErrorMessage(context.message);
+          setPhase("ERROR");
+          return;
+        }
         const result = await generateMenuDraftAction({
           schemaVersion: 1,
           menuName: normalizedName,
@@ -283,6 +322,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
         }));
         // 手動で追加した項目は AI 生成後も末尾の「メニュー」ブロックとして残す。
         setBlocks((prev) => [...aiBlocks, ...prev.filter((b) => b.key === MANUAL_BLOCK_KEY)]);
+        setNewRunningPreview(null);
         setAcceptToken(result.result.acceptToken);
         setGeneratedContextJson(context.json);
         setRunningOps([]);
@@ -411,6 +451,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
   // ---------------------------------------------------------------------------
 
   function submitSave() {
+    if (newRunningPreview !== null && newRunningPreview.running !== null) return setErrorMessage("新しい走処方は現在プレビュー専用です。保存は次の開発段階で対応します。");
     if (menuName.trim().length === 0) return setErrorMessage("メニュー名を入力してください。");
     if (blocks.length === 0 || blocks.every((b) => b.items.length === 0)) {
       return setErrorMessage("保存する項目がありません。AIで作成するか、手動で種目を追加してください。");
@@ -599,9 +640,9 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
               aria-label="作りたい練習内容"
               className={`${INPUT_CLASS} min-h-28 resize-y`}
               value={requestText}
-              onChange={(e) => setRequestText(e.target.value)}
+              onChange={(e) => { setRequestText(e.target.value); setNewRunningPreview(null); }}
               maxLength={2000}
-              placeholder="例：中学生100m選手。今日は最大速度を中心に90分。2日後に試合なので量は控えめ。最後に補強を少し。"
+              placeholder="例：中学生100m選手。今日は軽めに走るメニューを作って。最後に補強を少し。"
               disabled={busy}
             />
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -669,6 +710,37 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
         <div role="alert" data-testid="composer-error" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{errorMessage}</div>
       )}
 
+      {newRunningPreview !== null && newRunningPreview.running !== null && (
+        <Card data-testid="new-running-preview">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-slate-900">走る練習のプレビュー</h2>
+              <Badge className="border-amber-200 bg-amber-50 text-amber-800">未保存・保存対象外</Badge>
+            </div>
+          </CardHeader>
+          <CardBody className="space-y-3">
+            {newRunningPreview.running.status === "READY" ? (
+              <div role="status" className="rounded-lg border border-slate-200 bg-white p-4">
+                <p className="text-lg font-bold text-slate-900">{newRunningPreview.running.prescription.distanceMeters}m × {newRunningPreview.running.prescription.totalReps}本</p>
+                {newRunningPreview.running.prescription.repRestSeconds !== null && <p className="mt-1 text-sm text-slate-700">1本ごとの休憩 {newRunningPreview.running.prescription.repRestSeconds / 60}分</p>}
+                {newRunningPreview.running.prescription.executionInstructionText && <p className="mt-1 text-sm text-slate-700">{newRunningPreview.running.prescription.executionInstructionText}</p>}
+                {newRunningPreview.running.message && <p className="mt-1 text-xs text-slate-500">{newRunningPreview.running.message}</p>}
+              </div>
+            ) : (
+              <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{newRunningPreview.running.message}</div>
+            )}
+            {newRunningPreview.exercises.length > 0 && (
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-slate-800">一緒に選ばれた種目（未保存）</h3>
+                {newRunningPreview.exercises.map((exercise) => <p key={exercise.id} className="text-sm text-slate-700">{exercise.name}</p>)}
+              </div>
+            )}
+            <p className="text-xs text-slate-500">この走処方はまだ保存できません。手動項目の保存は、プレビューを閉じてから行えます。</p>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setNewRunningPreview(null)}>プレビューを閉じる</Button>
+          </CardBody>
+        </Card>
+      )}
+
       {blocks.map((block) => (
         <Card key={block.key}>
           <CardHeader>
@@ -712,7 +784,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
         </Card>
       ))}
 
-      {draftVisible && (
+      {draftVisible && newRunningPreview === null && (
         <Card className="border-indigo-200 bg-indigo-50/60">
           <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -726,7 +798,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
         </Card>
       )}
 
-      {blocks.length === 0 && phase !== "GENERATING" && (
+      {blocks.length === 0 && newRunningPreview === null && phase !== "GENERATING" && (
         <p role="status" className="text-center text-sm text-slate-500">AIに希望を伝えるか、手動で種目を追加すると、ここに編集できる下書きが表示されます。</p>
       )}
     </div>

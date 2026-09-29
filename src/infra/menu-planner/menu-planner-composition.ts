@@ -337,14 +337,32 @@ export async function generateMenuDraftFromRunningContext(input: {
   runningContextJson: string;
   coachRequest: unknown;
 }): Promise<GenerateMenuPlannerPreviewResult> {
-  return createMenuPlannerProductionComposition().generate({
-    schemaVersion: 1,
-    ownerId: DEFAULT_OWNER_ID,
-    contextMenuTemplateId: MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID,
-    menuName: input.menuName,
-    coachRequest: input.coachRequest,
-    inlineRunningContextJson: input.runningContextJson,
-  });
+  if (!isMenuPlannerOpen20Completed()) {
+    return productionGateError("OPEN20_REQUIRED", "本番利用に必要なOPEN-20手順が完了していません。");
+  }
+  const dependencies = productionDependencies();
+  return generateMenuPlannerPreview(
+    {
+      schemaVersion: 1,
+      ownerId: DEFAULT_OWNER_ID,
+      contextMenuTemplateId: MENU_PLANNER_INLINE_CONTEXT_SOURCE_ID,
+      menuName: input.menuName,
+      coachRequest: input.coachRequest,
+      inlineRunningContextJson: input.runningContextJson,
+    },
+    {
+      ...dependencies,
+      // Composer's signed legacy branch now handles Exercise-only requests.
+      // Old Running templates remain available to legacy screens, but never
+      // enter this Composer provider request or its new Running preview path.
+      loadAuthoritativeParserContext: async (request) => {
+        const loaded = await dependencies.loadAuthoritativeParserContext(request);
+        if (!loaded.ok) return loaded;
+        return { ok: true as const, context: { ...loaded.context, catalog: { ...loaded.context.catalog, runningTemplates: [] } } };
+      },
+      beforePreview: validateProposalBeforePreview,
+    },
+  );
 }
 
 /**

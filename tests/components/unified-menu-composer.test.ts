@@ -8,6 +8,7 @@ vi.mock("@/actions/menu-planner-actions", () => ({
   previewMenuDraftRunningAction: vi.fn(),
   saveMenuDraftAction: vi.fn(),
 }));
+vi.mock("@/actions/running-menu-preview-actions", () => ({ generateRunningMenuPreviewAction: vi.fn() }));
 vi.mock("@/actions/running-actions", () => ({
   editRunningItemAction: vi.fn(),
   overrideRunningItemAction: vi.fn(),
