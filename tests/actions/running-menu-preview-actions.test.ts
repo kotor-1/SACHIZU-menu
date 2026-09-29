@@ -86,4 +86,23 @@ describe("new Running preview action", () => {
     const result = await generateRunningMenuPreviewAction({ requestText: "中学生100m選手、今日は80mをやりたい", context: {} });
     expect(result).toMatchObject({ ok: true, persistable: false, previewToken: null, running: { status: "COACH_REVIEW_REQUIRED" } });
   });
+  it("accepts race context and recovered fatigue through the production action", async () => {
+    process.env.AI_MENU_PLANNER_ENABLED = "true";
+    process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET = "running-preview-test-secret-with-more-than-32-bytes";
+    list.mockResolvedValue([]);
+    extract.mockResolvedValue({ ok: true, claims: {
+      runningRequested: true, event: { value: "200m", sourceText: "２００mのレース" },
+      ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学2年" }, explicitDistances: [],
+      distancePreference: null, loadReductionRequested: null, fatigueState: null,
+      availableTimeSeconds: null, humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
+    } });
+    const requestText = "今週に２００mのレースがある。中学2年男子です。あと3日で試合ですが、疲労が抜けすぎています。少し疲労を溜めるメニューを消化したい";
+    const result = await generateRunningMenuPreviewAction({ requestText, context: {} });
+    expect(result).toMatchObject({ ok: true, persistable: true, running: { status: "READY", prescription: { distanceMeters: 120, totalReps: 3, repRestSeconds: 900 } } });
+    if (!result.ok || result.previewToken === null) throw new Error("Expected signed preview");
+    // Unmodeled competition/recovery context remains in the signed request;
+    // it does not become generated reps, rest, or load-reduction intent.
+    expect(verifyRunningMenuPreviewToken(result.previewToken, process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET)).toMatchObject({ requestText });
+  });
+
 });
