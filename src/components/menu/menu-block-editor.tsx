@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Badge, Card, CardBody, CardHeader, buttonClass, cn } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -22,6 +22,9 @@ import { updateMenuItemAction } from "@/actions/menu-actions";
 import { RunningItemCreateForm } from "@/components/running/running-item-create-form";
 import { RunningItemPanel } from "@/components/running/running-item-panel";
 import { presentRunningMenuSnapshot } from "@/application/running-menu/persistence";
+import { finalRunningMenuPrescription, parseRunningMenuEnvelope } from "@/application/running-menu/persistence";
+import { editRunningPolicyMenuItemAction } from "@/actions/running-coach-edit-actions";
+import { RunningPolicyCoachEditor } from "@/components/menu/running-policy-coach-editor";
 import type { TemplatePickerProviderResult } from "@/actions/_running-template-options";
 import type { SavedRunningItemPresentation } from "@/presentation/running/server";
 import { formatPrescription } from "@/domain/shared/prescription";
@@ -95,6 +98,7 @@ export function MenuBlockEditor({
   isLast,
   phase = null,
   running = null,
+  runningCoachFingerprints = {},
 }: {
   menuId: string;
   block: MenuBlockDetail;
@@ -105,15 +109,13 @@ export function MenuBlockEditor({
   phase?: TrainingPhase | null;
   /** [R10-B4B] Running v2 の表示 DTO（flag OFF なら null）。 */
   running?: MenuBlockRunningView | null;
+  runningCoachFingerprints?: Record<string, string>;
 }) {
   const [adding, setAdding] = useState(false);
   const [addingRunning, setAddingRunning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  // ドラッグ&ドロップ用の optimistic な項目順序。server の block.items が変わったら同期する。
+  // ドラッグ&ドロップ用の optimistic な項目順序。親は保存済みMenuの指紋が変わると再マウントする。
   const [orderedItems, setOrderedItems] = useState<MenuBlockDetail["items"]>(block.items);
-  useEffect(() => {
-    setOrderedItems(block.items);
-  }, [block.items]);
 
   /** ドラッグ&ドロップ後の項目並べ替え。optimistic に反映し、server が整合を検証して永続化する。 */
   async function handleItemReorder(orderedItemIds: string[]) {
@@ -210,6 +212,7 @@ export function MenuBlockEditor({
             const name = item.exercise?.name ?? item.displayName ?? "（名称未設定）";
             const runningItem = running?.items[item.id] ?? null;
             const newRunningItem = presentRunningMenuSnapshot(item.prescriptionKind, item.prescriptionJson);
+            const newRunningEnvelope = parseRunningMenuEnvelope(item.prescriptionKind, item.prescriptionJson);
 
             if (newRunningItem.status !== "NOT_RUNNING_POLICY") {
               return (
@@ -221,10 +224,32 @@ export function MenuBlockEditor({
                       <>
                         {newRunningItem.restText && <p className="mt-1 text-sm text-slate-700">{newRunningItem.restText}</p>}
                         {newRunningItem.instruction && <p className="mt-1 text-sm text-slate-600">{newRunningItem.instruction}</p>}
+                        {newRunningItem.targetTimeText && <p className="mt-1 text-sm text-slate-600">{newRunningItem.targetTimeText}</p>}
+                        {newRunningItem.setText && <p className="mt-1 text-sm text-slate-600">{newRunningItem.setText}</p>}
+                        {newRunningItem.coachEdited && <p className="mt-1 text-xs text-slate-500">コーチ調整済み</p>}
                       </>
                     ) : <p className="mt-1 text-xs text-amber-800">保存済み処方を確認してください。</p>}
                     {item.note && <p className="mt-1 text-xs text-slate-500">{item.note}</p>}
-                    <p className="mt-1 text-xs text-slate-500 no-print">走処方の数値編集は準備中です。</p>
+                    {newRunningEnvelope && runningCoachFingerprints[item.id] && (
+                      <RunningPolicyCoachEditor
+                        key={runningCoachFingerprints[item.id]}
+                        initial={finalRunningMenuPrescription(newRunningEnvelope)}
+                        onSubmit={async (edit) => {
+                          const result = await editRunningPolicyMenuItemAction({
+                            menuId, itemId: item.id, expectedFingerprint: runningCoachFingerprints[item.id], edit,
+                          });
+                          if (result.ok) { window.location.reload(); return { ok: true }; }
+                          const messages: Record<string, string> = {
+                            RANGE_OUTSIDE: "承認済みの本数・休憩の範囲で設定してください。",
+                            DISTANCE_REVIEW_REQUIRED: "この距離への変更にはコーチ確認が必要です。",
+                            TIME_ADJUSTMENT_REQUIRED: "指定された時間に必要な休憩が収まりません。",
+                            STALE_ITEM: "メニューが変更されました。再読込してから調整してください。",
+                            INVALID_EDIT: "本数・休憩・セット・目標タイムの指定を確認してください。",
+                          };
+                          return { ok: false, message: messages[result.code] ?? "調整を保存できませんでした。内容を確認してください。" };
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               );

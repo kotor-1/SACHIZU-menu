@@ -124,6 +124,9 @@ export function SessionItemRow({
             <div className="mt-0.5 text-xs text-slate-600">
               {item.runningSnapshot.restText && <p>{item.runningSnapshot.restText}</p>}
               {item.runningSnapshot.instruction && <p>{item.runningSnapshot.instruction}</p>}
+              {item.runningSnapshot.targetTimeText && <p>{item.runningSnapshot.targetTimeText}</p>}
+              {item.runningSnapshot.setText && <p>{item.runningSnapshot.setText}</p>}
+              {item.runningSnapshot.coachEdited && <p className="text-xs text-slate-500">コーチ調整済み</p>}
             </div>
           )}
           {item.runningSnapshot?.status === "UNREADABLE" && (

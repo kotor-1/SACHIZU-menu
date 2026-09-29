@@ -22,6 +22,7 @@ import { TRAINING_PHASE_LABEL, type TrainingPhase } from "@/domain/menu/constant
 import { REVIEW_STATUS_LABEL, type ReviewStatus } from "@/domain/shared/constants";
 import { formatMinutes } from "@/lib/format";
 import { runningSessionSourceFingerprint } from "@/application/running-session/snapshot";
+import { runningCoachEditSourceFingerprint } from "@/actions/_running-coach-edit-service";
 
 export default async function MenuDetailPage({
   params,
@@ -32,6 +33,7 @@ export default async function MenuDetailPage({
   const [menu, exercises] = await Promise.all([findMenu(id), listExercisesForPicker()]);
   if (!menu) notFound();
   const hasNewRunning = menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_POLICY"));
+  const menuSourceFingerprint = runningSessionSourceFingerprint(menu);
   const hasLegacyRunning = menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_V2"));
 
   // [R10-B4B] feature flag が OFF なら Running v2 の読み込み・評価を一切行わない
@@ -116,7 +118,7 @@ export default async function MenuDetailPage({
         <div className="space-y-3 lg:col-span-2">
           {menu.blocks.map((block, index) => (
             <MenuBlockEditor
-              key={block.id}
+              key={`${block.id}:${menuSourceFingerprint}`}
               menuId={menu.id}
               block={block}
               exercises={exercises}
@@ -124,6 +126,7 @@ export default async function MenuDetailPage({
               isLast={index === menu.blocks.length - 1}
               phase={menu.phase as TrainingPhase | null}
               running={running === null ? null : { items: running.items, picker: running.picker }}
+              runningCoachFingerprints={Object.fromEntries(block.items.filter((item) => item.prescriptionKind === "RUNNING_POLICY").map((item) => [item.id, runningCoachEditSourceFingerprint(item)]))}
             />
           ))}
           <AddBlockForm menuId={menu.id} />
@@ -134,7 +137,7 @@ export default async function MenuDetailPage({
             menuId={menu.id}
             menuName={menu.name}
             runningV2Enabled={running !== null}
-            runningSourceFingerprint={hasNewRunning ? runningSessionSourceFingerprint(menu) : undefined}
+            runningSourceFingerprint={hasNewRunning ? menuSourceFingerprint : undefined}
           />
 
           {running !== null && <RunningMenuPanel menuId={menu.id} view={running} />}

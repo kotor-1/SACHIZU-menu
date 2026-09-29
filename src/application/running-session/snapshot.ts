@@ -2,12 +2,17 @@ import { z } from "zod";
 import { canonicalStringify, sha256Utf8Hex } from "@/domain/shared/canonical-json";
 import {
   parseRunningMenuEnvelope,
+  finalRunningMenuPrescription,
+  coachEditRecordSchema,
+  runningMenuFinalPrescriptionSchema,
   runningMenuPrescriptionSchema,
+  RUNNING_MENU_COACH_EDIT_SCHEMA_VERSION,
   RUNNING_MENU_PERSISTENCE_SCHEMA_VERSION,
   RUNNING_MENU_PRESCRIPTION_KIND,
 } from "@/application/running-menu/persistence";
 
 export const RUNNING_SESSION_SNAPSHOT_SCHEMA_VERSION = 1 as const;
+export const RUNNING_SESSION_COACH_EDIT_SCHEMA_VERSION = 2 as const;
 export const RUNNING_SESSION_SNAPSHOT_KIND = "RUNNING_POLICY_SNAPSHOT" as const;
 
 // Historical identities belong to the snapshot reader. Never compare an old
@@ -35,7 +40,20 @@ const snapshotBodySchema = z.object({
   prescription: runningMenuPrescriptionSchema,
 }).strict();
 const snapshotSchema = snapshotBodySchema.extend({ snapshotDigest: digestSchema }).strict();
-export type RunningSessionSnapshot = z.infer<typeof snapshotSchema>;
+const coachEditSnapshotBodySchema = z.object({
+  kind: z.literal(RUNNING_SESSION_SNAPSHOT_KIND),
+  snapshotSchemaVersion: z.literal(RUNNING_SESSION_COACH_EDIT_SCHEMA_VERSION),
+  sourcePersistenceSchemaVersion: z.literal(RUNNING_MENU_COACH_EDIT_SCHEMA_VERSION),
+  sourceMenuItemId: z.string().min(1),
+  sourceMenuItemDigest: digestSchema,
+  policyVersion: z.string().min(1),
+  policyHash: digestSchema,
+  prescription: runningMenuFinalPrescriptionSchema,
+  origin: z.literal("COACH_EDITED"),
+  coachEditProvenance: z.object({ edited: z.literal(true), edits: z.array(coachEditRecordSchema).min(1).max(100) }).strict(),
+}).strict();
+const coachEditSnapshotSchema = coachEditSnapshotBodySchema.extend({ snapshotDigest: digestSchema }).strict();
+export type RunningSessionSnapshot = z.infer<typeof snapshotSchema> | z.infer<typeof coachEditSnapshotSchema>;
 
 export class RunningSessionSnapshotError extends Error {
   constructor(readonly code: "INVALID_MENU_ITEM" | "UNSUPPORTED_POLICY" | "STALE_MENU_FOR_SESSION") {
@@ -112,7 +130,7 @@ export function snapshotSavedRunningMenuItem(item: RunningMenuSourceItem): Runni
     throw new RunningSessionSnapshotError("INVALID_MENU_ITEM");
   }
   if (supportedPolicyHashes[envelope.policyVersion] !== envelope.policyHash) throw new RunningSessionSnapshotError("UNSUPPORTED_POLICY");
-  const p = envelope.prescription;
+  const p = finalRunningMenuPrescription(envelope);
   if (item.exerciseId !== null || item.runningMethod !== null || item.sessionTemplateId !== null ||
       item.ruleSetVersion !== null || item.ruleSetContentHash !== null ||
       item.distanceMeters !== p.distanceMeters || item.reps !== p.totalReps ||
@@ -123,10 +141,8 @@ export function snapshotSavedRunningMenuItem(item: RunningMenuSourceItem): Runni
       item.flyZoneDistanceMeters !== null || item.intraRepRestSeconds !== null ||
       item.intensityReferenceKind !== null || item.prescriptionConfidence !== null ||
       item.rationale !== null) throw new RunningSessionSnapshotError("INVALID_MENU_ITEM");
-  const body = snapshotBodySchema.parse({
+  const common = {
     kind: RUNNING_SESSION_SNAPSHOT_KIND,
-    snapshotSchemaVersion: RUNNING_SESSION_SNAPSHOT_SCHEMA_VERSION,
-    sourcePersistenceSchemaVersion: envelope.schemaVersion,
     sourceMenuItemId: item.id,
     sourceMenuItemDigest: sha256Utf8Hex(canonicalStringify({
       id: item.id, prescriptionJson: item.prescriptionJson, provenanceJson: item.provenanceJson,
@@ -135,25 +151,46 @@ export function snapshotSavedRunningMenuItem(item: RunningMenuSourceItem): Runni
     })),
     policyVersion: envelope.policyVersion,
     policyHash: envelope.policyHash,
-    prescription: p,
+  };
+  if (envelope.schemaVersion === 2) {
+    const body = coachEditSnapshotBodySchema.parse({
+      ...common,
+      snapshotSchemaVersion: RUNNING_SESSION_COACH_EDIT_SCHEMA_VERSION,
+      sourcePersistenceSchemaVersion: RUNNING_MENU_COACH_EDIT_SCHEMA_VERSION,
+      prescription: p,
+      origin: "COACH_EDITED",
+      coachEditProvenance: envelope.coachEditProvenance,
+    });
+    return coachEditSnapshotSchema.parse({ ...body, snapshotDigest: sha256Utf8Hex(canonicalStringify(body)) });
+  }
+  const body = snapshotBodySchema.parse({
+    ...common,
+    snapshotSchemaVersion: RUNNING_SESSION_SNAPSHOT_SCHEMA_VERSION,
+    sourcePersistenceSchemaVersion: RUNNING_MENU_PERSISTENCE_SCHEMA_VERSION,
+    prescription: envelope.prescription,
   });
   return snapshotSchema.parse({ ...body, snapshotDigest: sha256Utf8Hex(canonicalStringify(body)) });
 }
 
 export function serializeRunningSessionSnapshot(snapshot: RunningSessionSnapshot): string {
-  return canonicalStringify(snapshotSchema.parse(snapshot));
+  return canonicalStringify(snapshot.snapshotSchemaVersion === 2
+    ? coachEditSnapshotSchema.parse(snapshot) : snapshotSchema.parse(snapshot));
 }
 
 export function parseRunningSessionSnapshot(kind: string, raw: string | null): RunningSessionSnapshot | null {
   if (kind !== RUNNING_MENU_PRESCRIPTION_KIND || raw === null || raw.length > 32_768) return null;
   try {
-    const result = snapshotSchema.safeParse(JSON.parse(raw));
-    if (!result.success) return null;
-    const { snapshotDigest, ...body } = result.data;
+    const unknown: unknown = JSON.parse(raw);
+    const v1 = snapshotSchema.safeParse(unknown);
+    const v2 = coachEditSnapshotSchema.safeParse(unknown);
+    if (!v1.success && !v2.success) return null;
+    const result = v1.success ? v1.data : v2.success ? v2.data : null;
+    if (result === null) return null;
+    const { snapshotDigest, ...body } = result;
     if (sha256Utf8Hex(canonicalStringify(body)) !== snapshotDigest) return null;
-    if (supportedPolicyHashes[result.data.policyVersion] !== result.data.policyHash) return null;
-    if (result.data.policyVersion !== result.data.prescription.policyVersion || result.data.policyHash !== result.data.prescription.policyHash) return null;
-    return result.data;
+    if (supportedPolicyHashes[result.policyVersion] !== result.policyHash) return null;
+    if (result.policyVersion !== result.prescription.policyVersion || result.policyHash !== result.prescription.policyHash) return null;
+    return result;
   } catch {
     return null;
   }
@@ -162,7 +199,7 @@ export function parseRunningSessionSnapshot(kind: string, raw: string | null): R
 export function presentRunningSessionSnapshot(kind: string, raw: string | null):
   | { status: "NOT_RUNNING_POLICY" }
   | { status: "UNREADABLE" }
-  | { status: "OK"; title: string; restText: string | null; instruction: string | null } {
+  | { status: "OK"; title: string; restText: string | null; instruction: string | null; coachEdited: boolean; targetTimeText: string | null; setText: string | null } {
   if (kind !== RUNNING_MENU_PRESCRIPTION_KIND) return { status: "NOT_RUNNING_POLICY" };
   const snapshot = parseRunningSessionSnapshot(kind, raw);
   if (snapshot === null) return { status: "UNREADABLE" };
@@ -172,5 +209,10 @@ export function presentRunningSessionSnapshot(kind: string, raw: string | null):
     title: `${p.distanceMeters}m × ${p.totalReps}本`,
     restText: p.repRestSeconds === null ? null : `1本ごとの休憩 ${p.repRestSeconds / 60}分`,
     instruction: p.executionInstructionText,
+    coachEdited: snapshot.snapshotSchemaVersion === 2,
+    targetTimeText: p.coachTargetTimeRange !== null
+      ? `目標タイム ${p.coachTargetTimeRange.minSeconds}〜${p.coachTargetTimeRange.maxSeconds}秒`
+      : p.coachTargetTimeSeconds !== null ? `目標タイム ${p.coachTargetTimeSeconds}秒` : null,
+    setText: p.setReps === null ? null : `${p.setReps.join("本 + ")}本／セット間休憩 ${p.setRestSeconds! / 60}分`,
   };
 }

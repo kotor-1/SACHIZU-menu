@@ -11,6 +11,8 @@ import {
 } from "@/actions/menu-planner-actions";
 import { generateRunningMenuPreviewAction, type RunningMenuPreviewActionResult } from "@/actions/running-menu-preview-actions";
 import { saveRunningMenuPreviewAction } from "@/actions/running-menu-save-actions";
+import { previewRunningCoachEditAction } from "@/actions/running-coach-preview-actions";
+import { RunningPolicyCoachEditor, type CoachEditDraft, type CoachEditInitial } from "@/components/menu/running-policy-coach-editor";
 import type { RunningActionResult } from "@/actions/running-actions";
 import { SortableList } from "@/components/menu/sortable-list";
 import { EMPTY_MENU_ITEM_FORM, MenuItemForm, type MenuItemFormValues } from "@/components/menu/menu-item-form";
@@ -197,6 +199,9 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
   const [runningOps, setRunningOps] = useState<RunningOp[]>([]);
   const [runningViews, setRunningViews] = useState<Record<string, SavedRunningItemPresentation>>({});
   const [newRunningPreview, setNewRunningPreview] = useState<NewRunningPreview | null>(null);
+  const [newRunningCoachEdit, setNewRunningCoachEdit] = useState<{
+    edit: CoachEditDraft; finalPrescription: CoachEditInitial; finalFingerprint: string;
+  } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [addingBlockKey, setAddingBlockKey] = useState<string | null>(null);
   const [itemMode, setItemMode] = useState<ItemMode>(null);
@@ -205,9 +210,46 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
   const [, startTransition] = useTransition();
 
   const busy = phase === "GENERATING" || phase === "SAVING";
+  const newRunningDisplay = newRunningPreview?.running?.status === "READY"
+    ? newRunningCoachEdit?.finalPrescription ?? newRunningPreview.running.prescription
+    : null;
+
+  async function previewCoachEdit(edit: CoachEditDraft) {
+    if (newRunningPreview?.running?.status !== "READY" || newRunningPreview.previewToken === null) {
+      return { ok: false as const, message: "走処方を再生成してください。" };
+    }
+    const combined: CoachEditDraft = { ...newRunningCoachEdit?.edit, ...edit };
+    if (edit.distanceMeters !== undefined) {
+      if (edit.totalReps === undefined) delete combined.totalReps;
+      if (edit.repRestSeconds === undefined) delete combined.repRestSeconds;
+      if (edit.coachTargetTimeSeconds === undefined) delete combined.coachTargetTimeSeconds;
+      if (edit.coachTargetTimeRange === undefined) delete combined.coachTargetTimeRange;
+      if (edit.setReps === undefined) delete combined.setReps;
+      if (edit.setRestSeconds === undefined) delete combined.setRestSeconds;
+    }
+    const result = await previewRunningCoachEditAction({
+      previewToken: newRunningPreview.previewToken,
+      previewPolicyVersion: newRunningPreview.running.prescription.policyVersion,
+      previewPolicyHash: newRunningPreview.running.prescription.policyHash,
+      previewPrescription: newRunningPreview.running.prescription,
+      requestText: requestText.trim(), context: newRunningContext(runningContext), coachEdit: combined,
+    });
+    if (!result.ok) {
+      const messages: Record<string, string> = {
+        RANGE_OUTSIDE: "承認済みの本数・休憩の範囲で設定してください。",
+        DISTANCE_REVIEW_REQUIRED: "この距離への変更にはコーチ確認が必要です。",
+        TIME_ADJUSTMENT_REQUIRED: "指定された時間に必要な休憩が収まりません。",
+        INVALID_EDIT: "本数・休憩・セット・目標タイムの指定を確認してください。",
+      };
+      return { ok: false as const, message: messages[result.code] ?? "コーチ調整を確認できませんでした。再生成してください。" };
+    }
+    setNewRunningCoachEdit({ edit: combined, finalPrescription: result.finalPrescription, finalFingerprint: result.finalFingerprint });
+    return { ok: true as const };
+  }
 
   function updateContext(patch: Partial<RunningContextDraft>) {
     setNewRunningPreview(null);
+    setNewRunningCoachEdit(null);
     setRunningContext((d) => ({ ...d, ...patch }));
   }
   function ensureMember() {
@@ -215,6 +257,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
   }
   function updateMember(index: number, patch: Partial<RunningContextDraft["members"][number]>) {
     setNewRunningPreview(null);
+    setNewRunningCoachEdit(null);
     setRunningContext((d) => ({ ...d, members: d.members.map((m, i) => (i === index ? { ...m, ...patch } : m)) }));
   }
 
@@ -275,6 +318,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
         }
         if (newResult.running !== null) {
           setNewRunningPreview(newResult);
+          setNewRunningCoachEdit(null);
           setBlocks((prev) => prev.filter((b) => b.key === MANUAL_BLOCK_KEY));
           setAcceptToken(null);
           setGeneratedContextJson(null);
@@ -324,6 +368,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
         // 手動で追加した項目は AI 生成後も末尾の「メニュー」ブロックとして残す。
         setBlocks((prev) => [...aiBlocks, ...prev.filter((b) => b.key === MANUAL_BLOCK_KEY)]);
         setNewRunningPreview(null);
+        setNewRunningCoachEdit(null);
         setAcceptToken(result.result.acceptToken);
         setGeneratedContextJson(context.json);
         setRunningOps([]);
@@ -468,6 +513,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
             previewPolicyVersion: prescription.policyVersion,
             previewPolicyHash: prescription.policyHash,
             previewPrescription: prescription,
+            ...(newRunningCoachEdit ? { coachEdit: newRunningCoachEdit.edit, previewFinalFingerprint: newRunningCoachEdit.finalFingerprint } : {}),
             requestText: requestText.trim(),
             context: newRunningContext(runningContext),
             menuName: menuName.trim(),
@@ -478,6 +524,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
               STALE_PREVIEW: "プレビューの有効期限が切れたか、条件が変更されました。もう一度作成してください。",
               POLICY_MISMATCH: "走処方のルールが更新されました。もう一度作成してください。",
               ENGINE_RECOMPUTE_MISMATCH: "表示中の処方と保存時の処方が一致しません。もう一度作成してください。",
+              COACH_EDIT_INVALID: "コーチ調整の値を確認して、もう一度プレビューしてください。",
               RUNNING_NOT_READY: "この走処方はまだ保存できません。条件を確認してください。",
               EXERCISE_CHANGED: "選ばれた種目が変更されました。もう一度作成してください。",
               SAVE_FAILED: "メニューを保存できませんでした。内容を確認して再度お試しください。",
@@ -681,7 +728,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
               aria-label="作りたい練習内容"
               className={`${INPUT_CLASS} min-h-28 resize-y`}
               value={requestText}
-              onChange={(e) => { setRequestText(e.target.value); setNewRunningPreview(null); }}
+              onChange={(e) => { setRequestText(e.target.value); setNewRunningPreview(null); setNewRunningCoachEdit(null); }}
               maxLength={2000}
               placeholder="例：中学生100m選手。今日は軽めに走るメニューを作って。最後に補強を少し。"
               disabled={busy}
@@ -760,15 +807,29 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
             </div>
           </CardHeader>
           <CardBody className="space-y-3">
-            {newRunningPreview.running.status === "READY" ? (
+            {newRunningDisplay !== null ? (
               <div role="status" className="rounded-lg border border-slate-200 bg-white p-4">
-                <p className="text-lg font-bold text-slate-900">{newRunningPreview.running.prescription.distanceMeters}m × {newRunningPreview.running.prescription.totalReps}本</p>
-                {newRunningPreview.running.prescription.repRestSeconds !== null && <p className="mt-1 text-sm text-slate-700">1本ごとの休憩 {newRunningPreview.running.prescription.repRestSeconds / 60}分</p>}
-                {newRunningPreview.running.prescription.executionInstructionText && <p className="mt-1 text-sm text-slate-700">{newRunningPreview.running.prescription.executionInstructionText}</p>}
-                {newRunningPreview.running.message && <p className="mt-1 text-xs text-slate-500">{newRunningPreview.running.message}</p>}
+                <p className="text-lg font-bold text-slate-900">{newRunningDisplay.distanceMeters}m × {newRunningDisplay.totalReps}本</p>
+                {newRunningDisplay.repRestSeconds !== null && <p className="mt-1 text-sm text-slate-700">1本ごとの休憩 {newRunningDisplay.repRestSeconds / 60}分</p>}
+                {newRunningDisplay.executionInstructionText && <p className="mt-1 text-sm text-slate-700">{newRunningDisplay.executionInstructionText}</p>}
+                {newRunningDisplay.coachTargetTimeSeconds !== null && <p className="mt-1 text-sm text-slate-700">目標タイム {newRunningDisplay.coachTargetTimeSeconds}秒</p>}
+                {newRunningDisplay.coachTargetTimeRange !== null && <p className="mt-1 text-sm text-slate-700">目標タイム {newRunningDisplay.coachTargetTimeRange.minSeconds}〜{newRunningDisplay.coachTargetTimeRange.maxSeconds}秒</p>}
+                {newRunningDisplay.setReps !== null && <p className="mt-1 text-sm text-slate-700">{newRunningDisplay.setReps.join("本 + ")}本／セット間休憩 {newRunningDisplay.setRestSeconds! / 60}分</p>}
+                {newRunningCoachEdit && <p className="mt-1 text-xs text-slate-500">コーチ調整済み</p>}
+                {newRunningPreview.running.status === "READY" && newRunningPreview.running.message && <p className="mt-1 text-xs text-slate-500">{newRunningPreview.running.message}</p>}
               </div>
             ) : (
               <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{newRunningPreview.running.message}</div>
+            )}
+            {newRunningDisplay !== null && newRunningPreview.previewToken !== null && (
+              <>
+                <RunningPolicyCoachEditor
+                  key={newRunningCoachEdit?.finalFingerprint ?? newRunningPreview.previewToken}
+                  initial={newRunningDisplay}
+                  onSubmit={previewCoachEdit}
+                />
+                {newRunningCoachEdit && <Button type="button" variant="secondary" size="sm" onClick={() => setNewRunningCoachEdit(null)}>コーチ調整を取り消す</Button>}
+              </>
             )}
             {newRunningPreview.exercises.length > 0 && (
               <div className="space-y-1">
@@ -779,7 +840,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
             {newRunningPreview.running.status === "READY" && newRunningPreview.previewToken !== null ? (
               <Button type="button" size="lg" disabled={busy} onClick={submitSave}>{phase === "SAVING" ? "保存中…" : "この内容で保存"}</Button>
             ) : <p className="text-xs text-slate-500">確認が必要な走処方は保存できません。条件を見直して再生成してください。</p>}
-            <Button type="button" variant="secondary" size="sm" onClick={() => setNewRunningPreview(null)}>プレビューを閉じる</Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => { setNewRunningPreview(null); setNewRunningCoachEdit(null); }}>プレビューを閉じる</Button>
           </CardBody>
         </Card>
       )}
