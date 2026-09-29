@@ -10,6 +10,7 @@ import {
   type PreviewMenuDraftRunningActionResult,
 } from "@/actions/menu-planner-actions";
 import { generateRunningMenuPreviewAction, type RunningMenuPreviewActionResult } from "@/actions/running-menu-preview-actions";
+import { saveRunningMenuPreviewAction } from "@/actions/running-menu-save-actions";
 import type { RunningActionResult } from "@/actions/running-actions";
 import { SortableList } from "@/components/menu/sortable-list";
 import { EMPTY_MENU_ITEM_FORM, MenuItemForm, type MenuItemFormValues } from "@/components/menu/menu-item-form";
@@ -451,8 +452,48 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
   // ---------------------------------------------------------------------------
 
   function submitSave() {
-    if (newRunningPreview !== null && newRunningPreview.running !== null) return setErrorMessage("新しい走処方は現在プレビュー専用です。保存は次の開発段階で対応します。");
     if (menuName.trim().length === 0) return setErrorMessage("メニュー名を入力してください。");
+    if (newRunningPreview !== null && newRunningPreview.running !== null) {
+      if (newRunningPreview.running.status !== "READY" || newRunningPreview.previewToken === null) {
+        return setErrorMessage("この走処方はまだ保存できません。条件を確認して再生成してください。");
+      }
+      const previewToken = newRunningPreview.previewToken;
+      const prescription = newRunningPreview.running.prescription;
+      startTransition(async () => {
+        setPhase("SAVING");
+        setErrorMessage(null);
+        try {
+          const result = await saveRunningMenuPreviewAction({
+            previewToken,
+            previewPolicyVersion: prescription.policyVersion,
+            previewPolicyHash: prescription.policyHash,
+            previewPrescription: prescription,
+            requestText: requestText.trim(),
+            context: newRunningContext(runningContext),
+            menuName: menuName.trim(),
+            manualBlocks: blocks.map((block) => ({ name: block.title, items: block.items.filter((item): item is Extract<ComposedItem, { kind: "MANUAL" }> => item.kind === "MANUAL").map((item) => manualInput(item.values)) })),
+          });
+          if (!result.ok) {
+            const messages: Record<string, string> = {
+              STALE_PREVIEW: "プレビューの有効期限が切れたか、条件が変更されました。もう一度作成してください。",
+              POLICY_MISMATCH: "走処方のルールが更新されました。もう一度作成してください。",
+              ENGINE_RECOMPUTE_MISMATCH: "表示中の処方と保存時の処方が一致しません。もう一度作成してください。",
+              RUNNING_NOT_READY: "この走処方はまだ保存できません。条件を確認してください。",
+              EXERCISE_CHANGED: "選ばれた種目が変更されました。もう一度作成してください。",
+              SAVE_FAILED: "メニューを保存できませんでした。内容を確認して再度お試しください。",
+            };
+            setErrorMessage(messages[result.code] ?? messages.SAVE_FAILED);
+            setPhase("PREVIEW");
+            return;
+          }
+          router.push(`/menus/${result.menuId}`);
+        } catch {
+          setErrorMessage("メニューを保存できませんでした。もう一度お試しください。");
+          setPhase("PREVIEW");
+        }
+      });
+      return;
+    }
     if (blocks.length === 0 || blocks.every((b) => b.items.length === 0)) {
       return setErrorMessage("保存する項目がありません。AIで作成するか、手動で種目を追加してください。");
     }
@@ -715,7 +756,7 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
           <CardHeader>
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-bold text-slate-900">走る練習のプレビュー</h2>
-              <Badge className="border-amber-200 bg-amber-50 text-amber-800">未保存・保存対象外</Badge>
+              <Badge className="border-amber-200 bg-amber-50 text-amber-800">未保存</Badge>
             </div>
           </CardHeader>
           <CardBody className="space-y-3">
@@ -735,7 +776,9 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
                 {newRunningPreview.exercises.map((exercise) => <p key={exercise.id} className="text-sm text-slate-700">{exercise.name}</p>)}
               </div>
             )}
-            <p className="text-xs text-slate-500">この走処方はまだ保存できません。手動項目の保存は、プレビューを閉じてから行えます。</p>
+            {newRunningPreview.running.status === "READY" && newRunningPreview.previewToken !== null ? (
+              <Button type="button" size="lg" disabled={busy} onClick={submitSave}>{phase === "SAVING" ? "保存中…" : "この内容で保存"}</Button>
+            ) : <p className="text-xs text-slate-500">確認が必要な走処方は保存できません。条件を見直して再生成してください。</p>}
             <Button type="button" variant="secondary" size="sm" onClick={() => setNewRunningPreview(null)}>プレビューを閉じる</Button>
           </CardBody>
         </Card>

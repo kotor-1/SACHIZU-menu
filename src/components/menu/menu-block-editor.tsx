@@ -21,6 +21,7 @@ import {
 import { updateMenuItemAction } from "@/actions/menu-actions";
 import { RunningItemCreateForm } from "@/components/running/running-item-create-form";
 import { RunningItemPanel } from "@/components/running/running-item-panel";
+import { presentRunningMenuSnapshot } from "@/application/running-menu/persistence";
 import type { TemplatePickerProviderResult } from "@/actions/_running-template-options";
 import type { SavedRunningItemPresentation } from "@/presentation/running/server";
 import { formatPrescription } from "@/domain/shared/prescription";
@@ -208,6 +209,26 @@ export function MenuBlockEditor({
             const prescription = formatPrescription(item);
             const name = item.exercise?.name ?? item.displayName ?? "（名称未設定）";
             const runningItem = running?.items[item.id] ?? null;
+            const newRunningItem = presentRunningMenuSnapshot(item.prescriptionKind, item.prescriptionJson);
+
+            if (newRunningItem.status !== "NOT_RUNNING_POLICY") {
+              return (
+                <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2" data-testid="saved-running-policy-item">
+                  {dragHandle}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-900">{newRunningItem.title}</p>
+                    {newRunningItem.status === "OK" ? (
+                      <>
+                        {newRunningItem.restText && <p className="mt-1 text-sm text-slate-700">{newRunningItem.restText}</p>}
+                        {newRunningItem.instruction && <p className="mt-1 text-sm text-slate-600">{newRunningItem.instruction}</p>}
+                      </>
+                    ) : <p className="mt-1 text-xs text-amber-800">保存済み処方を確認してください。</p>}
+                    {item.note && <p className="mt-1 text-xs text-slate-500">{item.note}</p>}
+                    <p className="mt-1 text-xs text-slate-500 no-print">走処方の数値編集は準備中です。</p>
+                  </div>
+                </div>
+              );
+            }
 
             // [R10-B4B] 走トレーニングの項目は専用の表示・編集で出す（legacy の汎用編集は使えない）。
             if (runningItem !== null) {

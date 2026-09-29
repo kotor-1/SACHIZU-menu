@@ -30,10 +30,16 @@ export default async function MenuDetailPage({
   const { id } = await params;
   const [menu, exercises] = await Promise.all([findMenu(id), listExercisesForPicker()]);
   if (!menu) notFound();
+  const hasNewRunning = menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_POLICY"));
+  const hasLegacyRunning = menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_V2"));
 
   // [R10-B4B] feature flag が OFF なら Running v2 の読み込み・評価を一切行わない
   // （ここが null のあいだ、この画面は B4B 前とまったく同じ表示・操作になる）。
-  const running = isRunningV2UiEnabled() ? await buildRunningMenuView(menu) : null;
+  const legacyViewMenu = hasNewRunning ? {
+    ...menu,
+    blocks: menu.blocks.map((block) => ({ ...block, items: block.items.filter((item) => item.prescriptionKind !== "RUNNING_POLICY") })),
+  } : menu;
+  const running = isRunningV2UiEnabled() && (!hasNewRunning || hasLegacyRunning) ? await buildRunningMenuView(legacyViewMenu) : null;
 
   const allItems = menu.blocks.flatMap((b) => b.items);
   const estimatedFromItems = Math.round(
@@ -123,7 +129,9 @@ export default async function MenuDetailPage({
         </div>
 
         <div className="space-y-4 no-print">
-          <StartSessionForm menuId={menu.id} menuName={menu.name} runningV2Enabled={running !== null} />
+          {hasNewRunning ? (
+            <Card><CardBody><p className="text-sm text-slate-600">この走処方の練習記録への接続は準備中です。</p></CardBody></Card>
+          ) : <StartSessionForm menuId={menu.id} menuName={menu.name} runningV2Enabled={running !== null} />}
 
           {running !== null && <RunningMenuPanel menuId={menu.id} view={running} />}
 

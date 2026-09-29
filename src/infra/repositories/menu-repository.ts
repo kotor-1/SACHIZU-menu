@@ -333,6 +333,9 @@ export async function updateMenuItem(id: string, input: MenuItemInput) {
   if (current?.prescriptionKind === "RUNNING_V2") {
     throw new Error("この項目は RUNNING_V2 の処方です。専用の編集操作を使用してください。");
   }
+  if (current?.prescriptionKind === "RUNNING_POLICY") {
+    throw new Error("この走処方は汎用の項目編集では変更できません。");
+  }
   return prisma.menuItem.update({ where: { id }, data: input });
 }
 

@@ -183,6 +183,9 @@ export async function updateMenuItemAction(
   if (kind === "RUNNING_V2") {
     return actionError("この項目は走トレーニング（RUNNING_V2）の処方です。専用の編集操作を使用してください。");
   }
+  if (kind === "RUNNING_POLICY") {
+    return actionError("この走処方は汎用の項目編集では変更できません。");
+  }
   const parsed = parseForm(menuItemInputSchema, formData);
   if (!parsed.ok) return parsed.result;
   try {

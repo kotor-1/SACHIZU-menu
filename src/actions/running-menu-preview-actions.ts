@@ -6,6 +6,7 @@ import { createRunningMenuPreview, type RunningMenuPreview } from "@/application
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { extractRunningMenuIntent } from "@/infra/running-menu/openai-intent-extractor";
 import { listExercisesForMenuPlanner } from "@/infra/repositories/exercise-repository";
+import { issueRunningMenuPreviewToken, runningMenuSigningKey } from "@/infra/running-menu/preview-token";
 
 const inputSchema = z.object({
   requestText: z.string().trim().min(1).max(2000),
@@ -17,7 +18,7 @@ const inputSchema = z.object({
 }).strict();
 
 export type RunningMenuPreviewActionResult =
-  | { ok: true; intent: VerifiedRunningIntent; running: RunningMenuPreview | null; exercises: { id: string; name: string }[]; persistable: false }
+  | { ok: true; intent: VerifiedRunningIntent; running: RunningMenuPreview | null; exercises: { id: string; name: string }[]; persistable: boolean; previewToken: string | null }
   | { ok: false; message: string };
 
 /** Read-only production boundary. No legacy RuleSet, Method, or Template enters this path. */
@@ -34,7 +35,21 @@ export async function generateRunningMenuPreviewAction(input: unknown): Promise<
     if (!verified.ok) return { ok: false, message: "文章と抽出条件が一致しませんでした。明示した距離・本数・休憩を確認して再度お試しください。" };
     const running = createRunningMenuPreview(verified.intent, parsed.data.context, parsed.data.requestText);
     const selected = verified.intent.exerciseIds.map((id) => reviewed.find((row) => row.id === id)!);
-    return { ok: true, intent: verified.intent, running, exercises: selected.map(({ id, name }) => ({ id, name })), persistable: false };
+    let previewToken: string | null = null;
+    if (running?.status === "READY") {
+      try {
+        previewToken = issueRunningMenuPreviewToken({
+          ownerId: DEFAULT_OWNER_ID,
+          requestText: parsed.data.requestText,
+          context: parsed.data.context,
+          intent: verified.intent,
+          prescription: running.prescription,
+        }, runningMenuSigningKey());
+      } catch {
+        // A missing or invalid signing key leaves the preview read-only.
+      }
+    }
+    return { ok: true, intent: verified.intent, running, exercises: selected.map(({ id, name }) => ({ id, name })), persistable: previewToken !== null, previewToken };
   } catch {
     return { ok: false, message: "プレビューを作成できませんでした。時間をおいて再度お試しください。" };
   }
