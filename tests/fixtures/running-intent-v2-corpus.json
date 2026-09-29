@@ -1,0 +1,3630 @@
+[
+  {
+    "id": "A01",
+    "category": "standard",
+    "input": "中学生200m選手。今日のメニューを作って。",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV01",
+    "category": "event/omission/voice/fullwidth",
+    "input": "200mに出ます",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV02",
+    "category": "event/omission/voice/fullwidth",
+    "input": "200出る",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV03",
+    "category": "event/omission/voice/fullwidth",
+    "input": "200が専門",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV04",
+    "category": "event/omission/voice/fullwidth",
+    "input": "にひゃく出るで",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV05",
+    "category": "event/omission/voice/fullwidth",
+    "input": "200めーとるでる",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV06",
+    "category": "event/omission/voice/fullwidth",
+    "input": "200mでます",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV07",
+    "category": "event/omission/voice/fullwidth",
+    "input": "２００Ｍでる",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV08",
+    "category": "event/omission/voice/fullwidth",
+    "input": "100専門",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "EV09",
+    "category": "ambiguous",
+    "input": "次200走ります",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "J01",
+    "category": "omission",
+    "input": "200出る。中2。あと3日",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "L01",
+    "category": "mixed roles",
+    "input": "200出るけど今日は60を3本",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "L02",
+    "category": "training omission",
+    "input": "60を3本",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "L03",
+    "category": "mixed roles",
+    "input": "200mのレースがある。中学生です。3日後に試合、60mを3本",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "D01",
+    "category": "standard",
+    "input": "中学生200m選手。今日のメニューを作って。疲れていません",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "D02",
+    "category": "kansai",
+    "input": "中学生200m選手。今日のメニューを作って。全然疲れてへん",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "D03",
+    "category": "kansai",
+    "input": "中学生200m選手。今日のメニューを作って。しんどないで",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "D04",
+    "category": "kyushu",
+    "input": "中学生200m選手。今日のメニューを作って。疲れとらん",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "D05",
+    "category": "kyushu",
+    "input": "中学生200m選手。今日のメニューを作って。今日はまだいけるばい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "D06",
+    "category": "chugoku",
+    "input": "中学生200m選手。今日のメニューを作って。疲れとらんけぇ、もうちょいやりたい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [
+      "もうちょいやりたい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "D07",
+    "category": "tohoku",
+    "input": "中学生200m選手。今日のメニューを作って。そんな疲れてね",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH01",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。今日めっちゃ足軽い",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH02",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。全然疲れてない",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH03",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。なんか体が軽すぎる",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH04",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。今日はちょいきつめがいい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "ちょいきつめがいい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH05",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。短いやつやりたい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH06",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。長いのはやだ",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "長いのはやだ"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH07",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。いっぱい走りたくない",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH08",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。あとちょっとだけ走りたい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "あとちょっとだけ走りたい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH09",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。足パンパン",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    }
+  },
+  {
+    "id": "CH10",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。なんかだるい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    }
+  },
+  {
+    "id": "CH11",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。今日は動けそう",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH12",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。今日は全然進まん",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "全然進まん"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CH13",
+    "category": "child/freeform",
+    "input": "中学生200m選手。今日のメニューを作って。少し疲労を溜めたい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "少し疲労を溜めたい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CP01",
+    "category": "voice/typo/competition",
+    "input": "中学生200m選手。今日のメニューを作って。明後日試合",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CP02",
+    "category": "voice/typo/competition",
+    "input": "中学生200m選手。今日のメニューを作って。あとみっかで試合",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CP03",
+    "category": "voice/typo/competition",
+    "input": "中学生200m選手。今日のメニューを作って。あと3かで試合",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "あと3かで試合"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CP04",
+    "category": "voice/typo/competition",
+    "input": "中学生200m選手。今日のメニューを作って。さんにち後に試合",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "CP05",
+    "category": "voice/typo/competition",
+    "input": "中学生200m選手。今日のメニューを作って。あと3日で試合",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "N01",
+    "category": "critical numeric",
+    "input": "中学生200m選手。今日のメニューを作って。休憩3分",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": 180,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": 180,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "N02",
+    "category": "critical numeric",
+    "input": "中学生200m選手。今日のメニューを作って。3セット",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "3セット"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "N03",
+    "category": "critical numeric/fullwidth",
+    "input": "中学生200m選手。今日のメニューを作って。３セット",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "３セット"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "N04",
+    "category": "critical numeric",
+    "input": "中学生200m選手。今日のメニューを作って。試合まで60分",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "試合まで60分"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "N05",
+    "category": "critical numeric",
+    "input": "中学生200m選手。今日のメニューを作って。60mを3本",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "NEG01",
+    "category": "negative hallucination",
+    "input": "中学生200m選手。今日のメニューを作って。今日は短めで",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "NEG02",
+    "category": "negation",
+    "input": "中学生200m選手。今日のメニューを作って。軽めにはしないで、普通のメニューにして",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedSemanticClaims": {
+      "loadReductionRequested": false
+    }
+  },
+  {
+    "id": "NEG03",
+    "category": "correction",
+    "input": "中学生200m選手。今日のメニューを作って。短めじゃなくて長めがいい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "LONG",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "LONG",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "AMB01",
+    "category": "ambiguous",
+    "input": "200",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "M01",
+    "category": "original",
+    "input": "今週に２００mのレースがある。中学2年男子です。あと3日で試合ですが、疲労が抜けすぎています。少し疲労を溜めるメニューを消化したい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [
+      "少し疲労を溜めるメニューを消化したい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "PAIR01",
+    "category": "standard positive",
+    "input": "中学生200m選手。今日のメニューを作って。今日は疲れています",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    }
+  },
+  {
+    "id": "PAIR02",
+    "category": "kansai positive",
+    "input": "中学生200m選手。今日のメニューを作って。今日はしんどい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    }
+  },
+  {
+    "id": "PAIR03",
+    "category": "kyushu positive",
+    "input": "中学生200m選手。今日のメニューを作って。今日は疲れとる",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    }
+  },
+  {
+    "id": "PAIR04",
+    "category": "chugoku positive",
+    "input": "中学生200m選手。今日のメニューを作って。ぶちしんどいけぇ、今日は本数を少なくしたい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": "REPORTED"
+    }
+  },
+  {
+    "id": "AGE01",
+    "category": "child age",
+    "input": "小5です。100m選手。今日のメニュー作って",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "ELEMENTARY",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "ELEMENTARY",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "AGE02",
+    "category": "child age",
+    "input": "高1です。200m選手。今日のメニュー作って",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X01",
+    "category": "standard",
+    "input": "高校生100m選手、普通の練習を作って",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X02",
+    "category": "standard",
+    "input": "成人の200m選手です。今日の走メニューを作って",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "ADULT",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "ADULT",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X03",
+    "category": "standard",
+    "input": "中学生100m、今日は軽めにしたい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X04",
+    "category": "standard",
+    "input": "200mのレースがあります。中学生です",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X05",
+    "category": "standard",
+    "input": "今日は200mを走りたい",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [
+        200
+      ],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [
+        200
+      ],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X06",
+    "category": "standard",
+    "input": "200mのレースがある。今日は60mをやりたい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X07",
+    "category": "child",
+    "input": "中2、200出る。今日は短いやつがいい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X08",
+    "category": "child",
+    "input": "中1で100、長いのはやだ",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "長いのはやだ"
+    ],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X09",
+    "category": "child",
+    "input": "中3の100。今日はちょっとだけでいい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X10",
+    "category": "child",
+    "input": "高2の200。足がめっちゃ重い",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    }
+  },
+  {
+    "id": "X11",
+    "category": "child",
+    "input": "高1の100。きついのやだ",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "きついのやだ"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X12",
+    "category": "child",
+    "input": "100の選手。今日はいっぱい走りたい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "いっぱい走りたい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X13",
+    "category": "kansai",
+    "input": "中2で200出るで。今日は短めがええ",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X14",
+    "category": "kansai",
+    "input": "100走るねんけど疲れてへん",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X15",
+    "category": "kansai",
+    "input": "高校の200やで。軽めはやめとく",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedSemanticClaims": {
+      "loadReductionRequested": false
+    }
+  },
+  {
+    "id": "X16",
+    "category": "kyushu",
+    "input": "中2で200に出るばい。今日は長めにしたか",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "LONG",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "LONG",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X17",
+    "category": "kyushu",
+    "input": "100選手たい。疲れとらんけん普通で",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedSemanticClaims": {
+      "loadReductionRequested": false
+    }
+  },
+  {
+    "id": "X18",
+    "category": "kyushu",
+    "input": "高校の200です。今日は少なめにしたいっちゃ",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X19",
+    "category": "chugoku",
+    "input": "中学生の100じゃけぇ、今日は短めで",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X20",
+    "category": "chugoku",
+    "input": "200に出るけぇ。疲れとらん",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X21",
+    "category": "chugoku",
+    "input": "高2の200じゃ。今日はちょい長めがええ",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "LONG",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "LONG",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X22",
+    "category": "tohoku",
+    "input": "中2、100だべ。今日は短いのがいい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X23",
+    "category": "tohoku",
+    "input": "200走るんだ。そんな疲れてね",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X24",
+    "category": "tohoku",
+    "input": "高校の100、今日は軽ぐしたい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X25",
+    "category": "typo",
+    "input": "ちゅう2の200せんしゅです",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X26",
+    "category": "typo",
+    "input": "こうこうせい100めーとるの選手",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X27",
+    "category": "voice",
+    "input": "にひゃくのレースに出る。ちゅうにです",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X28",
+    "category": "voice",
+    "input": "ろくじゅうをさんぼん走りたい",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X29",
+    "category": "fullwidth",
+    "input": "中２で２００Ｍのレース。今日は６０ｍを３本",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X30",
+    "category": "fullwidth",
+    "input": "高校１年の１００ｍ選手。休憩３分",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": 180,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": 180,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X31",
+    "category": "omission",
+    "input": "中2、100、短め",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "SHORT",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X32",
+    "category": "omission",
+    "input": "200出る。高1。普通で",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X33",
+    "category": "numeric",
+    "input": "試合まで60分。100m選手",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "試合まで60分"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X34",
+    "category": "numeric",
+    "input": "30分で練習したい。100m選手",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": 1800,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": 1800,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X35",
+    "category": "numeric",
+    "input": "あと3日で試合。60mを3本。休憩4分",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": 240,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": 240,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X36",
+    "category": "numeric",
+    "input": "中学2年で高1と走る。100m選手",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X37",
+    "category": "numeric",
+    "input": "3セットやりたい。100m選手",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "3セットやりたい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X38",
+    "category": "numeric",
+    "input": "あと３日。２００ｍの試合。中２です",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X39",
+    "category": "negation",
+    "input": "100m選手。今日は長めにはしないで",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "長めにはしないで"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X40",
+    "category": "negation",
+    "input": "200m選手。短いのは嫌だけど、普通で",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "短いのは嫌"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X41",
+    "category": "negation",
+    "input": "100m選手。疲れてないけど軽めにしたい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X42",
+    "category": "negation",
+    "input": "200m選手。疲れてるけど普通にやりたい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    },
+    "expectedSemanticClaims": {
+      "loadReductionRequested": false
+    }
+  },
+  {
+    "id": "X43",
+    "category": "correction",
+    "input": "100m選手。短めで、いや長めにして",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "LONG",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": "LONG",
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X44",
+    "category": "correction",
+    "input": "200m選手。軽めで。やっぱ普通で",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedSemanticClaims": {
+      "loadReductionRequested": false
+    }
+  },
+  {
+    "id": "X45",
+    "category": "correction",
+    "input": "100m選手。60mで、いや50mを走りたい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [
+        50
+      ],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [
+        50
+      ],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X46",
+    "category": "current-desired",
+    "input": "200m選手。体は軽いけど今日は少なめで",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X47",
+    "category": "current-desired",
+    "input": "100m選手。疲れてる。でも今日は普通の量で",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    },
+    "expectedSemanticClaims": {
+      "loadReductionRequested": false
+    }
+  },
+  {
+    "id": "X48",
+    "category": "unsupported",
+    "input": "200m選手。少し疲労を残す内容にして",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "少し疲労を残す内容にして"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X49",
+    "category": "unsupported",
+    "input": "100m選手。フォームをきれいにしたい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [
+      "フォームをきれいにしたい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X50",
+    "category": "ambiguity",
+    "input": "100、200、どっちにしよう",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X51",
+    "category": "ambiguity",
+    "input": "60だけ",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X52",
+    "category": "critical",
+    "input": "中学生100m選手。今日は80mを走りたい",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [
+        80
+      ],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [
+        80
+      ],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X53",
+    "category": "critical",
+    "input": "中学生100m選手。走れないほど体調が悪い",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "STRONG_OR_UNWELL"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "STRONG_OR_UNWELL"
+    }
+  },
+  {
+    "id": "X54",
+    "category": "critical",
+    "input": "100m選手。今日は60mを3本、休憩は5分",
+    "expectedSemanticFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": 300,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "100m",
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": 300,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "X55",
+    "category": "original",
+    "input": "今週に２００mのレースがある。中学2年男子です。あと3日で試合ですが、疲労が抜けすぎています。少し疲労を溜めるメニューを消化したい",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [
+      "少し疲労を溜めるメニューを消化したい"
+    ],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "R01",
+    "category": "critical",
+    "input": "中2で200出ます",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "JUNIOR_HIGH",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "R02",
+    "category": "critical",
+    "input": "小5で100",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": "ELEMENTARY",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": true,
+    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": "ELEMENTARY",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "R03",
+    "category": "critical",
+    "input": "高1、200m選手",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": "HIGH_SCHOOL",
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "R04",
+    "category": "critical",
+    "input": "軽めにはしないで普通に",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedSemanticClaims": {
+      "loadReductionRequested": false
+    }
+  },
+  {
+    "id": "R05",
+    "category": "critical",
+    "input": "疲れとらんけど軽めがいい",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": "NOT_FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": true,
+      "fatigueState": null
+    }
+  },
+  {
+    "id": "R06",
+    "category": "critical",
+    "input": "疲れてるけど普通にやる",
+    "expectedSemanticFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "FATIGUED"
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": null,
+      "ageGroup": null,
+      "explicitDistances": [],
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": "REPORTED"
+    },
+    "expectedSemanticClaims": {
+      "loadReductionRequested": false
+    }
+  },
+  {
+    "id": "R07",
+    "category": "critical",
+    "input": "200出る、今日は60を3本",
+    "expectedSemanticFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    },
+    "expectedUnsupportedIntents": [],
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
+    "expectedEngineAdapterFields": {
+      "event": "200m",
+      "ageGroup": null,
+      "explicitDistances": [
+        60
+      ],
+      "humanExplicitReps": 3,
+      "humanExplicitRestSeconds": null,
+      "availableTimeSeconds": null,
+      "distancePreference": null,
+      "loadReductionRequested": false,
+      "fatigueState": null
+    }
+  }
+]

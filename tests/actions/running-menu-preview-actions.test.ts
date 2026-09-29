@@ -1,18 +1,43 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/infra/repositories/exercise-repository", () => ({ listExercisesForMenuPlanner: vi.fn() }));
-vi.mock("@/infra/running-menu/openai-intent-extractor", () => ({ extractRunningMenuIntent: vi.fn() }));
+vi.mock("@/infra/running-menu/openai-semantic-intent-v2", () => ({ extractRunningSemanticIntentV2: vi.fn() }));
 
 import { generateRunningMenuPreviewAction } from "@/actions/running-menu-preview-actions";
 import { listExercisesForMenuPlanner } from "@/infra/repositories/exercise-repository";
-import { extractRunningMenuIntent } from "@/infra/running-menu/openai-intent-extractor";
+import { extractRunningSemanticIntentV2, type SemanticExtractionResult } from "@/infra/running-menu/openai-semantic-intent-v2";
 import { verifyRunningMenuPreviewToken } from "@/infra/running-menu/preview-token";
+import type { RunningSemanticIntentV2 } from "@/application/running-menu/semantic-intent-v2";
 
 const list = vi.mocked(listExercisesForMenuPlanner);
-const extract = vi.mocked(extractRunningMenuIntent);
+const extract = vi.mocked(extractRunningSemanticIntentV2);
 const priorFlag = process.env.AI_MENU_PLANNER_ENABLED;
 const priorSecret = process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET;
-
+type Field = RunningSemanticIntentV2["claims"][number]["field"];
+function claim(field: Field, value: string | number | boolean, sourceText: string, rawText?: string, unit: "METER" | "DAY" | "NONE" = "NONE"): RunningSemanticIntentV2["claims"][number] {
+  return { field, value, sourceText, polarity: "AFFIRMED", temporalScope: "CURRENT", status: "ACTIVE", numericParts: rawText ? [{ rawText, unit }] : [] };
+}
+function extraction(claims: RunningSemanticIntentV2["claims"], extras: Partial<RunningSemanticIntentV2> = {}) {
+  const payload: Extract<SemanticExtractionResult, { ok: true }> = { ok: true, interpretation: {
+    interpreterVersion: "running-intent-v2", requestKind: "RUNNING", claims, unsupportedIntents: [], ambiguity: null, exerciseIds: [], ...extras,
+  }, review: { assessments: claims.map((_, index) => ({ index, supported: true })), requestKindSupported: true,
+    activeClaimIndexes: claims.map((_, index) => index), missingCriticalClaim: false, ambiguityCorrect: true, unsupportedIntentsSupported: true },
+  numericRoleReview: { roles: claims.flatMap((item) => {
+    const role = item.field;
+    return role === "EVENT" || role === "TRAINING_DISTANCE"
+      ? item.numericParts.filter((part) => part.unit === "NONE").map((part) => ({ sourceText: item.sourceText, rawText: part.rawText, role }))
+      : [];
+  }) } };
+  extract.mockResolvedValue(payload);
+  return payload;
+}
+const event = (value: "100m" | "200m") => claim("EVENT", value, `${value}選手`, value.slice(0, -1), "METER");
+const age = claim("AGE_GROUP", "JUNIOR_HIGH", "中学生");
+function enable() {
+  process.env.AI_MENU_PLANNER_ENABLED = "true";
+  process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET = "running-preview-test-secret-with-more-than-32-bytes";
+  list.mockResolvedValue([]);
+}
 afterEach(() => {
   if (priorFlag === undefined) delete process.env.AI_MENU_PLANNER_ENABLED;
   else process.env.AI_MENU_PLANNER_ENABLED = priorFlag;
@@ -21,88 +46,68 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("new Running preview action", () => {
-  it("uses REVIEWED exercises and returns an unsaved engine result", async () => {
-    process.env.AI_MENU_PLANNER_ENABLED = "true";
+describe("semantic Running preview action", () => {
+  it("uses REVIEWED exercises and the engine's 100m default", async () => {
+    enable();
     list.mockResolvedValue([
       { id: "reviewed", name: "ドリル", category: "DRILL", status: "REVIEWED" },
       { id: "draft", name: "未確認", category: "DRILL", status: "DRAFT" },
     ] as Awaited<ReturnType<typeof listExercisesForMenuPlanner>>);
-    extract.mockResolvedValue({ ok: true, claims: {
-      runningRequested: true,
-      event: { value: "100m", sourceText: "100m選手" },
-      ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学生" },
-      explicitDistances: [], distancePreference: null, loadReductionRequested: null, fatigueState: null,
-      availableTimeSeconds: null, humanExplicitReps: null, humanExplicitRestSeconds: null,
-      exerciseIds: ["reviewed"],
-    } });
+    extraction([event("100m"), age], { exerciseIds: ["reviewed"] });
     const result = await generateRunningMenuPreviewAction({ requestText: "中学生100m選手、今日のメニューを作って", context: {} });
     expect(extract.mock.calls[0]?.[0].exercises).toEqual([{ id: "reviewed", name: "ドリル", category: "DRILL" }]);
-    expect(result).toMatchObject({ ok: true, persistable: false, running: { status: "READY", prescription: { distanceMeters: 60, totalReps: 4, repRestSeconds: 240 } }, exercises: [{ id: "reviewed", name: "ドリル" }] });
+    expect(result).toMatchObject({ ok: true, running: { status: "READY", prescription: { distanceMeters: 60, totalReps: 4, repRestSeconds: 240 } }, exercises: [{ id: "reviewed" }] });
   });
 
-  it("cannot persist an invented Exercise ID or AI invented distance", async () => {
-    process.env.AI_MENU_PLANNER_ENABLED = "true";
-    list.mockResolvedValue([]);
-    extract.mockResolvedValue({ ok: true, claims: {
-      runningRequested: true, event: { value: "100m", sourceText: "100m選手" }, ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学生" },
-      explicitDistances: [{ value: 60, sourceText: "100m選手" }], distancePreference: null, loadReductionRequested: null, fatigueState: null,
-      availableTimeSeconds: null, humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
-    } });
-    const result = await generateRunningMenuPreviewAction({ requestText: "中学生100m選手", context: {} });
-    expect(result).toMatchObject({ ok: false });
+  it("rejects invented Exercise IDs and numeric claims", async () => {
+    enable();
+    extraction([event("100m"), age], { exerciseIds: ["invented"] });
+    expect(await generateRunningMenuPreviewAction({ requestText: "中学生100m選手", context: {} })).toMatchObject({ ok: false });
+    extraction([event("100m"), age, claim("TRAINING_DISTANCE", 60, "100m選手", "100", "METER")]);
+    expect(await generateRunningMenuPreviewAction({ requestText: "中学生100m選手", context: {} })).toMatchObject({ ok: false });
   });
 
-  it("issues a signed, policy-bound token only for a READY preview", async () => {
-    const key = "running-preview-test-secret-with-more-than-32-bytes";
-    process.env.AI_MENU_PLANNER_ENABLED = "true";
-    process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET = key;
-    list.mockResolvedValue([]);
-    extract.mockResolvedValue({ ok: true, claims: {
-      runningRequested: true, event: { value: "100m", sourceText: "100m選手" },
-      ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学生" }, explicitDistances: [],
-      distancePreference: null, loadReductionRequested: null, fatigueState: null,
-      availableTimeSeconds: null, humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
-    } });
+  it("issues a signed policy-bound token for READY only", async () => {
+    enable(); extraction([event("100m"), age]);
     const result = await generateRunningMenuPreviewAction({ requestText: "中学生100m選手、今日のメニューを作って", context: {} });
     expect(result).toMatchObject({ ok: true, persistable: true, running: { status: "READY" } });
     if (!result.ok || result.previewToken === null) return;
-    expect(verifyRunningMenuPreviewToken(result.previewToken, key)).toMatchObject({
-      policyVersion: "rp-2026.09.0", requestText: "中学生100m選手、今日のメニューを作って",
-    });
+    expect(verifyRunningMenuPreviewToken(result.previewToken, process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET!)).toMatchObject({ policyVersion: "rp-2026.09.0" });
   });
 
-  it("does not issue a save token for explicitly rejected 80m", async () => {
-    process.env.AI_MENU_PLANNER_ENABLED = "true";
-    process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET = "running-preview-test-secret-with-more-than-32-bytes";
-    list.mockResolvedValue([]);
-    extract.mockResolvedValue({ ok: true, claims: {
-      runningRequested: true, event: { value: "100m", sourceText: "100m選手" },
-      ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学生" },
-      explicitDistances: [{ value: 80, sourceText: "80mをやりたい" }],
-      distancePreference: null, loadReductionRequested: null, fatigueState: null,
-      availableTimeSeconds: null, humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
-    } });
+  it("preserves explicit 80m for review without a save token", async () => {
+    enable(); extraction([event("100m"), age, claim("TRAINING_DISTANCE", 80, "80mをやりたい", "80", "METER")]);
     const result = await generateRunningMenuPreviewAction({ requestText: "中学生100m選手、今日は80mをやりたい", context: {} });
     expect(result).toMatchObject({ ok: true, persistable: false, previewToken: null, running: { status: "COACH_REVIEW_REQUIRED" } });
   });
-  it("accepts race context and recovered fatigue through the production action", async () => {
-    process.env.AI_MENU_PLANNER_ENABLED = "true";
-    process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET = "running-preview-test-secret-with-more-than-32-bytes";
-    list.mockResolvedValue([]);
-    extract.mockResolvedValue({ ok: true, claims: {
-      runningRequested: true, event: { value: "200m", sourceText: "２００mのレース" },
-      ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学2年" }, explicitDistances: [],
-      distancePreference: null, loadReductionRequested: null, fatigueState: null,
-      availableTimeSeconds: null, humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
-    } });
+
+  it("retains unsupported wishes and reaches the existing 200m policy", async () => {
+    enable();
     const requestText = "今週に２００mのレースがある。中学2年男子です。あと3日で試合ですが、疲労が抜けすぎています。少し疲労を溜めるメニューを消化したい";
+    extraction([
+      claim("EVENT", "200m", "２００mのレース", "２００", "METER"),
+      claim("AGE_GROUP", "JUNIOR_HIGH", "中学2年"),
+      claim("COMPETITION_DAYS", 3, "あと3日で試合", "3", "DAY"),
+    ], { unsupportedIntents: [{ meaning: "少し疲労を溜めたい", sourceText: "少し疲労を溜めるメニューを消化したい" }] });
     const result = await generateRunningMenuPreviewAction({ requestText, context: {} });
-    expect(result).toMatchObject({ ok: true, persistable: true, running: { status: "READY", prescription: { distanceMeters: 120, totalReps: 3, repRestSeconds: 900 } } });
-    if (!result.ok || result.previewToken === null) throw new Error("Expected signed preview");
-    // Unmodeled competition/recovery context remains in the signed request;
-    // it does not become generated reps, rest, or load-reduction intent.
-    expect(verifyRunningMenuPreviewToken(result.previewToken, process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET)).toMatchObject({ requestText });
+    expect(result).toMatchObject({ ok: true, persistable: true, unsupportedIntents: ["少し疲労を溜めたい"], running: { status: "READY", prescription: { distanceMeters: 120, totalReps: 3, repRestSeconds: 900 } } });
+    if (!result.ok || result.previewToken === null) return;
+    expect(verifyRunningMenuPreviewToken(result.previewToken, process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET!)).toMatchObject({ requestText });
   });
 
+  it("asks only the ambiguous question", async () => {
+    enable(); extraction([], { requestKind: "AMBIGUOUS", ambiguity: { question: "種目の200mですか、今日走る200mですか？", sourceText: "200" } });
+    expect(await generateRunningMenuPreviewAction({ requestText: "200", context: {} })).toEqual({ ok: false, message: "種目の200mですか、今日走る200mですか？" });
+  });
+
+  it("retries an invalid AI claim but signs only a fully verified extraction", async () => {
+    enable();
+    const good = extraction([event("100m"), age]);
+    extract.mockResolvedValueOnce({ ...good, interpretation: { ...good.interpretation, claims: [
+      claim("EVENT", "200m", "100m選手", "100", "METER"), age,
+    ] } });
+    const result = await generateRunningMenuPreviewAction({ requestText: "中学生100m選手、今日のメニューを作って", context: {} });
+    expect(extract).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ ok: true, running: { status: "READY", prescription: { distanceMeters: 60, totalReps: 4, repRestSeconds: 240 } } });
+  });
 });

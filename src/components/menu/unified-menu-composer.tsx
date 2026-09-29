@@ -837,6 +837,12 @@ export function UnifiedMenuComposer({ exercises }: { exercises: ExercisePickerIt
                 {newRunningPreview.exercises.map((exercise) => <p key={exercise.id} className="text-sm text-slate-700">{exercise.name}</p>)}
               </div>
             )}
+            {newRunningPreview.unsupportedIntents.length > 0 && (
+              <div role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <p>希望として読み取りましたが、現在の自動処方には反映されません。</p>
+                {newRunningPreview.unsupportedIntents.map((meaning, index) => <p key={`${index}-${meaning}`}>{meaning}</p>)}
+              </div>
+            )}
             {newRunningPreview.running.status === "READY" && newRunningPreview.previewToken !== null ? (
               <Button type="button" size="lg" disabled={busy} onClick={submitSave}>{phase === "SAVING" ? "保存中…" : "この内容で保存"}</Button>
             ) : <p className="text-xs text-slate-500">確認が必要な走処方は保存できません。条件を見直して再生成してください。</p>}
