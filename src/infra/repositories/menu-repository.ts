@@ -9,6 +9,7 @@ import {
   type MenuSearch,
 } from "@/domain/menu/schema";
 import { DEFAULT_BLOCK_NAMES } from "@/domain/menu/constants";
+import { runningSessionSourceFingerprint } from "@/application/running-session/snapshot";
 import { upsertTags } from "./tag-repository";
 
 const menuDetailInclude = {
@@ -135,11 +136,32 @@ export async function findMenuIdForItem(itemId: string): Promise<string | null> 
 }
 
 export async function listMenusForPicker() {
-  return prisma.menuTemplate.findMany({
+  const menus = await prisma.menuTemplate.findMany({
     where: { ownerId: DEFAULT_OWNER_ID, status: { not: "ARCHIVED" } },
-    select: { id: true, name: true, phase: true, estimatedMinutes: true },
+    select: {
+      id: true, name: true, phase: true, estimatedMinutes: true, updatedAt: true,
+      blocks: {
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true, name: true, note: true, sortOrder: true,
+          items: {
+            orderBy: { sortOrder: "asc" },
+            include: { exercise: { select: { name: true, category: true } } },
+          },
+        },
+      },
+    },
     orderBy: { updatedAt: "desc" },
   });
+  return menus.map((menu) => ({
+    id: menu.id,
+    name: menu.name,
+    phase: menu.phase,
+    estimatedMinutes: menu.estimatedMinutes,
+    runningSourceFingerprint: menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_POLICY"))
+      ? runningSessionSourceFingerprint(menu)
+      : null,
+  }));
 }
 
 // --- メニュー本体 -----------------------------------------------------------

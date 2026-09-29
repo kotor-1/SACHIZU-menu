@@ -14,7 +14,12 @@ type MenuOption = {
   name: string;
   phase: string | null;
   estimatedMinutes: number | null;
+  runningSourceFingerprint: string | null;
 };
+
+export function selectedRunningSourceFingerprint(menus: readonly MenuOption[], menuId: string): string | null {
+  return menus.find((menu) => menu.id === menuId)?.runningSourceFingerprint ?? null;
+}
 
 export function NewSessionFromMenu({
   menus,
@@ -32,6 +37,8 @@ export function NewSessionFromMenu({
   const reviewIssues = runningV2Enabled && state && !state.ok && state.kind === "REJECTED" && state.reviewIssues?.length ? state.reviewIssues : null;
   const [reviewReady, setReviewReady] = useState(false);
   const blockedOnReview = reviewIssues !== null && !reviewReady;
+  const [selectedMenuId, setSelectedMenuId] = useState("");
+  const runningSourceFingerprint = selectedRunningSourceFingerprint(menus, selectedMenuId);
 
   return (
     <Card className="border-indigo-200">
@@ -55,7 +62,7 @@ export function NewSessionFromMenu({
             )}
 
             <Field label="メニュー" required errors={errors.menuTemplateId}>
-              <select name="menuTemplateId" required defaultValue="" className={input}>
+              <select name="menuTemplateId" required value={selectedMenuId} onChange={(event) => setSelectedMenuId(event.target.value)} className={input}>
                 <option value="" disabled>
                   選択してください
                 </option>
@@ -67,6 +74,7 @@ export function NewSessionFromMenu({
                 ))}
               </select>
             </Field>
+            {runningSourceFingerprint && <input type="hidden" name="runningSourceFingerprint" value={runningSourceFingerprint} />}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="実施日" required errors={errors.date}>

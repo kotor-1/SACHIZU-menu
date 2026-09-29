@@ -16,7 +16,8 @@ import {
   presentRunningSessionSnapshot,
   runningSessionSourceFingerprint,
 } from "@/application/running-session/snapshot";
-import { findMenu } from "@/infra/repositories/menu-repository";
+import { findMenu, listMenusForPicker } from "@/infra/repositories/menu-repository";
+import { selectedRunningSourceFingerprint } from "@/components/session/new-session-from-menu";
 import { createSessionFromMenu, findSession } from "@/infra/repositories/session-repository";
 import { sessionFromMenuSchema } from "@/domain/session/schema";
 
@@ -63,16 +64,22 @@ async function createFromCurrentMenu(menuId: string) {
 }
 
 describe("saved Running Menu to immutable Session snapshot", () => {
-  it("connects the actual Composer save contract to Session creation and reload", async () => {
+  it.each([
+    ["100m", false, 60, 4, 240],
+    ["200m", false, 120, 3, 900],
+    ["100m", true, 60, 3, 240],
+  ] as const)("connects signed Composer save through Menu and Session reload for %s light=%s", async (event, light, distance, reps, rest) => {
     const previousKey = process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET;
     process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET = "running-session-test-secret-with-more-than-32-bytes";
     try {
-      const requestText = "中学生100m選手、今日のメニューを作って";
+      const ageText = event === "100m" ? "中学生" : "高校生";
+      const requestText = `${ageText}${event}選手、今日のメニューを作って${light ? "。軽めに" : ""}`;
       const claims: RunningIntentClaims = {
         runningRequested: true,
-        event: { value: "100m", sourceText: "100m選手" },
-        ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学生" },
-        explicitDistances: [], distancePreference: null, loadReductionRequested: null,
+        event: { value: event, sourceText: `${event}選手` },
+        ageGroup: { value: event === "100m" ? "JUNIOR_HIGH" : "HIGH_SCHOOL", sourceText: ageText },
+        explicitDistances: [], distancePreference: null,
+        loadReductionRequested: light ? { value: true, sourceText: "軽めに" } : null,
         fatigueState: null, availableTimeSeconds: null, humanExplicitReps: null,
         humanExplicitRestSeconds: null, exerciseIds: [],
       };
@@ -88,18 +95,71 @@ describe("saved Running Menu to immutable Session snapshot", () => {
       const saved = await saveRunningMenuPreview({
         previewToken, previewPolicyVersion: RUNNING_POLICY_VERSION,
         previewPolicyHash: RUNNING_POLICY_HASH, requestText, context,
-        previewPrescription: preview.prescription, menuName: "100m練習", manualBlocks: [],
+        previewPrescription: preview.prescription, menuName: `${event}練習`, manualBlocks: [],
       });
       expect(saved.ok).toBe(true);
       if (!saved.ok) return;
+      const reloadedMenu = await findMenu(saved.menuId);
+      expect(reloadedMenu?.blocks[0]?.items[0]).toMatchObject({ distanceMeters: distance, reps, restSeconds: rest });
       const session = await createFromCurrentMenu(saved.menuId);
       const item = (await findSession(session.id))!.items[0]!;
       expect(parseRunningSessionSnapshot(item.prescriptionKind, item.plannedPrescriptionJson)?.prescription)
-        .toMatchObject({ distanceMeters: 60, totalReps: 4, repRestSeconds: 240 });
+        .toMatchObject({ distanceMeters: distance, totalReps: reps, repRestSeconds: rest });
     } finally {
       if (previousKey === undefined) delete process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET;
       else process.env.MENU_PLANNER_ACCEPT_TOKEN_SECRET = previousKey;
     }
+  });
+
+  it.each([
+    ["100m", false, 60, 4, 240],
+    ["200m", false, 120, 3, 900],
+    ["100m", true, 60, 3, 240],
+  ] as const)("starts %s light=%s through the /sessions/new picker", async (event, light, distance, reps, rest) => {
+    const { menu } = await savedMenu({ event, light });
+    const options = await listMenusForPicker();
+    const fingerprint = selectedRunningSourceFingerprint(options, menu.id);
+    expect(fingerprint).toBe(runningSessionSourceFingerprint((await findMenu(menu.id))!));
+    const form = new FormData();
+    form.set("menuTemplateId", menu.id);
+    form.set("date", "2026-09-30");
+    form.set("runningSourceFingerprint", fingerprint!);
+    await expect(createSessionFromMenuAction(null, form)).rejects.toThrow(/^NEXT_REDIRECT:/u);
+    const row = (await prisma.sessionItem.findFirst())!;
+    expect(row).toMatchObject({ plannedDistanceMeters: distance, plannedReps: reps, plannedRestSeconds: rest });
+    expect(parseRunningSessionSnapshot(row.prescriptionKind, row.plannedPrescriptionJson)?.prescription)
+      .toMatchObject({ distanceMeters: distance, totalReps: reps, repRestSeconds: rest });
+  });
+
+  it("rejects a stale /sessions/new picker fingerprint and preserves direct API protection", async () => {
+    const { menu } = await savedMenu();
+    const fingerprint = selectedRunningSourceFingerprint(await listMenusForPicker(), menu.id);
+    expect(fingerprint).not.toBeNull();
+    const item = (await findMenu(menu.id))!.blocks[0]!.items[0]!;
+    await prisma.menuItem.update({ where: { id: item.id }, data: { note: "メニュー変更" } });
+    const input = sessionFromMenuSchema.parse({ menuTemplateId: menu.id, date: "2026-09-30" });
+    await expect(createSessionFromMenu(input, undefined, fingerprint)).rejects.toMatchObject({ code: "STALE_MENU_FOR_SESSION" });
+    await expect(createSessionFromMenu(input)).rejects.toMatchObject({ code: "STALE_MENU_FOR_SESSION" });
+    expect(await prisma.trainingSession.count()).toBe(0);
+  });
+
+  it("keeps legacy and Exercise-only picker selections free of new Running fingerprints", async () => {
+    const exercise = await makeExercise();
+    const legacy = await prisma.menuTemplate.create({ data: { ownerId: DEFAULT_OWNER_ID, name: "旧走メニュー", blocks: { create: { name: "走", sortOrder: 0, items: { create: { displayName: "旧走", sortOrder: 0, prescriptionKind: "RUNNING_V2" } } } } } });
+    const exerciseMenu = await prisma.menuTemplate.create({ data: { ownerId: DEFAULT_OWNER_ID, name: "種目メニュー", blocks: { create: { name: "主運動", sortOrder: 0, items: { create: { exerciseId: exercise.id, sortOrder: 0 } } } } } });
+    const options = await listMenusForPicker();
+    expect(selectedRunningSourceFingerprint(options, legacy.id)).toBeNull();
+    expect(selectedRunningSourceFingerprint(options, exerciseMenu.id)).toBeNull();
+    const input = sessionFromMenuSchema.parse({ menuTemplateId: exerciseMenu.id, date: "2026-09-30" });
+    await expect(createSessionFromMenu(input)).resolves.toMatchObject({ sourceMenuTemplateId: exerciseMenu.id });
+  });
+
+  it("starts a mixed new Running and Exercise menu atomically from the picker", async () => {
+    const { menu } = await savedMenu({ exercise: true });
+    const fingerprint = selectedRunningSourceFingerprint(await listMenusForPicker(), menu.id);
+    const input = sessionFromMenuSchema.parse({ menuTemplateId: menu.id, date: "2026-09-30" });
+    const created = await createSessionFromMenu(input, undefined, fingerprint);
+    expect((await findSession(created.id))!.items.map((item) => item.prescriptionKind)).toEqual(["RUNNING_POLICY", "LEGACY"]);
   });
 
   it.each([

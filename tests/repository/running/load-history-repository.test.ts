@@ -22,6 +22,10 @@ import { resetDb } from "../../helpers";
 import { makeMenuWithBlock, persistInputFor, planAcc, planStride } from "./fixtures";
 import { monitorRunningPrescription, type RepLogEntry } from "@/domain/running/monitoring";
 import { weeklyHistoryAsOf } from "@/actions/_running-load-history";
+import { planRunningPrescription } from "@/domain/running-policy/engine";
+import { serializeRunningMenuEnvelope } from "@/application/running-menu/persistence";
+import { runningSessionSourceFingerprint } from "@/application/running-session/snapshot";
+import { findMenu } from "@/infra/repositories/menu-repository";
 
 const AS_OF = new Date("2026-09-20T07:00:00.000Z");
 const hoursBefore = (h: number, ms = 0) => new Date(AS_OF.getTime() - h * 3600 * 1000 - ms);
@@ -71,6 +75,57 @@ async function legacyItem(category: string | null, o: Partial<Prisma.SessionItem
 
 describe("load history: v2 / legacy の変換", () => {
   beforeEach(resetDb);
+
+  it("excludes a saved new Running snapshot from legacy load events without treating it as zero load", async () => {
+    const result = planRunningPrescription({ event: "100m", ageGroup: "JUNIOR_HIGH" });
+    if (result.status !== "READY") throw new Error(result.status);
+    const p = result.prescription;
+    const menu = await prisma.menuTemplate.create({ data: {
+      name: "新しい走メニュー",
+      blocks: { create: { name: "走", sortOrder: 0, items: { create: {
+        displayName: "走", sortOrder: 0, prescriptionKind: "RUNNING_POLICY",
+        prescriptionJson: serializeRunningMenuEnvelope(p),
+        provenanceJson: JSON.stringify({ schemaVersion: 1, source: "SIGNED_RUNNING_PREVIEW", requestDigest: "0".repeat(64), intent: {}, context: {} }),
+        distanceMeters: p.distanceMeters, reps: p.totalReps, sets: p.sets,
+        restSeconds: p.repRestSeconds, setRestSeconds: p.setRestSeconds,
+      } } } },
+    } });
+    const source = await findMenu(menu.id);
+    if (source === null) throw new Error("menu missing");
+    const created = await createSessionFromMenu(
+      sessionFromMenuSchema.parse({ menuTemplateId: menu.id, date: "2026-09-19" }),
+      undefined,
+      runningSessionSourceFingerprint(source),
+    );
+    const newItem = (await prisma.sessionItem.findFirst({ where: { trainingSessionId: created.id } }))!;
+    expect(newItem.plannedPrescriptionJson).toContain("RUNNING_POLICY_SNAPSHOT");
+
+    const newOnly = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    expect(newOnly.events).toEqual([]);
+    expect(newOnly.unresolved).toEqual([]);
+    const weekly = await weeklyHistoryAsOf(AS_OF);
+    expect(weekly.events).toEqual([]);
+    expect(weekly.coverage7d).toBe("PARTIAL");
+    expect(() => evaluateWeeklyContext(weekly, {
+      ruleSet: getRuleSet("rs-2026.09.0")!, evaluatedAt: AS_OF.toISOString() as IsoDateTime,
+      method: "MAX_VELOCITY", loadClass: "HIGH_NEURAL", ageBand: "ADULT",
+      hasExistingReadinessDecision: false,
+    })).not.toThrow();
+
+    const exercise = await legacyItem("JUMP", { sortOrder: 2 });
+    await session(hoursBefore(12), [
+      { exerciseNameSnapshot: "60m × 4本", blockNameSnapshot: "走", prescriptionKind: "RUNNING_POLICY", plannedPrescriptionJson: newItem.plannedPrescriptionJson, done: true, sortOrder: 0 },
+      v2Item({ sortOrder: 1 }),
+      exercise,
+    ]);
+    const mixed = await listLoadHistory({ asOf: AS_OF, windowHours: 72 });
+    expect(mixed.unresolved).toEqual([]);
+    expect(mixed.events.map((event) => [event.category, event.intensityTag])).toEqual([
+      ["RUNNING_HIGH_INTENSITY", "HIGH"],
+      ["PLYOMETRIC", "UNKNOWN"],
+    ]);
+    expect(mixed.events.some((event) => event.category === "OTHER")).toBe(false);
+  });
 
   it("v2 HIGH / LOW: category は SessionItem.loadCategory、intensityTag は plan 時点の loadSnapshot.loadClass（RuleSet に問い合わせない）", async () => {
     const s = await session(hoursBefore(24), [

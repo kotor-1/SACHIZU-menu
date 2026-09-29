@@ -178,6 +178,9 @@ export async function listLoadHistory(query: LoadHistoryQuery, db: PrismaDbClien
     }
 
     for (const item of session.items) {
+      // The new Running snapshot has no approved legacy load classification.
+      // Exclusion is not a zero-load or OTHER event; the caller's coverage stays partial.
+      if (item.prescriptionKind === "RUNNING_POLICY") continue;
       const base = { at, sessionKey, source: "SESSION_RECORD" as const, completion: itemCompletion(session, item), magnitude: {} };
 
       if (item.prescriptionKind === "RUNNING_V2") {
