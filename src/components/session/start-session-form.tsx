@@ -15,11 +15,13 @@ export function StartSessionForm({
   menuId,
   menuName,
   runningV2Enabled = false,
+  runningSourceFingerprint,
 }: {
   menuId: string;
   menuName: string;
   /** [R11-B1] 走トレーニングの確認パネルを出すか（flag OFF なら安全側のエラー表示だけ）。 */
   runningV2Enabled?: boolean;
+  runningSourceFingerprint?: string;
 }) {
   const [state, formAction] = useActionState(createSessionFromMenuAction, null);
   const errors = state && !state.ok && state.kind === "INVALID_INPUT" ? (state.fieldErrors ?? {}) : {};
@@ -38,6 +40,7 @@ export function StartSessionForm({
       <CardBody>
         <form action={formAction} className="space-y-3">
           <input type="hidden" name="menuTemplateId" value={menuId} />
+          {runningSourceFingerprint && <input type="hidden" name="runningSourceFingerprint" value={runningSourceFingerprint} />}
 
           {state && !state.ok && (
             <p className="rounded border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs text-rose-700">

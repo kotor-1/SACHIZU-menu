@@ -22,6 +22,12 @@ import { quantityIntervalSchema } from "@/domain/running/types/primitives";
 import { safetyOutcomeSchema } from "@/domain/running/types/readiness";
 import { terminalMonitorActionSchema } from "@/domain/running/persistence/executionState";
 import { buildReviewMenuContextFingerprint, buildSourceMenuFingerprint, type FingerprintMenuItemInput } from "./session-fingerprint";
+import {
+  RunningSessionSnapshotError,
+  runningSessionSourceFingerprint,
+  serializeRunningSessionSnapshot,
+  snapshotSavedRunningMenuItem,
+} from "@/application/running-session/snapshot";
 
 const sessionDetailInclude = {
   items: {
@@ -193,6 +199,7 @@ export async function setSessionStatus(id: string, status: string) {
 export async function createSessionFromMenu(
   input: SessionFromMenuInput,
   planningEvaluation?: SessionPlanningEvaluationInput,
+  expectedRunningSourceFingerprint?: string | null,
 ) {
   return prisma.$transaction(async (tx) => {
     const menu = await tx.menuTemplate.findUnique({
@@ -210,6 +217,12 @@ export async function createSessionFromMenu(
       },
     });
     if (!menu) throw new Error("メニューが見つかりません");
+
+    const hasRunningPolicy = menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_POLICY"));
+    if (hasRunningPolicy && (!expectedRunningSourceFingerprint ||
+        runningSessionSourceFingerprint(menu) !== expectedRunningSourceFingerprint)) {
+      throw new RunningSessionSnapshotError("STALE_MENU_FOR_SESSION");
+    }
 
     for (const item of menu.blocks.flatMap((block) => block.items)) {
       if (item.prescriptionKind !== "RUNNING_V2") continue;
@@ -249,43 +262,47 @@ export async function createSessionFromMenu(
     // ブロックをまたいで通し番号を振り直す（セッションは 1 本のリストとして扱う）
     let sortOrder = 0;
     const items = menu.blocks.flatMap((block) =>
-      block.items.map((item) => ({
-        exerciseId: item.exerciseId,
-        exerciseNameSnapshot:
-          item.exercise?.name ?? item.displayName ?? "（名称未設定）",
-        blockNameSnapshot: block.name,
-        sortOrder: sortOrder++,
-        plannedSets: item.sets,
-        plannedReps: item.reps,
-        plannedDistanceMeters: item.distanceMeters,
-        plannedDurationSeconds: item.durationSeconds,
-        plannedRestSeconds: item.restSeconds,
-        plannedIntensityPercent: item.intensityPercent,
-        plannedLoadKg: item.loadKg,
-        plannedNote: item.note,
-        // --- Running v2 の計画スナップショット（§17.2。値をそのままコピー） ---
-        prescriptionKind: item.prescriptionKind,
-        runningMethod: item.runningMethod,
-        sessionTemplateId: item.sessionTemplateId,
-        recoveryStructure: item.recoveryStructure,
-        plannedBuildUpDistanceMeters: item.buildUpDistanceMeters,
-        plannedFlyZoneDistanceMeters: item.flyZoneDistanceMeters,
-        plannedSetRestSeconds: item.setRestSeconds,
-        plannedIntraRepRestSeconds: item.intraRepRestSeconds,
-        plannedIntensityReferenceKind: item.intensityReferenceKind,
-        plannedPrescriptionConfidence: item.prescriptionConfidence,
-        ruleSetVersion: item.ruleSetVersion,
-        ruleSetContentHash: item.ruleSetContentHash,
-        plannedPrescriptionJson: item.prescriptionJson,
-        plannedProvenanceJson: item.provenanceJson,
-        plannedRationale: item.rationale,
-        // v2 は plan 時点の loadSnapshot（処方 JSON 内）から。RuleSet には問い合わせない
-        loadCategory: snapshotLoadCategory({
+      block.items.map((item) => {
+        const runningSnapshot = item.prescriptionKind === "RUNNING_POLICY" ? snapshotSavedRunningMenuItem(item) : null;
+        const p = runningSnapshot?.prescription;
+        return {
+          exerciseId: item.exerciseId,
+          exerciseNameSnapshot: runningSnapshot === null
+            ? (item.exercise?.name ?? item.displayName ?? "（名称未設定）")
+            : `${runningSnapshot.prescription.distanceMeters}m × ${runningSnapshot.prescription.totalReps}本`,
+          blockNameSnapshot: block.name,
+          sortOrder: sortOrder++,
+          plannedSets: p?.sets ?? item.sets,
+          plannedReps: p?.totalReps ?? item.reps,
+          plannedDistanceMeters: p?.distanceMeters ?? item.distanceMeters,
+          plannedDurationSeconds: item.durationSeconds,
+          plannedRestSeconds: runningSnapshot === null ? item.restSeconds : runningSnapshot.prescription.repRestSeconds,
+          plannedIntensityPercent: item.intensityPercent,
+          plannedLoadKg: item.loadKg,
+          plannedNote: item.note,
           prescriptionKind: item.prescriptionKind,
-          prescriptionJson: item.prescriptionJson,
-          exerciseCategory: item.exercise?.category ?? null,
-        }),
-      })),
+          runningMethod: runningSnapshot === null ? item.runningMethod : null,
+          sessionTemplateId: runningSnapshot === null ? item.sessionTemplateId : null,
+          recoveryStructure: item.recoveryStructure,
+          plannedBuildUpDistanceMeters: item.buildUpDistanceMeters,
+          plannedFlyZoneDistanceMeters: item.flyZoneDistanceMeters,
+          plannedSetRestSeconds: runningSnapshot === null ? item.setRestSeconds : runningSnapshot.prescription.setRestSeconds,
+          plannedIntraRepRestSeconds: item.intraRepRestSeconds,
+          plannedIntensityReferenceKind: item.intensityReferenceKind,
+          plannedPrescriptionConfidence: item.prescriptionConfidence,
+          ruleSetVersion: runningSnapshot === null ? item.ruleSetVersion : null,
+          ruleSetContentHash: runningSnapshot === null ? item.ruleSetContentHash : null,
+          plannedPrescriptionJson: runningSnapshot === null ? item.prescriptionJson : serializeRunningSessionSnapshot(runningSnapshot),
+          plannedProvenanceJson: runningSnapshot === null ? item.provenanceJson : null,
+          plannedRationale: item.rationale,
+          // Legacy load classification stays in its own path; new Running has none yet.
+          loadCategory: runningSnapshot === null ? snapshotLoadCategory({
+            prescriptionKind: item.prescriptionKind,
+            prescriptionJson: item.prescriptionJson,
+            exerciseCategory: item.exercise?.category ?? null,
+          }) : null,
+        };
+      }),
     );
     const sourceMenuItemIds = menu.blocks.flatMap((block) => block.items.map((item) => item.id));
 

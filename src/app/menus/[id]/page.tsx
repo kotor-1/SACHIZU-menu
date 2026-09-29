@@ -21,6 +21,7 @@ import { estimateSeconds } from "@/domain/shared/prescription";
 import { TRAINING_PHASE_LABEL, type TrainingPhase } from "@/domain/menu/constants";
 import { REVIEW_STATUS_LABEL, type ReviewStatus } from "@/domain/shared/constants";
 import { formatMinutes } from "@/lib/format";
+import { runningSessionSourceFingerprint } from "@/application/running-session/snapshot";
 
 export default async function MenuDetailPage({
   params,
@@ -129,9 +130,12 @@ export default async function MenuDetailPage({
         </div>
 
         <div className="space-y-4 no-print">
-          {hasNewRunning ? (
-            <Card><CardBody><p className="text-sm text-slate-600">この走処方の練習記録への接続は準備中です。</p></CardBody></Card>
-          ) : <StartSessionForm menuId={menu.id} menuName={menu.name} runningV2Enabled={running !== null} />}
+          <StartSessionForm
+            menuId={menu.id}
+            menuName={menu.name}
+            runningV2Enabled={running !== null}
+            runningSourceFingerprint={hasNewRunning ? runningSessionSourceFingerprint(menu) : undefined}
+          />
 
           {running !== null && <RunningMenuPanel menuId={menu.id} view={running} />}
 

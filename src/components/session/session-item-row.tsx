@@ -43,7 +43,7 @@ export function SessionItemRow({
     null,
   );
 
-  const planned = formatPrescription({
+  const planned = item.runningSnapshot ? null : formatPrescription({
     sets: item.plannedSets,
     reps: item.plannedReps,
     distanceMeters: item.plannedDistanceMeters,
@@ -110,7 +110,7 @@ export function SessionItemRow({
               </span>
             )}
             {/* 参照先の種目が消えても、記録は名前のスナップショットで残る */}
-            {!item.exercise && (
+            {!item.exercise && !item.runningSnapshot && (
               <Badge className="border-slate-200 bg-slate-50 text-slate-400">
                 カタログ参照なし
               </Badge>
@@ -119,6 +119,15 @@ export function SessionItemRow({
 
           {planned && (
             <p className="mt-0.5 font-mono text-xs text-slate-500">計画 {planned}</p>
+          )}
+          {item.runningSnapshot?.status === "OK" && (
+            <div className="mt-0.5 text-xs text-slate-600">
+              {item.runningSnapshot.restText && <p>{item.runningSnapshot.restText}</p>}
+              {item.runningSnapshot.instruction && <p>{item.runningSnapshot.instruction}</p>}
+            </div>
+          )}
+          {item.runningSnapshot?.status === "UNREADABLE" && (
+            <p className="mt-0.5 text-xs text-rose-700">保存済みの走処方を読み込めません</p>
           )}
           {actual && (
             <p className="mt-0.5 font-mono text-xs font-medium text-emerald-700">

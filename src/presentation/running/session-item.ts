@@ -1,4 +1,6 @@
 /** JSON-safe subset used by the existing SessionItemRow client component. */
+import { presentSavedRunningSnapshot, type SessionSnapshotSource } from "./session-snapshot";
+
 export type SessionItemRowDto = {
   id: string;
   done: boolean;
@@ -18,9 +20,11 @@ export type SessionItemRowDto = {
   actualDurationSeconds: number | null;
   actualLoadKg: number | null;
   actualNote: string | null;
+  runningSnapshot?: Exclude<ReturnType<typeof presentSavedRunningSnapshot>, undefined>;
 };
 
-export function presentSessionItemRow(item: SessionItemRowDto): SessionItemRowDto {
+export function presentSessionItemRow(item: SessionItemRowDto & SessionSnapshotSource): SessionItemRowDto {
+  const runningSnapshot = presentSavedRunningSnapshot(item);
   return {
     id: item.id,
     done: item.done,
@@ -40,5 +44,6 @@ export function presentSessionItemRow(item: SessionItemRowDto): SessionItemRowDt
     actualDurationSeconds: item.actualDurationSeconds,
     actualLoadKg: item.actualLoadKg,
     actualNote: item.actualNote,
+    ...(runningSnapshot ? { runningSnapshot } : {}),
   };
 }

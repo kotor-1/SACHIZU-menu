@@ -149,6 +149,13 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
   const allRows = menu.blocks.flatMap((block) => block.items);
   const v2Rows = allRows.filter((item) => item.prescriptionKind === "RUNNING_V2");
   if (v2Rows.length === 0) return input.plausibilityReviewRequests?.length ? { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA } : { kind: "SKIP" }; // §6/§7: legacy-only は R9 の fallback を維持する
+  const legacyPlanningMenu = {
+    ...menu,
+    blocks: menu.blocks.map((block) => ({
+      ...block,
+      items: block.items.filter((item) => item.prescriptionKind !== "RUNNING_POLICY"),
+    })),
+  };
 
   const { plannedDate: sessionDate } = plannedDateTimeOf(input.date);
   if (sessionDate === null) return { kind: "SKIP" }; // Action 側の schema 検証を通っていれば通常起きない
@@ -180,7 +187,7 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
   // [R10-B2.1] 「大会開催期間中か」（endDate による複数日開催を含む）は competition domain の policy。
   // ここでは日付比較を書かず、domain helper を呼ぶだけにする。
   const evaluated = await evaluateStoredRunningMenu({
-    menu,
+    menu: legacyPlanningMenu,
     competitionDayFor: async () => resolveCompetitionDay(sessionDate, await listCompetitionRefs()),
   });
   if (evaluated.status === "SKIP") return { kind: "SKIP" };
@@ -216,7 +223,7 @@ export async function buildSessionPlanningEvaluation(input: { menuTemplateId: st
   }
   const legacy = evaluateLegacySessionReviews({
     menuId: menu.id, sessionDate: input.date, context, sourceMenuFingerprint,
-    items: allRows.filter((item) => item.prescriptionKind !== "RUNNING_V2").map((item) => ({ id: item.id, summary: legacyAggregationSummary(item) })),
+    items: allRows.filter((item) => item.prescriptionKind !== "RUNNING_V2" && item.prescriptionKind !== "RUNNING_POLICY").map((item) => ({ id: item.id, summary: legacyAggregationSummary(item) })),
     resolved: { ruleSet, contentHash: ruleSetRef.contentHash }, requests: input.plausibilityReviewRequests, actor: getCoachActorForServer(),
   });
   if (!legacy.valid) return { kind: "REJECT", message: SESSION_BLOCK_MESSAGE_JA, reviewIssues: legacy.issues };

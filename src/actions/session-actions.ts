@@ -28,6 +28,7 @@ import {
 import { prisma } from "@/infra/db/prisma";
 import { LoadHistoryResolutionError } from "@/infra/repositories/load-history-repository";
 import { PlanningEvaluationStaleError } from "@/domain/running/persistence/sessionSnapshot";
+import { RunningSessionSnapshotError } from "@/application/running-session/snapshot";
 import type { FindingPresentationDto } from "@/presentation/running/dto";
 import { presentFindings } from "@/presentation/running/findings";
 import {
@@ -184,11 +185,16 @@ export async function createSessionFromMenuAction(
   let id: string;
   try {
     // [§25] confirmation は fingerprint 検証を迂回しない。repository が transaction 内で再計算する。
-    const created = await createSessionFromMenu(input, evaluation);
+    const created = await createSessionFromMenu(input, evaluation, input.runningSourceFingerprint);
     id = created.id;
   } catch (e) {
     if (e instanceof PlanningEvaluationStaleError) {
       return { ok: false, kind: "PLANNING_EVALUATION_STALE", message: SESSION_PLANNING_STALE_MESSAGE_JA };
+    }
+    if (e instanceof RunningSessionSnapshotError) {
+      return { ok: false, kind: "REJECTED", message: e.code === "STALE_MENU_FOR_SESSION"
+        ? "メニューの内容が変わりました。再読込してから練習記録を作成してください。"
+        : "保存済みの走処方を確認できません。メニューの内容を確認してください。" };
     }
     // Repository / database details are not part of the client contract.
     return { ok: false, kind: "REJECTED", message: "セッションを作成できませんでした。もう一度お試しください。" };

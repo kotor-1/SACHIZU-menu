@@ -33,6 +33,7 @@ export const CONFIRMED_FINDING_CODES_KEY = "confirmedFindingCodes";
 /** テンプレートからセッションを起こすときの入力。 */
 export const sessionFromMenuSchema = z.object({
   menuTemplateId: z.string().min(1, "メニューを選んでください"),
+  runningSourceFingerprint: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
   date: z
     .string()
     .min(1, "実施日は必須です")
