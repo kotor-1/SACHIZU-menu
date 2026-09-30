@@ -78,15 +78,19 @@ function numericToken(part: { rawText: string; unit: string }): { number: number
   return { number: parseSpokenNumber(numberText), embeddedUnit: suffix?.[1] ?? null };
 }
 
-function normalizeSourceUnits(claim: SemanticClaimV2): SemanticClaimV2 | null {
+function normalizeSourceUnits(claim: SemanticClaimV2, requestText: string): SemanticClaimV2 | null {
+  const sourceStart = requestText.indexOf(claim.sourceText);
+  if (sourceStart < 0) return null;
   let offset = 0;
   const numericParts: SemanticClaimV2["numericParts"] = [];
   for (const part of claim.numericParts) {
     const at = claim.sourceText.indexOf(part.rawText, offset);
     if (at < 0) return null;
     const embedded = numericToken(part).embeddedUnit;
-    const after = claim.sourceText.slice(at + part.rawText.length).normalize("NFKC").toLowerCase();
-    const before = claim.sourceText.slice(0, at).normalize("NFKC");
+    // Units and grade prefixes belong to the original source span, even when
+    // an AI crops them out of its quote.
+    const after = requestText.slice(sourceStart + at + part.rawText.length).normalize("NFKC").toLowerCase();
+    const before = requestText.slice(0, sourceStart + at).normalize("NFKC");
     // 小5 / 中2 / 高1 are grade numerals with an omitted 年 suffix.
     const gradePrefix = /(?:小学|中学|高校|[小中高])$/u.test(before);
     const explicit = embedded ?? orderedUnits.find(([rawUnit]) => after.startsWith(rawUnit))?.[1] ?? (gradePrefix ? "GRADE" : "NONE");
@@ -102,7 +106,7 @@ const digitWords: Record<string, number> = {
   零: 0, 〇: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9,
   ゼロ: 0, れい: 0, いち: 1, に: 2, さん: 3, よん: 4, し: 4, ご: 5, ろく: 6, なな: 7, はち: 8, きゅう: 9,
 };
-const scaleWords: Record<string, number> = { 十: 10, 百: 100, 千: 1000, じゅう: 10, ひゃく: 100, びゃく: 100, ぴゃく: 100, せん: 100, ぜん: 1000 };
+const scaleWords: Record<string, number> = { 十: 10, 百: 100, 千: 1000, じゅう: 10, ひゃく: 100, びゃく: 100, ぴゃく: 100, せん: 1000, ぜん: 1000 };
 
 /** Closed arithmetic grammar for numerals, never a dialect or training-intent dictionary. */
 export function parseSpokenNumber(raw: string): number | null {
@@ -129,7 +133,9 @@ export function parseSpokenNumber(raw: string): number | null {
 
 function normalizedClaim(claim: SemanticClaimV2): SemanticClaimV2 | null {
   if (!numericFields.has(claim.field)) return claim;
-  if (claim.numericParts.length === 0) return null;
+  // Relative calendar expressions are reviewed semantic context. They never
+  // grant numeric authority to the prescription adapter.
+  if (claim.numericParts.length === 0) return claim.field === "COMPETITION_DAYS" ? claim : null;
   const parts = claim.numericParts.map((part) => numericToken(part));
   if (parts.some((part) => part.number === null)) return claim;
   const scale = { SECOND: 1, MINUTE: 60, HOUR: 3600 } as Record<string, number>;
@@ -148,7 +154,7 @@ function normalizedClaim(claim: SemanticClaimV2): SemanticClaimV2 | null {
 function numericCheck(claim: SemanticClaimV2): boolean {
   if (claim.field === "AGE_GROUP") return claim.numericParts.every((part) => ["NONE", "GRADE"].includes(part.unit) && numericToken(part).number !== null);
   if (!numericFields.has(claim.field)) return claim.numericParts.length === 0;
-  if (claim.numericParts.length === 0) return false;
+  if (claim.numericParts.length === 0) return claim.field === "COMPETITION_DAYS";
   const expected = claim.field === "EVENT" ? Number(String(claim.value).replace(/m$/u, "")) : claim.value;
   if (typeof expected !== "number" || !Number.isInteger(expected) || expected <= 0) return false;
   const allowed: Record<string, readonly string[]> = {
@@ -159,12 +165,11 @@ function numericCheck(claim: SemanticClaimV2): boolean {
   if (claim.numericParts.some((part) => !allowed[claim.field]?.includes(part.unit))) return false;
   const parts = claim.numericParts.map((part) => ({ ...part, ...numericToken(part) }));
   if (parts.some((part) => part.embeddedUnit !== null && part.embeddedUnit !== part.unit)) return false;
-  // An unparseable spoken numeral is sent to an independent semantic review.
-  // An Arabic or kanji number that parses must agree with the claimed value.
+  // Engine numbers require a structurally readable numeral. A favorable AI
+  // review cannot make arbitrary source text into numeric evidence.
   if (parts.some((part) => part.number === null)) {
-    // Unknown spoken forms need semantic review; Arabic digits have an exact
-    // structural representation and may not hide inside arbitrary text.
-    return parts.every((part) => part.number !== null || !/[0-9０-９]/u.test(part.rawText));
+    return claim.field === "COMPETITION_DAYS" &&
+      parts.every((part) => part.number !== null || !/[0-9０-９]/u.test(part.rawText));
   }
   if (claim.field === "REST" || claim.field === "AVAILABLE_TIME") {
     return parts.every((part) => ["SECOND", "MINUTE", "HOUR", "NONE"].includes(part.unit))
@@ -234,8 +239,28 @@ export function verifySemanticIntentV2(
     if (independentRoles.has(span)) return { ok: false, reason: "INVALID_AI_CLAIM" };
     independentRoles.set(span, item.role);
   }
-  const blindAmbiguity = roleReview.data.roles.find((item) => item.role === "AMBIGUOUS" &&
-    !/(?:小学|中学|高校|[小中高])$/u.test(item.sourceText.slice(0, item.sourceText.indexOf(item.rawText))));
+  const reviewedActiveIndexes = new Set(review.data.activeClaimIndexes);
+  const supersededNumericSpans = new Set<string>();
+  for (const [index, claim] of intent.claims.entries()) {
+    if (claim.status !== "SUPERSEDED" || reviewedActiveIndexes.has(index) ||
+        !review.data.assessments.some((assessment) => assessment.index === index && assessment.supported)) continue;
+    const start = requestText.indexOf(claim.sourceText);
+    if (start < 0) continue;
+    let offset = 0;
+    for (const part of claim.numericParts) {
+      const at = claim.sourceText.indexOf(part.rawText, offset);
+      if (at < 0) break;
+      supersededNumericSpans.add(`${start + at}:${start + at + part.rawText.length}`);
+      offset = at + part.rawText.length;
+    }
+  }
+  const blindAmbiguity = roleReview.data.roles.find((item) => {
+    const sourceStart = requestText.indexOf(item.sourceText);
+    const rawStart = item.sourceText.indexOf(item.rawText);
+    return item.role === "AMBIGUOUS" &&
+      !supersededNumericSpans.has(`${sourceStart + rawStart}:${sourceStart + rawStart + item.rawText.length}`) &&
+      !/(?:小学|中学|高校|[小中高])$/u.test(item.sourceText.slice(0, rawStart));
+  });
   if (intent.requestKind !== "AMBIGUOUS" && blindAmbiguity) {
     return { ok: false, reason: "AMBIGUOUS",
       question: `${blindAmbiguity.rawText}mの種目に出る意味ですか？それとも今日${blindAmbiguity.rawText}mを走りたい意味ですか？` };
@@ -262,7 +287,7 @@ export function verifySemanticIntentV2(
   if (intent.unsupportedIntents.some((item) => !requestText.includes(item.sourceText))) return { ok: false, reason: "INVALID_AI_CLAIM" };
   const verified: VerifiedSemanticClaimV2[] = [];
   for (const [index, rawClaim] of intent.claims.entries()) {
-    const sourceClaim = normalizeSourceUnits(rawClaim);
+    const sourceClaim = normalizeSourceUnits(rawClaim, requestText);
     if (!sourceClaim) return { ok: false, reason: "INVALID_AI_CLAIM" };
     const claim = normalizedClaim(sourceClaim);
     if (!claim) return { ok: false, reason: "INVALID_AI_CLAIM" };
@@ -279,7 +304,7 @@ export function verifySemanticIntentV2(
       for (const part of claim.numericParts) {
         const at = claim.sourceText.indexOf(part.rawText, offset);
         if (at < 0) return { ok: false, reason: "INVALID_AI_CLAIM" };
-        const after = claim.sourceText.slice(at + part.rawText.length).normalize("NFKC");
+        const after = requestText.slice(start + at + part.rawText.length).normalize("NFKC");
         const embedded = numericToken(part).embeddedUnit;
         const explicit = embedded ? ["", embedded] : orderedUnits.find(([rawUnit]) => after.toLowerCase().startsWith(rawUnit));
         if (explicit && explicit[1] !== part.unit) return { ok: false, reason: "INVALID_AI_CLAIM" };
@@ -298,7 +323,7 @@ export function verifySemanticIntentV2(
         offset = at + part.rawText.length;
       }
     }
-    verified.push({ ...claim, status: activeIndexes.has(index) ? "ACTIVE" : "SUPERSEDED", numericParts, start, end: start + claim.sourceText.length, sourceType: "USER_TEXT" });
+    verified.push({ ...claim, status: claim.polarity === "NEGATED" ? claim.status : activeIndexes.has(index) ? "ACTIVE" : "SUPERSEDED", numericParts, start, end: start + claim.sourceText.length, sourceType: "USER_TEXT" });
   }
   const numericRoles = new Map<string, string>();
   for (const claim of verified) {
@@ -327,8 +352,21 @@ export function verifySemanticIntentV2(
   // A doubtful freeform paraphrase cannot become policy input. Preserve the
   // exact source wording for the user instead of rejecting the valid fields.
   const unsupportedRaw = review.data.unsupportedIntentsSupported
-    ? intent.unsupportedIntents
+    ? [...intent.unsupportedIntents]
     : intent.unsupportedIntents.map((item) => ({ ...item, meaning: item.sourceText }));
+  // A supported negative preference is still a constraint when the adapter
+  // cannot express it. Preserve its source without inferring the opposite.
+  // A later affirmative preference resolves a correction and needs no extra
+  // unsupported constraint from the earlier preference.
+  if (!engineIntent.distancePreference) {
+    for (const claim of verified) {
+      if (claim.field === "DISTANCE_PREFERENCE" && claim.polarity === "NEGATED" &&
+          claim.status === "ACTIVE" && claim.temporalScope !== "PAST" &&
+          !unsupportedRaw.some((item) => item.sourceText.includes(claim.sourceText) || claim.sourceText.includes(item.sourceText))) {
+        unsupportedRaw.push({ meaning: claim.sourceText, sourceText: claim.sourceText });
+      }
+    }
+  }
   const unsupportedIntents: VerifiedUnsupportedIntentV2[] = unsupportedRaw.map((item) => {
     const start = requestText.indexOf(item.sourceText);
     return { ...item, supportStatus: "UNSUPPORTED_BY_CURRENT_POLICY", start, end: start + item.sourceText.length, sourceType: "USER_TEXT" };
