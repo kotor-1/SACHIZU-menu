@@ -1,0 +1,22 @@
+{
+  "measurementKind": "OFFLINE_CONTRACT_MIGRATION",
+  "liveOpenAICalls": 0,
+  "description": "Synthetic evidence annotations for the new safety contract. Original saved responses remain unchanged; this is not a new model response. Raw legacy X53 is separately required to reject without evidence.",
+  "migrations": [
+    {
+      "id": "X53",
+      "primarySHA256": "4cbf2f97474470a9aefe74040efda0fc4580a7c45ab200eefdd28d69f7e83573",
+      "reviewSHA256": "9e6dc0c311e08c0c9e23576fec8e519efba0c6479ec870b79fa6259c0510cce4",
+      "claimIndex": 2,
+      "safetyConcernEvidence": {
+        "basis": "FUNCTIONAL_IMPAIRMENT",
+        "sourceText": "走れないほど体調が悪い"
+      },
+      "safetyAssessment": {
+        "index": 2,
+        "basis": "FUNCTIONAL_IMPAIRMENT",
+        "sourceText": "走れないほど体調が悪い"
+      }
+    }
+  ]
+}

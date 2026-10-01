@@ -9,6 +9,7 @@ import { extractRunningSemanticIntentV2, type SemanticExtractionResult } from "@
 import { verifyRunningMenuPreviewToken } from "@/infra/running-menu/preview-token";
 import * as preview from "@/application/running-menu/preview";
 import type { RunningSemanticIntentV2 } from "@/application/running-menu/semantic-intent-v2";
+import lunaFatigueFailure from "@/../tests/fixtures/running-intent-v2-luna-fatigue-escalation.json";
 
 const list = vi.mocked(listExercisesForMenuPlanner);
 const extract = vi.mocked(extractRunningSemanticIntentV2);
@@ -121,5 +122,22 @@ describe("semantic Running preview action", () => {
     expect(extract).toHaveBeenCalledTimes(1);
     expect(engine).not.toHaveBeenCalled();
     engine.mockRestore();
+  });
+
+  it("rejects the recorded unsupported safety escalation before Engine or preview-token execution", async () => {
+    enable();
+    extract.mockResolvedValue({ ok: true, interpretation: lunaFatigueFailure.primary as RunningSemanticIntentV2,
+      review: lunaFatigueFailure.semanticReview, numericRoleReview: null });
+    const engine = vi.spyOn(preview, "createRunningMenuPreview");
+    try {
+      const result = await generateRunningMenuPreviewAction({ requestText: lunaFatigueFailure.input,
+        context: { ageGroup: "JUNIOR_HIGH", event: "200m" } });
+      expect(result).toMatchObject({ ok: false });
+      expect(result).not.toHaveProperty("previewToken");
+      expect(extract).toHaveBeenCalledTimes(1);
+      expect(engine).not.toHaveBeenCalled();
+    } finally {
+      engine.mockRestore();
+    }
   });
 });

@@ -8,6 +8,7 @@ import { verifyPrimarySemanticIntentV2, type SemanticClaimV2 } from "../src/appl
 import { createRunningMenuPreview } from "../src/application/running-menu/preview";
 import type { VerifiedRunningIntent } from "../src/application/running-menu/intent";
 import { RUNNING_POLICY_HASH, RUNNING_POLICY_VERSION } from "../src/domain/running-policy";
+import { prepareRecordedSafetyReplay } from "./running-intent-replay-safety";
 
 type Fields = {
   event: string | null; ageGroup: string | null; explicitDistances: number[];
@@ -96,13 +97,14 @@ async function evaluate(item: Case, repetition: number) {
   const source = (mode === "high-risk" ? recorded.highRisk : recorded.corpus).find(x => x.id === item.id && x.repetition === repetition)
     ?? recorded.corpus.find(x => x.id === (item.id === "ORIGINAL_MULTILINE" ? "M01" : item.id));
   if (!source) throw new Error("Recorded primary response missing; replay will never fall back to the network.");
+  const replay = prepareRecordedSafetyReplay(source);
   const extraction = await extractRunningSemanticIntentV2({ requestText: item.input, exercises: [] }, { ...options, apiKey: "offline-replay-only",
     fetchImpl: async (_url, init) => {
       const body = JSON.parse(String(init?.body));
       requests.push({ stage: body.text.format.name, instructionsSHA256: createHash("sha256").update(body.instructions).digest("hex"),
         model: body.model, effort: body.reasoning.effort, maxOutputTokens: body.max_output_tokens });
-      const value = body.text.format.name === "running_semantic_intent_v2" ? source.primary
-        : body.text.format.name === "running_semantic_review_v2" ? source.semanticReview : null;
+      const value = body.text.format.name === "running_semantic_intent_v2" ? replay.primary
+        : body.text.format.name === "running_semantic_review_v2" ? replay.semanticReview : null;
       if (value === null) throw new Error("Unexpected replay stage; no network fallback.");
       return new Response(JSON.stringify({ status: "completed", output: [{ type: "message", role: "assistant",
         content: [{ type: "output_text", text: JSON.stringify(value) }] }] }), { headers: { "content-type": "application/json" } });
@@ -151,7 +153,8 @@ async function evaluate(item: Case, repetition: number) {
     expectedSemantic: item.expectedSemanticFields, actualSemantic, expectedAdapter: item.expectedEngineAdapterFields, actualAdapter,
     expectedUnsupported: item.expectedUnsupportedIntents, unsupported, unsupportedLost, unexpectedUnsupported,
     expectedAmbiguity: item.expectedAmbiguity, actualAmbiguity, semanticMismatches, adapterMismatches,
-    extraction, verification, engineContext, engine, diagnostics, requests, elapsedMs: Date.now() - started };
+    extraction, verification, engineContext, engine, diagnostics, requests, contractMigration: replay.contractMigration,
+    elapsedMs: Date.now() - started };
   if (outputDir) appendFileSync(resolve(outputDir, `${label}-results.jsonl`), JSON.stringify(result) + "\n");
   process.stdout.write(JSON.stringify({ label, id: item.id, repetition, categories, mismatches, elapsedMs: result.elapsedMs }) + "\n");
   return result;
@@ -171,6 +174,7 @@ async function main() {
     simulatedPrimaryCalls: primaryCalls, simulatedSecondaryReviewCalls: secondaryCalls,
     simulatedAverageLlmCalls: (primaryCalls + secondaryCalls) / results.length,
     simulatedOneCallFastPathRate: results.filter(x => x.requests.length === 1).length / results.length,
+    offlineContractMigrationCases: [...new Set(results.flatMap(x => x.contractMigration ? [x.contractMigration.id] : []))],
     falseRejection: count("FALSE_REJECTION"), falseAcceptance: count("FALSE_ACCEPTANCE"), numericRoleError: count("NUMERIC_ROLE_ERROR"),
     negationError: count("NEGATION_ERROR"), correctionError: count("CORRECTION_ERROR"), eventDistanceRoleError: count("EVENT_DISTANCE_ROLE_ERROR"),
     unnecessaryClarification: count("UNNECESSARY_CLARIFICATION"), missedClarification: count("MISSED_CLARIFICATION"),

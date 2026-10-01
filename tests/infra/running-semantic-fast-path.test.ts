@@ -4,7 +4,8 @@ import { verifyPrimarySemanticIntentV2, type RunningSemanticIntentV2, type Seman
 import { createRunningMenuPreview } from "@/application/running-menu/preview";
 import corpus from "@/../tests/fixtures/running-intent-v2-corpus.json";
 import recorded from "@/../tests/fixtures/running-intent-v2-recorded-responses.json";
-import { RUNNING_INTENT_SMOKE_PLAN } from "@/../scripts/running-intent-smoke-plan";
+import { ORIGINAL_RUNNING_INTENT_SENTENCE, RUNNING_INTENT_SMOKE_PLAN } from "@/../scripts/running-intent-smoke-plan";
+import { prepareRecordedSafetyReplay } from "@/../scripts/running-intent-replay-safety";
 
 type Claim = RunningSemanticIntentV2["claims"][number];
 const claim = (field: Claim["field"], value: Claim["value"], sourceText: string, numericParts: Claim["numericParts"] = []): Claim =>
@@ -47,9 +48,12 @@ describe("cost-safe primary and selective review orchestration, no live API", ()
 
   it("routes an active safety escalation, but not a superseded escalation", async () => {
     const text = "今日は体調が悪い";
-    const primary = intent([claim("FATIGUE", "STRONG_OR_UNWELL", text)]);
+    const primary = intent([{ ...claim("FATIGUE", "STRONG_OR_UNWELL", text),
+      safetyConcernEvidence: { basis: "ILLNESS_OR_INJURY", sourceText: text } }]);
     expect(verifyPrimarySemanticIntentV2(text, primary, [])).toMatchObject({ reason: "SEMANTIC_REVIEW_REQUIRED", triggers: ["SAFETY_ESCALATION"] });
-    const result = await run(text, primary);
+    const result = await run(text, primary, { ...review(primary), safetyAssessments: [
+      { index: 0, basis: "ILLNESS_OR_INJURY", sourceText: text },
+    ] });
     expect(result.stages).toEqual(["running_semantic_intent_v2", "running_semantic_review_v2"]);
     expect(result.verification.ok).toBe(true);
     const negated = intent([{ ...primary.claims[0], polarity: "NEGATED" }]);
@@ -151,12 +155,13 @@ describe("cost-safe primary and selective review orchestration, no live API", ()
     const plan = RUNNING_INTENT_SMOKE_PLAN;
     expect(plan.liveExecutionAllowedThisPhase).toBe(false);
     expect(plan.model).toBe("gpt-6-luna");
-    expect(plan.cases).toHaveLength(10);
+    expect(plan.cases).toHaveLength(5);
     expect(plan.repeatPerInput).toBe(1);
     expect(plan.cases.reduce((sum, c) => sum + c.plannedStages, 0)).toBe(plan.plannedRequests);
-    expect(plan.maximumRequestsIncludingSelectiveReviewAndTransportRetry).toBe(40);
-    expect(plan.optionalSolComparison.maximumInputs).toBe(2);
-    expect(plan.optionalSolComparison.requiresExplicitHumanApproval).toBe(true);
+    expect(plan.apiRequestHardCap).toBe(8);
+    expect(plan.maximumRequestsWithoutBudgetEnforcement).toBe(20);
+    expect(plan.solRequests).toBe(0);
+    expect(plan.requiresRequestCountReportBeforeExecution).toBe(true);
   });
 
   it("keeps transport recovery bounded and does not run a secondary stage after exhaustion", async () => {
@@ -188,7 +193,7 @@ describe("cost-safe primary and selective review orchestration, no live API", ()
 
 describe("saved primary responses replayed through the production fast path", () => {
   it("replays the original multiline sentence three times without invented numeric intent", async () => {
-    const text = RUNNING_INTENT_SMOKE_PLAN.cases.find(c => c.id === "ORIGINAL")!.input;
+    const text = ORIGINAL_RUNNING_INTENT_SENTENCE;
     const record = recorded.corpus.find(c => c.id === "M01")!;
     for (let repeat = 0; repeat < 3; repeat++) {
       const result = await run(text, record.primary as RunningSemanticIntentV2);
@@ -206,7 +211,8 @@ describe("saved primary responses replayed through the production fast path", ()
 
   async function replay(record: { id: string; primary: unknown; semanticReview: unknown }) {
     const item = corpus.find(x => x.id === record.id)!;
-    const result = await run(item.input, record.primary as RunningSemanticIntentV2, record.semanticReview as SemanticReviewV2);
+    const migrated = prepareRecordedSafetyReplay(record);
+    const result = await run(item.input, migrated.primary as RunningSemanticIntentV2, migrated.semanticReview as SemanticReviewV2);
     expect(result.stages).not.toContain("running_bare_numeric_role_v2");
     if (item.expectedAmbiguity) {
       expect(result.verification).toMatchObject({ ok: false, reason: "AMBIGUOUS" });

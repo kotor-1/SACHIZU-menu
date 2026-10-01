@@ -1,0 +1,152 @@
+{
+  "measurementKind": "SYNTHETIC_CONTRACT_REGRESSION",
+  "liveOpenAICalls": 0,
+  "description": "Semantic-contract examples, not a production phrase inventory or live model predictions.",
+  "cases": [
+    {
+      "id": "A_NORMAL",
+      "input": "中学生200m選手。今日のメニューを作って。今日は疲れてる",
+      "fatigueSource": "今日は疲れてる",
+      "fatigueValue": "FATIGUED",
+      "loadReduction": null,
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "B_INTENSE",
+      "input": "中学生200m選手。今日のメニューを作って。今日はめちゃくちゃ疲れてる",
+      "fatigueSource": "今日はめちゃくちゃ疲れてる",
+      "fatigueValue": "FATIGUED",
+      "loadReduction": null,
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "C_DIALECT_REDUCTION",
+      "input": "中学生200m選手。今日のメニューを作って。ぶちしんどいけぇ、本数少なくしたい",
+      "fatigueSource": "ぶちしんどいけぇ",
+      "fatigueValue": "FATIGUED",
+      "loadReduction": {
+        "value": true,
+        "sourceText": "本数少なくしたい"
+      },
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "D_LEGS_REDUCTION",
+      "input": "中学生200m選手。今日のメニューを作って。脚パンパン。本数減らしたい",
+      "fatigueSource": "脚パンパン",
+      "fatigueValue": "FATIGUED",
+      "loadReduction": {
+        "value": true,
+        "sourceText": "本数減らしたい"
+      },
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "E_NORMAL_LOAD",
+      "input": "中学生200m選手。今日のメニューを作って。今日はだるいけど普通にやる",
+      "fatigueSource": "今日はだるい",
+      "fatigueValue": "FATIGUED",
+      "loadReduction": {
+        "value": false,
+        "sourceText": "普通にやる"
+      },
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "F_NOT_FATIGUED_REDUCTION",
+      "input": "中学生200m選手。今日のメニューを作って。疲れてないけど軽めがいい",
+      "fatigueSource": "疲れてない",
+      "fatigueValue": "NOT_FATIGUED",
+      "loadReduction": {
+        "value": true,
+        "sourceText": "軽めがいい"
+      },
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "CASE7_FULL",
+      "input": "中学生200m選手。今日のメニューを作って。ぶちしんどいけぇ、今日は本数を少なくしたい",
+      "fatigueSource": "ぶちしんどいけぇ",
+      "fatigueValue": "FATIGUED",
+      "loadReduction": {
+        "value": true,
+        "sourceText": "今日は本数を少なくしたい"
+      },
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "INTENSITY_NO_SAFETY",
+      "input": "中学生200m選手。今日のメニューを作って。かなり疲れている",
+      "fatigueSource": "かなり疲れている",
+      "fatigueValue": "FATIGUED",
+      "loadReduction": null,
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "HEAVINESS_NORMAL_LOAD",
+      "input": "中学生200m選手。今日のメニューを作って。身体が重いが本数はそのまま",
+      "fatigueSource": "身体が重い",
+      "fatigueValue": "FATIGUED",
+      "loadReduction": {
+        "value": false,
+        "sourceText": "本数はそのまま"
+      },
+      "safetyConcernEvidence": null
+    },
+    {
+      "id": "FEVER",
+      "input": "中学生200m選手。今日のメニューを作って。熱がある",
+      "fatigueSource": "熱がある",
+      "fatigueValue": "STRONG_OR_UNWELL",
+      "loadReduction": null,
+      "safetyConcernEvidence": {
+        "basis": "ILLNESS_OR_INJURY",
+        "sourceText": "熱がある"
+      }
+    },
+    {
+      "id": "NAUSEA",
+      "input": "中学生200m選手。今日のメニューを作って。吐き気がする",
+      "fatigueSource": "吐き気がする",
+      "fatigueValue": "STRONG_OR_UNWELL",
+      "loadReduction": null,
+      "safetyConcernEvidence": {
+        "basis": "ILLNESS_OR_INJURY",
+        "sourceText": "吐き気がする"
+      }
+    },
+    {
+      "id": "DIZZINESS",
+      "input": "中学生200m選手。今日のメニューを作って。めまいがする",
+      "fatigueSource": "めまいがする",
+      "fatigueValue": "STRONG_OR_UNWELL",
+      "loadReduction": null,
+      "safetyConcernEvidence": {
+        "basis": "ILLNESS_OR_INJURY",
+        "sourceText": "めまいがする"
+      }
+    },
+    {
+      "id": "PAIN_UNABLE_TO_RUN",
+      "input": "中学生200m選手。今日のメニューを作って。足が痛くて走れない",
+      "fatigueSource": "足が痛くて走れない",
+      "fatigueValue": "STRONG_OR_UNWELL",
+      "loadReduction": null,
+      "safetyConcernEvidence": {
+        "basis": "FUNCTIONAL_IMPAIRMENT",
+        "sourceText": "足が痛くて走れない"
+      }
+    },
+    {
+      "id": "UNWELL_UNABLE_TO_STAND",
+      "input": "中学生200m選手。今日のメニューを作って。体調悪くて立ってるのもしんどい",
+      "fatigueSource": "体調悪くて立ってるのもしんどい",
+      "fatigueValue": "STRONG_OR_UNWELL",
+      "loadReduction": null,
+      "safetyConcernEvidence": {
+        "basis": "FUNCTIONAL_IMPAIRMENT",
+        "sourceText": "体調悪くて立ってるのもしんどい"
+      }
+    }
+  ]
+}

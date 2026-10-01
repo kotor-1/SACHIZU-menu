@@ -9,6 +9,11 @@ const fieldSchema = z.enum([
 ]);
 const unitSchema = z.enum(["METER", "REP", "SECOND", "MINUTE", "HOUR", "DAY", "SET", "GRADE", "NONE"]);
 const numericPartSchema = z.object({ rawText: z.string().min(1).max(24), unit: unitSchema }).strict();
+const safetyBasisSchema = z.enum(["ILLNESS_OR_INJURY", "FUNCTIONAL_IMPAIRMENT", "FATIGUE_INTENSITY_ONLY"]);
+const safetyEvidenceSchema = z.object({
+  basis: safetyBasisSchema,
+  sourceText: z.string().min(1).max(160).refine(text => text.trim().length > 0),
+}).strict();
 const claimSchema = z.object({
   field: fieldSchema,
   value: z.union([z.string().min(1).max(32), z.number().int().positive(), z.boolean()]),
@@ -17,6 +22,9 @@ const claimSchema = z.object({
   temporalScope: z.enum(["CURRENT", "DESIRED", "FUTURE", "PAST"]),
   status: z.enum(["ACTIVE", "SUPERSEDED"]),
   numericParts: z.array(numericPartSchema).max(4),
+  // Additive compatibility for recorded ordinary claims. An active safety
+  // escalation never gets this compatibility exemption: evidence is mandatory.
+  safetyConcernEvidence: safetyEvidenceSchema.nullable().optional(),
 }).strict();
 
 export const runningSemanticIntentV2Schema = z.object({
@@ -43,6 +51,11 @@ export const semanticReviewV2Schema = z.object({
   ambiguityCorrect: z.boolean(),
   unsupportedIntentsSupported: z.boolean(),
   correctionsSupported: z.boolean(),
+  safetyAssessments: z.array(z.object({
+    index: z.number().int().nonnegative(),
+    basis: z.enum(["ILLNESS_OR_INJURY", "FUNCTIONAL_IMPAIRMENT", "FATIGUE_INTENSITY_ONLY", "UNSUPPORTED"]),
+    sourceText: z.string().min(1).max(160).nullable(),
+  }).strict()).max(30).optional(),
 }).strict();
 export type SemanticReviewV2 = z.infer<typeof semanticReviewV2Schema>;
 
@@ -57,8 +70,12 @@ export type BareNumericRoleReviewV2 = z.infer<typeof bareNumericRoleReviewV2Sche
 export type VerifiedNumericPartV2 = SemanticClaimV2["numericParts"][number] & {
   normalizedValue: number; semanticRole: SemanticClaimV2["field"]; start: number; end: number;
 };
-export type VerifiedSemanticClaimV2 = Omit<SemanticClaimV2, "numericParts"> & {
+export type VerifiedSafetyEvidenceV2 = z.infer<typeof safetyEvidenceSchema> & {
+  start: number; end: number; sourceType: "USER_TEXT";
+};
+export type VerifiedSemanticClaimV2 = Omit<SemanticClaimV2, "numericParts" | "safetyConcernEvidence"> & {
   numericParts: VerifiedNumericPartV2[]; start: number; end: number; sourceType: "USER_TEXT";
+  safetyConcernEvidence?: VerifiedSafetyEvidenceV2 | null;
 };
 export type VerifiedUnsupportedIntentV2 = RunningSemanticIntentV2["unsupportedIntents"][number] & {
   supportStatus: "UNSUPPORTED_BY_CURRENT_POLICY"; start: number; end: number; sourceType: "USER_TEXT";
@@ -71,7 +88,45 @@ export type VerifiedSemanticIntentV2 = Omit<RunningSemanticIntentV2, "claims" | 
 export type SemanticVerificationV2 =
   | { ok: true; interpretation: VerifiedSemanticIntentV2; engineIntent: VerifiedRunningIntent }
   | { ok: false; reason: "SEMANTIC_REVIEW_REQUIRED"; triggers: SelectiveSemanticReviewTrigger[] }
-  | { ok: false; reason: "INVALID_AI_CLAIM" | "AMBIGUOUS" | "UNSUPPORTED_EXTRACTION"; question?: string };
+  | { ok: false; reason: "INVALID_AI_CLAIM" | "AMBIGUOUS" | "UNSUPPORTED_EXTRACTION"; question?: string;
+      issue?: "SAFETY_EVIDENCE_REQUIRED" | "INVALID_SAFETY_EVIDENCE" | "SAFETY_REVIEW_REJECTED";
+      /** Grounded claims retained for diagnosis; never an executable Engine intent. */
+      retainedClaims?: VerifiedSemanticClaimV2[] };
+
+function isActiveSafetyClaim(claim: SemanticClaimV2): boolean {
+  return claim.field === "FATIGUE" && claim.value === "STRONG_OR_UNWELL" &&
+    claim.status === "ACTIVE" && claim.polarity === "AFFIRMED" && claim.temporalScope !== "PAST";
+}
+
+function safetyEvidenceFailure(
+  claims: VerifiedSemanticClaimV2[], review: SemanticReviewV2 | null,
+): Extract<SemanticVerificationV2, { reason: "INVALID_AI_CLAIM" | "AMBIGUOUS" | "UNSUPPORTED_EXTRACTION" }> | null {
+  const reject = (issue: "SAFETY_EVIDENCE_REQUIRED" | "INVALID_SAFETY_EVIDENCE" | "SAFETY_REVIEW_REJECTED") =>
+    ({ ok: false as const, reason: "INVALID_AI_CLAIM" as const, issue,
+      retainedClaims: claims.filter(c => !isActiveSafetyClaim(c)) });
+  const safetyIndexes = claims.flatMap((c, index) => isActiveSafetyClaim(c) ? [index] : []);
+  for (const index of safetyIndexes) {
+    const evidence = claims[index].safetyConcernEvidence;
+    if (!evidence) return reject("SAFETY_EVIDENCE_REQUIRED");
+    if (evidence.basis === "FATIGUE_INTENSITY_ONLY" || claims[index].temporalScope !== "CURRENT") return reject("INVALID_SAFETY_EVIDENCE");
+  }
+  if (review) {
+    const assessments = review.safetyAssessments ?? [];
+    if (assessments.length !== safetyIndexes.length ||
+      new Set(assessments.map(a => a.index)).size !== assessments.length ||
+      assessments.some(a => !safetyIndexes.includes(a.index))) return reject("SAFETY_REVIEW_REJECTED");
+    for (const index of safetyIndexes) {
+      const assessment = assessments.find(a => a.index === index)!;
+      const evidence = claims[index].safetyConcernEvidence!;
+      if (!review.assessments[index].supported ||
+        !["ILLNESS_OR_INJURY", "FUNCTIONAL_IMPAIRMENT"].includes(assessment.basis) ||
+        !assessment.sourceText || !evidence.sourceText.includes(assessment.sourceText)) {
+        return reject("SAFETY_REVIEW_REJECTED");
+      }
+    }
+  }
+  return null;
+}
 
 export type SelectiveSemanticReviewTrigger = "SAFETY_ESCALATION" | "SOURCE_POLARITY_UNCERTAIN" |
   "UNRESOLVED_SEMANTIC_CONTRADICTION" | "UNBOUND_DISTANCE_ROLE";
@@ -306,7 +361,8 @@ function verifySemanticStructure(
   // claim lifecycle or discard inconvenient numeric evidence.
   if (review && (!review.correctionsSupported ||
     review.assessments.length !== intent.claims.length ||
-    review.assessments.some((assessment, index) => assessment.index !== index || !assessment.supported))) {
+    review.assessments.some((assessment, index) => assessment.index !== index ||
+      (!assessment.supported && !isActiveSafetyClaim(intent.claims[index]))))) {
     return { ok: false, reason: "INVALID_AI_CLAIM" };
   }
   const reviewedActiveIndexes = new Set(review?.activeClaimIndexes ?? []);
@@ -411,7 +467,13 @@ function verifySemanticStructure(
         offset = at + part.rawText.length;
       }
     }
-    verified.push({ ...claim, numericParts, start, end: start + claim.sourceText.length, sourceType: "USER_TEXT" });
+    const evidence = claim.safetyConcernEvidence;
+    if (evidence && (claim.field !== "FATIGUE" || claim.value !== "STRONG_OR_UNWELL" ||
+      !claim.sourceText.includes(evidence.sourceText))) return { ok: false, reason: "INVALID_AI_CLAIM", issue: "INVALID_SAFETY_EVIDENCE" };
+    const evidenceStart = evidence ? start + claim.sourceText.indexOf(evidence.sourceText) : 0;
+    verified.push({ ...claim, numericParts, start, end: start + claim.sourceText.length, sourceType: "USER_TEXT",
+      safetyConcernEvidence: evidence ? { ...evidence, start: evidenceStart,
+        end: evidenceStart + evidence.sourceText.length, sourceType: "USER_TEXT" } : evidence });
   }
   const numericRoles = new Map<string, string>();
   for (const claim of verified) {
@@ -458,6 +520,11 @@ function verifySemanticStructure(
   if (standaloneNumber.number !== null && [null, "METER"].includes(standaloneNumber.embeddedUnit)) {
     return { ok: false, reason: "AMBIGUOUS", question: "競技種目ですか、それとも今日走りたい練習距離ですか？" };
   }
+  // The strong enum and agreement between two models are not safety evidence.
+  // Exact quote grounding, claim binding and a non-intensity semantic basis are
+  // required before the existing safety policy can receive this classification.
+  const safetyFailure = safetyEvidenceFailure(verified, review);
+  if (safetyFailure) return safetyFailure;
   const engineIntent = project(verified, intent.exerciseIds, intent.requestKind === "RUNNING");
   if (!engineIntent) return review === null && roleReview === null
     ? { ok: false, reason: "SEMANTIC_REVIEW_REQUIRED", triggers: ["UNRESOLVED_SEMANTIC_CONTRADICTION"] }

@@ -1,25 +1,27 @@
 /** Planning only: no provider imports, credentials, fetch, or live execution. */
+export const ORIGINAL_RUNNING_INTENT_SENTENCE = "今週に２００mのレースがある。\n中学2年男子です。\nあと3日で試合ですが、\n疲労が抜けすぎています。\n少し疲労を溜めるメニューを消化したい";
+
 export const RUNNING_INTENT_SMOKE_PLAN = {
   liveExecutionAllowedThisPhase: false,
   model: "gpt-6-luna",
   effort: "low",
   repeatPerInput: 1,
+  timeoutMs: 20_000,
+  maxOutputTokens: 3_000,
+  transportRetriesPerStage: 1,
+  maximumUserInputs: 5,
+  apiRequestHardCap: 8,
+  solRequests: 0,
   cases: [
-    { id: "A", input: "中学生100m、今日は軽めにしたい", expected: "60m x 3, rest 240s", plannedStages: 1 },
-    { id: "B", input: "100m選手。60mで、いや50mを走りたい", expected: "ACTIVE distance 50; SUPERSEDED 60", plannedStages: 1 },
-    { id: "C", input: "中1で100、長いのはやだ", expected: "JUNIOR_HIGH, event100, preference NONE, negative LONG retained", plannedStages: 1 },
-    { id: "D", input: "100m選手。フォームをきれいにしたい", expected: "event100; unsupported wish retained", plannedStages: 1 },
-    { id: "EVENT", input: "200出る", expected: "event200; no training distance", plannedStages: 1 },
-    { id: "DISTANCE_REPS", input: "60を3本", expected: "distance60, reps3; no event", plannedStages: 1 },
-    { id: "CORRECTION", input: "中学生200m選手。短めじゃなくて長めがいい", expected: "ACTIVE LONG; correction resolved", plannedStages: 1 },
-    { id: "ORIGINAL", input: "今週に２００mのレースがある。\n中学2年男子です。\nあと3日で試合ですが、\n疲労が抜けすぎています。\n少し疲労を溜めるメニューを消化したい", expected: "120m x 3, rest900s; unsupported wish retained", plannedStages: 1 },
-    { id: "SAFETY", input: "中学生100m選手。走れないほど体調が悪い", expected: "selective safety review; coach review, no automatic prescription", plannedStages: 2 },
-    { id: "AMBIGUITY", input: "200", expected: "clarification; no unnecessary review", plannedStages: 1 },
+    { id: "CASE7", input: "中学生200m選手。今日のメニューを作って。ぶちしんどいけぇ、今日は本数を少なくしたい", expected: "REPORTED fatigue; reduction=true; 120m x 2, rest900s", plannedStages: 1 },
+    { id: "INTENSE", input: "中学生200m選手。今日はめちゃくちゃ疲れてる。本数減らしたい", expected: "REPORTED fatigue, no safety escalation; 120m x 2, rest900s", plannedStages: 1 },
+    { id: "LEGS", input: "中学生200m選手。脚パンパン。本数減らしたい", expected: "REPORTED fatigue; reduction=true; 120m x 2, rest900s", plannedStages: 1 },
+    { id: "NORMAL_LOAD", input: "中学生200m選手。今日はだるいけど普通にやる", expected: "REPORTED fatigue; reduction=false; 120m x 3, rest900s", plannedStages: 1 },
+    { id: "SAFETY", input: "中学生200m選手。足が痛くて走れない", expected: "Grounded safety evidence plus selective review; coach review, no prescription", plannedStages: 2 },
   ],
-  plannedRequests: 11,
-  // Any primary can be routed to one secondary. Existing transport recovery
-  // remains at most one retry per stage: 10 inputs x 2 stages x 2 attempts.
-  maximumRequestsIncludingSelectiveReviewAndTransportRetry: 40,
-  optionalSolComparison: { requiresExplicitHumanApproval: true, maximumInputs: 2, repeatPerInput: 1,
-    plannedPrimaryRequests: 2, maximumRequestsIncludingReviewAndRetry: 8 },
+  plannedRequests: 6,
+  // A future runner must count every stage/retry BEFORE dispatch and stop at 8.
+  // Unexpected reviews/retries may leave some of the five inputs unexecuted.
+  maximumRequestsWithoutBudgetEnforcement: 20,
+  requiresRequestCountReportBeforeExecution: true,
 } as const;

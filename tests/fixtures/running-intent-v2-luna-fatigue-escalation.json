@@ -1,0 +1,104 @@
+{
+  "measurementKind": "RECORDED_LUNA_SMOKE_RESPONSE",
+  "baselineCommit": "cf82544bc9b15c4e24f05fb6938429924d64f2eb",
+  "sourceResultsSHA256": "85157f8cc90cecf7cb107f3ce8b85b4b5efd8f5340c9b3a48da9e361c34698f0",
+  "sourceModel": "gpt-6-luna",
+  "sourceEffort": "low",
+  "input": "中学生200m選手。今日のメニューを作って。ぶちしんどいけぇ、本数を少なくしたい",
+  "primary": {
+    "interpreterVersion": "running-intent-v2",
+    "requestKind": "RUNNING",
+    "claims": [
+      {
+        "field": "AGE_GROUP",
+        "value": "JUNIOR_HIGH",
+        "sourceText": "中学生200m選手",
+        "polarity": "AFFIRMED",
+        "temporalScope": "CURRENT",
+        "status": "ACTIVE",
+        "numericParts": []
+      },
+      {
+        "field": "EVENT",
+        "value": "200m",
+        "sourceText": "中学生200m選手",
+        "polarity": "AFFIRMED",
+        "temporalScope": "CURRENT",
+        "status": "ACTIVE",
+        "numericParts": [
+          {
+            "rawText": "200m",
+            "unit": "METER"
+          }
+        ]
+      },
+      {
+        "field": "RUNNING_REQUEST",
+        "value": true,
+        "sourceText": "今日のメニューを作って。",
+        "polarity": "AFFIRMED",
+        "temporalScope": "DESIRED",
+        "status": "ACTIVE",
+        "numericParts": []
+      },
+      {
+        "field": "FATIGUE",
+        "value": "STRONG_OR_UNWELL",
+        "sourceText": "ぶちしんどいけぇ",
+        "polarity": "AFFIRMED",
+        "temporalScope": "CURRENT",
+        "status": "ACTIVE",
+        "numericParts": []
+      },
+      {
+        "field": "LOAD_REDUCTION",
+        "value": true,
+        "sourceText": "本数を少なくしたい",
+        "polarity": "AFFIRMED",
+        "temporalScope": "DESIRED",
+        "status": "ACTIVE",
+        "numericParts": []
+      }
+    ],
+    "corrections": [],
+    "unsupportedIntents": [],
+    "ambiguity": null,
+    "exerciseIds": []
+  },
+  "semanticReview": {
+    "assessments": [
+      {
+        "index": 0,
+        "supported": true
+      },
+      {
+        "index": 1,
+        "supported": true
+      },
+      {
+        "index": 2,
+        "supported": true
+      },
+      {
+        "index": 3,
+        "supported": true
+      },
+      {
+        "index": 4,
+        "supported": true
+      }
+    ],
+    "activeClaimIndexes": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "requestKindSupported": true,
+    "missingCriticalClaim": false,
+    "ambiguityCorrect": true,
+    "unsupportedIntentsSupported": true,
+    "correctionsSupported": true
+  }
+}
