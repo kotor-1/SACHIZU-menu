@@ -1,11 +1,10 @@
-/** Real API acceptance: production path, bounded transport recovery, no semantic retries. */
+/** Recorded-response replay only. This command never loads API credentials or uses native fetch. */
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import { loadEnvConfig } from "@next/env";
 import { extractRunningSemanticIntentV2 } from "../src/infra/running-menu/openai-semantic-intent-v2";
 import { runningSemanticClientConfig, type RunningSemanticClientOptions, type RunningResponseDiagnostic } from "../src/infra/running-menu/structured-response";
-import { verifySemanticIntentV2, type SemanticClaimV2 } from "../src/application/running-menu/semantic-intent-v2";
+import { verifyPrimarySemanticIntentV2, type SemanticClaimV2 } from "../src/application/running-menu/semantic-intent-v2";
 import { createRunningMenuPreview } from "../src/application/running-menu/preview";
 import type { VerifiedRunningIntent } from "../src/application/running-menu/intent";
 import { RUNNING_POLICY_HASH, RUNNING_POLICY_VERSION } from "../src/domain/running-policy";
@@ -30,8 +29,12 @@ function flag(name: string) {
   if (!value || value.startsWith("--")) throw new Error(`Missing value for ${name}`);
   return value;
 }
-const envRoot = flag("--env-root");
-if (envRoot) loadEnvConfig(resolve(envRoot), true, { info() {}, error() {} });
+if (args.includes("--live") || args.includes("--env-root")) throw new Error("Replay only: live API and credential loading are forbidden. Plan smoke requests separately.");
+const recorded = JSON.parse(readFileSync(resolve("tests/fixtures/running-intent-v2-recorded-responses.json"), "utf8")) as {
+  corpus: { id: string; repetition: number; primary: unknown; semanticReview: unknown }[];
+  highRisk: { id: string; repetition: number; primary: unknown; semanticReview: unknown }[];
+  provenance: unknown;
+};
 const requestedEffort = flag("--effort");
 if (requestedEffort && !["low", "medium", "high", "xhigh", "max"].includes(requestedEffort)) throw new Error("Invalid effort");
 const options: RunningSemanticClientOptions = {
@@ -65,7 +68,8 @@ if (outputDir) {
     corpusSize: corpus.length, corpusSHA256: createHash("sha256").update(JSON.stringify(corpus)).digest("hex"),
     jobs: jobs.map(({ item, repetition }) => ({ id: item.id, repetition })), highRiskIds,
     policyVersion: RUNNING_POLICY_VERSION, policyHash: RUNNING_POLICY_HASH,
-    semanticRetryPolicy: "NONE", startedAt: new Date().toISOString() }, null, 2), { flag: "wx" });
+    semanticRetryPolicy: "NONE", liveOpenAICalls: 0, measurementKind: "STORED_RESPONSE_REPLAY", responseProvenance: recorded.provenance,
+    startedAt: new Date().toISOString() }, null, 2), { flag: "wx" });
 }
 function semanticFields(claims: readonly SemanticClaimV2[]): Fields {
   const active = claims.filter(x => x.status === "ACTIVE" && x.polarity === "AFFIRMED" && x.temporalScope !== "PAST");
@@ -89,17 +93,24 @@ async function evaluate(item: Case, repetition: number) {
   const diagnostics: RunningResponseDiagnostic[] = [];
   const requests: { stage: string; instructionsSHA256: string; model: string; effort: string; maxOutputTokens: number }[] = [];
   const started = Date.now();
-  const extraction = await extractRunningSemanticIntentV2({ requestText: item.input, exercises: [] }, { ...options,
-    fetchImpl: async (url, init) => {
+  const source = (mode === "high-risk" ? recorded.highRisk : recorded.corpus).find(x => x.id === item.id && x.repetition === repetition)
+    ?? recorded.corpus.find(x => x.id === (item.id === "ORIGINAL_MULTILINE" ? "M01" : item.id));
+  if (!source) throw new Error("Recorded primary response missing; replay will never fall back to the network.");
+  const extraction = await extractRunningSemanticIntentV2({ requestText: item.input, exercises: [] }, { ...options, apiKey: "offline-replay-only",
+    fetchImpl: async (_url, init) => {
       const body = JSON.parse(String(init?.body));
       requests.push({ stage: body.text.format.name, instructionsSHA256: createHash("sha256").update(body.instructions).digest("hex"),
         model: body.model, effort: body.reasoning.effort, maxOutputTokens: body.max_output_tokens });
-      return fetch(url, init);
+      const value = body.text.format.name === "running_semantic_intent_v2" ? source.primary
+        : body.text.format.name === "running_semantic_review_v2" ? source.semanticReview : null;
+      if (value === null) throw new Error("Unexpected replay stage; no network fallback.");
+      return new Response(JSON.stringify({ status: "completed", output: [{ type: "message", role: "assistant",
+        content: [{ type: "output_text", text: JSON.stringify(value) }] }] }), { headers: { "content-type": "application/json" } });
     }, onAttempt: diagnostic => {
       diagnostics.push(diagnostic);
       if (outputDir) appendFileSync(resolve(outputDir, `${label}-transport.jsonl`), JSON.stringify({ id: item.id, repetition, ...diagnostic }) + "\n");
     } });
-  const verification = extraction.ok ? verifySemanticIntentV2(item.input, extraction.interpretation, extraction.review, extraction.numericRoleReview, []) : null;
+  const verification = extraction.ok ? verifyPrimarySemanticIntentV2(item.input, extraction.interpretation, [], extraction.review) : null;
   const actualSemantic = verification?.ok ? semanticFields(verification.interpretation.claims)
     : extraction.ok ? semanticFields(extraction.interpretation.claims) : null;
   const actualAdapter = verification?.ok ? adapterFields(verification.engineIntent) : null;
@@ -154,7 +165,12 @@ async function main() {
   const count = (category: string) => results.filter(x => x.categories.includes(category)).length;
   const instability = selected.filter(item => results.filter(x => x.id === item.id).length > 1 &&
     results.some(x => x.id === item.id && !x.categories.includes("PASS") && !x.categories.includes("API_FAILURE"))).map(x => x.id);
-  const summary = { config, uniqueCases: selected.length, totalRuns: results.length, semanticCorrect: count("PASS"),
+  const primaryCalls = results.flatMap(x => x.requests).filter(x => x.stage === "running_semantic_intent_v2").length;
+  const secondaryCalls = results.flatMap(x => x.requests).filter(x => x.stage === "running_semantic_review_v2").length;
+  const summary = { config, liveOpenAICalls: 0, measurementKind: "STORED_RESPONSE_REPLAY", uniqueCases: selected.length, totalRuns: results.length, semanticCorrect: count("PASS"),
+    simulatedPrimaryCalls: primaryCalls, simulatedSecondaryReviewCalls: secondaryCalls,
+    simulatedAverageLlmCalls: (primaryCalls + secondaryCalls) / results.length,
+    simulatedOneCallFastPathRate: results.filter(x => x.requests.length === 1).length / results.length,
     falseRejection: count("FALSE_REJECTION"), falseAcceptance: count("FALSE_ACCEPTANCE"), numericRoleError: count("NUMERIC_ROLE_ERROR"),
     negationError: count("NEGATION_ERROR"), correctionError: count("CORRECTION_ERROR"), eventDistanceRoleError: count("EVENT_DISTANCE_ROLE_ERROR"),
     unnecessaryClarification: count("UNNECESSARY_CLARIFICATION"), missedClarification: count("MISSED_CLARIFICATION"),

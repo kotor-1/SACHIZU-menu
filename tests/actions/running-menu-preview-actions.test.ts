@@ -7,6 +7,7 @@ import { generateRunningMenuPreviewAction } from "@/actions/running-menu-preview
 import { listExercisesForMenuPlanner } from "@/infra/repositories/exercise-repository";
 import { extractRunningSemanticIntentV2, type SemanticExtractionResult } from "@/infra/running-menu/openai-semantic-intent-v2";
 import { verifyRunningMenuPreviewToken } from "@/infra/running-menu/preview-token";
+import * as preview from "@/application/running-menu/preview";
 import type { RunningSemanticIntentV2 } from "@/application/running-menu/semantic-intent-v2";
 
 const list = vi.mocked(listExercisesForMenuPlanner);
@@ -114,8 +115,11 @@ describe("semantic Running preview action", () => {
   it("treats exhausted malformed responses as a service failure without blaming the input", async () => {
     enable();
     extract.mockResolvedValue({ ok: false, reason: "INVALID_OUTPUT" });
-    expect(await generateRunningMenuPreviewAction({ requestText: "100m選手。フォームをきれいにしたい", context: {} }))
-      .toEqual({ ok: false, message: "AIから有効な応答を取得できませんでした。時間をおいて再度お試しください。" });
+    const engine = vi.spyOn(preview, "createRunningMenuPreview");
+    expect(await generateRunningMenuPreviewAction({ requestText: "100m選手。フォームをきれいにしたい", context: { ageGroup: "JUNIOR_HIGH", event: "100m" } }))
+      .toEqual({ ok: false, reason: "INTERPRETATION_UNAVAILABLE", message: "AIから有効な応答を取得できませんでした。時間をおいて再度お試しください。" });
     expect(extract).toHaveBeenCalledTimes(1);
+    expect(engine).not.toHaveBeenCalled();
+    engine.mockRestore();
   });
 });

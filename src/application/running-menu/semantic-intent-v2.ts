@@ -70,7 +70,33 @@ export type VerifiedSemanticIntentV2 = Omit<RunningSemanticIntentV2, "claims" | 
 };
 export type SemanticVerificationV2 =
   | { ok: true; interpretation: VerifiedSemanticIntentV2; engineIntent: VerifiedRunningIntent }
+  | { ok: false; reason: "SEMANTIC_REVIEW_REQUIRED"; triggers: SelectiveSemanticReviewTrigger[] }
   | { ok: false; reason: "INVALID_AI_CLAIM" | "AMBIGUOUS" | "UNSUPPORTED_EXTRACTION"; question?: string };
+
+export type SelectiveSemanticReviewTrigger = "SAFETY_ESCALATION" | "SOURCE_POLARITY_UNCERTAIN" |
+  "UNRESOLVED_SEMANTIC_CONTRADICTION" | "UNBOUND_DISTANCE_ROLE";
+
+/** A conservative grammar probe routes uncertainty; it never creates an opposite preference. */
+function semanticReviewTriggers(intent: RunningSemanticIntentV2): SelectiveSemanticReviewTrigger[] {
+  if (intent.requestKind === "AMBIGUOUS") return [];
+  const active = intent.claims.filter(c => c.status === "ACTIVE" && c.temporalScope !== "PAST");
+  const triggers = new Set<SelectiveSemanticReviewTrigger>();
+  // Grammatical negation / rejection predicates, independent of fatigue or distance vocabulary.
+  // This is a suspicion signal, not a translation table or an authority to invert meaning.
+  const negativePredicate = /嫌|(?:な[いく]|ません|[ぁ-ゖ]ん)(?=$|[。、，！？!?])/u;
+  for (const c of active) {
+    if (c.field === "FATIGUE" && c.value === "STRONG_OR_UNWELL" && c.polarity === "AFFIRMED") triggers.add("SAFETY_ESCALATION");
+    if (c.polarity === "AFFIRMED" &&
+      ((c.field === "DISTANCE_PREFERENCE") || (c.field === "FATIGUE" && c.value === "FATIGUED") ||
+        (c.field === "LOAD_REDUCTION" && c.value === true)) &&
+      negativePredicate.test(c.sourceText)) triggers.add("SOURCE_POLARITY_UNCERTAIN");
+    if (c.field === "TRAINING_DISTANCE" && c.polarity === "AFFIRMED" && !active.some(other =>
+      other.polarity === "AFFIRMED" && ((other.field === "RUNNING_REQUEST" && other.value === true) || other.field === "REPS"))) {
+      triggers.add("UNBOUND_DISTANCE_ROLE");
+    }
+  }
+  return [...triggers];
+}
 
 const numericFields = new Set<SemanticClaimV2["field"]>(["EVENT", "TRAINING_DISTANCE", "REPS", "REST", "AVAILABLE_TIME", "COMPETITION_DAYS"]);
 const units: Record<string, string> = { m: "METER", メートル: "METER", 本: "REP", 秒: "SECOND", 分: "MINUTE", 時間: "HOUR", 日: "DAY", セット: "SET", 年: "GRADE" };
@@ -239,17 +265,36 @@ function project(claims: readonly VerifiedSemanticClaimV2[], exerciseIds: string
   };
 }
 
-/** Structural checks are deterministic; meaning is independently reviewed in `review`. */
+/** Legacy independent-review entrypoint, retained for recorded response comparisons. */
 export function verifySemanticIntentV2(
   requestText: string, raw: unknown, rawReview: unknown, rawRoleReview: unknown, allowedExerciseIds: readonly string[],
 ): SemanticVerificationV2 {
-  const parsed = runningSemanticIntentV2Schema.safeParse(raw);
   const review = semanticReviewV2Schema.safeParse(rawReview);
   const roleReview = bareNumericRoleReviewV2Schema.safeParse(rawRoleReview);
-  if (!parsed.success || !review.success || !roleReview.success) return { ok: false, reason: "INVALID_AI_CLAIM" };
+  if (!review.success || !roleReview.success) return { ok: false, reason: "INVALID_AI_CLAIM" };
+  return verifySemanticStructure(requestText, raw, allowedExerciseIds, review.data, roleReview.data);
+}
+
+/** Primary owns meaning. Source/numeric/lifecycle checks run even without a second model. */
+export function verifyPrimarySemanticIntentV2(
+  requestText: string, raw: unknown, allowedExerciseIds: readonly string[], review: SemanticReviewV2 | null = null,
+): SemanticVerificationV2 {
+  if (review !== null && !semanticReviewV2Schema.safeParse(review).success) return { ok: false, reason: "INVALID_AI_CLAIM" };
+  const verified = verifySemanticStructure(requestText, raw, allowedExerciseIds, review, null);
+  if (!verified.ok || review !== null) return verified;
+  const triggers = semanticReviewTriggers(runningSemanticIntentV2Schema.parse(raw));
+  return triggers.length ? { ok: false, reason: "SEMANTIC_REVIEW_REQUIRED", triggers } : verified;
+}
+
+function verifySemanticStructure(
+  requestText: string, raw: unknown, allowedExerciseIds: readonly string[],
+  review: SemanticReviewV2 | null, roleReview: BareNumericRoleReviewV2 | null,
+): SemanticVerificationV2 {
+  const parsed = runningSemanticIntentV2Schema.safeParse(raw);
+  if (!parsed.success) return { ok: false, reason: "INVALID_AI_CLAIM" };
   const intent = parsed.data;
   const independentRoles = new Map<string, BareNumericRoleReviewV2["roles"][number]["role"]>();
-  for (const item of roleReview.data.roles) {
+  for (const item of roleReview?.roles ?? []) {
     const sourceStart = requestText.indexOf(item.sourceText);
     const rawStart = item.sourceText.indexOf(item.rawText);
     if (sourceStart < 0 || rawStart < 0) return { ok: false, reason: "INVALID_AI_CLAIM" };
@@ -259,15 +304,15 @@ export function verifySemanticIntentV2(
   }
   // A review audits support and contradictions; it cannot silently rewrite
   // claim lifecycle or discard inconvenient numeric evidence.
-  if (!review.data.correctionsSupported ||
-    review.data.assessments.length !== intent.claims.length ||
-    review.data.assessments.some((assessment, index) => assessment.index !== index || !assessment.supported)) {
+  if (review && (!review.correctionsSupported ||
+    review.assessments.length !== intent.claims.length ||
+    review.assessments.some((assessment, index) => assessment.index !== index || !assessment.supported))) {
     return { ok: false, reason: "INVALID_AI_CLAIM" };
   }
-  const reviewedActiveIndexes = new Set(review.data.activeClaimIndexes);
-  if (reviewedActiveIndexes.size !== review.data.activeClaimIndexes.length ||
+  const reviewedActiveIndexes = new Set(review?.activeClaimIndexes ?? []);
+  if (review && (reviewedActiveIndexes.size !== review.activeClaimIndexes.length ||
     [...reviewedActiveIndexes].some((index) => index >= intent.claims.length) ||
-    intent.claims.some((claim, index) => (claim.status === "ACTIVE") !== reviewedActiveIndexes.has(index))) {
+    intent.claims.some((claim, index) => (claim.status === "ACTIVE") !== reviewedActiveIndexes.has(index)))) {
     return { ok: false, reason: "INVALID_AI_CLAIM" };
   }
   const correctedIndexes = new Set<number>();
@@ -300,7 +345,7 @@ export function verifySemanticIntentV2(
       offset = at + part.rawText.length;
     }
   }
-  const blindAmbiguity = roleReview.data.roles.find((item) => {
+  const blindAmbiguity = roleReview?.roles.find((item) => {
     const sourceStart = requestText.indexOf(item.sourceText);
     const rawStart = item.sourceText.indexOf(item.rawText);
     return item.role === "AMBIGUOUS" &&
@@ -312,10 +357,10 @@ export function verifySemanticIntentV2(
       question: `${blindAmbiguity.rawText}mの種目に出る意味ですか？それとも今日${blindAmbiguity.rawText}mを走りたい意味ですか？` };
   }
   if (intent.requestKind === "AMBIGUOUS") {
-    if (!intent.ambiguity || !requestText.includes(intent.ambiguity.sourceText) || !review.data.ambiguityCorrect || !review.data.requestKindSupported) return { ok: false, reason: "INVALID_AI_CLAIM" };
-    return { ok: false, reason: "AMBIGUOUS", question: intent.ambiguity.question };
+    if (!intent.ambiguity || !requestText.includes(intent.ambiguity.sourceText) || (review && (!review.ambiguityCorrect || !review.requestKindSupported))) return { ok: false, reason: "INVALID_AI_CLAIM" };
+    // Validate every claim and correction before returning the clarification.
   }
-  if (intent.ambiguity !== null || !review.data.requestKindSupported || !review.data.ambiguityCorrect || review.data.missingCriticalClaim) {
+  if ((intent.requestKind !== "AMBIGUOUS" && intent.ambiguity !== null) || (review && (!review.requestKindSupported || !review.ambiguityCorrect || review.missingCriticalClaim))) {
     return { ok: false, reason: "INVALID_AI_CLAIM" };
   }
   const allowed = new Set(allowedExerciseIds);
@@ -340,8 +385,15 @@ export function verifySemanticIntentV2(
       for (const part of claim.numericParts) {
         const at = claim.sourceText.indexOf(part.rawText, offset);
         if (at < 0) return { ok: false, reason: "INVALID_AI_CLAIM" };
+        const beforePart = requestText.slice(0, start + at).normalize("NFKC");
         const after = requestText.slice(start + at + part.rawText.length).normalize("NFKC");
         const embedded = numericToken(part).embeddedUnit;
+        const writtenNumeral = "0-9零〇一二三四五六七八九十百千";
+        if ((new RegExp(`[${writtenNumeral}]$`, "u").test(beforePart) && new RegExp(`^[${writtenNumeral}]`, "u").test(part.rawText.normalize("NFKC"))) ||
+          (!embedded && new RegExp(`^[${writtenNumeral}]`, "u").test(after)) ||
+          /\d[.,]$/u.test(beforePart) || /^[.,]\d/u.test(after)) {
+          return { ok: false, reason: "INVALID_AI_CLAIM" };
+        }
         const explicit = embedded ? ["", embedded] : orderedUnits.find(([rawUnit]) => after.toLowerCase().startsWith(rawUnit));
         if (explicit && explicit[1] !== part.unit) return { ok: false, reason: "INVALID_AI_CLAIM" };
         // A distance immediately bound to a repetition count is a workout
@@ -374,7 +426,10 @@ export function verifySemanticIntentV2(
           return { ok: false, reason: "AMBIGUOUS",
             question: `${part.rawText}mの種目に出る意味ですか？それとも今日${part.rawText}mを走りたい意味ですか？` };
         }
-        if ((independent !== undefined || part.unit === "NONE") && independent !== claim.field) return { ok: false, reason: "INVALID_AI_CLAIM" };
+        if (roleReview && (independent !== undefined || part.unit === "NONE") && independent !== claim.field) return { ok: false, reason: "INVALID_AI_CLAIM" };
+        if (!roleReview && parseSpokenNumber(requestText.trim()) !== null) {
+          return { ok: false, reason: "AMBIGUOUS", question: "競技種目ですか、それとも今日走りたい練習距離ですか？" };
+        }
       }
     }
   }
@@ -384,15 +439,33 @@ export function verifySemanticIntentV2(
     return { ok: false, reason: "INVALID_AI_CLAIM" };
   }
   const activeRunningRequests = verified.filter((claim) => claim.field === "RUNNING_REQUEST" && claim.status === "ACTIVE" && claim.polarity === "AFFIRMED");
-  if (activeRunningRequests.length > 1 || activeRunningRequests.some((claim) => claim.value !== (intent.requestKind === "RUNNING"))) {
+  if (activeRunningRequests.length > 1 || (intent.requestKind !== "AMBIGUOUS" && activeRunningRequests.some((claim) => claim.value !== (intent.requestKind === "RUNNING")))) {
     return { ok: false, reason: "INVALID_AI_CLAIM" };
   }
+  if (intent.requestKind === "AMBIGUOUS") return { ok: false, reason: "AMBIGUOUS", question: intent.ambiguity!.question };
+  // Do not let a missing explicit distance/count silently fall through to a
+  // policy default. Meter and repetition syntax has a role without an LLM.
+  if (intent.requestKind === "RUNNING") {
+    for (const match of requestText.matchAll(/([0-9０-９]+)\s*(m|M|ｍ|Ｍ|メートル|本)/gu)) {
+      const span = numericSpan(match.index!, match[1]);
+      const expected = match[2] === "本" ? ["REPS"] : ["EVENT", "TRAINING_DISTANCE"];
+      if (!verified.some(c => expected.includes(c.field) && c.numericParts.some(p => numericSpan(p.start, p.rawText) === span))) {
+        return { ok: false, reason: "INVALID_AI_CLAIM" };
+      }
+    }
+  }
+  const standaloneNumber = numericToken({ rawText: requestText.trim(), unit: "NONE" });
+  if (standaloneNumber.number !== null && [null, "METER"].includes(standaloneNumber.embeddedUnit)) {
+    return { ok: false, reason: "AMBIGUOUS", question: "競技種目ですか、それとも今日走りたい練習距離ですか？" };
+  }
   const engineIntent = project(verified, intent.exerciseIds, intent.requestKind === "RUNNING");
-  if (!engineIntent) return { ok: false, reason: "INVALID_AI_CLAIM" };
+  if (!engineIntent) return review === null && roleReview === null
+    ? { ok: false, reason: "SEMANTIC_REVIEW_REQUIRED", triggers: ["UNRESOLVED_SEMANTIC_CONTRADICTION"] }
+    : { ok: false, reason: "INVALID_AI_CLAIM" };
   if (intent.requestKind === "EXERCISE_ONLY" && verified.some((claim) => ["EVENT", "TRAINING_DISTANCE", "RUNNING_REQUEST"].includes(claim.field) && claim.status === "ACTIVE")) return { ok: false, reason: "INVALID_AI_CLAIM" };
   // A doubtful freeform paraphrase cannot become policy input. Preserve the
   // exact source wording for the user instead of rejecting the valid fields.
-  const unsupportedRaw = review.data.unsupportedIntentsSupported
+  const unsupportedRaw = review?.unsupportedIntentsSupported !== false
     ? [...intent.unsupportedIntents]
     : intent.unsupportedIntents.map((item) => ({ ...item, meaning: item.sourceText }));
   // A supported negative preference is still a constraint when the adapter

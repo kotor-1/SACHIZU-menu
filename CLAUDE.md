@@ -142,3 +142,14 @@ npm run build
 ```
 
 まとめて実行する場合は `npm run verify`。
+
+## 実API評価のコスト制限
+
+- Codex等の開発モデルと、このアプリが呼ぶ実APIモデルを区別する。
+- deterministic test / 保存済みresponseのreplayを優先。full corpusの実API評価は禁止。
+- 通常の実API smokeは原則 `gpt-6-luna`、最大10 user inputs、同一入力の大量反復は禁止。
+- Sol APIの大量評価は禁止。比較が必要でも最大2入力とし、人間の明示承認を得る。
+- 実API実行前にstage・selective review・transport retryを含む予定request数と上限を明示する。request数が不明なscriptは実行禁止。
+- 大規模評価は人間の明示承認が必要。ただしfull corpus実API禁止など、その時点のユーザー制約が優先する。
+- 実API禁止の作業ではキーをロードせず、外部通信を遮断して検証する。「確認のため1件」も実行しない。
+- `scripts/evaluate-running-intent-v2.ts` はreplay専用。次回の計画は `scripts/running-intent-smoke-plan.ts` を参照し、今回の実APIrequest数は0。

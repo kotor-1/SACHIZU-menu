@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { extractRunningSemanticIntentV2, SEMANTIC_INTENT_V2_OUTPUT_SCHEMA } from "@/infra/running-menu/openai-semantic-intent-v2";
 import { runningSemanticClientConfig, type RunningResponseDiagnostic } from "@/infra/running-menu/structured-response";
-import { verifySemanticIntentV2 } from "@/application/running-menu/semantic-intent-v2";
+import { verifyPrimarySemanticIntentV2 } from "@/application/running-menu/semantic-intent-v2";
 
 const interpretation = { interpreterVersion: "running-intent-v2", requestKind: "RUNNING", claims: [
   { field: "EVENT", value: "200m", sourceText: "200出る", polarity: "AFFIRMED", temporalScope: "FUTURE", status: "ACTIVE", numericParts: [{ rawText: "200", unit: "NONE" }] },
@@ -13,17 +13,13 @@ const envelope = (text: string) => ({ status: "completed", output: [{ type: "mes
 const response = (value: unknown) => new Response(JSON.stringify(envelope(JSON.stringify(value))), { status: 200, headers: { "content-type": "application/json" } });
 
 describe("semantic interpreter v2 OpenAI contract", () => {
-  it("uses independent structured semantic and bare-number checks without prescription fields", async () => {
+  it("uses only the primary stage for a normal grounded request without prescription fields", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(response(interpretation)).mockResolvedValueOnce(response(numericRoleReview)).mockResolvedValueOnce(response(review));
     const result = await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, { apiKey: "test-key", model: "gpt-6-luna", fetchImpl });
-    expect(result).toMatchObject({ ok: true, interpretation: { requestKind: "RUNNING" }, review: { activeClaimIndexes: [0] }, numericRoleReview });
-    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(result).toMatchObject({ ok: true, interpretation: { requestKind: "RUNNING" }, review: null, numericRoleReview: null });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
     const first = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body));
-    const second = JSON.parse(String(fetchImpl.mock.calls[1]?.[1]?.body));
-    const third = JSON.parse(String(fetchImpl.mock.calls[2]?.[1]?.body));
     expect(first).toMatchObject({ model: "gpt-6-luna", store: false, text: { format: { type: "json_schema", strict: true } } });
-    expect(second).toMatchObject({ model: "gpt-6-luna", store: false, text: { format: { type: "json_schema", strict: true } } });
-    expect(third).toMatchObject({ model: "gpt-6-luna", store: false, text: { format: { type: "json_schema", strict: true } } });
     expect(JSON.stringify(SEMANTIC_INTENT_V2_OUTPUT_SCHEMA)).not.toMatch(/generatedDistanceMeters|generatedReps|generatedRestSeconds|totalReps|repRestSeconds/u);
   });
 
@@ -50,16 +46,14 @@ describe("semantic interpreter v2 OpenAI contract", () => {
     ["output truncation", () => new Response(JSON.stringify({ status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output: [] })), "INVALID_RESPONSE_ENVELOPE"],
   ] as const)("recovers from %s once without repeating valid earlier stages", async (_name, badResponse, other) => {
     const diagnostics: RunningResponseDiagnostic[] = [];
-    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(response(interpretation))
-      .mockResolvedValueOnce(response(numericRoleReview)).mockResolvedValueOnce(badResponse())
-      .mockResolvedValueOnce(response(review));
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(badResponse()).mockResolvedValueOnce(response(interpretation));
     expect(await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, {
       apiKey: "secret-key-must-not-escape", fetchImpl, onAttempt: d => diagnostics.push(d),
     })).toMatchObject({ ok: true });
-    expect(fetchImpl).toHaveBeenCalledTimes(4);
-    expect(diagnostics[2]).toMatchObject({ stage: "running_semantic_review_v2", attempt: 1,
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(diagnostics[0]).toMatchObject({ stage: "running_semantic_intent_v2", attempt: 1,
       httpStatus: 200, sdkParseFailure: false, retryable: true, other });
-    expect(diagnostics[3]).toMatchObject({ stage: "running_semantic_review_v2", attempt: 2, retryable: false });
+    expect(diagnostics[1]).toMatchObject({ stage: "running_semantic_intent_v2", attempt: 2, retryable: false });
     expect(JSON.stringify(diagnostics)).not.toMatch(/secret-key|200出る|inventedDistance|\{broken/u);
   });
 
@@ -116,8 +110,8 @@ describe("semantic interpreter v2 OpenAI contract", () => {
       .mockResolvedValueOnce(response(numericRoleReview)).mockResolvedValueOnce(response(review));
     const result = await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, { apiKey: "test-key", fetchImpl });
     expect(result.ok).toBe(true);
-    if (result.ok) expect(verifySemanticIntentV2("200出る", result.interpretation, result.review, result.numericRoleReview, []))
+    if (result.ok) expect(verifyPrimarySemanticIntentV2("200出る", result.interpretation, [], result.review))
       .toMatchObject({ ok: false, reason: "INVALID_AI_CLAIM" });
-    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

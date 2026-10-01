@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import type { VerifiedRunningIntent } from "@/application/running-menu/intent";
-import { verifySemanticIntentV2 } from "@/application/running-menu/semantic-intent-v2";
+import { verifyPrimarySemanticIntentV2 } from "@/application/running-menu/semantic-intent-v2";
 import { createRunningMenuPreview, type RunningMenuPreview } from "@/application/running-menu/preview";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { extractRunningSemanticIntentV2 } from "@/infra/running-menu/openai-semantic-intent-v2";
@@ -21,7 +21,7 @@ const inputSchema = z.object({
 
 export type RunningMenuPreviewActionResult =
   | { ok: true; intent: VerifiedRunningIntent; running: RunningMenuPreview | null; exercises: { id: string; name: string }[]; unsupportedIntents: string[]; persistable: boolean; previewToken: string | null }
-  | { ok: false; message: string };
+  | { ok: false; message: string; reason?: "INTERPRETATION_UNAVAILABLE" };
 
 function recordResponseFailure(diagnostic: RunningResponseDiagnostic) {
   if (diagnostic.retryable || diagnostic.other !== null || diagnostic.schemaFailure) {
@@ -39,8 +39,8 @@ export async function generateRunningMenuPreviewAction(input: unknown): Promise<
     const reviewed = rows.filter((row) => row.status === "REVIEWED").map((row) => ({ id: row.id, name: row.name, category: row.category }));
     const extractorInput = { requestText: parsed.data.requestText, exercises: reviewed };
     const extraction = await extractRunningSemanticIntentV2(extractorInput, { onAttempt: recordResponseFailure });
-    if (!extraction.ok) return { ok: false, message: "AIから有効な応答を取得できませんでした。時間をおいて再度お試しください。" };
-    const verified = verifySemanticIntentV2(parsed.data.requestText, extraction.interpretation, extraction.review, extraction.numericRoleReview, reviewed.map((row) => row.id));
+    if (!extraction.ok) return { ok: false, reason: "INTERPRETATION_UNAVAILABLE", message: "AIから有効な応答を取得できませんでした。時間をおいて再度お試しください。" };
+    const verified = verifyPrimarySemanticIntentV2(parsed.data.requestText, extraction.interpretation, reviewed.map((row) => row.id), extraction.review);
     if (!verified.ok) return { ok: false, message: verified.reason === "AMBIGUOUS" ? verified.question ?? "どの条件を指定したか確認してください。" : "抽出した条件を確認できませんでした。内容を少し具体的にして再度お試しください。" };
     const running = createRunningMenuPreview(verified.engineIntent, parsed.data.context, parsed.data.requestText);
     const selected = verified.engineIntent.exerciseIds.map((id) => reviewed.find((row) => row.id === id)!);

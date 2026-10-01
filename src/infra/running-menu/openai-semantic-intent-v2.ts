@@ -1,12 +1,12 @@
 import {
-  bareNumericRoleReviewV2Schema, runningSemanticIntentV2Schema, semanticReviewV2Schema,
+  runningSemanticIntentV2Schema, semanticReviewV2Schema, verifyPrimarySemanticIntentV2,
   type BareNumericRoleReviewV2, type RunningSemanticIntentV2, type SemanticReviewV2,
 } from "@/application/running-menu/semantic-intent-v2";
 import { callRunningStructuredResponse, type RunningSemanticClientOptions } from "./structured-response";
 
 type Options = RunningSemanticClientOptions;
 export type SemanticExtractionResult =
-  | { ok: true; interpretation: RunningSemanticIntentV2; review: SemanticReviewV2; numericRoleReview: BareNumericRoleReviewV2 }
+  | { ok: true; interpretation: RunningSemanticIntentV2; review: SemanticReviewV2 | null; numericRoleReview: BareNumericRoleReviewV2 | null }
   | { ok: false; reason: "UNAVAILABLE" | "FAILED" | "INVALID_OUTPUT" };
 
 const claimSchema = {
@@ -67,7 +67,6 @@ const EVENT_ROLE_CONTEXT = `発話の目的を区別する。本人の属性・�
 
 const CLAIM_LIFECYCLE_CONTEXT = `訂正は競合や複数指定ではなく、同じfieldの旧claimを最終claimで置き換える関係。置き換えられたclaimをstatus=SUPERSEDED、最終claimをACTIVEとし、correctionsにsupersededClaimIndex、finalClaimIndex、訂正全体を裏付ける原文の連続引用sourceTextを記録する。indexはclaimsの0始まり。訂正関係の引用内に両claimのsourceTextが入るよう各claimの引用を選ぶ。連続した訂正では各旧claimから最後のACTIVE claimへ結ぶ。否定された選択肢はDISTANCE_PREFERENCEのvalueにその選択肢、polarity=NEGATED、status=ACTIVEとして表す。否定は撤回ではないので、対立する最終希望が明示されなければSUPERSEDEDにしない。否定制約と反対側の希望は別物。反対の希望や負荷増加を補わない。LOAD_REDUCTION=falseは軽減を断る最終状態で、重い練習を求める意味ではない。現在のpolicyで使えない有効な否定制約・技術改善などの希望はunsupportedIntentsとして原文とともに保持する。訂正前の意味をunsupportedIntentsに復活させない。`;
 
-const BARE_NUMERIC_ROLE = `あなたは一次解釈を見ない独立した数値role監査者。日本語の依頼原文だけを読む。走距離に関係する数値を、単位の有無や文字・音声表記にかかわらずrolesに列挙する。各数字について競技種目ならEVENT、実施を希望する練習距離ならTRAINING_DISTANCE、原文全体を読んでも両方に自然に読めるならAMBIGUOUS、それ以外ならOTHERとする。訂正された数値の役割は訂正全体の目的語・最終希望から読む。訂正前の断片だけを切り出してAMBIGUOUSにしない。走りたいという実施希望の距離を、競技への参加希望へ勝手に読み替えない。学年、本数、休憩、セット数、大会までの期間など走距離ではない数値は列挙不要で、列挙する場合はOTHER。期間の誤字や単位欠落だけで走距離にしない。方言や省略は意味で判断し、固定表現に照合しない。sourceTextは役割と訂正の関係を判断できる原文の連続した完全一致引用、rawTextはその中の数字の原文そのまま。処方を作らない。` + EVENT_ROLE_CONTEXT;
 
 const INTERPRET = `あなたは日本語の練習依頼を意味で解釈する。方言、子どもの表現、誤字、省略、否定、訂正を文脈で読む。単語の有無だけで意味を決めない。
 処方を決めない。距離・本数・休憩・目標タイムを生成しない。明示された練習距離、本数、休憩、利用可能時間だけをclaimにする。eventは競技種目であり、練習距離と別。競技への出場・専門種目という意味なら距離の単位が省略されてもevent。今日の練習で実施するという意味ならTRAINING_DISTANCE。学年と数値が関係を示さない独立した列挙の場合や、競技か練習か決まらない将来予定の事実報告の場合はAMBIGUOUS。距離の直後に本数が結びついている場合、その距離はTRAINING_DISTANCEでありEVENTではない。大会までの日数、学年、セット数は本数ではない。
@@ -84,11 +83,13 @@ export async function extractRunningSemanticIntentV2(
   const extracted = await callRunningStructuredResponse(input, INTERPRET, SEMANTIC_INTENT_V2_OUTPUT_SCHEMA,
     "running_semantic_intent_v2", runningSemanticIntentV2Schema, options);
   if (!extracted.ok) return extracted;
-  const checkedRoles = await callRunningStructuredResponse({ requestText: input.requestText }, BARE_NUMERIC_ROLE,
-    BARE_NUMERIC_ROLE_V2_OUTPUT_SCHEMA, "running_bare_numeric_role_v2", bareNumericRoleReviewV2Schema, options);
-  if (!checkedRoles.ok) return checkedRoles;
+  const preflight = verifyPrimarySemanticIntentV2(input.requestText, extracted.value, input.exercises.map(x => x.id));
+  // Structural rejection and grounded ambiguity go directly to the UI. No model decides them again.
+  if (preflight.ok || preflight.reason !== "SEMANTIC_REVIEW_REQUIRED") {
+    return { ok: true, interpretation: extracted.value, review: null, numericRoleReview: null };
+  }
   const reviewed = await callRunningStructuredResponse({ requestText: input.requestText, interpretation: extracted.value },
     REVIEW, SEMANTIC_REVIEW_V2_OUTPUT_SCHEMA, "running_semantic_review_v2", semanticReviewV2Schema, options);
   if (!reviewed.ok) return reviewed;
-  return { ok: true, interpretation: extracted.value, review: reviewed.value, numericRoleReview: checkedRoles.value };
+  return { ok: true, interpretation: extracted.value, review: reviewed.value, numericRoleReview: null };
 }
