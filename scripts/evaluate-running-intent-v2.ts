@@ -1,88 +1,170 @@
-/** Read-only, real API acceptance check. Run with an isolated database environment. */
-import { readFileSync } from "node:fs";
+/** Real API acceptance: production path, bounded transport recovery, no semantic retries. */
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
+import { loadEnvConfig } from "@next/env";
 import { extractRunningSemanticIntentV2 } from "../src/infra/running-menu/openai-semantic-intent-v2";
-import { verifySemanticIntentV2 } from "../src/application/running-menu/semantic-intent-v2";
+import { runningSemanticClientConfig, type RunningSemanticClientOptions, type RunningResponseDiagnostic } from "../src/infra/running-menu/structured-response";
+import { verifySemanticIntentV2, type SemanticClaimV2 } from "../src/application/running-menu/semantic-intent-v2";
+import { createRunningMenuPreview } from "../src/application/running-menu/preview";
+import type { VerifiedRunningIntent } from "../src/application/running-menu/intent";
+import { RUNNING_POLICY_HASH, RUNNING_POLICY_VERSION } from "../src/domain/running-policy";
 
-type Expected = {
+type Fields = {
   event: string | null; ageGroup: string | null; explicitDistances: number[];
   humanExplicitReps: number | null; humanExplicitRestSeconds: number | null;
   availableTimeSeconds: number | null; distancePreference: string | null;
   loadReductionRequested: boolean; fatigueState: string | null;
 };
-type Case = { id: string; category: string; input: string; expectedSemanticFields: Expected;
-  expectedEngineAdapterFields: Expected; expectedUnsupportedIntents: string[];
+type Case = {
+  id: string; category: string; input: string; expectedSemanticFields: Fields;
+  expectedEngineAdapterFields: Fields; expectedUnsupportedIntents: string[];
   expectedSemanticClaims?: { loadReductionRequested?: boolean };
-  expectedAmbiguity: boolean; expectedVerifierResult: string };
-
-const corpus = JSON.parse(readFileSync(resolve("tests/fixtures/running-intent-v2-corpus.json"), "utf8")) as Case[];
-const defaultIds = ["A01", "EV02", "EV04", "J01", "L01", "L02", "D02", "D04", "CH05", "CH06", "CH09", "CH13", "N01", "N03", "NEG02", "NEG03", "AMB01", "M01", "PAIR02", "AGE01", "X08", "X35", "X41", "X43", "X45", "X48"];
-const ids = process.argv.slice(2).length > 0 ? process.argv.slice(2) : defaultIds;
-const cases = ids.includes("ALL") ? corpus : ids.map((id) => corpus.find((item) => item.id === id)).filter((item): item is Case => item !== undefined);
-const stats = { realApiCases: 0, semanticCorrect: 0, falseRejection: 0, falseAcceptance: 0,
-  numericRoleError: 0, negationError: 0, unnecessaryClarification: 0, unsupportedIntentLost: 0, apiFailure: 0 };
-
-async function evaluate(item: Case) {
-  let extracted = await extractRunningSemanticIntentV2({ requestText: item.input, exercises: [] }, { model: "gpt-6-luna" });
-  if (!extracted.ok) { stats.apiFailure++; return { id: item.id, result: extracted.reason }; }
-  stats.realApiCases++;
-  let verification = verifySemanticIntentV2(item.input, extracted.interpretation, extracted.review, extracted.numericRoleReview, []);
-  if (!verification.ok && verification.reason === "INVALID_AI_CLAIM") {
-    const retry = await extractRunningSemanticIntentV2({ requestText: item.input, exercises: [] }, { model: "gpt-6-luna" });
-    if (retry.ok) {
-      extracted = retry;
-      verification = verifySemanticIntentV2(item.input, retry.interpretation, retry.review, retry.numericRoleReview, []);
-    }
-  }
-  const actual: Expected | null = verification.ok ? {
-    event: verification.engineIntent.event?.value ?? null,
-    ageGroup: verification.engineIntent.ageGroup?.value ?? null,
-    explicitDistances: verification.engineIntent.explicitDistances.map((claim) => claim.value),
-    humanExplicitReps: verification.engineIntent.humanExplicitReps?.value ?? null,
-    humanExplicitRestSeconds: verification.engineIntent.humanExplicitRestSeconds?.value ?? null,
-    availableTimeSeconds: verification.engineIntent.availableTimeSeconds?.value ?? null,
-    distancePreference: verification.engineIntent.distancePreference?.value ?? null,
-    loadReductionRequested: verification.engineIntent.loadReductionRequested?.value ?? false,
-    fatigueState: verification.engineIntent.fatigueState?.value ?? null,
-  } : null;
-  const activeFatigue = verification.ok ? verification.interpretation.claims.find((claim) => claim.field === "FATIGUE" && claim.status === "ACTIVE" && claim.polarity === "AFFIRMED") : undefined;
-  const actualSemantic = actual ? { ...actual, fatigueState: typeof activeFatigue?.value === "string" ? activeFatigue.value : null } : null;
-  const activeLoad = verification.ok ? verification.interpretation.claims.find((claim) => claim.field === "LOAD_REDUCTION" && claim.status === "ACTIVE" && claim.polarity === "AFFIRMED") : undefined;
-  const expected = item.expectedSemanticFields;
-  const semanticMismatches = actualSemantic ? (Object.keys(expected) as (keyof Expected)[]).filter((key) => JSON.stringify(actualSemantic[key]) !== JSON.stringify(expected[key])) : [];
-  const adapterMismatches = actual ? (Object.keys(item.expectedEngineAdapterFields) as (keyof Expected)[]).filter((key) => JSON.stringify(actual[key]) !== JSON.stringify(item.expectedEngineAdapterFields[key])) : [];
-  const mismatches: string[] = [...new Set([...semanticMismatches, ...adapterMismatches])];
-  if (verification.ok && item.expectedSemanticClaims?.loadReductionRequested !== undefined &&
-    activeLoad?.value !== item.expectedSemanticClaims.loadReductionRequested) mismatches.push("explicitLoadReduction");
-  const actualUnsupported = verification.ok ? verification.interpretation.unsupportedIntents : extracted.interpretation.unsupportedIntents;
-  // A clarification has not produced a final interpretation; the request text
-  // remains available for the next turn. Measure loss only in accepted output.
-  const unsupportedLost = verification.ok && item.expectedUnsupportedIntents.some((fragment) => !actualUnsupported.some((intent) => intent.sourceText.includes(fragment)));
-  const unexpectedUnsupported = verification.ok && item.expectedUnsupportedIntents.length === 0 && actualUnsupported.length > 0;
-  if (unsupportedLost) stats.unsupportedIntentLost++;
-  const unexpectedAmbiguity = !item.expectedAmbiguity && !verification.ok && verification.reason === "AMBIGUOUS";
-  if (unexpectedAmbiguity) stats.unnecessaryClarification++;
-  if (!verification.ok && (!item.expectedAmbiguity || verification.reason !== "AMBIGUOUS")) stats.falseRejection++;
-  if (verification.ok && (item.expectedAmbiguity || mismatches.length > 0 || unsupportedLost || unexpectedUnsupported)) stats.falseAcceptance++;
-  if (mismatches.some((field) => ["explicitDistances", "humanExplicitReps", "humanExplicitRestSeconds", "availableTimeSeconds"].includes(field))) stats.numericRoleError++;
-  if (["negation", "correction", "current-desired", "kansai", "kyushu", "chugoku", "tohoku"].includes(item.category) && mismatches.some((field) => ["distancePreference", "loadReductionRequested", "fatigueState", "explicitLoadReduction"].includes(field))) stats.negationError++;
-  if ((item.expectedAmbiguity && !verification.ok && verification.reason === "AMBIGUOUS") || (!item.expectedAmbiguity && verification.ok && mismatches.length === 0 && !unsupportedLost && !unexpectedUnsupported)) stats.semanticCorrect++;
-  return { id: item.id, result: verification.ok ? "ACCEPT" : verification.reason, mismatches,
-    actual: actualSemantic, adapter: actual, expected, unsupportedLost, unexpectedUnsupported, actualUnsupported,
-    numericRoleReview: extracted.numericRoleReview,
-    claims: extracted.interpretation.claims.map(({ field, value, sourceText, numericParts }) => ({ field, value, sourceText, numericParts })),
-    review: verification.ok ? undefined : extracted.review };
+  expectedAmbiguity: boolean; expectedVerifierResult: string;
+};
+const args = process.argv.slice(2);
+function flag(name: string) {
+  const index = args.indexOf(name);
+  if (index < 0) return undefined;
+  const value = args[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`Missing value for ${name}`);
+  return value;
 }
-
+const envRoot = flag("--env-root");
+if (envRoot) loadEnvConfig(resolve(envRoot), true, { info() {}, error() {} });
+const requestedEffort = flag("--effort");
+if (requestedEffort && !["low", "medium", "high", "xhigh", "max"].includes(requestedEffort)) throw new Error("Invalid effort");
+const options: RunningSemanticClientOptions = {
+  ...(flag("--model") ? { model: flag("--model") } : {}),
+  ...(requestedEffort ? { reasoningEffort: requestedEffort as RunningSemanticClientOptions["reasoningEffort"] } : {}),
+  ...(flag("--timeout-ms") ? { timeoutMs: Number(flag("--timeout-ms")) } : {}),
+  ...(flag("--max-output-tokens") ? { maxOutputTokens: Number(flag("--max-output-tokens")) } : {}),
+};
+const config = runningSemanticClientConfig(options);
+const corpus: Case[] = JSON.parse(readFileSync(resolve("tests/fixtures/running-intent-v2-corpus.json"), "utf8"));
+const focusIds = ["X03", "X45", "X08", "X49"];
+const highRiskIds = ["EV02", "EV04", "EV09", "J01", "L01", "L02", "L03", "D02", "D03", "D04", "D07", "CH06", "CH13", "N01", "N02", "N03", "N04", "NEG02", "NEG03", "AMB01", "X35", "X39", "X40", "X41", "X42", "X43", "X44", "X45", "X46", "X48", "X50", "M01", "R02", "R07", "EV05", "CH09", "CH10", "CP01", "CP03", "X09", "X15", "X18", "X22", "X26", "X36", "X03", "X08", "X10", "X11", "X14", "X19", "X21", "X23", "X24", "X31", "X49"];
+const mode = flag("--mode") ?? (args.includes("ALL") ? "full" : "focus");
+if (!["focus", "full", "high-risk"].includes(mode)) throw new Error("Invalid mode");
+const ids = flag("--ids")?.split(",");
+const selected = ids ? ids.map(id => {
+  const item = corpus.find(x => x.id === id);
+  if (!item) throw new Error(`Unknown case ${id}`);
+  return item;
+}) : mode === "full" ? corpus : corpus.filter(x => (mode === "high-risk" ? highRiskIds : focusIds).includes(x.id));
+const repeats = Number(flag("--repeat") ?? "1"), concurrency = Number(flag("--concurrency") ?? "4");
+if (!Number.isInteger(repeats) || repeats < 1 || !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 8) throw new Error("Invalid bounds");
+const jobs = Array.from({ length: repeats }, (_, repeat) => selected.map(item => ({ item, repetition: repeat + 1 }))).flat();
+const outputDir = flag("--output-dir") ? resolve(flag("--output-dir")!) : null;
+const label = flag("--label") ?? mode;
+if (!/^[a-z0-9-]+$/u.test(label)) throw new Error("Invalid label");
+if (outputDir) {
+  mkdirSync(outputDir, { recursive: true });
+  for (const suffix of ["results.jsonl", "transport.jsonl"]) writeFileSync(resolve(outputDir, `${label}-${suffix}`), "", { flag: "wx" });
+  writeFileSync(resolve(outputDir, `${label}-metadata.json`), JSON.stringify({ config, mode, repeats, concurrency,
+    corpusSize: corpus.length, corpusSHA256: createHash("sha256").update(JSON.stringify(corpus)).digest("hex"),
+    jobs: jobs.map(({ item, repetition }) => ({ id: item.id, repetition })), highRiskIds,
+    policyVersion: RUNNING_POLICY_VERSION, policyHash: RUNNING_POLICY_HASH,
+    semanticRetryPolicy: "NONE", startedAt: new Date().toISOString() }, null, 2), { flag: "wx" });
+}
+function semanticFields(claims: readonly SemanticClaimV2[]): Fields {
+  const active = claims.filter(x => x.status === "ACTIVE" && x.polarity === "AFFIRMED" && x.temporalScope !== "PAST");
+  const one = (field: SemanticClaimV2["field"]) => active.find(x => x.field === field)?.value ?? null;
+  return { event: one("EVENT") as string | null, ageGroup: one("AGE_GROUP") as string | null,
+    explicitDistances: active.filter(x => x.field === "TRAINING_DISTANCE").map(x => Number(x.value)),
+    humanExplicitReps: one("REPS") as number | null, humanExplicitRestSeconds: one("REST") as number | null,
+    availableTimeSeconds: one("AVAILABLE_TIME") as number | null, distancePreference: one("DISTANCE_PREFERENCE") as string | null,
+    loadReductionRequested: one("LOAD_REDUCTION") === true, fatigueState: one("FATIGUE") as string | null };
+}
+function adapterFields(intent: VerifiedRunningIntent): Fields {
+  return { event: intent.event?.value ?? null, ageGroup: intent.ageGroup?.value ?? null,
+    explicitDistances: intent.explicitDistances.map(x => x.value), humanExplicitReps: intent.humanExplicitReps?.value ?? null,
+    humanExplicitRestSeconds: intent.humanExplicitRestSeconds?.value ?? null, availableTimeSeconds: intent.availableTimeSeconds?.value ?? null,
+    distancePreference: intent.distancePreference?.value ?? null, loadReductionRequested: intent.loadReductionRequested?.value ?? false,
+    fatigueState: intent.fatigueState?.value ?? null };
+}
+const mismatch = (expected: Fields, actual: Fields | null) => actual
+  ? (Object.keys(expected) as (keyof Fields)[]).filter(key => JSON.stringify(actual[key]) !== JSON.stringify(expected[key])) : [];
+async function evaluate(item: Case, repetition: number) {
+  const diagnostics: RunningResponseDiagnostic[] = [];
+  const requests: { stage: string; instructionsSHA256: string; model: string; effort: string; maxOutputTokens: number }[] = [];
+  const started = Date.now();
+  const extraction = await extractRunningSemanticIntentV2({ requestText: item.input, exercises: [] }, { ...options,
+    fetchImpl: async (url, init) => {
+      const body = JSON.parse(String(init?.body));
+      requests.push({ stage: body.text.format.name, instructionsSHA256: createHash("sha256").update(body.instructions).digest("hex"),
+        model: body.model, effort: body.reasoning.effort, maxOutputTokens: body.max_output_tokens });
+      return fetch(url, init);
+    }, onAttempt: diagnostic => {
+      diagnostics.push(diagnostic);
+      if (outputDir) appendFileSync(resolve(outputDir, `${label}-transport.jsonl`), JSON.stringify({ id: item.id, repetition, ...diagnostic }) + "\n");
+    } });
+  const verification = extraction.ok ? verifySemanticIntentV2(item.input, extraction.interpretation, extraction.review, extraction.numericRoleReview, []) : null;
+  const actualSemantic = verification?.ok ? semanticFields(verification.interpretation.claims)
+    : extraction.ok ? semanticFields(extraction.interpretation.claims) : null;
+  const actualAdapter = verification?.ok ? adapterFields(verification.engineIntent) : null;
+  const semanticMismatches: string[] = item.expectedAmbiguity ? [] : mismatch(item.expectedSemanticFields, actualSemantic);
+  const adapterMismatches = item.expectedAmbiguity ? [] : mismatch(item.expectedEngineAdapterFields, actualAdapter);
+  if (extraction.ok && item.expectedSemanticClaims?.loadReductionRequested !== undefined &&
+    !extraction.interpretation.claims.some(x => x.field === "LOAD_REDUCTION" && x.status === "ACTIVE" && x.polarity === "AFFIRMED" &&
+      x.value === item.expectedSemanticClaims?.loadReductionRequested)) semanticMismatches.push("explicitLoadReduction");
+  const mismatches = [...new Set([...semanticMismatches, ...adapterMismatches])];
+  const unsupported = verification?.ok ? verification.interpretation.unsupportedIntents : extraction.ok ? extraction.interpretation.unsupportedIntents : [];
+  const unsupportedLost = verification?.ok === true && item.expectedUnsupportedIntents.some(fragment => !unsupported.some(x => x.sourceText.includes(fragment)));
+  // Grounded extra background never reaches the engine. Record it without demanding exact paraphrase/array agreement.
+  const unexpectedUnsupported = verification?.ok === true && item.expectedUnsupportedIntents.length === 0 && unsupported.length > 0;
+  const actualAmbiguity = verification?.ok === false && verification.reason === "AMBIGUOUS";
+  const categories: string[] = [];
+  if (!extraction.ok) categories.push("API_FAILURE");
+  else {
+    if (mismatches.length) categories.push("SEMANTIC_MISS");
+    if (!verification?.ok && !(item.expectedAmbiguity && actualAmbiguity)) categories.push("FALSE_REJECTION");
+    if (!item.expectedAmbiguity && actualAmbiguity) categories.push("UNNECESSARY_CLARIFICATION");
+    if (item.expectedAmbiguity && verification?.ok) categories.push("MISSED_CLARIFICATION");
+    if (verification?.ok && (item.expectedAmbiguity || mismatches.length || unsupportedLost)) categories.push("FALSE_ACCEPTANCE");
+    if (mismatches.some(x => ["explicitDistances", "humanExplicitReps", "humanExplicitRestSeconds", "availableTimeSeconds"].includes(x))) categories.push("NUMERIC_ROLE_ERROR");
+    if (mismatches.some(x => ["event", "explicitDistances"].includes(x))) categories.push("EVENT_DISTANCE_ROLE_ERROR");
+    if (/negation|kansai|kyushu|chugoku|tohoku|current-desired/.test(item.category) &&
+      mismatches.some(x => ["distancePreference", "loadReductionRequested", "fatigueState", "explicitLoadReduction"].includes(x))) categories.push("NEGATION_ERROR");
+    if (/correction/.test(item.category) && (mismatches.length || !verification?.ok)) categories.push("CORRECTION_ERROR");
+    if (unsupportedLost) categories.push("UNSUPPORTED_INTENT_LOST");
+  }
+  // X45 omits age. Declare context for its engine check; do not inject it into semantic fields.
+  const engineContext = item.id === "X45" ? { ageGroup: "JUNIOR_HIGH" as const } : {};
+  const engine = verification?.ok ? createRunningMenuPreview(verification.engineIntent, engineContext, item.input) : null;
+  const expectedFocusEngine = item.id === "X03" ? [60, 3, 240] : item.id === "X45" ? [50, 4, 240] : item.id === "X08" ? [60, 4, 240] : null;
+  if (expectedFocusEngine && (!engine || engine.status !== "READY" ||
+    JSON.stringify([engine.prescription.distanceMeters, engine.prescription.totalReps, engine.prescription.repRestSeconds]) !== JSON.stringify(expectedFocusEngine))) categories.push("ENGINE_MISMATCH");
+  if (!categories.length) categories.push("PASS");
+  const result = { id: item.id, category: item.category, input: item.input, repetition, categories,
+    expectedSemantic: item.expectedSemanticFields, actualSemantic, expectedAdapter: item.expectedEngineAdapterFields, actualAdapter,
+    expectedUnsupported: item.expectedUnsupportedIntents, unsupported, unsupportedLost, unexpectedUnsupported,
+    expectedAmbiguity: item.expectedAmbiguity, actualAmbiguity, semanticMismatches, adapterMismatches,
+    extraction, verification, engineContext, engine, diagnostics, requests, elapsedMs: Date.now() - started };
+  if (outputDir) appendFileSync(resolve(outputDir, `${label}-results.jsonl`), JSON.stringify(result) + "\n");
+  process.stdout.write(JSON.stringify({ label, id: item.id, repetition, categories, mismatches, elapsedMs: result.elapsedMs }) + "\n");
+  return result;
+}
 async function main() {
   let cursor = 0;
-  await Promise.all(Array.from({ length: Math.min(2, cases.length) }, async () => {
-    while (cursor < cases.length) {
-      const index = cursor++;
-      const result = await evaluate(cases[index]);
-      process.stdout.write(`${JSON.stringify(result)}\n`);
-    }
+  const results: Awaited<ReturnType<typeof evaluate>>[] = [];
+  await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, async () => {
+    while (cursor < jobs.length) { const job = jobs[cursor++]; results.push(await evaluate(job.item, job.repetition)); }
   }));
-  process.stdout.write(`METRICS ${JSON.stringify(stats)}\n`);
+  const count = (category: string) => results.filter(x => x.categories.includes(category)).length;
+  const instability = selected.filter(item => results.filter(x => x.id === item.id).length > 1 &&
+    results.some(x => x.id === item.id && !x.categories.includes("PASS") && !x.categories.includes("API_FAILURE"))).map(x => x.id);
+  const summary = { config, uniqueCases: selected.length, totalRuns: results.length, semanticCorrect: count("PASS"),
+    falseRejection: count("FALSE_REJECTION"), falseAcceptance: count("FALSE_ACCEPTANCE"), numericRoleError: count("NUMERIC_ROLE_ERROR"),
+    negationError: count("NEGATION_ERROR"), correctionError: count("CORRECTION_ERROR"), eventDistanceRoleError: count("EVENT_DISTANCE_ROLE_ERROR"),
+    unnecessaryClarification: count("UNNECESSARY_CLARIFICATION"), missedClarification: count("MISSED_CLARIFICATION"),
+    unsupportedIntentLost: count("UNSUPPORTED_INTENT_LOST"), userVisibleApiFailureAfterRetry: count("API_FAILURE"),
+    semanticFlakyCases: instability, transportFlakyCases: [...new Set(results.filter(x => x.diagnostics.some(d => d.retryable)).map(x => x.id))],
+    failures: results.filter(x => !x.categories.includes("PASS")).map(x => ({ id: x.id, repetition: x.repetition, categories: x.categories })),
+    focus: Object.fromEntries(focusIds.map(id => [id, { pass: results.filter(x => x.id === id && x.categories.includes("PASS")).length,
+      runs: results.filter(x => x.id === id).length }])) };
+  if (outputDir) writeFileSync(resolve(outputDir, `${label}-summary.json`), JSON.stringify(summary, null, 2), { flag: "wx" });
+  process.stdout.write(`METRICS ${JSON.stringify(summary)}\n`);
+  if (summary.semanticCorrect !== jobs.length) process.exitCode = 1;
 }
-void main().catch((error: unknown) => { process.stderr.write(`${String(error)}\n`); process.exitCode = 1; });
+void main().catch(() => { process.stderr.write("EVALUATION_FAILED; no raw provider error exported\n"); process.exitCode = 1; });

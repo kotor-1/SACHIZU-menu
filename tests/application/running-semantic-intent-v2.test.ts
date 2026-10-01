@@ -11,13 +11,13 @@ const claim = (field: RunningSemanticIntentV2["claims"][number]["field"], value:
 });
 const raw = (claims: RunningSemanticIntentV2["claims"], extras: Partial<RunningSemanticIntentV2> = {}): RunningSemanticIntentV2 => ({
   interpreterVersion: RUNNING_INTERPRETER_VERSION, requestKind: "RUNNING", claims,
-  unsupportedIntents: [], ambiguity: null, exerciseIds: [], ...extras,
+  corrections: [], unsupportedIntents: [], ambiguity: null, exerciseIds: [], ...extras,
 });
 const review = (claims: RunningSemanticIntentV2["claims"], extras: Partial<SemanticReviewV2> = {}): SemanticReviewV2 => ({
   assessments: claims.map((_, index) => ({ index, supported: true })),
   activeClaimIndexes: claims.map((_, index) => index),
   requestKindSupported: true, missingCriticalClaim: false, ambiguityCorrect: true,
-  unsupportedIntentsSupported: true, ...extras,
+  unsupportedIntentsSupported: true, correctionsSupported: true, ...extras,
 });
 const verify = (text: string, claims: RunningSemanticIntentV2["claims"], extras: Partial<RunningSemanticIntentV2> = {}, reviewExtras: Partial<SemanticReviewV2> = {}) =>
   verifySemanticIntentV2(text, raw(claims, extras), review(claims, reviewExtras), { roles: claims.flatMap((item) =>
@@ -26,7 +26,7 @@ const verify = (text: string, claims: RunningSemanticIntentV2["claims"], extras:
       : []) }, []);
 
 describe("semantic intent v2 structural and independent semantic verification", () => {
-  it("keeps the 110-case corpus as a versioned evaluation fixture with explicit expectations", () => {
+  it("keeps the 117-case corpus as a versioned evaluation fixture with explicit expectations", () => {
     expect(corpus.length).toBeGreaterThanOrEqual(100);
     for (const item of corpus) {
       expect(item.input.length).toBeGreaterThan(0);
@@ -187,26 +187,26 @@ describe("semantic intent v2 structural and independent semantic verification", 
   it("projects only active final claims after negation or correction", () => {
     const text = "短めで、いや長め。疲れてるけど普通にやりたい";
     const claims = [
-      claim("DISTANCE_PREFERENCE", "SHORT", "短めで"),
+      { ...claim("DISTANCE_PREFERENCE", "SHORT", "短めで"), status: "SUPERSEDED" as const },
       claim("DISTANCE_PREFERENCE", "LONG", "長め"),
       claim("FATIGUE", "FATIGUED", "疲れてる"),
       claim("LOAD_REDUCTION", false, "普通にやりたい"),
     ];
-    expect(verify(text, claims, {}, { activeClaimIndexes: [1, 2, 3] })).toMatchObject({ ok: true, engineIntent: { distancePreference: { value: "LONG" }, fatigueState: { value: "REPORTED" }, loadReductionRequested: null } });
+    expect(verify(text, claims, { corrections: [{ supersededClaimIndex: 0, finalClaimIndex: 1, sourceText: "短めで、いや長め" }] }, { activeClaimIndexes: [1, 2, 3] })).toMatchObject({ ok: true, engineIntent: { distancePreference: { value: "LONG" }, fatigueState: { value: "REPORTED" }, loadReductionRequested: null } });
     expect(verify(text, claims)).toMatchObject({ ok: false, reason: "INVALID_AI_CLAIM" });
     const negated = { ...claim("DISTANCE_PREFERENCE", "LONG", "長いのはやだ"), polarity: "NEGATED" as const };
     expect(verify("長いのはやだ", [negated])).toMatchObject({ ok: true, engineIntent: { distancePreference: null } });
-    expect(verify("長いのはやだ", [negated], {}, { activeClaimIndexes: [] })).toMatchObject({ ok: true, engineIntent: { distancePreference: null } });
+    expect(verify("長いのはやだ", [negated], {}, { activeClaimIndexes: [] })).toMatchObject({ ok: false, reason: "INVALID_AI_CLAIM" });
   });
 
   it("preserves a verified negative preference as unsupported without inventing its opposite", () => {
     const text = "長いのはやだ";
     const negative = { ...claim("DISTANCE_PREFERENCE", "LONG", text), polarity: "NEGATED" as const, temporalScope: "DESIRED" as const };
-    const result = verify(text, [negative], {}, { activeClaimIndexes: [] });
+    const result = verify(text, [negative]);
     expect(result).toMatchObject({ ok: true, engineIntent: { distancePreference: null }, interpretation: {
       understandingStatus: "UNDERSTOOD_BUT_UNSUPPORTED", unsupportedIntents: [{ sourceText: text, meaning: text }],
     } });
-    expect(verify(text, [negative], { unsupportedIntents: [{ meaning: "長い距離を避けたい", sourceText: text }] }, { activeClaimIndexes: [] }))
+    expect(verify(text, [negative], { unsupportedIntents: [{ meaning: "長い距離を避けたい", sourceText: text }] }))
       .toMatchObject({ ok: true, interpretation: { unsupportedIntents: [{ sourceText: text, meaning: "長い距離を避けたい" }] } });
   });
 
@@ -214,7 +214,7 @@ describe("semantic intent v2 structural and independent semantic verification", 
     const text = "長いのはやだ。いや長めで";
     const negative = { ...claim("DISTANCE_PREFERENCE", "LONG", "長いのはやだ"), polarity: "NEGATED" as const, status: "SUPERSEDED" as const };
     const positive = claim("DISTANCE_PREFERENCE", "LONG", "長めで");
-    expect(verify(text, [negative, positive], {}, { activeClaimIndexes: [1] }))
+    expect(verify(text, [negative, positive], { corrections: [{ supersededClaimIndex: 0, finalClaimIndex: 1, sourceText: text }] }, { activeClaimIndexes: [1] }))
       .toMatchObject({ ok: true, engineIntent: { distancePreference: { value: "LONG" } }, interpretation: { unsupportedIntents: [] } });
   });
 
@@ -224,7 +224,7 @@ describe("semantic intent v2 structural and independent semantic verification", 
     const claims = [claim("EVENT", "100m", "100m選手", [{ rawText: "100", unit: "METER" }]), old,
       claim("TRAINING_DISTANCE", 50, "50mを走りたい", [{ rawText: "50", unit: "METER" }])];
     const roles = { roles: [{ sourceText: "60mで", rawText: "60", role: "AMBIGUOUS" }] };
-    expect(verifySemanticIntentV2(text, raw(claims), review(claims, { activeClaimIndexes: [0, 2] }), roles, []))
+    expect(verifySemanticIntentV2(text, raw(claims, { corrections: [{ supersededClaimIndex: 1, finalClaimIndex: 2, sourceText: "60mで、いや50mを走りたい" }] }), review(claims, { activeClaimIndexes: [0, 2] }), roles, []))
       .toMatchObject({ ok: true, engineIntent: { explicitDistances: [{ value: 50 }] } });
     const stillActive = claims.map((item) => ({ ...item, status: "ACTIVE" as const }));
     expect(verifySemanticIntentV2(text, raw(stillActive), review(stillActive), roles, []))
@@ -284,5 +284,135 @@ describe("semantic intent v2 structural and independent semantic verification", 
     expect(result.engineIntent).not.toHaveProperty("generatedReps");
     expect(result.engineIntent).not.toHaveProperty("generatedRestSeconds");
     expect(result.interpretation.unsupportedIntents).toHaveLength(1);
+  });
+
+  it.each([
+    ["中学生100m、軽め", "中学生100m", "中学生", "JUNIOR_HIGH", "100m", "100", "METER"],
+    ["高校生200m、軽め", "高校生200m", "高校生", "HIGH_SCHOOL", "200m", "200", "METER"],
+    ["中2 100m、軽め", "中2 100m", "中2", "JUNIOR_HIGH", "100m", "100", "METER"],
+    ["高1で100m、軽め", "高1で100m", "高1", "HIGH_SCHOOL", "100m", "100", "METER"],
+    ["中学生で200、軽め", "中学生で200", "中学生", "JUNIOR_HIGH", "200m", "200", "NONE"],
+  ] as const)("accepts reviewed profile context without imposing an event phrase on %s", (text, profile, ageText, age, event, numeral, unit) => {
+    const claims = [claim("AGE_GROUP", age, ageText), claim("EVENT", event, profile, [{ rawText: numeral, unit }]),
+      claim("LOAD_REDUCTION", true, "軽め")];
+    const result = verifySemanticIntentV2(text, raw(claims), review(claims),
+      { roles: [{ sourceText: profile, rawText: numeral, role: "EVENT" }] }, []);
+    expect(result).toMatchObject({ ok: true, engineIntent: {
+      event: { value: event }, ageGroup: { value: age }, explicitDistances: [], loadReductionRequested: { value: true },
+    } });
+    if (result.ok && event === "100m") expect(createRunningMenuPreview(result.engineIntent, {}, text))
+      .toMatchObject({ status: "READY", prescription: { distanceMeters: 60, totalReps: 3, repRestSeconds: 240 } });
+  });
+
+  it.each([
+    ["60m 3本、いや4本", "REPS", 3, 4, "3本", "4本", "3", "4", "REP"],
+    ["短め、いや長め", "DISTANCE_PREFERENCE", "SHORT", "LONG", "短め", "長め", null, null, "NONE"],
+    ["軽めで、やっぱ普通", "LOAD_REDUCTION", true, false, "軽めで", "普通", null, null, "NONE"],
+  ] as const)("projects the final claim and retains correction provenance for %s", (text, field, oldValue, finalValue, oldText, finalText, oldNumber, finalNumber, unit) => {
+    const old = { ...claim(field, oldValue, oldText, oldNumber ? [{ rawText: oldNumber, unit }] : []), status: "SUPERSEDED" as const };
+    const final = claim(field, finalValue, finalText, finalNumber ? [{ rawText: finalNumber, unit }] : []);
+    const corrections = [{ supersededClaimIndex: 0, finalClaimIndex: 1, sourceText: text }];
+    const claims = [old, final, ...(field === "REPS" ? [claim("TRAINING_DISTANCE", 60, "60m", [{ rawText: "60", unit: "METER" }])] : [])];
+    const result = verify(text, claims, { corrections }, { activeClaimIndexes: claims.flatMap((item, index) => item.status === "ACTIVE" ? [index] : []) });
+    expect(result).toMatchObject({ ok: true, interpretation: { corrections } });
+    if (!result.ok) return;
+    expect(result.interpretation.claims.filter(item => item.field === field)).toMatchObject([
+      { status: "SUPERSEDED", value: oldValue }, { status: "ACTIVE", value: finalValue },
+    ]);
+    if (field === "REPS") expect(result.engineIntent).toMatchObject({ explicitDistances: [{ value: 60 }], humanExplicitReps: { value: 4 } });
+    if (field === "DISTANCE_PREFERENCE") expect(result.engineIntent.distancePreference?.value).toBe("LONG");
+    if (field === "LOAD_REDUCTION") expect(result.engineIntent.loadReductionRequested).toBeNull();
+  });
+
+  it("requires independently supported correction links before ignoring an old distance", () => {
+    const text = "60mで、いや50mを走りたい";
+    const claims = [
+      { ...claim("TRAINING_DISTANCE", 60, "60mで", [{ rawText: "60", unit: "METER" }]), status: "SUPERSEDED" as const },
+      claim("TRAINING_DISTANCE", 50, "50mを走りたい", [{ rawText: "50", unit: "METER" }]),
+    ];
+    const corrections = [{ supersededClaimIndex: 0, finalClaimIndex: 1, sourceText: text }];
+    expect(verify(text, claims, {}, { activeClaimIndexes: [1] })).toMatchObject({ ok: false });
+    expect(verify(text, claims, { corrections }, { activeClaimIndexes: [1], correctionsSupported: false })).toMatchObject({ ok: false });
+    expect(verify(text, claims, { corrections: [{ ...corrections[0], sourceText: "50mを走りたい" }] }, { activeClaimIndexes: [1] })).toMatchObject({ ok: false });
+    expect(verify(text, claims, { corrections }, { activeClaimIndexes: [1] }))
+      .toMatchObject({ ok: true, engineIntent: { explicitDistances: [{ value: 50 }] } });
+  });
+
+  it("compares independent numeric roles across unit-inclusive and numeral-only quotes", () => {
+    const text = "100m選手。60mで、いや50mを走りたい";
+    const claims = [claim("EVENT", "100m", "100m選手", [{ rawText: "100", unit: "METER" }]),
+      { ...claim("TRAINING_DISTANCE", 60, "60mで", [{ rawText: "60", unit: "METER" }]), status: "SUPERSEDED" as const },
+      claim("TRAINING_DISTANCE", 50, "50mを走りたい", [{ rawText: "50", unit: "METER" }])];
+    const intent = raw(claims, { corrections: [{ supersededClaimIndex: 1, finalClaimIndex: 2, sourceText: "60mで、いや50mを走りたい" }] });
+    const checked = review(claims, { activeClaimIndexes: [0, 2] });
+    const roles = { roles: [
+      { sourceText: "100m選手", rawText: "100m", role: "EVENT" },
+      { sourceText: "60mで、いや50mを走りたい", rawText: "60m", role: "AMBIGUOUS" },
+      { sourceText: "50mを走りたい", rawText: "50m", role: "TRAINING_DISTANCE" },
+    ] };
+    const result = verifySemanticIntentV2(text, intent, checked, roles, []);
+    expect(result).toMatchObject({ ok: true, engineIntent: { explicitDistances: [{ value: 50 }] } });
+    if (result.ok) expect(createRunningMenuPreview(result.engineIntent, { ageGroup: "JUNIOR_HIGH" }, text))
+      .toMatchObject({ status: "READY", prescription: { distanceMeters: 50, totalReps: 4, repRestSeconds: 240 } });
+    const wrong = { roles: roles.roles.map(item => item.rawText === "50m" ? { ...item, role: "EVENT" } : item) };
+    expect(verifySemanticIntentV2(text, intent, checked, wrong, [])).toMatchObject({ ok: false, reason: "INVALID_AI_CLAIM" });
+  });
+
+  it.each([["長いのは嫌", "LONG"], ["短いのは嫌", "SHORT"]] as const)("retains %s as an active negative constraint without creating the opposite preference", (text, value) => {
+    const negative = { ...claim("DISTANCE_PREFERENCE", value, text), polarity: "NEGATED" as const };
+    expect(verify(text, [negative])).toMatchObject({ ok: true, engineIntent: { distancePreference: null }, interpretation: {
+      claims: [{ value, polarity: "NEGATED", status: "ACTIVE" }],
+      understandingStatus: "UNDERSTOOD_BUT_UNSUPPORTED", unsupportedIntents: [{ sourceText: text }],
+    } });
+    expect(verify(text, [negative, claim("DISTANCE_PREFERENCE", value, text)])).toMatchObject({ ok: false });
+  });
+
+  it("accepts a reviewed negative constraint with different supported quote widths", () => {
+    const text = "中1で100、長いのはやだ";
+    for (const quote of ["長いのはやだ", text]) {
+      const claims = [claim("AGE_GROUP", "JUNIOR_HIGH", "中1"),
+        claim("EVENT", "100m", "中1で100", [{ rawText: "100", unit: "NONE" }]),
+        { ...claim("DISTANCE_PREFERENCE", "LONG", quote), polarity: "NEGATED" as const }];
+      const result = verify(text, claims);
+      expect(result).toMatchObject({ ok: true, engineIntent: { distancePreference: null, explicitDistances: [] } });
+      if (result.ok) expect(createRunningMenuPreview(result.engineIntent, {}, text))
+        .toMatchObject({ status: "READY", prescription: { distanceMeters: 60, totalReps: 4, repRestSeconds: 240 } });
+    }
+  });
+
+  it("keeps categorical age evidence even when a redundant grade annotation includes its prefix", () => {
+    const text = "中1で100、長いのはやだ";
+    const claims = [claim("AGE_GROUP", "JUNIOR_HIGH", "中1で100", [{ rawText: "中1", unit: "NONE" }]),
+      claim("EVENT", "100m", "中1で100", [{ rawText: "100", unit: "NONE" }]),
+      { ...claim("DISTANCE_PREFERENCE", "LONG", "長いのはやだ"), polarity: "NEGATED" as const }];
+    expect(verify(text, claims)).toMatchObject({ ok: true, interpretation: { claims: [
+      { field: "AGE_GROUP", value: "JUNIOR_HIGH", sourceText: "中1で100", numericParts: [] },
+      { field: "EVENT", value: "100m" }, { value: "LONG", polarity: "NEGATED" },
+    ] }, engineIntent: { humanExplicitReps: null, explicitDistances: [] } });
+    const invented = [{ ...claims[0], numericParts: [{ rawText: "高2", unit: "NONE" as const }] }, ...claims.slice(1)];
+    expect(verify(text, invented)).toMatchObject({ ok: false, reason: "INVALID_AI_CLAIM" });
+    expect(verify("中1", [claim("REPS", 1, "中1", [{ rawText: "中1", unit: "NONE" }])]))
+      .toMatchObject({ ok: false, reason: "INVALID_AI_CLAIM" });
+  });
+
+  it("keeps an unsupported form goal without inventing any prescription numbers", () => {
+    const text = "100m選手。フォームをきれいにしたい";
+    const result = verify(text, [claim("EVENT", "100m", "100m選手", [{ rawText: "100", unit: "METER" }])], {
+      unsupportedIntents: [{ meaning: "フォーム改善", sourceText: "フォームをきれいにしたい" }],
+    });
+    expect(result).toMatchObject({ ok: true, interpretation: { understandingStatus: "UNDERSTOOD_BUT_UNSUPPORTED" }, engineIntent: {
+      explicitDistances: [], humanExplicitReps: null, humanExplicitRestSeconds: null,
+    } });
+  });
+
+  it("rejects a distance-role disagreement even when the original number has a meter unit", () => {
+    const text = "今日は100m";
+    const claims = [claim("EVENT", "100m", text, [{ rawText: "100", unit: "METER" }])];
+    expect(verifySemanticIntentV2(text, raw(claims), review(claims),
+      { roles: [{ sourceText: text, rawText: "100", role: "AMBIGUOUS" }] }, []))
+      .toMatchObject({ ok: false, reason: "AMBIGUOUS" });
+    expect(verifySemanticIntentV2(text, raw(claims), review(claims),
+      { roles: [{ sourceText: text, rawText: "100", role: "TRAINING_DISTANCE" }] }, []))
+      .toMatchObject({ ok: false, reason: "INVALID_AI_CLAIM" });
   });
 });

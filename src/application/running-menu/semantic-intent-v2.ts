@@ -23,6 +23,11 @@ export const runningSemanticIntentV2Schema = z.object({
   interpreterVersion: z.literal(RUNNING_INTERPRETER_VERSION),
   requestKind: z.enum(["RUNNING", "EXERCISE_ONLY", "AMBIGUOUS"]),
   claims: z.array(claimSchema).max(30),
+  corrections: z.array(z.object({
+    supersededClaimIndex: z.number().int().nonnegative(),
+    finalClaimIndex: z.number().int().nonnegative(),
+    sourceText: z.string().min(1).max(400),
+  }).strict()).max(20),
   unsupportedIntents: z.array(z.object({ meaning: z.string().min(1).max(140), sourceText: z.string().min(1).max(200) }).strict()).max(10),
   ambiguity: z.object({ question: z.string().min(1).max(160), sourceText: z.string().min(1).max(200) }).strict().nullable(),
   exerciseIds: z.array(z.string().min(1).max(64)).max(20),
@@ -37,6 +42,7 @@ export const semanticReviewV2Schema = z.object({
   missingCriticalClaim: z.boolean(),
   ambiguityCorrect: z.boolean(),
   unsupportedIntentsSupported: z.boolean(),
+  correctionsSupported: z.boolean(),
 }).strict();
 export type SemanticReviewV2 = z.infer<typeof semanticReviewV2Schema>;
 
@@ -78,6 +84,17 @@ function numericToken(part: { rawText: string; unit: string }): { number: number
   return { number: parseSpokenNumber(numberText), embeddedUnit: suffix?.[1] ?? null };
 }
 
+/** Compare the numeral span, whether a reviewer quoted it with or without its unit. */
+function numericSpan(start: number, rawText: string): string {
+  let length = rawText.length;
+  if (numericToken({ rawText, unit: "NONE" }).embeddedUnit !== null) {
+    for (let index = 1; index <= rawText.length; index++) {
+      if (parseSpokenNumber(rawText.slice(0, index)) !== null) length = index;
+    }
+  }
+  return `${start}:${start + length}`;
+}
+
 function normalizeSourceUnits(claim: SemanticClaimV2, requestText: string): SemanticClaimV2 | null {
   const sourceStart = requestText.indexOf(claim.sourceText);
   if (sourceStart < 0) return null;
@@ -97,9 +114,10 @@ function normalizeSourceUnits(claim: SemanticClaimV2, requestText: string): Sema
     numericParts.push({ ...part, unit: explicit as typeof part.unit });
     offset = at + part.rawText.length;
   }
-  // These fields do not carry a number into the policy engine. A model may
-  // redundantly cite a number in their source span; do not turn it into a role.
-  if (!numericFields.has(claim.field) && claim.field !== "AGE_GROUP") return { ...claim, numericParts: [] };
+  // Categorical fields, including AGE_GROUP, carry no numeric value. Their
+  // reviewed value and exact source quote are the evidence; redundant numeric
+  // annotations must not create numeric authority or cause false rejection.
+  if (!numericFields.has(claim.field)) return { ...claim, numericParts: [] };
   return { ...claim, numericParts };
 }
 const digitWords: Record<string, number> = {
@@ -235,22 +253,50 @@ export function verifySemanticIntentV2(
     const sourceStart = requestText.indexOf(item.sourceText);
     const rawStart = item.sourceText.indexOf(item.rawText);
     if (sourceStart < 0 || rawStart < 0) return { ok: false, reason: "INVALID_AI_CLAIM" };
-    const span = `${sourceStart + rawStart}:${sourceStart + rawStart + item.rawText.length}`;
+    const span = numericSpan(sourceStart + rawStart, item.rawText);
     if (independentRoles.has(span)) return { ok: false, reason: "INVALID_AI_CLAIM" };
     independentRoles.set(span, item.role);
   }
+  // A review audits support and contradictions; it cannot silently rewrite
+  // claim lifecycle or discard inconvenient numeric evidence.
+  if (!review.data.correctionsSupported ||
+    review.data.assessments.length !== intent.claims.length ||
+    review.data.assessments.some((assessment, index) => assessment.index !== index || !assessment.supported)) {
+    return { ok: false, reason: "INVALID_AI_CLAIM" };
+  }
   const reviewedActiveIndexes = new Set(review.data.activeClaimIndexes);
+  if (reviewedActiveIndexes.size !== review.data.activeClaimIndexes.length ||
+    [...reviewedActiveIndexes].some((index) => index >= intent.claims.length) ||
+    intent.claims.some((claim, index) => (claim.status === "ACTIVE") !== reviewedActiveIndexes.has(index))) {
+    return { ok: false, reason: "INVALID_AI_CLAIM" };
+  }
+  const correctedIndexes = new Set<number>();
+  for (const correction of intent.corrections) {
+    const old = intent.claims[correction.supersededClaimIndex];
+    const final = intent.claims[correction.finalClaimIndex];
+    if (!old || !final || correction.supersededClaimIndex === correction.finalClaimIndex ||
+      correctedIndexes.has(correction.supersededClaimIndex) || old.status !== "SUPERSEDED" ||
+      final.status !== "ACTIVE" || old.field !== final.field ||
+      (old.value === final.value && old.polarity === final.polarity) ||
+      !requestText.includes(correction.sourceText) ||
+      !correction.sourceText.includes(old.sourceText) || !correction.sourceText.includes(final.sourceText)) {
+      return { ok: false, reason: "INVALID_AI_CLAIM" };
+    }
+    correctedIndexes.add(correction.supersededClaimIndex);
+  }
+  if (intent.claims.some((claim, index) => claim.status === "SUPERSEDED" && !correctedIndexes.has(index))) {
+    return { ok: false, reason: "INVALID_AI_CLAIM" };
+  }
   const supersededNumericSpans = new Set<string>();
   for (const [index, claim] of intent.claims.entries()) {
-    if (claim.status !== "SUPERSEDED" || reviewedActiveIndexes.has(index) ||
-        !review.data.assessments.some((assessment) => assessment.index === index && assessment.supported)) continue;
+    if (!correctedIndexes.has(index)) continue;
     const start = requestText.indexOf(claim.sourceText);
     if (start < 0) continue;
     let offset = 0;
     for (const part of claim.numericParts) {
       const at = claim.sourceText.indexOf(part.rawText, offset);
       if (at < 0) break;
-      supersededNumericSpans.add(`${start + at}:${start + at + part.rawText.length}`);
+      supersededNumericSpans.add(numericSpan(start + at, part.rawText));
       offset = at + part.rawText.length;
     }
   }
@@ -258,7 +304,7 @@ export function verifySemanticIntentV2(
     const sourceStart = requestText.indexOf(item.sourceText);
     const rawStart = item.sourceText.indexOf(item.rawText);
     return item.role === "AMBIGUOUS" &&
-      !supersededNumericSpans.has(`${sourceStart + rawStart}:${sourceStart + rawStart + item.rawText.length}`) &&
+      !supersededNumericSpans.has(numericSpan(sourceStart + rawStart, item.rawText)) &&
       !/(?:小学|中学|高校|[小中高])$/u.test(item.sourceText.slice(0, rawStart));
   });
   if (intent.requestKind !== "AMBIGUOUS" && blindAmbiguity) {
@@ -274,19 +320,9 @@ export function verifySemanticIntentV2(
   }
   const allowed = new Set(allowedExerciseIds);
   if (intent.exerciseIds.some((id) => !allowed.has(id)) || new Set(intent.exerciseIds).size !== intent.exerciseIds.length) return { ok: false, reason: "INVALID_AI_CLAIM" };
-  if (review.data.assessments.length !== intent.claims.length ||
-    review.data.assessments.some((assessment, index) => assessment.index !== index || !assessment.supported)) return { ok: false, reason: "INVALID_AI_CLAIM" };
-  const activeIndexes = new Set(review.data.activeClaimIndexes);
-  if (activeIndexes.size !== review.data.activeClaimIndexes.length || [...activeIndexes].some((index) => index >= intent.claims.length)) return { ok: false, reason: "INVALID_AI_CLAIM" };
-  for (const [index, claim] of intent.claims.entries()) {
-    if (claim.status === "ACTIVE" && claim.polarity === "AFFIRMED" && !activeIndexes.has(index) && review.data.assessments[index]?.supported &&
-      !intent.claims.some((other, otherIndex) => otherIndex !== index && activeIndexes.has(otherIndex) && other.field === claim.field)) {
-      return { ok: false, reason: "INVALID_AI_CLAIM" };
-    }
-  }
   if (intent.unsupportedIntents.some((item) => !requestText.includes(item.sourceText))) return { ok: false, reason: "INVALID_AI_CLAIM" };
   const verified: VerifiedSemanticClaimV2[] = [];
-  for (const [index, rawClaim] of intent.claims.entries()) {
+  for (const rawClaim of intent.claims) {
     const sourceClaim = normalizeSourceUnits(rawClaim, requestText);
     if (!sourceClaim) return { ok: false, reason: "INVALID_AI_CLAIM" };
     const claim = normalizedClaim(sourceClaim);
@@ -323,24 +359,29 @@ export function verifySemanticIntentV2(
         offset = at + part.rawText.length;
       }
     }
-    verified.push({ ...claim, status: claim.polarity === "NEGATED" ? claim.status : activeIndexes.has(index) ? "ACTIVE" : "SUPERSEDED", numericParts, start, end: start + claim.sourceText.length, sourceType: "USER_TEXT" });
+    verified.push({ ...claim, numericParts, start, end: start + claim.sourceText.length, sourceType: "USER_TEXT" });
   }
   const numericRoles = new Map<string, string>();
   for (const claim of verified) {
     for (const part of claim.numericParts) {
-      const span = `${part.start}:${part.end}`;
+      const span = numericSpan(part.start, part.rawText);
       const priorRole = numericRoles.get(span);
       if (priorRole && priorRole !== claim.field) return { ok: false, reason: "INVALID_AI_CLAIM" };
       numericRoles.set(span, claim.field);
-      if (claim.status === "ACTIVE" && (claim.field === "EVENT" || claim.field === "TRAINING_DISTANCE") && part.unit === "NONE") {
+      if (claim.status === "ACTIVE" && (claim.field === "EVENT" || claim.field === "TRAINING_DISTANCE")) {
         const independent = independentRoles.get(span);
         if (independent === "AMBIGUOUS") {
           return { ok: false, reason: "AMBIGUOUS",
             question: `${part.rawText}mの種目に出る意味ですか？それとも今日${part.rawText}mを走りたい意味ですか？` };
         }
-        if (independent !== claim.field) return { ok: false, reason: "INVALID_AI_CLAIM" };
+        if ((independent !== undefined || part.unit === "NONE") && independent !== claim.field) return { ok: false, reason: "INVALID_AI_CLAIM" };
       }
     }
+  }
+  if (verified.some((claim) => claim.status === "ACTIVE" && claim.polarity === "NEGATED" && claim.temporalScope !== "PAST" &&
+    verified.some((other) => other.status === "ACTIVE" && other.polarity === "AFFIRMED" &&
+      other.temporalScope !== "PAST" && other.field === claim.field && other.value === claim.value))) {
+    return { ok: false, reason: "INVALID_AI_CLAIM" };
   }
   const activeRunningRequests = verified.filter((claim) => claim.field === "RUNNING_REQUEST" && claim.status === "ACTIVE" && claim.polarity === "AFFIRMED");
   if (activeRunningRequests.length > 1 || activeRunningRequests.some((claim) => claim.value !== (intent.requestKind === "RUNNING"))) {
@@ -356,15 +397,11 @@ export function verifySemanticIntentV2(
     : intent.unsupportedIntents.map((item) => ({ ...item, meaning: item.sourceText }));
   // A supported negative preference is still a constraint when the adapter
   // cannot express it. Preserve its source without inferring the opposite.
-  // A later affirmative preference resolves a correction and needs no extra
-  // unsupported constraint from the earlier preference.
-  if (!engineIntent.distancePreference) {
-    for (const claim of verified) {
-      if (claim.field === "DISTANCE_PREFERENCE" && claim.polarity === "NEGATED" &&
-          claim.status === "ACTIVE" && claim.temporalScope !== "PAST" &&
-          !unsupportedRaw.some((item) => item.sourceText.includes(claim.sourceText) || claim.sourceText.includes(item.sourceText))) {
-        unsupportedRaw.push({ meaning: claim.sourceText, sourceText: claim.sourceText });
-      }
+  for (const claim of verified) {
+    if (claim.field === "DISTANCE_PREFERENCE" && claim.polarity === "NEGATED" &&
+        claim.status === "ACTIVE" && claim.temporalScope !== "PAST" &&
+        !unsupportedRaw.some((item) => item.sourceText.includes(claim.sourceText) || claim.sourceText.includes(item.sourceText))) {
+      unsupportedRaw.push({ meaning: claim.sourceText, sourceText: claim.sourceText });
     }
   }
   const unsupportedIntents: VerifiedUnsupportedIntentV2[] = unsupportedRaw.map((item) => {

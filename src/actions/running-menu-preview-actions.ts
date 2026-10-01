@@ -6,6 +6,7 @@ import { verifySemanticIntentV2 } from "@/application/running-menu/semantic-inte
 import { createRunningMenuPreview, type RunningMenuPreview } from "@/application/running-menu/preview";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { extractRunningSemanticIntentV2 } from "@/infra/running-menu/openai-semantic-intent-v2";
+import type { RunningResponseDiagnostic } from "@/infra/running-menu/structured-response";
 import { listExercisesForMenuPlanner } from "@/infra/repositories/exercise-repository";
 import { issueRunningMenuPreviewToken, runningMenuSigningKey } from "@/infra/running-menu/preview-token";
 
@@ -22,6 +23,12 @@ export type RunningMenuPreviewActionResult =
   | { ok: true; intent: VerifiedRunningIntent; running: RunningMenuPreview | null; exercises: { id: string; name: string }[]; unsupportedIntents: string[]; persistable: boolean; previewToken: string | null }
   | { ok: false; message: string };
 
+function recordResponseFailure(diagnostic: RunningResponseDiagnostic) {
+  if (diagnostic.retryable || diagnostic.other !== null || diagnostic.schemaFailure) {
+    console.warn("running_intent_response_failure", diagnostic);
+  }
+}
+
 /** Read-only production boundary. No legacy RuleSet, Method, or Template enters this path. */
 export async function generateRunningMenuPreviewAction(input: unknown): Promise<RunningMenuPreviewActionResult> {
   const parsed = inputSchema.safeParse(input);
@@ -31,15 +38,9 @@ export async function generateRunningMenuPreviewAction(input: unknown): Promise<
     const rows = await listExercisesForMenuPlanner(DEFAULT_OWNER_ID);
     const reviewed = rows.filter((row) => row.status === "REVIEWED").map((row) => ({ id: row.id, name: row.name, category: row.category }));
     const extractorInput = { requestText: parsed.data.requestText, exercises: reviewed };
-    let extraction = await extractRunningSemanticIntentV2(extractorInput);
-    if (!extraction.ok) return { ok: false, message: extraction.reason === "UNAVAILABLE" ? "AIサービスを利用できません。時間をおいて再度お試しください。" : "入力条件を抽出できませんでした。文章を確認して再度お試しください。" };
-    let verified = verifySemanticIntentV2(parsed.data.requestText, extraction.interpretation, extraction.review, extraction.numericRoleReview, reviewed.map((row) => row.id));
-    if (!verified.ok && verified.reason === "INVALID_AI_CLAIM") {
-      // A fresh semantic pass may correct a malformed claim. Every retry still
-      // has to pass the same verifier before it can reach the policy engine.
-      extraction = await extractRunningSemanticIntentV2(extractorInput);
-      if (extraction.ok) verified = verifySemanticIntentV2(parsed.data.requestText, extraction.interpretation, extraction.review, extraction.numericRoleReview, reviewed.map((row) => row.id));
-    }
+    const extraction = await extractRunningSemanticIntentV2(extractorInput, { onAttempt: recordResponseFailure });
+    if (!extraction.ok) return { ok: false, message: "AIから有効な応答を取得できませんでした。時間をおいて再度お試しください。" };
+    const verified = verifySemanticIntentV2(parsed.data.requestText, extraction.interpretation, extraction.review, extraction.numericRoleReview, reviewed.map((row) => row.id));
     if (!verified.ok) return { ok: false, message: verified.reason === "AMBIGUOUS" ? verified.question ?? "どの条件を指定したか確認してください。" : "抽出した条件を確認できませんでした。内容を少し具体的にして再度お試しください。" };
     const running = createRunningMenuPreview(verified.engineIntent, parsed.data.context, parsed.data.requestText);
     const selected = verified.engineIntent.exerciseIds.map((id) => reviewed.find((row) => row.id === id)!);

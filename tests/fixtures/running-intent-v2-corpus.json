@@ -1913,7 +1913,7 @@
     "category": "child",
     "input": "中1で100、長いのはやだ",
     "expectedSemanticFields": {
-      "event": null,
+      "event": "100m",
       "ageGroup": "JUNIOR_HIGH",
       "explicitDistances": [],
       "humanExplicitReps": null,
@@ -1926,10 +1926,10 @@
     "expectedUnsupportedIntents": [
       "長いのはやだ"
     ],
-    "expectedAmbiguity": true,
-    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
     "expectedEngineAdapterFields": {
-      "event": null,
+      "event": "100m",
       "ageGroup": "JUNIOR_HIGH",
       "explicitDistances": [],
       "humanExplicitReps": null,
@@ -3442,7 +3442,7 @@
     "category": "critical",
     "input": "小5で100",
     "expectedSemanticFields": {
-      "event": null,
+      "event": "100m",
       "ageGroup": "ELEMENTARY",
       "explicitDistances": [],
       "humanExplicitReps": null,
@@ -3453,10 +3453,10 @@
       "fatigueState": null
     },
     "expectedUnsupportedIntents": [],
-    "expectedAmbiguity": true,
-    "expectedVerifierResult": "AMBIGUOUS",
+    "expectedAmbiguity": false,
+    "expectedVerifierResult": "ACCEPT",
     "expectedEngineAdapterFields": {
-      "event": null,
+      "event": "100m",
       "ageGroup": "ELEMENTARY",
       "explicitDistances": [],
       "humanExplicitReps": null,

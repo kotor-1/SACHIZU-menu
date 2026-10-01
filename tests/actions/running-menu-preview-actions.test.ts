@@ -19,9 +19,9 @@ function claim(field: Field, value: string | number | boolean, sourceText: strin
 }
 function extraction(claims: RunningSemanticIntentV2["claims"], extras: Partial<RunningSemanticIntentV2> = {}) {
   const payload: Extract<SemanticExtractionResult, { ok: true }> = { ok: true, interpretation: {
-    interpreterVersion: "running-intent-v2", requestKind: "RUNNING", claims, unsupportedIntents: [], ambiguity: null, exerciseIds: [], ...extras,
+    interpreterVersion: "running-intent-v2", requestKind: "RUNNING", claims, corrections: [], unsupportedIntents: [], ambiguity: null, exerciseIds: [], ...extras,
   }, review: { assessments: claims.map((_, index) => ({ index, supported: true })), requestKindSupported: true,
-    activeClaimIndexes: claims.map((_, index) => index), missingCriticalClaim: false, ambiguityCorrect: true, unsupportedIntentsSupported: true },
+    activeClaimIndexes: claims.map((_, index) => index), missingCriticalClaim: false, ambiguityCorrect: true, unsupportedIntentsSupported: true, correctionsSupported: true },
   numericRoleReview: { roles: claims.flatMap((item) => {
     const role = item.field;
     return role === "EVENT" || role === "TRAINING_DISTANCE"
@@ -100,14 +100,22 @@ describe("semantic Running preview action", () => {
     expect(await generateRunningMenuPreviewAction({ requestText: "200", context: {} })).toEqual({ ok: false, message: "種目の200mですか、今日走る200mですか？" });
   });
 
-  it("retries an invalid AI claim but signs only a fully verified extraction", async () => {
+  it("does not retry semantic verification failure or issue a token", async () => {
     enable();
     const good = extraction([event("100m"), age]);
     extract.mockResolvedValueOnce({ ...good, interpretation: { ...good.interpretation, claims: [
       claim("EVENT", "200m", "100m選手", "100", "METER"), age,
     ] } });
     const result = await generateRunningMenuPreviewAction({ requestText: "中学生100m選手、今日のメニューを作って", context: {} });
-    expect(extract).toHaveBeenCalledTimes(2);
-    expect(result).toMatchObject({ ok: true, running: { status: "READY", prescription: { distanceMeters: 60, totalReps: 4, repRestSeconds: 240 } } });
+    expect(extract).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ ok: false });
+  });
+
+  it("treats exhausted malformed responses as a service failure without blaming the input", async () => {
+    enable();
+    extract.mockResolvedValue({ ok: false, reason: "INVALID_OUTPUT" });
+    expect(await generateRunningMenuPreviewAction({ requestText: "100m選手。フォームをきれいにしたい", context: {} }))
+      .toEqual({ ok: false, message: "AIから有効な応答を取得できませんでした。時間をおいて再度お試しください。" });
+    expect(extract).toHaveBeenCalledTimes(1);
   });
 });
