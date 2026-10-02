@@ -99,6 +99,7 @@ export function MenuBlockEditor({
   phase = null,
   running = null,
   runningCoachFingerprints = {},
+  runningPolicyContext = false,
 }: {
   menuId: string;
   block: MenuBlockDetail;
@@ -110,6 +111,7 @@ export function MenuBlockEditor({
   /** [R10-B4B] Running v2 の表示 DTO（flag OFF なら null）。 */
   running?: MenuBlockRunningView | null;
   runningCoachFingerprints?: Record<string, string>;
+  runningPolicyContext?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [addingRunning, setAddingRunning] = useState(false);
@@ -301,6 +303,7 @@ export function MenuBlockEditor({
                   onSuccess={() => setEditingId(null)}
                   compact
                   phase={phase}
+                  runningPolicyContext={runningPolicyContext}
                 />
               );
             }
@@ -328,9 +331,7 @@ export function MenuBlockEditor({
                     )}
                   </div>
 
-                  {prescription && (
-                    <p className="mt-0.5 font-mono text-xs text-slate-600">{prescription}</p>
-                  )}
+                  <p className="mt-0.5 font-mono text-xs text-slate-600">{item.reps == null && item.distanceMeters == null && item.durationSeconds == null ? "量未設定" : prescription}</p>
                   {item.note && (
                     <p className="mt-0.5 text-xs text-slate-500">{item.note}</p>
                   )}
@@ -390,6 +391,7 @@ export function MenuBlockEditor({
             compact
             phase={phase}
             runningV2Enabled={running !== null}
+            runningPolicyContext={runningPolicyContext}
           />
         ) : (
           <button

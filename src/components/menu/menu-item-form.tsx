@@ -74,6 +74,7 @@ export function MenuItemForm({
   compact = false,
   phase = null,
   runningV2Enabled = false,
+  runningPolicyContext = false,
 }: {
   action: Action;
   exercises: ExercisePickerItem[];
@@ -92,6 +93,8 @@ export function MenuItemForm({
    * true のとき、走系の種目では legacy の「推奨処方を入れる」を出さず、走トレーニングの導線を案内する。
    */
   runningV2Enabled?: boolean;
+  /** New policy menus must not expose the generic legacy Running recommendation. */
+  runningPolicyContext?: boolean;
 }) {
   const [state, formAction] = useActionState(action, null);
   const [values, setValues] = useState<MenuItemFormValues>(initial);
@@ -122,7 +125,7 @@ export function MenuItemForm({
 
   // [R10-B4B] 走系かどうかは既存の分類（classify）で決める。種目名の一覧をここで持たない。
   const routedToRunningV2 =
-    runningV2Enabled &&
+    (runningV2Enabled || runningPolicyContext) &&
     selected !== undefined &&
     isRunningExerciseForV2({
       category: selected.category,
@@ -137,6 +140,10 @@ export function MenuItemForm({
     const ex = exercises.find((e) => e.id === id);
     if (!ex) {
       setValues((v) => ({ ...v, exerciseId: "" }));
+      return;
+    }
+    if (runningPolicyContext) {
+      setValues((v) => ({ ...v, exerciseId: id, displayName: "", sets: "", reps: "", distanceMeters: "", durationSeconds: "", restSeconds: "" }));
       return;
     }
     const str = (n: number | null) => (n == null ? "" : String(n));
@@ -257,7 +264,7 @@ export function MenuItemForm({
 
       {selected && routedToRunningV2 && (
         <p className="rounded border border-indigo-200 bg-white px-2.5 py-2 text-xs leading-relaxed text-slate-600">
-          {LEGACY_RUNNING_SUGGESTION_NOTICE_JA}
+          {runningPolicyContext ? "走の距離・本数・休憩は走の確認済み処方とコーチ調整で設定してください。" : LEGACY_RUNNING_SUGGESTION_NOTICE_JA}
         </p>
       )}
 

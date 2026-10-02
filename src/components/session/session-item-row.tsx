@@ -120,6 +120,7 @@ export function SessionItemRow({
           {planned && (
             <p className="mt-0.5 font-mono text-xs text-slate-500">計画 {planned}</p>
           )}
+          {!item.runningSnapshot && item.plannedReps == null && item.plannedDistanceMeters == null && item.plannedDurationSeconds == null && <p className="mt-0.5 text-xs text-slate-500">計画 量未設定</p>}
           {item.runningSnapshot?.status === "OK" && (
             <div className="mt-0.5 text-xs text-slate-600">
               {item.runningSnapshot.restText && <p>{item.runningSnapshot.restText}</p>}

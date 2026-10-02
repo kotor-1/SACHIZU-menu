@@ -17,7 +17,8 @@ import { isRunningV2UiEnabled } from "@/lib/feature-flags";
 import { deleteMenuAction, duplicateMenuAction } from "@/actions/menu-actions";
 import { findMenu } from "@/infra/repositories/menu-repository";
 import { listExercisesForPicker } from "@/infra/repositories/exercise-repository";
-import { estimateSeconds } from "@/domain/shared/prescription";
+import { menuItemEstimatedSeconds } from "@/presentation/menu-composition/planned-time";
+import { isComposedMenuContext } from "@/domain/menu-composition/saved-context";
 import { TRAINING_PHASE_LABEL, type TrainingPhase } from "@/domain/menu/constants";
 import { REVIEW_STATUS_LABEL, type ReviewStatus } from "@/domain/shared/constants";
 import { formatMinutes } from "@/lib/format";
@@ -35,6 +36,7 @@ export default async function MenuDetailPage({
   const hasNewRunning = menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_POLICY"));
   const menuSourceFingerprint = runningSessionSourceFingerprint(menu);
   const hasLegacyRunning = menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_V2"));
+  const composed = isComposedMenuContext(menu.runningContextJson);
 
   // [R10-B4B] feature flag が OFF なら Running v2 の読み込み・評価を一切行わない
   // （ここが null のあいだ、この画面は B4B 前とまったく同じ表示・操作になる）。
@@ -42,11 +44,11 @@ export default async function MenuDetailPage({
     ...menu,
     blocks: menu.blocks.map((block) => ({ ...block, items: block.items.filter((item) => item.prescriptionKind !== "RUNNING_POLICY") })),
   } : menu;
-  const running = isRunningV2UiEnabled() && (!hasNewRunning || hasLegacyRunning) ? await buildRunningMenuView(legacyViewMenu) : null;
+  const running = !composed && isRunningV2UiEnabled() && (!hasNewRunning || hasLegacyRunning) ? await buildRunningMenuView(legacyViewMenu) : null;
 
   const allItems = menu.blocks.flatMap((b) => b.items);
-  const estimatedFromItems = Math.round(
-    allItems.reduce((sum, item) => sum + estimateSeconds(item), 0) / 60,
+  const estimatedFromItems = Math.ceil(
+    allItems.reduce((sum, item) => sum + menuItemEstimatedSeconds(item), 0) / 60,
   );
 
   return (
@@ -127,6 +129,7 @@ export default async function MenuDetailPage({
               phase={menu.phase as TrainingPhase | null}
               running={running === null ? null : { items: running.items, picker: running.picker }}
               runningCoachFingerprints={Object.fromEntries(block.items.filter((item) => item.prescriptionKind === "RUNNING_POLICY").map((item) => [item.id, runningCoachEditSourceFingerprint(item)]))}
+              runningPolicyContext={hasNewRunning || composed}
             />
           ))}
           <AddBlockForm menuId={menu.id} />

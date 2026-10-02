@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/ui";
-import { UnifiedMenuComposer } from "@/components/menu/unified-menu-composer";
-import { listExercisesForPicker } from "@/infra/repositories/exercise-repository";
+import { FreeformMenuComposer } from "@/components/menu/freeform-menu-composer";
+import { listComposerCatalog } from "@/infra/menu-composition/catalog-repository";
+import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 
 export const metadata = { title: "メニューを作成｜SACHIZU" };
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
  * AI 生成結果は保存前の下書きとして同じ画面に表示され、保存して初めて MenuTemplate になる。
  */
 export default async function NewMenuPage() {
-  const exercises = await listExercisesForPicker();
+  const exercises = await listComposerCatalog(DEFAULT_OWNER_ID);
 
   return (
     <>
@@ -20,7 +21,7 @@ export default async function NewMenuPage() {
         title="メニューを作成"
         description="希望を自然文で伝えると AI が下書きを作ります。そのまま並べ替え・編集して保存できます。"
       />
-      <UnifiedMenuComposer exercises={exercises} />
+      <FreeformMenuComposer exercises={exercises} />
     </>
   );
 }

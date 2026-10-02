@@ -57,3 +57,6 @@ videos/
 tmp/
 scratch/
 /video_*.*
+
+# Reusable video guidance is private runtime data, not a checked-in Exercise catalog.
+/.data/

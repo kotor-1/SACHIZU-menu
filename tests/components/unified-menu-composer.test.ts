@@ -33,9 +33,10 @@ describe("R12 unified composer: /menus/new", () => {
     expect(visible).not.toMatch(/acceptToken|targetMenuId|contextFingerprint|materializationDigest|RuleSet/);
   });
 
-  it("/menus/new は統合 Composer、/menus/planner はそこへ転送するだけ", () => {
+  it("/menus/new は freeform Composer、/menus/planner はそこへ転送するだけ", () => {
     const page = source("src/app/menus/new/page.tsx");
-    expect(page).toMatch(/UnifiedMenuComposer/);
+    expect(page).toMatch(/FreeformMenuComposer/);
+    expect(page).not.toMatch(/UnifiedMenuComposer/);
     expect(page).not.toMatch(/MenuForm\b|createMenuAction/);
     expect(source("src/app/menus/planner/page.tsx")).toMatch(/redirect\(["']\/menus\/new["']\)/);
   });
