@@ -1,0 +1,95 @@
+{
+  "decisionId": "2026-10-02-bd-video-guidance",
+  "authority": "EXPLICIT_COACH_DECISION",
+  "scope": "Local Exercise metadata correction plus B/D private guidance review. Not a Running Policy or global Exercise-dose rule.",
+  "persistenceNote": "This checked-in decision record is not a runtime catalog. Local DB/private guidance are applied separately and remain git-ignored. No automatic application during menu generation.",
+  "databaseMutationScope": [
+    "B.defaultDistanceMeters: 20 -> null only; preserve every other cell including updatedAt"
+  ],
+  "guidanceMutationScope": [
+    "B",
+    "D"
+  ],
+  "B": {
+    "exerciseId": "cmtrbh8a00007itxbui2bjx97",
+    "sourceVideoId": "cmtrb3jn30000it8ue6k6jwu8",
+    "metricType": "REPS",
+    "defaultDistanceMeters": {
+      "before": 20,
+      "after": null
+    },
+    "unchangedDefaults": {
+      "defaultSets": 3,
+      "defaultRestSeconds": 60,
+      "defaultReps": null
+    },
+    "approvedGuidance": {
+      "executionSummary": "COACH_DEFINED: 片脚で連続ホップしながら前進し、1ホップを1回として数える。片足10回を完了してから反対側10回を行う。",
+      "movementPattern": "片脚支持→離地して膝を曲げる→同じ足で接地、を連続して前進する。",
+      "countingUnit": "PER_SIDE",
+      "bilateralCounting": "COACH_DEFINED: SEQUENTIAL_SIDES。片足10回を完了してから反対側10回。左右交互・左右合計10回ではない。",
+      "typicalStructure": "COACH_DEFINED: 1 hop = 1 rep。10 reps one side → 10 reps opposite side。片足の離地・引きつけ・同足接地で1回。",
+      "equipment": [],
+      "setup": "片脚を浮かせ、初めは両手を腰に置いて片脚支持から前進している。",
+      "keyCues": [
+        "浮かせた脚を曲げたまま同じ足でホップを続けている。",
+        "3.634–3.645秒には離地して両膝が曲がった姿勢が見える。"
+      ],
+      "commonErrors": [],
+      "doseObservations": [
+        "COACH_DEFINED: 10 reps per side is COACH_DEFINED。片足10回→反対側10回。映像で10回を観測したという意味ではない。",
+        "COACH_DEFINED: 主単位はREPS。1 hop = 1 rep。DISTANCEを主単位にしない。",
+        "DATA_CLEANUP: 不整合な旧defaultDistanceMeters=20はnullへ修正。defaultSets=3、defaultRestSeconds=60、defaultReps=nullは変更しない。10回ずつはguidanceの定義で、defaultRepsの自動書換えではない。",
+        "MAPPING_VERIFIED: 修復済みFK・所有者・sourceUrl・APPLIED draft・local SHAが一意に対応。",
+        "VISUAL_OBSERVATION: 同じ支持脚の離地→引きつけ→同足接地を反復して前進。左右順序と各10回はコーチ指定。",
+        "SCOPE: このExercise固有の数え方・左右構造。別Exercise、年齢別・疲労別・大会前の新しいTraining Policyへ一般化しない。"
+      ],
+      "videoAnalysisStatus": "COACH_REVIEWED",
+      "sourceVideoId": "cmtrb3jn30000it8ue6k6jwu8",
+      "analysisVersion": "coach-guidance-bd-final-v1-20261002",
+      "analyzedAt": "2026-10-02T12:44:25.956Z",
+      "coachReviewedAt": "2026-10-02T13:01:00.943Z"
+    }
+  },
+  "D": {
+    "exerciseId": "cmtrfj71v003witxbzc6dyxio",
+    "sourceVideoId": "cmtrfhyqd0000itzhzi3q4gn2",
+    "otherExerciseId": "cmtry9s1w00ahitxbjh0cle3i",
+    "otherMappingClassification": "LIKELY_VALID",
+    "otherMappingCoachApproved": false,
+    "approvedGuidance": {
+      "executionSummary": "COACH_DEFINED: 両足で段差に乗り、元の低い側へ降りる。このon-offの1往復を1repとして数える。1跳躍だけを1repとは数えない。",
+      "movementPattern": "両脚同時の反復跳躍。膝の曲げ伸ばしと腕の前後動を伴い、身体位置が上下・前後に変わる。左右交互の片脚動作は見られない。",
+      "countingUnit": "ROUND_TRIP",
+      "bilateralCounting": "COACH_DEFINED: 両足同時。左右別の回数ではなく、段差に乗る→降りる1往復で1rep。",
+      "typicalStructure": "COACH_DEFINED: ON_STEP → OFF_STEP = 1 REP。前後1往復 / on-off cycleを1回として数える。",
+      "equipment": [
+        "屋外の最下段とその手前の舗装面。反復して前足部を段差側へ接地し、手前へ戻る。"
+      ],
+      "setup": "階段最下段の手前で段差側を向き、両足を近づけて立つ。開始時の両腕は体側にある。",
+      "keyCues": [
+        "観察上、両足を近い幅に保ってほぼ同時に浮かせている。",
+        "観察上、跳躍の上下動に合わせて肘を曲げた腕を前後に動かしている。"
+      ],
+      "commonErrors": [],
+      "doseObservations": [
+        "COACH_DEFINED: ON_STEP → OFF_STEP = 1 REP。段差に乗る→降りる1往復。1跳躍=1repではない。",
+        "COACH_DEFINED: Dのmappingと数え方を承認。回数、セット数、休憩は今回未指定。",
+        "VISUAL_OBSERVATION: 60fps原動画から15fpsの127framesで、手前→両足離地→段差側接地→後方への離地→手前接地→次周期を確認。",
+        "VISUAL_OBSERVATION: 1.067–2.200秒、2.267–3.333秒、4.067–5.533秒等で往復を追跡。1往復を1repとする定義はコーチ指定。",
+        "DUPLICATE_REVIEW: 共有先「段差両足リバウンドジャンプ（オン・オフ）」は映像上LIKELY_VALID。ただしOTHER_MAPPING_APPROVED=NO。このExerciseの承認を共有先へ引き継がない。",
+        "SCOPE: このExercise固有の定義。別ExerciseへROUND_TRIPや回数を一般化しない。"
+      ],
+      "videoAnalysisStatus": "COACH_REVIEWED",
+      "sourceVideoId": "cmtrfhyqd0000itzhzi3q4gn2",
+      "analysisVersion": "coach-guidance-bd-final-v1-20261002",
+      "analyzedAt": "2026-10-02T12:44:25.956Z",
+      "coachReviewedAt": "2026-10-02T13:01:00.943Z"
+    }
+  },
+  "unchangedExerciseAndGuidance": [
+    "A",
+    "C",
+    "E"
+  ]
+}
