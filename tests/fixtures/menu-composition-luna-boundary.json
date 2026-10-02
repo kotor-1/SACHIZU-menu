@@ -1,0 +1,312 @@
+{
+  "provenance": {
+    "source": "reports/limited-freeform-menu-luna-smoke/case-report.json",
+    "sha256": "fba0eaef5e09846ae3cba48b09b38a4565a8fd53524c72837c30fc7d630d4c95",
+    "liveModel": "gpt-6-luna",
+    "baseline": "826d10719613559e84b21a68d12ec37bad988d37",
+    "note": "Original primary outputs, unchanged. Corrected mock is constructed explicitly in the test, not represented as a live response."
+  },
+  "cases": [
+    {
+      "id": 3,
+      "input": "今日は走らずに、\n股関節を動かす練習と\n体幹の練習を組み合わせたい",
+      "primary": {
+        "interpreterVersion": "running-intent-v2",
+        "requestKind": "EXERCISE_ONLY",
+        "claims": [
+          {
+            "field": "RUNNING_REQUEST",
+            "value": false,
+            "sourceText": "今日は走らずに、\n股関節を動かす練習と\n体幹の練習を組み合わせたい",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          }
+        ],
+        "corrections": [],
+        "unsupportedIntents": [],
+        "ambiguity": null,
+        "exerciseIds": [
+          "cmts9wyug00h4itxbzgq6xemm",
+          "cmtswcp0h00voitxbo9n8558g",
+          "cmtswlv3i00vuitxbkunlwymd",
+          "cmtsv8y3000v5itxbv4fslvyp",
+          "cmtsq453600qritxb0dzxwubg",
+          "cmtsrp2b300reitxbwzbyumx9"
+        ]
+      },
+      "catalog": [
+        {
+          "id": "cmts9wyug00h4itxbzgq6xemm",
+          "ownerId": "default-coach",
+          "status": "REVIEWED",
+          "name": "ハードル股関節屈曲ドリル",
+          "category": "MOBILITY",
+          "description": "ハードルの横に直立姿勢で立ち、片足を軸足として体幹をまっすぐに保つ。反対側の脚の膝を伸ばした状態を維持しながら、ハードルの上端付近を目安に股関節から外側へ向けて小さく円を描くように脚を回旋させる。軸足の膝が曲がったり骨盤が沈んだりしないよう軸側の臀部で支持し、左右交互に一定回数行う。",
+          "coachingPoint": "・動かす脚の膝が曲がりすぎないよう、膝を伸ばした状態で股関節から小回りに回す。\r\n・足の高さが下がりすぎないよう、ハードルの高さを目安にして一定の高さをキープする。\r\n・軸足の膝を曲げたり骨盤を落としたりせず、軸側の臀部（お尻）で地面を捉えて背筋をまっすぐ保つ。\r\n・脚を回す反動で上体が前後に倒れたり骨盤がねじれたりしないよう、体幹の直立を維持する。",
+          "commonMistake": "・膝が大きく曲がってしまい、ハードルに接触したり股関節の回旋動作が小さくなる。\r\n・足の高さが低すぎて、股関節周囲の可動域が十分に活用されない。\r\n・軸足の膝が緩んで腰が落ち、支持側の臀部に適切な負荷がかからない。\r\n・脚の回旋に伴って上体が前後左右に大きくブレてバランスを崩す。",
+          "metricType": "REPS",
+          "difficulty": 2,
+          "energySystem": null,
+          "defaultSets": null,
+          "defaultReps": null,
+          "defaultDurationSeconds": null,
+          "defaultDistanceMeters": null,
+          "defaultRestSeconds": null,
+          "purposes": [
+            "BALANCE",
+            "HIP_JOINT",
+            "MOBILITY",
+            "POSTURE",
+            "STRENGTH"
+          ],
+          "events": [
+            "COMMON",
+            "HURDLE",
+            "SPRINT"
+          ],
+          "targets": [
+            "COORDINATION",
+            "MOBILITY",
+            "TECHNIQUE"
+          ],
+          "tags": [
+            "股関節",
+            "体幹",
+            "バランス",
+            "モビリティ",
+            "臀部",
+            "ハードル",
+            "股関節回旋",
+            "レッグサークル",
+            "外回し",
+            "臀筋"
+          ],
+          "videoUrl": "https://youtu.be/zaxPt7KkkYs",
+          "videoGuidance": null
+        },
+        {
+          "id": "cmtswcp0h00voitxbo9n8558g",
+          "ownerId": "default-coach",
+          "status": "REVIEWED",
+          "name": "後ろ向きに進みながらの股関節回し（内から外）",
+          "category": "MOBILITY",
+          "description": "後ろ向きに進みながら、片脚の膝を曲げて体の前で持ち上げ、そこから外側へ開くように回して下ろし接地する。次の一歩で反対脚を同じように回し、左右交互に繰り返す。",
+          "coachingPoint": "・後ろ向きに進みながら、一歩ごとに片脚の股関節を回している。\r\n・膝を曲げて体の前で持ち上げ、そこから外側へ開くように回して下ろしている。\r\n・膝は腰の高さ付近まで上げている。\r\n・上体を大きく倒さずに保ったまま、左右交互に繰り返している。",
+          "commonMistake": "・膝が上がらず、脚を横に振るだけになる。\r\n・脚を回そうとして上体が左右に傾く。\r\n・回す軌道が小さく、股関節の動く範囲を使えていない。\r\n・左右で上がる高さや回す大きさに差が出る。\r\n・反動で振り回し、動きが速くなる。\r\n・後ろ向きに進む向きや歩幅が乱れる。",
+          "metricType": "DISTANCE",
+          "difficulty": 1,
+          "energySystem": null,
+          "defaultSets": null,
+          "defaultReps": null,
+          "defaultDurationSeconds": null,
+          "defaultDistanceMeters": null,
+          "defaultRestSeconds": null,
+          "purposes": [
+            "HIP_JOINT"
+          ],
+          "events": [
+            "COMMON"
+          ],
+          "targets": [
+            "MOBILITY"
+          ],
+          "tags": [
+            "股関節",
+            "ダイナミックストレッチ",
+            "脚の振り上げ",
+            "股関節回し",
+            "後ろ向き"
+          ],
+          "videoUrl": "https://youtu.be/37O4JTJ6VvI",
+          "videoGuidance": null
+        },
+        {
+          "id": "cmtswlv3i00vuitxbkunlwymd",
+          "ownerId": "default-coach",
+          "status": "REVIEWED",
+          "name": "前向きに進みながらの股関節回し（外から内）",
+          "category": "MOBILITY",
+          "description": "前向きに進みながら、片脚の膝を曲げて外側へ持ち上げ、そこから体の前へ回し込むようにして下ろし接地する。次の一歩で反対脚を同じように回し、左右交互に繰り返す。",
+          "coachingPoint": "・前向きに進みながら、一歩ごとに片脚の股関節を回している。\r\n・膝を曲げて腰の高さ付近まで持ち上げてから、回して下ろしている。\r\n・脚を回している間も支えている側の足は地面についている。\r\n・上体を大きく倒さずに保ったまま、左右交互に繰り返している。",
+          "commonMistake": "・膝が上がらず、脚を横に振るだけになる。\r\n・脚を回そうとして上体が左右に傾く。\r\n・回す軌道が小さく、股関節の動く範囲を使えていない。\r\n・左右で上がる高さや回す大きさに差が出る。\r\n・反動で振り回し、動きが速くなる。\r\n・進む向きや歩幅が乱れる。",
+          "metricType": "DISTANCE",
+          "difficulty": 1,
+          "energySystem": null,
+          "defaultSets": null,
+          "defaultReps": null,
+          "defaultDurationSeconds": null,
+          "defaultDistanceMeters": null,
+          "defaultRestSeconds": null,
+          "purposes": [
+            "HIP_JOINT"
+          ],
+          "events": [
+            "COMMON"
+          ],
+          "targets": [
+            "MOBILITY"
+          ],
+          "tags": [
+            "股関節",
+            "ダイナミックストレッチ",
+            "脚の振り上げ",
+            "股関節回し",
+            "前向き"
+          ],
+          "videoUrl": "https://youtu.be/1P6-r8Ld4-4",
+          "videoGuidance": null
+        },
+        {
+          "id": "cmtsv8y3000v5itxbv4fslvyp",
+          "ownerId": "default-coach",
+          "status": "REVIEWED",
+          "name": "骨盤の前傾後傾",
+          "category": "MOBILITY",
+          "description": "低い台に腰かけて足を地面につけ、両手を骨盤の横に当てた状態から、骨盤を前に倒して腰を反らせる動きと、後ろに倒して背中を丸める動きを交互に繰り返す。",
+          "coachingPoint": "・低い台に腰かけ、足の位置と座る位置を変えずに行っている。\r\n・両手を骨盤の横に当てた状態を保っている。\r\n・骨盤を前に倒す局面では腰から背中が反り、後ろに倒す局面では背中が丸まっている。\r\n・ゆっくりとした速度で前傾と後傾を交互に繰り返している。",
+          "commonMistake": "・骨盤を動かさず、上体だけを前後に倒してしまう。\r\n・動きが速くなり、前傾と後傾の切り替えが曖昧になる。\r\n・後傾のときに背もたれに寄りかかるように体重を後ろへ預けてしまう。\r\n・足が地面から離れる、または足の位置がずれる。\r\n・肩がすくんで首まわりに力が入る。\r\n・可動域が小さく、どちらか片方向にしか動いていない。",
+          "metricType": "REPS",
+          "difficulty": 1,
+          "energySystem": null,
+          "defaultSets": null,
+          "defaultReps": null,
+          "defaultDurationSeconds": null,
+          "defaultDistanceMeters": null,
+          "defaultRestSeconds": null,
+          "purposes": [
+            "POSTURE"
+          ],
+          "events": [
+            "COMMON"
+          ],
+          "targets": [
+            "MOBILITY"
+          ],
+          "tags": [
+            "骨盤",
+            "骨盤",
+            "台",
+            "可動域",
+            "座位",
+            "前傾後傾"
+          ],
+          "videoUrl": "https://youtu.be/4XlOUNy1nJQ",
+          "videoGuidance": null
+        },
+        {
+          "id": "cmtsq453600qritxb0dzxwubg",
+          "ownerId": "default-coach",
+          "status": "REVIEWED",
+          "name": "シングルラットプル&バックキック（胸腰筋膜連結）",
+          "category": "CORE",
+          "description": "四つん這いから片手と対角の膝で体を支え、浮かせた側の腕を前方へ伸ばす／肘を引き寄せる動きと、対角の脚を後方へ蹴り上げる動きを同時に繰り返す。",
+          "coachingPoint": "・片手と対角側の膝で体を支え、支持している手・膝の位置を変えずに行っている。\r\n・腕を前方へ伸ばす局面と、肘を引き寄せる局面をはっきり分けている。\r\n・腕を引くタイミングと、対角の脚を後方へ蹴り上げるタイミングを合わせている。\r\n・脚は体とほぼ一直線になる高さまで上げている。\r\n・反動を使わず、ゆっくりとした速度で繰り返している。",
+          "commonMistake": "・腕と脚のタイミングがずれ、別々の動きになる。\r\n・脚を高く上げようとして腰が反りすぎる。\r\n・脚を上げる側へ骨盤が開き、体が傾く。\r\n・支持している腕の肘が曲がり、体が沈む。\r\n・肘を引くときに肩がすくむ。\r\n・反動を使って速く動かし、可動域を使い切れていない。",
+          "metricType": "REPS",
+          "difficulty": 2,
+          "energySystem": null,
+          "defaultSets": null,
+          "defaultReps": null,
+          "defaultDurationSeconds": null,
+          "defaultDistanceMeters": null,
+          "defaultRestSeconds": null,
+          "purposes": [
+            "HIP_JOINT"
+          ],
+          "events": [
+            "COMMON"
+          ],
+          "targets": [
+            "COORDINATION"
+          ],
+          "tags": [
+            "股関節",
+            "四つん這い",
+            "対角",
+            "体幹",
+            "ラットプル",
+            "バックキック",
+            "背中"
+          ],
+          "videoUrl": "https://youtu.be/fDKqyU4dOL8",
+          "videoGuidance": null
+        },
+        {
+          "id": "cmtsrp2b300reitxbwzbyumx9",
+          "ownerId": "default-coach",
+          "status": "REVIEWED",
+          "name": "ニー to エルボー",
+          "category": "CORE",
+          "description": "仰向けで両脚を伸ばし、両手を頭の後ろに添えた姿勢から、上体を起こしてひねりながら片脚の膝を引き上げ、対角（反対側）の肘と膝を近づける。元の姿勢へ戻し、左右それぞれ繰り返す。",
+          "coachingPoint": "・両手を頭の後ろに添えたまま、肘を左右に開いた状態を保っている。\r\n・上体を起こす動きとひねる動きを同時に行い、対角の肘と膝を近づけている。\r\n・膝は曲げて引き上げ、肘と近づけたところから元へ戻している。\r\n・反動で振り回さず、一定のテンポで繰り返している。",
+          "commonMistake": "・同じ側の肘と膝を合わせてしまい、対角になっていない。\r\n・頭の後ろの手で首を引っ張ってしまう。\r\n・上体を起こすだけでひねりが入っていない。\r\n・肘を閉じて前に出すことで距離を詰めてしまう。\r\n・反動を使って勢いで起き上がる。\r\n・戻すときに脚や上体を落として力が抜ける。",
+          "metricType": "REPS",
+          "difficulty": 2,
+          "energySystem": null,
+          "defaultSets": null,
+          "defaultReps": null,
+          "defaultDurationSeconds": null,
+          "defaultDistanceMeters": null,
+          "defaultRestSeconds": null,
+          "purposes": [
+            "STRENGTH"
+          ],
+          "events": [
+            "COMMON"
+          ],
+          "targets": [
+            "STRENGTH"
+          ],
+          "tags": [
+            "ニートゥエルボー",
+            "対角",
+            "体幹",
+            "腹部",
+            "腹部",
+            "仰向け"
+          ],
+          "videoUrl": "https://youtu.be/DGB4g5DwrlU",
+          "videoGuidance": null
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "input": "壁に両手をついて前傾して、\nその姿勢のまま左右の膝を\n素早く入れ替える練習を入れたい。\n20秒くらいやりたい",
+      "primary": {
+        "interpreterVersion": "running-intent-v2",
+        "requestKind": "EXERCISE_ONLY",
+        "claims": [
+          {
+            "field": "AVAILABLE_TIME",
+            "value": 20,
+            "sourceText": "20秒くらいやりたい",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "20秒",
+                "unit": "SECOND"
+              }
+            ],
+            "safetyConcernEvidence": null
+          }
+        ],
+        "corrections": [],
+        "unsupportedIntents": [
+          {
+            "meaning": "壁に両手をついて前傾し、左右の膝を素早く交互に入れ替える動作を取り入れたい。",
+            "sourceText": "壁に両手をついて前傾して、その姿勢のまま左右の膝を素早く入れ替える練習を入れたい。"
+          }
+        ],
+        "ambiguity": null,
+        "exerciseIds": []
+      },
+      "catalog": []
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { EXERCISE_CATEGORIES } from "@/domain/exercise/constants";
 import { isRunningExerciseForV2 } from "@/presentation/running/legacy-routing";
 import type { ExerciseVideoGuidance } from "@/domain/exercise/video-guidance";
+import { resolveWhitespaceQuote } from "@/domain/shared/source-quote";
 
 export const menuCompositionContextSchema = z.object({
   event: z.string().trim().min(1).max(32).optional(),
@@ -110,7 +111,11 @@ export function validateComposition(value: unknown, options: {
       if (isRunningExerciseForV2(exercise)) return { ok: false, code: "RUNNING_AUTHORITY" };
     } else {
       if (isRunningExerciseForV2(item)) return { ok: false, code: "RUNNING_AUTHORITY" };
-      if (!options.edited && !options.requestText.includes(item.originalUserInstruction)) return { ok: false, code: "UNGROUNDED_USER_INSTRUCTION" };
+      if (!options.edited) {
+        const source = resolveWhitespaceQuote(options.requestText, item.originalUserInstruction);
+        if (!source) return { ok: false, code: "UNGROUNDED_USER_INSTRUCTION" };
+        item.originalUserInstruction = source.sourceText;
+      }
       if (!item.executionInstruction && !item.plannedNote) return { ok: false, code: "MISSING_INSTRUCTION" };
       // Running clauses already bound by the frozen interpreter cannot become freeform doses.
       if ((options.runningSourceTexts ?? []).some((source) => source.trim() && item.originalUserInstruction.normalize("NFKC").includes(source.normalize("NFKC")))) return { ok: false, code: "RUNNING_AUTHORITY" };

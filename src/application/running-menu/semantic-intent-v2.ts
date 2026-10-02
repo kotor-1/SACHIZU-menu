@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { VerifiedRunningIntent, VerifiedClaim } from "./intent";
+import { resolveWhitespaceQuote } from "@/domain/shared/source-quote";
+import { hasSessionTimeBasis } from "./session-time-scope";
 
 export const RUNNING_INTERPRETER_VERSION = "running-intent-v2" as const;
 
@@ -89,7 +91,7 @@ export type SemanticVerificationV2 =
   | { ok: true; interpretation: VerifiedSemanticIntentV2; engineIntent: VerifiedRunningIntent }
   | { ok: false; reason: "SEMANTIC_REVIEW_REQUIRED"; triggers: SelectiveSemanticReviewTrigger[] }
   | { ok: false; reason: "INVALID_AI_CLAIM" | "AMBIGUOUS" | "UNSUPPORTED_EXTRACTION"; question?: string;
-      issue?: "SAFETY_EVIDENCE_REQUIRED" | "INVALID_SAFETY_EVIDENCE" | "SAFETY_REVIEW_REJECTED";
+      issue?: "SAFETY_EVIDENCE_REQUIRED" | "INVALID_SAFETY_EVIDENCE" | "SAFETY_REVIEW_REJECTED" | "SESSION_TIME_BASIS_REQUIRED";
       /** Grounded claims retained for diagnosis; never an executable Engine intent. */
       retainedClaims?: VerifiedSemanticClaimV2[] };
 
@@ -144,7 +146,7 @@ function semanticReviewTriggers(intent: RunningSemanticIntentV2): SelectiveSeman
     if (c.polarity === "AFFIRMED" &&
       ((c.field === "DISTANCE_PREFERENCE") || (c.field === "FATIGUE" && c.value === "FATIGUED") ||
         (c.field === "LOAD_REDUCTION" && c.value === true)) &&
-      negativePredicate.test(c.sourceText)) triggers.add("SOURCE_POLARITY_UNCERTAIN");
+      negativePredicate.test(c.sourceText.replace(/\s/gu, ""))) triggers.add("SOURCE_POLARITY_UNCERTAIN");
     if (c.field === "TRAINING_DISTANCE" && c.polarity === "AFFIRMED" && !active.some(other =>
       other.polarity === "AFFIRMED" && ((other.field === "RUNNING_REQUEST" && other.value === true) || other.field === "REPS"))) {
       triggers.add("UNBOUND_DISTANCE_ROLE");
@@ -187,8 +189,8 @@ function normalizeSourceUnits(claim: SemanticClaimV2, requestText: string): Sema
     const embedded = numericToken(part).embeddedUnit;
     // Units and grade prefixes belong to the original source span, even when
     // an AI crops them out of its quote.
-    const after = requestText.slice(sourceStart + at + part.rawText.length).normalize("NFKC").toLowerCase();
-    const before = requestText.slice(0, sourceStart + at).normalize("NFKC");
+    const after = requestText.slice(sourceStart + at + part.rawText.length).normalize("NFKC").toLowerCase().replace(/^\s+/u, "");
+    const before = requestText.slice(0, sourceStart + at).normalize("NFKC").replace(/\s/gu, "");
     // 小5 / 中2 / 高1 are grade numerals with an omitted 年 suffix.
     const gradePrefix = /(?:小学|中学|高校|[小中高])$/u.test(before);
     const explicit = embedded ?? orderedUnits.find(([rawUnit]) => after.startsWith(rawUnit))?.[1] ?? (gradePrefix ? "GRADE" : "NONE");
@@ -337,7 +339,7 @@ export function verifyPrimarySemanticIntentV2(
   if (review !== null && !semanticReviewV2Schema.safeParse(review).success) return { ok: false, reason: "INVALID_AI_CLAIM" };
   const verified = verifySemanticStructure(requestText, raw, allowedExerciseIds, review, null);
   if (!verified.ok || review !== null) return verified;
-  const triggers = semanticReviewTriggers(runningSemanticIntentV2Schema.parse(raw));
+  const triggers = semanticReviewTriggers(verified.interpretation);
   return triggers.length ? { ok: false, reason: "SEMANTIC_REVIEW_REQUIRED", triggers } : verified;
 }
 
@@ -348,6 +350,27 @@ function verifySemanticStructure(
   const parsed = runningSemanticIntentV2Schema.safeParse(raw);
   if (!parsed.success) return { ok: false, reason: "INVALID_AI_CLAIM" };
   const intent = parsed.data;
+  review = review ? semanticReviewV2Schema.parse(review) : null;
+  roleReview = roleReview ? bareNumericRoleReviewV2Schema.parse(roleReview) : null;
+  // Canonicalize the parsed copy, never the recorded/model response. Numeric,
+  // lifecycle and safety checks below still operate on exact source spans.
+  const quotes = [
+    ...intent.claims, ...intent.corrections, ...intent.unsupportedIntents,
+    ...(intent.ambiguity ? [intent.ambiguity] : []),
+    ...intent.claims.flatMap(claim => claim.safetyConcernEvidence ? [claim.safetyConcernEvidence] : []),
+    ...(roleReview?.roles ?? []),
+  ];
+  for (const quote of quotes) {
+    const resolved = resolveWhitespaceQuote(requestText, quote.sourceText);
+    if (!resolved) return { ok: false, reason: "INVALID_AI_CLAIM" };
+    quote.sourceText = resolved.sourceText;
+  }
+  for (const assessment of review?.safetyAssessments ?? []) {
+    if (assessment.sourceText === null) continue;
+    const resolved = resolveWhitespaceQuote(requestText, assessment.sourceText);
+    if (!resolved) return { ok: false, reason: "INVALID_AI_CLAIM", issue: "SAFETY_REVIEW_REJECTED" };
+    assessment.sourceText = resolved.sourceText;
+  }
   const independentRoles = new Map<string, BareNumericRoleReviewV2["roles"][number]["role"]>();
   for (const item of roleReview?.roles ?? []) {
     const sourceStart = requestText.indexOf(item.sourceText);
@@ -435,6 +458,9 @@ function verifySemanticStructure(
     }
     const start = requestText.indexOf(claim.sourceText);
     if (start < 0 || !valueCheck(claim) || !numericCheck(claim)) return { ok: false, reason: "INVALID_AI_CLAIM" };
+    if (claim.field === "AVAILABLE_TIME" && !hasSessionTimeBasis(claim.sourceText, claim.numericParts.map(part => part.rawText))) {
+      return { ok: false, reason: "INVALID_AI_CLAIM", issue: "SESSION_TIME_BASIS_REQUIRED" };
+    }
     const numericParts: VerifiedNumericPartV2[] = [];
     if (claim.numericParts.length > 0) {
       let offset = 0;
@@ -442,7 +468,7 @@ function verifySemanticStructure(
         const at = claim.sourceText.indexOf(part.rawText, offset);
         if (at < 0) return { ok: false, reason: "INVALID_AI_CLAIM" };
         const beforePart = requestText.slice(0, start + at).normalize("NFKC");
-        const after = requestText.slice(start + at + part.rawText.length).normalize("NFKC");
+        const after = requestText.slice(start + at + part.rawText.length).normalize("NFKC").replace(/^\s+/u, "");
         const embedded = numericToken(part).embeddedUnit;
         const writtenNumeral = "0-9零〇一二三四五六七八九十百千";
         if ((new RegExp(`[${writtenNumeral}]$`, "u").test(beforePart) && new RegExp(`^[${writtenNumeral}]`, "u").test(part.rawText.normalize("NFKC"))) ||
@@ -529,7 +555,9 @@ function verifySemanticStructure(
   if (!engineIntent) return review === null && roleReview === null
     ? { ok: false, reason: "SEMANTIC_REVIEW_REQUIRED", triggers: ["UNRESOLVED_SEMANTIC_CONTRADICTION"] }
     : { ok: false, reason: "INVALID_AI_CLAIM" };
-  if (intent.requestKind === "EXERCISE_ONLY" && verified.some((claim) => ["EVENT", "TRAINING_DISTANCE", "RUNNING_REQUEST"].includes(claim.field) && claim.status === "ACTIVE")) return { ok: false, reason: "INVALID_AI_CLAIM" };
+  // false is consistent with EXERCISE_ONLY. The value check above rejects true;
+  // polarity must remain AFFIRMED because the boolean already encodes negation.
+  if (intent.requestKind === "EXERCISE_ONLY" && verified.some((claim) => ["EVENT", "TRAINING_DISTANCE"].includes(claim.field) && claim.status === "ACTIVE")) return { ok: false, reason: "INVALID_AI_CLAIM" };
   // A doubtful freeform paraphrase cannot become policy input. Preserve the
   // exact source wording for the user instead of rejecting the valid fields.
   const unsupportedRaw = review?.unsupportedIntentsSupported !== false
