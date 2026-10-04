@@ -89,6 +89,9 @@ model Exercise {
   videoAssets       VideoAsset[]
   /// この種目として確定した AI 下書き（あれば）
   appliedFromDrafts ExerciseDraft[]
+  videoGuidanceRevisions ExerciseVideoGuidanceRevision[]
+  videoGuidanceHeads     ExerciseVideoGuidanceHead[]
+  videoGuidanceAuditEvents VideoGuidanceAuditEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -451,6 +454,7 @@ model VideoAsset {
 
   analysisJobs AnalysisJob[]
   drafts       ExerciseDraft[]
+  guidanceRevisions ExerciseVideoGuidanceRevision[]
 
   createdAt DateTime @default(now())
 
@@ -512,4 +516,89 @@ model ExerciseDraft {
   updatedAt DateTime @updatedAt
 
   @@index([ownerId, status])
+}
+
+// ----------------------------------------------------------------------------
+// Reusable video knowledge: immutable revisions, one active head, audit history.
+// Authority remains AI_ANALYZED / COACH_REVIEWED. Partial knowledge is recorded
+// separately in fieldAssessmentJson and never changes Exercise.status/defaults.
+// SQLite append-only/boundary triggers live in the additive migration.
+// ----------------------------------------------------------------------------
+
+model ExerciseVideoGuidanceRevision {
+  id                String @id @default(cuid())
+  ownerId           String
+  exerciseId        String
+  sourceVideoId     String
+  sourceBindingJson String
+  sourceBindingHash String
+  payloadJson       String
+  payloadHash       String
+  authorityStatus   String
+  revisionOrigin    String
+  parentRevisionId  String?
+  baseAiRevisionId  String?
+  fieldAssessmentJson String
+  aiMetadataJson    String?
+  provenanceJson    String
+  analyzedAt        DateTime
+  reviewedAt        DateTime?
+  reviewerActorId   String?
+  reviewReason      String?
+  operationKey      String
+  operationHash     String
+  importSourceHash  String?
+  createdAt         DateTime @default(now())
+
+  exercise    Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sourceVideo VideoAsset @relation(fields: [sourceVideoId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  parentRevision ExerciseVideoGuidanceRevision? @relation("GuidanceRevisionParent", fields: [parentRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  childRevisions ExerciseVideoGuidanceRevision[] @relation("GuidanceRevisionParent")
+  baseAiRevision ExerciseVideoGuidanceRevision? @relation("GuidanceRevisionBaseAi", fields: [baseAiRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  derivedRevisions ExerciseVideoGuidanceRevision[] @relation("GuidanceRevisionBaseAi")
+  approvedHeads ExerciseVideoGuidanceHead[] @relation("GuidanceApprovedHead")
+  activeAiHeads ExerciseVideoGuidanceHead[] @relation("GuidanceActiveAiHead")
+  candidateHeads ExerciseVideoGuidanceHead[] @relation("GuidanceCandidateHead")
+
+  @@unique([ownerId, exerciseId, operationKey])
+  @@index([ownerId, exerciseId, createdAt])
+  @@index([sourceVideoId])
+}
+
+model ExerciseVideoGuidanceHead {
+  ownerId                   String
+  exerciseId                String
+  approvedRevisionId        String?
+  activeAiRevisionId        String?
+  latestCandidateRevisionId String?
+  rowVersion                Int @default(0)
+  updatedAt                 DateTime @updatedAt
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  approvedRevision ExerciseVideoGuidanceRevision? @relation("GuidanceApprovedHead", fields: [approvedRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  activeAiRevision ExerciseVideoGuidanceRevision? @relation("GuidanceActiveAiHead", fields: [activeAiRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  latestCandidateRevision ExerciseVideoGuidanceRevision? @relation("GuidanceCandidateHead", fields: [latestCandidateRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([ownerId, exerciseId])
+}
+
+model VideoGuidanceAuditEvent {
+  id                  String @id @default(cuid())
+  ownerId             String
+  exerciseId          String
+  actorId             String?
+  actorKind           String
+  operation           String
+  reason              String
+  beforeJson          String
+  afterJson           String
+  expectedRowVersion  Int
+  resultingRowVersion Int
+  operationKey        String
+  timestamp           DateTime @default(now())
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([ownerId, exerciseId, operationKey, operation])
+  @@index([ownerId, exerciseId, timestamp])
 }
