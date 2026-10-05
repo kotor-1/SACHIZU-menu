@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { BatchError, canonical, configSchema, contentKey, createBatchSchema, digest, neutralObservationSchema,
-  totals, usageSchema, workKey, type BatchInput, type Claim, type Usage } from "@/domain/video-batch/contracts";
+import { BatchError, canonical, persistedConfigSchema, contentKey, createBatchSchema, createLunaBatchSchema, digest, neutralObservationSchema,
+  totals, usageSchema, workKey, type BatchInput, type LunaBatchInput, type Claim, type Usage } from "@/domain/video-batch/contracts";
 import { GuidanceReviewAccessError } from "@/domain/exercise/video-guidance-review";
 
 type Tx = Prisma.TransactionClient;
 const busy = (e: unknown) => e instanceof Error && /P1008|P2034|SQLITE_BUSY|database is locked|write conflict|timed out/i.test(`${"code" in e ? e.code : ""} ${e.message}`);
 /** Only this explicit table capability reaches the worker. No Guidance write delegate is exposed. */
 export class VideoBatchRepository {
-  constructor(private readonly db: PrismaClient, private readonly now: () => Date = () => new Date()) {}
-  private async tx<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+  constructor(protected readonly db: PrismaClient, protected readonly now: () => Date = () => new Date()) {}
+  protected async tx<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
     for (let n = 0; ; n++) {
       try {
         return await this.db.$transaction(async tx => {
@@ -24,7 +24,7 @@ export class VideoBatchRepository {
       }
     }
   }
-  private async source(tx: Tx, ownerId: string, exerciseId: string, bindingJson: string) {
+  protected async source(tx: Tx, ownerId: string, exerciseId: string, bindingJson: string) {
     const binding = JSON.parse(bindingJson);
     const video = await tx.videoAsset.findFirst({ where: { id: binding.sourceVideoId, ownerId, exerciseId },
       select: { storageKey: true, sourceUrl: true } });
@@ -32,8 +32,8 @@ export class VideoBatchRepository {
     if (!video || !exercise || video.storageKey !== binding.storageKey || video.sourceUrl !== binding.sourceUrl)
       throw new BatchError("INVALID_VIDEO_SOURCE");
   }
-  async create(input: BatchInput, actorId: string) {
-    const parsed = createBatchSchema.safeParse(input);
+  async create(input: BatchInput | LunaBatchInput, actorId: string) {
+    const parsed = input.config.provider === "openai" ? createLunaBatchSchema.safeParse(input) : createBatchSchema.safeParse(input);
     if (!parsed.success) throw new BatchError("INVALID_VIDEO_SOURCE");
     input = parsed.data;
     const targets = [...input.targets].sort((a,b) => workKey(input.ownerId,a,input.config).localeCompare(workKey(input.ownerId,b,input.config)));
@@ -42,6 +42,12 @@ export class VideoBatchRepository {
       const grant = await tx.guidanceOwnerAccess.findUnique({ where: { userId_ownerId_permission: {
         userId: actorId, ownerId: input.ownerId, permission: "ANALYZE_VIDEO_GUIDANCE" } } });
       if (!grant) throw new GuidanceReviewAccessError("FORBIDDEN");
+      if (input.config.provider === "openai") {
+        const gate = await tx.videoLunaPreflight.findFirst({ where: { id: input.config.preflightId, ownerId: input.ownerId } });
+        if (!gate?.responseApprovalJson || gate.countOutcome !== "SUCCEEDED" || gate.expiresAt <= this.now()) throw new BatchError("RETRY_NOT_ALLOWED");
+        const approved = JSON.parse(gate.responseApprovalJson);
+        if (approved.batchInputHash !== digest(input)) throw new BatchError("OPERATION_KEY_CONFLICT");
+      }
       const existing = await tx.videoGuidanceBatch.findUnique({ where: { ownerId_creationKey: { ownerId: input.ownerId, creationKey: input.creationKey } } });
       if (existing) {
         if (existing.manifestHash !== manifestHash) throw new BatchError("OPERATION_KEY_CONFLICT");
@@ -65,7 +71,7 @@ export class VideoBatchRepository {
       return batch;
     });
   }
-  private async settle(tx: Tx, batchId: string) {
+  protected async settle(tx: Tx, batchId: string) {
     const b = await tx.videoGuidanceBatch.findUniqueOrThrow({ where: { id: batchId } });
     if (b.status === "PAUSED" || b.status === "CANCELLED") return;
     const remaining = await tx.videoGuidanceBatchItem.count({ where: { batchId, status: { in: ["PENDING","RUNNING"] } } });
@@ -73,7 +79,7 @@ export class VideoBatchRepository {
     const failures = await tx.videoGuidanceBatchItem.count({ where: { batchId, status: "FAILED" } });
     await tx.videoGuidanceBatch.update({ where: { id: batchId }, data: { status: failures ? "FAILED" : "SUCCEEDED", endedAt: this.now(), rowVersion: { increment: 1 } } });
   }
-  private async account(tx: Tx, attemptId: string, usage: Usage) {
+  protected async account(tx: Tx, attemptId: string, usage: Usage) {
     const a = await tx.videoAnalysisAttempt.findUniqueOrThrow({ where: { id: attemptId } });
     if (a.accounted) return;
     const u = totals(usageSchema.parse(usage));
@@ -132,7 +138,7 @@ export class VideoBatchRepository {
         await tx.videoGuidanceBatchItem.update({where:{id:itemId},data:{status:"FAILED",errorCode:w.errorCode ?? "REQUEST_OUTCOME_UNKNOWN",rowVersion:{increment:1}}});
         await this.settle(tx,b.id); return null;
       }
-      const config = configSchema.parse(JSON.parse(b.configJson));
+      const config = persistedConfigSchema.parse(JSON.parse(b.configJson));
       const fence = w.fencingToken + 1, expires = new Date(this.now().getTime()+config.leaseMs);
       await tx.videoAnalysisWork.update({where:{id:w.id},data:{status:"LEASED",leaseOwner:workerId,leaseExpiresAt:expires,fencingToken:fence,activeItemId:itemId}});
       await tx.videoGuidanceBatchItem.update({where:{id:itemId},data:{status:"RUNNING",leaseOwner:workerId,leaseExpiresAt:expires,fencingToken:fence,rowVersion:{increment:1}}});
@@ -140,7 +146,7 @@ export class VideoBatchRepository {
       return {itemId,workId:w.id,batchId:b.id,ownerId:b.ownerId,workerId,fence};
     });
   }
-  private async fence(tx: Tx, c: Claim, requireRunning = false) {
+  protected async fence(tx: Tx, c: Claim, requireRunning = false) {
     const w = await tx.videoAnalysisWork.findUniqueOrThrow({where:{id:c.workId}});
     const i = await tx.videoGuidanceBatchItem.findUniqueOrThrow({where:{id:c.itemId}});
     if (w.status !== "LEASED" || w.ownerId !== c.ownerId || w.fencingToken !== c.fence || w.leaseOwner !== c.workerId || w.activeItemId !== c.itemId
@@ -153,13 +159,13 @@ export class VideoBatchRepository {
   async heartbeat(c: Claim) {
     return this.tx(async tx => {
       const {b} = await this.fence(tx,c);
-      const expires = new Date(this.now().getTime()+configSchema.parse(JSON.parse(b.configJson)).leaseMs);
+      const expires = new Date(this.now().getTime()+persistedConfigSchema.parse(JSON.parse(b.configJson)).leaseMs);
       await tx.videoAnalysisWork.update({where:{id:c.workId},data:{leaseExpiresAt:expires}});
       await tx.videoGuidanceBatchItem.update({where:{id:c.itemId},data:{leaseExpiresAt:expires}});
       await tx.videoGuidanceBatch.update({where:{id:c.batchId},data:{heartbeat:this.now()}});
     });
   }
-  async reserve(c: Claim) {
+  async reserve(c: Claim, provider: "isolated-fake" | "openai" = "isolated-fake") {
     return this.tx(async tx => {
       const {w,i,b} = await this.fence(tx,c,true);
       await this.source(tx,c.ownerId,i.exerciseId,i.sourceBindingJson);
@@ -167,7 +173,9 @@ export class VideoBatchRepository {
       if (existing) return existing;
       const raw = await tx.videoAnalysisAttempt.findFirst({where:{workId:c.workId,outcome:"RECEIVED",reconciliationState:{in:["NONE","RESOLVED_RAW"]}}});
       if (raw) throw new BatchError("RETRY_NOT_ALLOWED");
-      const r = configSchema.parse(JSON.parse(b.configJson)).worstCase;
+      const config = persistedConfigSchema.parse(JSON.parse(b.configJson));
+      if (config.provider !== provider) throw new BatchError("RETRY_NOT_ALLOWED");
+      const r = config.worstCase;
       if (b.usedRequests+b.reservedRequests+r.requests > b.requestBudget || b.usedTokens+b.reservedTokens+r.tokens > b.tokenBudget || b.usedCost+b.reservedCost+r.cost > b.costBudget)
         throw new BatchError("BUDGET_EXCEEDED");
       await tx.videoGuidanceBatch.update({where:{id:b.id},data:{reservedRequests:{increment:r.requests},reservedTokens:{increment:r.tokens},reservedCost:{increment:r.cost},rowVersion:{increment:1}}});
@@ -289,7 +297,7 @@ export class VideoBatchRepository {
       const b=await tx.videoGuidanceBatch.findUniqueOrThrow({where:{id:i.batchId}});
       const w=await tx.videoAnalysisWork.findUniqueOrThrow({where:{id:i.workId}});
       const a=await tx.videoAnalysisAttempt.findFirst({where:{workId:w.id},orderBy:{attemptNo:"desc"}});
-      const config=configSchema.parse(JSON.parse(b.configJson));
+      const config=persistedConfigSchema.parse(JSON.parse(b.configJson));
       if (i.status!=="FAILED" || b.status==="CANCELLED" || w.status!=="FAILED" || a?.outcome!=="FAILED_CONFIRMED" || !a.retryable
         || w.retryCount>=config.maxRetries || i.retryCount>=config.maxRetries) throw new BatchError("RETRY_NOT_ALLOWED");
       const retryAt=new Date(this.now().getTime()+Math.min(30_000,1000*2**w.retryCount));

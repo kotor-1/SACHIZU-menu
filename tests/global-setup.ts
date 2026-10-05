@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { TEST_DATABASE_URL, TEST_DB_PATH } from "./db-path";
+import { assertTestDatabaseEnvironment } from "./support/isolated-database";
 
 /**
  * vitest の globalSetup。テストスイート全体で 1 回だけ実行される。
@@ -10,6 +11,7 @@ import { TEST_DATABASE_URL, TEST_DB_PATH } from "./db-path";
  * migrate ではなく db push を使う。
  */
 export default async function setup() {
+  if (assertTestDatabaseEnvironment() !== TEST_DB_PATH) throw new Error("TEST_DATABASE_PATH_CHANGED");
   for (const suffix of ["", "-journal", "-shm", "-wal"]) {
     const file = TEST_DB_PATH + suffix;
     if (fs.existsSync(file)) fs.rmSync(file);

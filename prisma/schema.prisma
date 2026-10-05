@@ -768,6 +768,11 @@ model VideoAnalysisAttempt {
   responseReceivedAt DateTime?
   rawJson String?
   rawHash String?
+  // Real provider bytes stay LOCAL_PRIVATE. rawJson remains synthetic-only.
+  rawRef String?
+  responseMetadataJson String?
+  providerUsageJson String?
+  candidateJson String?
   outcome String @default("RESERVED")
   latencyMs Int?
   errorCode String?
@@ -783,6 +788,30 @@ model VideoAnalysisAttempt {
   accounted Boolean @default(false)
   @@unique([workId, attemptNo])
   @@index([itemId])
+}
+
+// One approved input, one count request. This is not a model inference Attempt.
+model VideoLunaPreflight {
+  id String @id
+  ownerId String
+  actorId String
+  payloadHash String
+  frameManifestHash String
+  manifestHash String
+  manifestJson String
+  requestedAt DateTime
+  expiresAt DateTime
+  countOutcome String @default("PENDING")
+  countDispatchKey String @unique
+  countSentAt DateTime?
+  countRequestId String?
+  countRawRef String?
+  countRawHash String?
+  countReceiptJson String?
+  countError String?
+  responseApprovalJson String?
+  responseBatchId String? @unique
+  @@unique([ownerId, payloadHash])
 }
 
 model VideoObservationResult {

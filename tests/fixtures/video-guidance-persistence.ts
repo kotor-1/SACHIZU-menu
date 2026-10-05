@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { copyFile, cp, mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import type { ExerciseVideoGuidance, VideoGuidanceObservation } from "@/domain/exercise/video-guidance";
 import { VIDEO_GUIDANCE_FIELDS, type FieldAssessment, type SourceBinding } from "@/domain/exercise/video-guidance-persistence";
+import { assertIsolatedDatabaseUrl, assertTestDatabaseEnvironment } from "../support/isolated-database";
 
 export const persistenceOwner = "guidance-owner-a";
 export const persistenceExercise = "guidance-exercise-a";
@@ -29,12 +29,15 @@ export const persistenceAssessments: FieldAssessment[] = VIDEO_GUIDANCE_FIELDS.m
 
 /** Every test uses a copied, migrated temporary database; neither repo DB is opened. */
 export async function createPersistenceDatabaseTemplate() {
-  const directory = await mkdtemp(join(tmpdir(), "sachizu-guidance-persistence-"));
+  assertTestDatabaseEnvironment();
+  const isolation = { isolatedRoot: process.env.SACHIZU_TEST_ISOLATION_ROOT!, originalWorkspaceRoot: process.env.SACHIZU_ORIGINAL_WORKSPACE_ROOT! };
+  const directory = await mkdtemp(join(isolation.isolatedRoot, "sachizu-guidance-persistence-"));
   const prismaDirectory = join(directory, "prisma");
   await mkdir(prismaDirectory);
   await copyFile(resolve("prisma/schema.prisma"), join(prismaDirectory, "schema.prisma"));
   await cp(resolve("prisma/migrations"), join(prismaDirectory, "migrations"), { recursive: true });
   const templatePath = join(directory, "template.db");
+  assertIsolatedDatabaseUrl(`file:${templatePath}`, isolation);
   try {
     execFileSync(process.execPath, [resolve("node_modules/prisma/build/index.js"), "migrate", "deploy", "--schema", join(prismaDirectory, "schema.prisma")], {
       cwd: directory,
@@ -50,6 +53,7 @@ export async function createPersistenceDatabaseTemplate() {
   return {
     async open() {
       const databasePath = join(directory, `case-${++sequence}.db`);
+      assertIsolatedDatabaseUrl(`file:${databasePath}`, isolation);
       await copyFile(templatePath, databasePath);
       const db = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } });
       databasePaths.set(db, databasePath);
@@ -70,6 +74,7 @@ export async function createPersistenceDatabaseTemplate() {
     peer(db: PrismaClient) {
       const databasePath = databasePaths.get(db);
       if (!databasePath) throw new Error("Unknown temporary test database");
+      assertIsolatedDatabaseUrl(`file:${databasePath}`, isolation);
       return new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } });
     },
     dispose: () => rm(directory, { recursive: true, force: true }),

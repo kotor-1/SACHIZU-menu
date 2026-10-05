@@ -12,10 +12,24 @@ export const configSchema = z.object({
   worstCase: budgetSchema.refine(v => v.requests === 1 && v.tokens >= 30 && v.cost >= 7),
   maxRetries: z.number().int().min(0).max(5), leaseMs: z.number().int().min(100).max(300_000),
 }).strict();
+/** Live canary configuration is versioned separately; fake capability is never reused. Cost is micro-USD. */
+export const lunaConfigSchema = z.object({
+  provider: z.literal("openai"), model: z.literal("gpt-6-luna"), schemaVersion: z.literal("luna-visual-guidance-v1"),
+  promptVersion: z.literal("luna-frame-observation-v1"), configVersion: id, recipe: id, inputManifest: id,
+  segment: z.object({ startMs: units, endMs: units }).strict().refine(v => v.endMs > v.startMs),
+  worstCase: budgetSchema.refine(v => v.requests === 1 && v.tokens > 0 && v.cost > 0),
+  maxRetries: z.literal(0), leaseMs: z.literal(180000), preflightId: id,
+}).strict();
+export const persistedConfigSchema = z.union([configSchema, lunaConfigSchema]);
+export type LunaConfig = z.infer<typeof lunaConfigSchema>;
+export type AnalysisConfig = z.infer<typeof persistedConfigSchema>;
 export const targetSchema = z.object({ exerciseId: id, sourceBinding: sourceBindingSchema }).strict();
 export const createBatchSchema = z.object({ ownerId: id, creationKey: id, config: configSchema,
   budget: budgetSchema, targets: z.array(targetSchema).min(1).max(1000) }).strict();
 export type BatchInput = z.infer<typeof createBatchSchema>;
+export const createLunaBatchSchema = createBatchSchema.extend({ config: lunaConfigSchema,
+  targets: z.array(targetSchema).length(1), budget: budgetSchema.refine(v => v.requests === 1) });
+export type LunaBatchInput = z.infer<typeof createLunaBatchSchema>;
 export type Config = z.infer<typeof configSchema>;
 export type Target = z.infer<typeof targetSchema>;
 export type Budget = z.infer<typeof budgetSchema>;
@@ -38,12 +52,12 @@ export function canonical(value: unknown): string {
   return JSON.stringify(value);
 }
 export const digest = (value: unknown) => createHash("sha256").update(canonical(value)).digest("hex");
-export function contentKey(ownerId: string, target: Target, config: Config) {
+export function contentKey(ownerId: string, target: Target, config: AnalysisConfig) {
   return digest({ ownerId, mediaFingerprint: target.sourceBinding.contentSha256, segment: config.segment,
     recipe: config.recipe, inputManifest: config.inputManifest, provider: config.provider, model: config.model,
     schemaVersion: config.schemaVersion, promptVersion: config.promptVersion, configVersion: config.configVersion });
 }
-export const workKey = (ownerId: string, target: Target, config: Config) =>
+export const workKey = (ownerId: string, target: Target, config: AnalysisConfig) =>
   digest({ ownerId, exerciseId: target.exerciseId, sourceBinding: target.sourceBinding, contentKey: contentKey(ownerId, target, config), configHash: digest(config) });
 export type BatchCode = "INVALID_VIDEO_SOURCE" | "STALE_VIDEO_GUIDANCE" | "PERSISTENCE_ERROR" | "REQUEST_OUTCOME_UNKNOWN"
   | "BUDGET_EXCEEDED" | "OPERATION_KEY_CONFLICT" | "LEASE_LOST" | "PAUSED" | "RETRY_NOT_ALLOWED" | "SCHEMA_INVALID" | "USAGE_EXCEEDS_RESERVATION";
