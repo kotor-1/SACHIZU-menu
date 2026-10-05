@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { Prisma, type PrismaClient, type ExerciseVideoGuidanceHead, type ExerciseVideoGuidanceRevision } from "@prisma/client";
 import { exerciseVideoGuidanceSchema, videoGuidanceObservationSchema, type ExerciseVideoGuidance, type VideoGuidanceObservation } from "@/domain/exercise/video-guidance";
-import { VideoGuidancePersistenceError, sourceBindingSchema, fieldAssessmentsSchema, aiMetadataSchema, type SourceBinding, type FieldAssessment, type AIMetadata } from "@/domain/exercise/video-guidance-persistence";
+import { VideoGuidancePersistenceError, sourceBindingSchema, fieldAssessmentsSchema, aiMetadataSchema, VIDEO_GUIDANCE_REVISION_ORIGINS, type VideoGuidanceRevisionOrigin, type SourceBinding, type FieldAssessment, type AIMetadata } from "@/domain/exercise/video-guidance-persistence";
 
 type Db = Prisma.TransactionClient;
 export type GuidanceActor = { id: string | null; kind: "AI" | "COACH" | "IMPORT" };
@@ -24,6 +24,25 @@ export type StoredGuidance = {
 };
 export type GuidanceMutationResult = StoredGuidance & { reused: boolean };
 export type SourceBindingResolver = (ownerId: string, exerciseId: string, sourceVideoId: string) => Promise<SourceBinding | null>;
+export type GuidanceCandidateDecision = "PENDING" | "HELD" | "REJECTED" | "REVIEWED" | "PUBLISHED";
+export type ReviewGuidanceRevision = Omit<StoredGuidance, "head"> & {
+  sourceStatus: "CURRENT" | "SOURCE_MISMATCH";
+  revisionOrigin: VideoGuidanceRevisionOrigin;
+  parentRevisionId: string | null; baseAiRevisionId: string | null;
+  aiMetadata: AIMetadata; provenance: Record<string, unknown>;
+  reviewerActorId: string | null; reviewerIdentity: "COACH" | "LEGACY_UNKNOWN" | "NOT_REVIEWED";
+  reviewReason: string | null; analyzedAt: string; reviewedAt: string | null; createdAt: string;
+};
+export type GuidanceReviewAuditEvent = {
+  id: string; actorId: string | null; actorKind: GuidanceActor["kind"]; operation: string; reason: string;
+  timestamp: string; before: Record<string, unknown>; after: Record<string, unknown>;
+  expectedRowVersion: number; resultingRowVersion: number;
+};
+export type GuidanceReviewData = {
+  head: ExerciseVideoGuidanceHead; effective: ReviewGuidanceRevision | null; candidate: ReviewGuidanceRevision | null;
+  aiOriginal: ReviewGuidanceRevision | null; previousApproved: ReviewGuidanceRevision | null;
+  candidateDecision: GuidanceCandidateDecision | null; auditEvents: GuidanceReviewAuditEvent[];
+};
 
 /** Stable hashes refer to JSON values, never filesystem paths or object insertion order. */
 export function canonicalGuidanceJson(value: unknown): string {
@@ -41,6 +60,17 @@ export function canonicalGuidanceJson(value: unknown): string {
 }
 export function guidanceHash(value: unknown) { return createHash("sha256").update(canonicalGuidanceJson(value)).digest("hex"); }
 function invalid(): never { throw new VideoGuidancePersistenceError("INVALID_PAYLOAD"); }
+function storedObject(json: string): Record<string, unknown> {
+  try {
+    const value: unknown = JSON.parse(json);
+    if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
+    canonicalGuidanceJson(value);
+    return value as Record<string, unknown>;
+  } catch (error) {
+    if (error instanceof VideoGuidancePersistenceError) throw error;
+    return invalid();
+  }
+}
 function parseExact<T>(schema: { parse(value: unknown): T }, value: unknown): T {
   try {
     const parsed = schema.parse(value);
@@ -77,7 +107,8 @@ export class VideoGuidanceRepository {
 
   /** Capability handed to an AI worker: it cannot publish or change an approved pointer. */
   aiWriter() { return Object.freeze({ appendAiCandidate: this.appendAiCandidate.bind(this) }); }
-  reviewWriter() { return Object.freeze({ publishAiCandidate: this.publishAiCandidate.bind(this), reviewAndActivate: this.reviewAndActivate.bind(this) }); }
+  reviewWriter() { return Object.freeze({ publishAiCandidate: this.publishAiCandidate.bind(this), reviewAndActivate: this.reviewAndActivate.bind(this),
+    holdCandidate: this.holdCandidate.bind(this), rejectCandidate: this.rejectCandidate.bind(this) }); }
 
   private async ownedExercise(tx: Db, scope: Scope) {
     const exercise = await tx.exercise.findUnique({ where: { id: scope.exerciseId }, select: { ownerId: true } });
@@ -156,6 +187,103 @@ export class VideoGuidanceRepository {
   readEffectiveGuidance(ownerId: string, exerciseId: string) { return this.read({ ownerId, exerciseId }, false); }
   readCandidateGuidance(ownerId: string, exerciseId: string) { return this.read({ ownerId, exerciseId }, true); }
 
+  private async reviewRevision(scope: Scope, id: string): Promise<ReviewGuidanceRevision> {
+    const revision = await this.scopedRevision(this.db, scope, id);
+    const decoded = this.decode(revision);
+    let sourceStatus: ReviewGuidanceRevision["sourceStatus"] = "CURRENT";
+    try { await this.binding(this.db, scope, decoded.sourceBinding); }
+    catch (error) {
+      if (!(error instanceof VideoGuidancePersistenceError) || error.code !== "SOURCE_MISMATCH") throw error;
+      sourceStatus = "SOURCE_MISMATCH";
+    }
+    if (!(VIDEO_GUIDANCE_REVISION_ORIGINS as readonly string[]).includes(revision.revisionOrigin)) invalid();
+    const aiMetadata = revision.aiMetadataJson === null ? null : parseExact(aiMetadataSchema, storedObject(revision.aiMetadataJson));
+    return {
+      revisionId: revision.id, ...decoded, sourceStatus,
+      revisionOrigin: revision.revisionOrigin as VideoGuidanceRevisionOrigin,
+      parentRevisionId: revision.parentRevisionId, baseAiRevisionId: revision.baseAiRevisionId,
+      aiMetadata, provenance: storedObject(revision.provenanceJson),
+      reviewerActorId: revision.reviewerActorId,
+      reviewerIdentity: revision.authorityStatus !== "COACH_REVIEWED" ? "NOT_REVIEWED"
+        : revision.reviewerActorId === null ? "LEGACY_UNKNOWN" : "COACH",
+      reviewReason: revision.reviewReason, analyzedAt: revision.analyzedAt.toISOString(),
+      reviewedAt: revision.reviewedAt?.toISOString() ?? null, createdAt: revision.createdAt.toISOString(),
+    };
+  }
+  private async auditHistory(tx: Db, scope: Scope, throughVersion: number): Promise<GuidanceReviewAuditEvent[]> {
+    const events = await tx.videoGuidanceAuditEvent.findMany({
+      where: { ownerId: scope.ownerId, exerciseId: scope.exerciseId, resultingRowVersion: { lte: throughVersion } },
+      orderBy: { resultingRowVersion: "desc" },
+    });
+    return events.map((event) => {
+      const before = storedObject(event.beforeJson); const after = storedObject(event.afterJson);
+      if (!["AI", "COACH", "IMPORT"].includes(event.actorKind)
+        || !["APPEND_AI_CANDIDATE", "PUBLISH_AI_CANDIDATE", "REVIEW_AND_ACTIVATE", "IMPORT_LEGACY", "HOLD_CANDIDATE", "REJECT_CANDIDATE"].includes(event.operation)
+        || before.ownerId !== scope.ownerId || before.exerciseId !== scope.exerciseId
+        || after.ownerId !== scope.ownerId || after.exerciseId !== scope.exerciseId
+        || before.rowVersion !== event.expectedRowVersion || after.rowVersion !== event.resultingRowVersion
+        || typeof after.revisionId !== "string" || !after.revisionId
+        || typeof after.operationHash !== "string" || !/^[0-9a-f]{64}$/.test(after.operationHash)) invalid();
+      if (["HOLD_CANDIDATE", "REJECT_CANDIDATE"].includes(event.operation)
+        && (after.candidateRevisionId !== after.revisionId
+          || after.candidateDecision !== (event.operation === "HOLD_CANDIDATE" ? "HELD" : "REJECTED"))) invalid();
+      return { id: event.id, actorId: event.actorId, actorKind: event.actorKind as GuidanceActor["kind"],
+        operation: event.operation, reason: event.reason, timestamp: event.timestamp.toISOString(), before, after,
+        expectedRowVersion: event.expectedRowVersion, resultingRowVersion: event.resultingRowVersion };
+    });
+  }
+  private decision(events: GuidanceReviewAuditEvent[], revisionId: string): GuidanceCandidateDecision {
+    const relevant = events.filter((event) => event.after.candidateRevisionId === revisionId
+      || (event.operation === "REVIEW_AND_ACTIVATE" && event.after.baseAiRevisionId === revisionId)
+      || (event.operation === "PUBLISH_AI_CANDIDATE" && event.after.revisionId === revisionId));
+    if (relevant.some((event) => event.operation === "REJECT_CANDIDATE")) return "REJECTED";
+    switch (relevant[0]?.operation) {
+      case "HOLD_CANDIDATE": return "HELD";
+      case "REVIEW_AND_ACTIVATE": return "REVIEWED";
+      case "PUBLISH_AI_CANDIDATE": return "PUBLISHED";
+      default: return "PENDING";
+    }
+  }
+  async readReviewRevision(ownerId: string, exerciseId: string, revisionId: string): Promise<ReviewGuidanceRevision> {
+    const scope = { ownerId, exerciseId };
+    try {
+      await this.ownedExercise(this.db, scope);
+      return await this.reviewRevision(scope, revisionId);
+    } catch (error) { return typedDbError(error, true); }
+  }
+  /** Review-only view: stale evidence is visible, never silently treated as current. */
+  async readReviewData(ownerId: string, exerciseId: string): Promise<GuidanceReviewData> {
+    const scope = { ownerId, exerciseId };
+    try {
+      await this.ownedExercise(this.db, scope);
+      const head = await this.head(this.db, scope);
+      const revisions = new Map<string, Promise<ReviewGuidanceRevision>>();
+      const load = (id: string) => {
+        if (!revisions.has(id)) revisions.set(id, this.reviewRevision(scope, id));
+        return revisions.get(id)!;
+      };
+      try {
+        const effectiveId = head.approvedRevisionId ?? head.activeAiRevisionId;
+        const [effective, candidate, auditEvents] = await Promise.all([
+          effectiveId ? load(effectiveId) : null,
+          head.latestCandidateRevisionId ? load(head.latestCandidateRevisionId) : null,
+          this.auditHistory(this.db, scope, head.rowVersion),
+        ]);
+        if (head.approvedRevisionId && effective?.guidance.videoAnalysisStatus !== "COACH_REVIEWED") invalid();
+        if (candidate && candidate.guidance.videoAnalysisStatus !== "AI_ANALYZED") invalid();
+        const aiOriginal = effective?.baseAiRevisionId ? await load(effective.baseAiRevisionId)
+          : candidate ?? (effective?.guidance.videoAnalysisStatus === "AI_ANALYZED" ? effective : null);
+        const parent = effective?.parentRevisionId ? await load(effective.parentRevisionId) : null;
+        return { head, effective, candidate, aiOriginal,
+          previousApproved: parent?.guidance.videoAnalysisStatus === "COACH_REVIEWED" ? parent : null,
+          candidateDecision: candidate ? this.decision(auditEvents, candidate.revisionId) : null, auditEvents };
+      } catch (error) {
+        if (error instanceof VideoGuidancePersistenceError && error.code === "NOT_FOUND") invalid();
+        throw error;
+      }
+    } catch (error) { return typedDbError(error, true); }
+  }
+
   private async replay(tx: Db, input: Command, operation: string, operationHash: string): Promise<GuidanceMutationResult | null> {
     const prior = await tx.videoGuidanceAuditEvent.findFirst({ where: { ownerId: input.ownerId, exerciseId: input.exerciseId, operationKey: input.operationKey } });
     if (!prior) return null;
@@ -193,6 +321,13 @@ export class VideoGuidanceRepository {
   }
   private expectation(head: ExerciseVideoGuidanceHead, input: PublishAiGuidanceInput) {
     if (head.rowVersion !== input.expectedRowVersion || head.approvedRevisionId !== input.expectedApprovedRevisionId) {
+      throw new VideoGuidancePersistenceError("STALE_VIDEO_GUIDANCE");
+    }
+  }
+  private async currentCandidate(tx: Db, head: ExerciseVideoGuidanceHead, input: PublishAiGuidanceInput) {
+    this.expectation(head, input);
+    if (head.latestCandidateRevisionId !== input.candidateRevisionId
+      || this.decision(await this.auditHistory(tx, input, head.rowVersion), input.candidateRevisionId) === "REJECTED") {
       throw new VideoGuidancePersistenceError("STALE_VIDEO_GUIDANCE");
     }
   }
@@ -247,7 +382,7 @@ export class VideoGuidanceRepository {
   async publishAiCandidate(input: PublishAiGuidanceInput) {
     validCommand(input, "COACH"); validExpectation(input);
     return this.mutation(input, "PUBLISH_AI_CANDIDATE", async (tx, hash) => {
-      const before = await this.head(tx, input); this.expectation(before, input);
+      const before = await this.head(tx, input); await this.currentCandidate(tx, before, input);
       if (before.approvedRevisionId !== null) throw new VideoGuidancePersistenceError("STALE_VIDEO_GUIDANCE");
       const candidate = await this.stored(tx, input, input.candidateRevisionId);
       if (candidate.guidance.videoAnalysisStatus !== "AI_ANALYZED") invalid();
@@ -262,7 +397,7 @@ export class VideoGuidanceRepository {
     const assessment = parseExact(fieldAssessmentsSchema, input.fieldAssessment);
     if (assessment.some((field) => field.state === "UNRESOLVED")) invalid();
     return this.mutation(input, "REVIEW_AND_ACTIVATE", async (tx, hash) => {
-      const before = await this.head(tx, input); this.expectation(before, input);
+      const before = await this.head(tx, input); await this.currentCandidate(tx, before, input);
       const candidate = await this.scopedRevision(tx, input, input.candidateRevisionId);
       const { guidance, sourceBinding, fieldAssessment: previousAssessment } = await this.stored(tx, input, candidate.id);
       for (const unresolved of previousAssessment.filter((field) => field.state === "UNRESOLVED")) {
@@ -283,6 +418,25 @@ export class VideoGuidanceRepository {
       return { ...await this.stored(tx, input, revision.id), reused: false };
     });
   }
+  private async decideCandidate(input: PublishAiGuidanceInput, decision: "HELD" | "REJECTED") {
+    validCommand(input, "COACH"); validExpectation(input);
+    const operation = decision === "HELD" ? "HOLD_CANDIDATE" : "REJECT_CANDIDATE";
+    return this.mutation(input, operation, async (tx, hash) => {
+      const before = await this.head(tx, input); await this.currentCandidate(tx, before, input);
+      const candidate = await this.stored(tx, input, input.candidateRevisionId);
+      if (candidate.guidance.videoAnalysisStatus !== "AI_ANALYZED") invalid();
+      // Rejecting an active publication would imply withdrawal. This operation
+      // only decides a candidate; it must neither withdraw nor invalidate active knowledge.
+      if (decision === "REJECTED" && before.activeAiRevisionId === candidate.revisionId) invalid();
+      const after = await this.updateHead(tx, input, before, {});
+      await this.audit(tx, input, operation, hash, candidate.revisionId, before, after, {
+        candidateRevisionId: candidate.revisionId, candidateDecision: decision,
+      });
+      return { ...candidate, head: after, reused: false };
+    });
+  }
+  holdCandidate(input: PublishAiGuidanceInput) { return this.decideCandidate(input, "HELD"); }
+  rejectCandidate(input: PublishAiGuidanceInput) { return this.decideCandidate(input, "REJECTED"); }
   async importLegacy(input: LegacyGuidanceInput) {
     validCommand(input, "IMPORT"); this.inputData(input);
     if (!/^[a-f0-9]{64}$/.test(input.importSourceHash)) invalid();

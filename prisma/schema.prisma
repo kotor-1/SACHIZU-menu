@@ -602,3 +602,83 @@ model VideoGuidanceAuditEvent {
   @@unique([ownerId, exerciseId, operationKey, operation])
   @@index([ownerId, exerciseId, timestamp])
 }
+
+// ----------------------------------------------------------------------------
+// Better Auth identity and server-owned video-guidance permissions.
+// These are additive tables: existing ownerId values are resource scopes, not
+// authentication identities, and never imply a grant to a same-named user.
+// ----------------------------------------------------------------------------
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  sessions            Session[]
+  accounts            Account[]
+  guidanceOwnerAccess GuidanceOwnerAccess[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String   @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([identifier])
+}
+
+/// Explicit grant; permission is one of VIEW_VIDEO_GUIDANCE,
+/// REVIEW_VIDEO_GUIDANCE, or PUBLISH_VIDEO_GUIDANCE (checked in SQL).
+model GuidanceOwnerAccess {
+  userId     String
+  ownerId    String
+  permission String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, ownerId, permission])
+}
