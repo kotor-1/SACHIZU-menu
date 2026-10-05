@@ -682,3 +682,117 @@ model GuidanceOwnerAccess {
 
   @@id([userId, ownerId, permission])
 }
+
+// Phase 3: isolated control plane. No relation or write capability to Guidance heads/revisions.
+model VideoGuidanceBatch {
+  id String @id
+  ownerId String
+  actorId String
+  creationKey String
+  manifestHash String
+  configJson String
+  status String @default("PENDING")
+  requestedAt DateTime
+  startedAt DateTime?
+  endedAt DateTime?
+  heartbeat DateTime?
+  stopReason String?
+  requestBudget Int
+  tokenBudget Int
+  costBudget Int
+  reservedRequests Int @default(0)
+  reservedTokens Int @default(0)
+  reservedCost Int @default(0)
+  usedRequests Int @default(0)
+  usedTokens Int @default(0)
+  usedCost Int @default(0)
+  rowVersion Int @default(0)
+  @@unique([ownerId, creationKey])
+}
+
+model VideoGuidanceBatchItem {
+  id String @id
+  batchId String
+  ownerId String
+  exerciseId String
+  sourceBindingJson String
+  contentKey String
+  workKey String
+  workId String
+  configHash String
+  status String @default("PENDING")
+  resultQuality String?
+  observationId String?
+  resultRevisionId String?
+  skipReason String?
+  errorCode String?
+  retryCount Int @default(0)
+  retryAt DateTime?
+  leaseOwner String?
+  leaseExpiresAt DateTime?
+  fencingToken Int @default(0)
+  rowVersion Int @default(0)
+  @@unique([batchId, workKey])
+  @@index([workId])
+}
+
+model VideoAnalysisWork {
+  id String @id
+  ownerId String
+  contentKey String
+  status String @default("READY")
+  leaseOwner String?
+  leaseExpiresAt DateTime?
+  fencingToken Int @default(0)
+  activeItemId String?
+  observationId String?
+  attemptCount Int @default(0)
+  retryCount Int @default(0)
+  retryAt DateTime?
+  errorCode String?
+  @@unique([ownerId, contentKey])
+}
+
+model VideoAnalysisAttempt {
+  id String @id
+  workId String
+  itemId String
+  batchId String
+  ownerId String
+  attemptNo Int
+  dispatchKey String @unique
+  fencingToken Int
+  reservedAt DateTime
+  dispatchStartedAt DateTime?
+  providerRequestId String?
+  responseReceivedAt DateTime?
+  rawJson String?
+  rawHash String?
+  outcome String @default("RESERVED")
+  latencyMs Int?
+  errorCode String?
+  retryable Boolean @default(false)
+  usageJson String?
+  reconciliationState String @default("NONE")
+  reconciledBy String?
+  reconciledAt DateTime?
+  reconciliationEvidenceJson String?
+  reservationRequests Int
+  reservationTokens Int
+  reservationCost Int
+  accounted Boolean @default(false)
+  @@unique([workId, attemptNo])
+  @@index([itemId])
+}
+
+model VideoObservationResult {
+  id String @id
+  ownerId String
+  contentKey String
+  attemptId String @unique
+  rawHash String
+  payloadJson String
+  quality String
+  createdAt DateTime
+  @@unique([ownerId, contentKey])
+}

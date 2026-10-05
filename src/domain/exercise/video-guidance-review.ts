@@ -23,7 +23,7 @@ export const guidanceReviewCommandSchema = z.discriminatedUnion("operation", [
   }).strict(),
 ]);
 export type GuidanceReviewCommand = z.infer<typeof guidanceReviewCommandSchema>;
-export const GUIDANCE_PERMISSIONS = ["VIEW_VIDEO_GUIDANCE", "REVIEW_VIDEO_GUIDANCE", "PUBLISH_VIDEO_GUIDANCE"] as const;
+export const GUIDANCE_PERMISSIONS = ["VIEW_VIDEO_GUIDANCE", "REVIEW_VIDEO_GUIDANCE", "PUBLISH_VIDEO_GUIDANCE", "ANALYZE_VIDEO_GUIDANCE"] as const;
 export type GuidancePermission = (typeof GUIDANCE_PERMISSIONS)[number];
 export type GuidanceReviewOperation = GuidanceReviewCommand["operation"];
 
@@ -40,7 +40,7 @@ export function hasGuidancePermission(actor: AuthenticatedGuidanceIdentity, owne
   }
   // Compatibility for the trusted Phase 2 port: its single capability covered all operations.
   // The real session adapter always supplies ownerPermissions, including an empty array.
-  return actor.permissions.includes("REVIEW_VIDEO_GUIDANCE");
+  return permission !== "ANALYZE_VIDEO_GUIDANCE" && actor.permissions.includes("REVIEW_VIDEO_GUIDANCE");
 }
 export interface GuidanceIdentityPort {
   currentIdentity(): Promise<AuthenticatedGuidanceIdentity | null>;
