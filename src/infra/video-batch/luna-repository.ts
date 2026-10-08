@@ -35,7 +35,7 @@ function verifyResponseRaw(raw: RawRead, payloadHash: string, dispatchKey: strin
   return Number.isInteger(raw.metadata.status) && raw.metadata.status>=100 && raw.metadata.status<=599;
 }
 export type LunaPlan = { ownerId: string; payloadHash: string; frameManifestHash: string; manifestHash: string;
-  manifestJson: string; expiresAt: Date };
+  manifestJson: string; expiresAt: Date; runId?: string; previousPreflightId?: string | null };
 
 /** Extends the SAME Phase3 work, item, attempt and budget transactions; has no Guidance writer. */
 export class LunaBatchRepository extends VideoBatchRepository {
@@ -45,13 +45,37 @@ export class LunaBatchRepository extends VideoBatchRepository {
   }
   async plan(plan: LunaPlan, actorId: string) {
     if (plan.expiresAt <= this.now()) throw new BatchError("RETRY_NOT_ALLOWED");
+    const runId=plan.runId ?? `legacy:${plan.payloadHash}`;
+    if(!runId.trim() || runId.length>200 || (plan.previousPreflightId!==undefined && plan.previousPreflightId!==null && !plan.previousPreflightId.trim()))throw new BatchError("RETRY_NOT_ALLOWED");
     return this.tx(async tx=>{
       const grant=await tx.guidanceOwnerAccess.findUnique({where:{userId_ownerId_permission:{userId:actorId,ownerId:plan.ownerId,permission:"ANALYZE_VIDEO_GUIDANCE"}}});
       if(!grant)throw new GuidanceReviewAccessError("FORBIDDEN");
       if(!/^[a-f0-9]{64}$/.test(plan.payloadHash)||!/^[a-f0-9]{64}$/.test(plan.frameManifestHash)||!/^[a-f0-9]{64}$/.test(plan.manifestHash)||!plan.manifestJson)throw new BatchError("RETRY_NOT_ALLOWED");
-      const existing=await tx.videoLunaPreflight.findUnique({where:{ownerId_payloadHash:{ownerId:plan.ownerId,payloadHash:plan.payloadHash}}});
-      if(existing){if(existing.manifestHash!==plan.manifestHash)throw new BatchError("OPERATION_KEY_CONFLICT");return existing;}
-      return tx.videoLunaPreflight.create({data:{id:randomUUID(),...plan,actorId,requestedAt:this.now(),countDispatchKey:randomUUID()}});
+      const previousPreflightId=plan.previousPreflightId ?? null;
+      const existing=await tx.videoLunaPreflight.findFirst({where:{ownerId:plan.ownerId,runId}});
+      if(existing){
+        if(existing.payloadHash!==plan.payloadHash || existing.frameManifestHash!==plan.frameManifestHash || existing.manifestHash!==plan.manifestHash
+          || existing.manifestJson!==plan.manifestJson || existing.previousPreflightId!==previousPreflightId)throw new BatchError("OPERATION_KEY_CONFLICT");
+        return existing;
+      }
+      const history=await tx.videoLunaPreflight.findMany({where:{ownerId:plan.ownerId,payloadHash:plan.payloadHash}});
+      if(history.length===0){
+        if(previousPreflightId!==null)throw new BatchError("RETRY_NOT_ALLOWED");
+      }else{
+        if(previousPreflightId===null)throw new BatchError("RETRY_NOT_ALLOWED");
+        const previous=await tx.videoLunaPreflight.findFirst({where:{id:previousPreflightId,ownerId:plan.ownerId}});
+        if(!previous || previous.payloadHash!==plan.payloadHash || previous.frameManifestHash!==plan.frameManifestHash
+          || previous.manifestHash!==plan.manifestHash || previous.manifestJson!==plan.manifestJson
+          || previous.countOutcome!=="SUCCEEDED" || previous.expiresAt>this.now())throw new BatchError("RETRY_NOT_ALLOWED");
+        const successor=await tx.videoLunaPreflight.findFirst({where:{ownerId:plan.ownerId,previousPreflightId}});
+        if(successor)throw new BatchError("RETRY_NOT_ALLOWED");
+        const active=await tx.videoLunaPreflight.findFirst({where:{ownerId:plan.ownerId,payloadHash:plan.payloadHash,
+          countOutcome:{in:["PENDING","SENT","REQUEST_OUTCOME_UNKNOWN","CONFIRMED_NOT_SENT"]}}});
+        if(active)throw new BatchError("RETRY_NOT_ALLOWED");
+      }
+      return tx.videoLunaPreflight.create({data:{id:randomUUID(),ownerId:plan.ownerId,actorId,runId,previousPreflightId,
+        payloadHash:plan.payloadHash,frameManifestHash:plan.frameManifestHash,manifestHash:plan.manifestHash,manifestJson:plan.manifestJson,
+        expiresAt:plan.expiresAt,requestedAt:this.now(),countDispatchKey:randomUUID()}});
     });
   }
   async context(id: string, ownerId: string, actorId: string) {

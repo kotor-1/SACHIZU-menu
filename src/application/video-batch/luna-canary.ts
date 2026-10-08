@@ -9,7 +9,7 @@ import { OpenAiLunaProvider } from "@/infra/video-batch/luna-provider";
 import { LunaTransportError } from "@/infra/video-batch/luna-transport";
 import type { RawRead } from "@/infra/video-batch/private-raw-store";
 
-export type CanaryApproval = { manifestHash:string; expiresAt:Date; requestCap:1 };
+export type CanaryApproval = { manifestHash:string; expiresAt:Date; requestCap:1; runId?:string; previousPreflightId?:string|null };
 export type ResponseApproval = { priceSnapshot:PriceSnapshot; currentPriceVerification:PriceVerification; costCapUsd:string; manifestHash:string; requestCap:1 };
 export type SourceVerifier = (ownerId:string,target:Target)=>Promise<boolean>;
 export const lunaCanaryManifestHash=(ownerId:string,target:Target,request:BuiltLunaRequest)=>digest({version:"luna-canary-preflight-v1",ownerId,target,payloadHash:request.requestHash,frameManifestHash:request.frameManifestHash});
@@ -39,7 +39,8 @@ export class LunaCanaryControlPlane {
     if(manifestHash!==approval.manifestHash)throw new BatchError("OPERATION_KEY_CONFLICT");
     await this.source(ownerId,target);
     return this.repo.plan({ownerId,payloadHash:request.requestHash,frameManifestHash:request.frameManifestHash,manifestHash,
-      manifestJson:canonical({target,inspection:request.inspectionPayload}),expiresAt:approval.expiresAt},actor);
+      manifestJson:canonical({target,inspection:request.inspectionPayload}),expiresAt:approval.expiresAt,
+      runId:approval.runId,previousPreflightId:approval.previousPreflightId},actor);
   }
   private tokenReceipt(raw:RawRead,request:BuiltLunaRequest):TokenReceipt {
     if(!raw.metadata || raw.metadata.status!==200 || raw.orphan)throw new Error("TOKEN_COUNT_HTTP_OR_RAW_ERROR");
@@ -49,6 +50,7 @@ export class LunaCanaryControlPlane {
   }
   async countInputTokens(id:string,ownerId:string,request:BuiltLunaRequest){
     const actor=await this.actor(ownerId),gate=await this.repo.context(id,ownerId,actor);this.assertRequest(request,gate);
+    if(gate.expiresAt<=this.now())throw new BatchError("RETRY_NOT_ALLOWED");
     if(gate.countOutcome==="SUCCEEDED")return JSON.parse(gate.countReceiptJson!) as TokenReceipt;
     await this.source(ownerId,JSON.parse(gate.manifestJson).target);
     this.provider.assertEnabled("countInputTokens");

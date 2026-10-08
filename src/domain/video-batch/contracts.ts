@@ -58,7 +58,13 @@ export function contentKey(ownerId: string, target: Target, config: AnalysisConf
     schemaVersion: config.schemaVersion, promptVersion: config.promptVersion, configVersion: config.configVersion });
 }
 export const workKey = (ownerId: string, target: Target, config: AnalysisConfig) =>
-  digest({ ownerId, exerciseId: target.exerciseId, sourceBinding: target.sourceBinding, contentKey: contentKey(ownerId, target, config), configHash: digest(config) });
+  // A Luna preflight is an expiring authorization/receipt handle, not an analysis
+  // interpretation input. Exclude it so a refreshed preflight reuses the same work.
+  // Keep the legacy fake-provider key byte-for-byte unchanged.
+  digest({ ownerId, exerciseId: target.exerciseId, sourceBinding: target.sourceBinding, contentKey: contentKey(ownerId, target, config),
+    configHash: config.provider === "openai"
+      ? digest(Object.fromEntries(Object.entries(config).filter(([key]) => key !== "preflightId")))
+      : digest(config) });
 export type BatchCode = "INVALID_VIDEO_SOURCE" | "STALE_VIDEO_GUIDANCE" | "PERSISTENCE_ERROR" | "REQUEST_OUTCOME_UNKNOWN"
   | "BUDGET_EXCEEDED" | "OPERATION_KEY_CONFLICT" | "LEASE_LOST" | "PAUSED" | "RETRY_NOT_ALLOWED" | "SCHEMA_INVALID" | "USAGE_EXCEEDS_RESERVATION";
 export class BatchError extends Error {

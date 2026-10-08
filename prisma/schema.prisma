@@ -795,6 +795,8 @@ model VideoLunaPreflight {
   id String @id
   ownerId String
   actorId String
+  runId String @default("")
+  previousPreflightId String? @unique
   payloadHash String
   frameManifestHash String
   manifestHash String
@@ -811,7 +813,8 @@ model VideoLunaPreflight {
   countError String?
   responseApprovalJson String?
   responseBatchId String? @unique
-  @@unique([ownerId, payloadHash])
+  @@unique([ownerId, runId])
+  @@index([ownerId, payloadHash])
 }
 
 model VideoObservationResult {
