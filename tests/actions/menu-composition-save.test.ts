@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { generateComposedMenu } from "@/application/menu-composition/generate";
 import { saveComposedMenu } from "@/actions/_menu-composition-save-service";
+import { editRunningPolicyMenuItem, runningCoachEditSourceFingerprint } from "@/actions/_running-coach-edit-service";
 import { compositionSchema, type MenuComposition } from "@/domain/menu-composition/contracts";
+import { createRunningMenuPreview } from "@/application/running-menu/preview";
+import type { VerifiedRunningIntent } from "@/application/running-menu/intent";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { listComposerCatalog } from "@/infra/menu-composition/catalog-repository";
 import { prisma } from "@/infra/db/prisma";
@@ -10,6 +13,7 @@ import { createSessionFromMenu, findSession } from "@/infra/repositories/session
 import { runningSessionSourceFingerprint } from "@/application/running-session/snapshot";
 import { sessionFromMenuSchema } from "@/domain/session/schema";
 import { parseRunningMenuEnvelope, finalRunningMenuPrescription } from "@/application/running-menu/persistence";
+import { issueRunningMenuPreviewToken } from "@/infra/running-menu/preview-token";
 import { menuItemEstimatedSeconds } from "@/presentation/menu-composition/planned-time";
 import { isComposedMenuContext } from "@/domain/menu-composition/saved-context";
 import { exerciseVideoGuidanceSchema } from "@/domain/exercise/video-guidance";
@@ -69,6 +73,46 @@ describe("Signed composed menu save and immutable planned snapshot", () => {
     expect(run).toMatchObject({ distanceMeters: 120, reps: 3, restSeconds: 900, sets: 1, runningMethod: null, sessionTemplateId: null });
     expect(menuItemEstimatedSeconds(run)).toBe(1800);
     expect(isComposedMenuContext(menu!.runningContextJson)).toBe(true);
+  });
+  it.each([undefined, "400m", "一般運動"])("saves, coach-edits, and reloads GENERAL with event context %s", async (event) => {
+    const requestText = "小学生、基礎的な走能力向上";
+    const intent: VerifiedRunningIntent = {
+      runningRequested: true, event: null,
+      ageGroup: { value: "ELEMENTARY", sourceText: "小学生", sourceType: "USER_TEXT" },
+      explicitDistances: [], distancePreference: null, loadReductionRequested: null, fatigueState: null,
+      purpose: { value: "BASIC", sourceText: "基礎的な走能力向上", sourceType: "USER_TEXT" },
+      intensityPreference: null, competitionDays: null, availableTimeSeconds: null,
+      humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
+    };
+    const context = { ...(event ? { event } : {}), ageGroup: "ELEMENTARY" as const, science: {
+      ageYears: 10, experience: "BEGINNER" as const, maturity: "UNKNOWN" as const, supervised: true, symptomFree: true,
+    } };
+    const running = createRunningMenuPreview(intent, context, requestText);
+    expect(running?.status).toBe("READY");
+    if (!running || running.status !== "READY") return;
+    expect(running.prescription.event).toBe("GENERAL");
+    const runningToken = issueRunningMenuPreviewToken({ ownerId: DEFAULT_OWNER_ID, requestText, context, intent, prescription: running.prescription }, COMPOSITION_TEST_KEY);
+    const generated = await generateComposedMenu({ requestText, context }, {
+      ownerId: DEFAULT_OWNER_ID, signingKey: COMPOSITION_TEST_KEY,
+      catalog: () => listComposerCatalog(DEFAULT_OWNER_ID),
+      interpret: async () => ({ ok: true as const, intent, running, previewToken: runningToken, exercises: [], unsupportedIntents: [], persistable: true }),
+      compose: async () => ({ ok: true as const, value: compositionSchema.parse({ blocks: [{ name: "走", items: [runningPlan] }] }) }),
+    });
+    expect(generated.ok).toBe(true);
+    if (!generated.ok) return;
+    const saved = await saveComposedMenu({ previewToken: generated.preview.previewToken, menuName: "小学生の基礎走", composition: generated.preview.composition, runningPrescription: generated.preview.runningPrescription });
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+    const before = (await findMenu(saved.menuId))!.blocks.flatMap((block) => block.items).find((item) => item.prescriptionKind === "RUNNING_POLICY")!;
+    expect(parseRunningMenuEnvelope(before.prescriptionKind, before.prescriptionJson)?.prescription).toMatchObject({ event: "GENERAL", science: { coachApproval: "NOT_COACH_APPROVED" } });
+    const edited = await editRunningPolicyMenuItem({ menuId: saved.menuId, itemId: before.id,
+      expectedFingerprint: runningCoachEditSourceFingerprint(before), edit: { totalReps: 3 } });
+    expect(edited.ok).toBe(true);
+    const after = (await findMenu(saved.menuId))!.blocks.flatMap((block) => block.items).find((item) => item.prescriptionKind === "RUNNING_POLICY")!;
+    const afterEnvelope = parseRunningMenuEnvelope(after.prescriptionKind, after.prescriptionJson);
+    expect(afterEnvelope && finalRunningMenuPrescription(afterEnvelope)).toMatchObject({
+      event: "GENERAL", totalReps: 3, science: { coachApproval: "NOT_COACH_APPROVED" }, scienceManualEdited: true,
+    });
   });
   it("saves human-edited dose, note, placement and deletion", async () => {
     const draft = await preview();

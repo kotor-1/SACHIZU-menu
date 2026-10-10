@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { canonicalStringify } from "@/domain/shared/canonical-json";
 import { planRunningPrescription } from "@/domain/running-policy/engine";
-import { phaseAPolicyFor, RUNNING_POLICY_HASH, RUNNING_POLICY_VERSION } from "@/domain/running-policy/policy";
+import { phaseAPolicyFor } from "@/domain/running-policy/policy";
+import { isCurrentRunningPolicy } from "@/domain/running-policy/science-policy";
+import { runningScienceContextSchema } from "@/domain/running-policy/science-contracts";
 import type { RunningPrescription } from "@/domain/running-policy/contracts";
 import {
   coachEditFieldSchema,
@@ -16,9 +18,9 @@ import {
 } from "./persistence";
 
 export const runningCoachEditRequestSchema = z.object({
-  distanceMeters: z.number().int().positive().optional(),
-  totalReps: z.number().int().positive().optional(),
-  repRestSeconds: z.number().int().positive().optional(),
+  distanceMeters: z.number().int().positive().max(2_147_483_647).optional(),
+  totalReps: z.number().int().positive().max(2_147_483_647).optional(),
+  repRestSeconds: z.number().int().positive().max(2_147_483_647).optional(),
   executionInstructionText: z.string().trim().min(1).max(300).regex(/^[^\u0000-\u001f\u007f-\u009f<>]*$/u).nullable().optional(),
   coachTargetTimeSeconds: z.number().finite().positive().nullable().optional(),
   coachTargetTimeRange: z.object({ minSeconds: z.number().finite().positive(), maxSeconds: z.number().finite().positive() }).strict().nullable().optional(),
@@ -31,16 +33,17 @@ const initialProvenanceSchema = z.object({
   schemaVersion: z.literal(1), source: z.literal("SIGNED_RUNNING_PREVIEW"),
   requestDigest: z.string().regex(/^[a-f0-9]{64}$/u),
   intent: z.object({
-    event: z.object({ value: z.enum(["100m", "200m"]) }).passthrough().nullable(),
+    event: z.object({ value: z.string().trim().min(1).max(32) }).passthrough().nullable(),
     ageGroup: z.object({ value: z.enum(["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT"]) }).passthrough().nullable(),
     loadReductionRequested: z.object({ value: z.literal(true) }).passthrough().nullable(),
     fatigueState: z.object({ value: z.enum(["REPORTED", "STRONG_OR_UNWELL"]) }).passthrough().nullable(),
     availableTimeSeconds: z.object({ value: z.number().int().positive() }).passthrough().nullable(),
   }).passthrough(),
   context: z.object({
-    event: z.enum(["100m", "200m"]).optional(),
+    event: z.string().trim().min(1).max(32).optional(),
     ageGroup: z.enum(["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT"]).optional(),
     availableTimeSeconds: z.number().int().positive().optional(),
+    science: runningScienceContextSchema.optional(),
   }).passthrough(),
 }).strict();
 
@@ -53,6 +56,7 @@ export type RunningCoachEditResult =
 function finalFromBase(base: RunningPrescription): RunningMenuFinalPrescription {
   return runningMenuFinalPrescriptionSchema.parse({
     policyVersion: base.policyVersion, policyHash: base.policyHash, event: base.event,
+    ...(base.science ? { science: base.science } : {}),
     distanceMeters: base.distanceMeters, totalReps: base.totalReps,
     totalDistanceMeters: base.totalDistanceMeters, repRestSeconds: base.repRestSeconds,
     sets: base.sets, setReps: base.setReps, setRestSeconds: base.setRestSeconds,
@@ -80,7 +84,7 @@ export function applyRunningCoachEdit(
 ): RunningCoachEditResult {
   const parsed = runningCoachEditRequestSchema.safeParse(requested);
   if (!parsed.success || !Number.isFinite(Date.parse(editedAt))) return { ok: false, code: "INVALID_EDIT" };
-  if (envelope.policyVersion !== RUNNING_POLICY_VERSION || envelope.policyHash !== RUNNING_POLICY_HASH) return { ok: false, code: "POLICY_MISMATCH" };
+  if (!isCurrentRunningPolicy(envelope.policyVersion, envelope.policyHash)) return { ok: false, code: "POLICY_MISMATCH" };
   let provenance: z.infer<typeof initialProvenanceSchema>;
   try {
     provenance = initialProvenanceSchema.parse(JSON.parse(provenanceJson ?? "null"));
@@ -92,7 +96,30 @@ export function applyRunningCoachEdit(
   let base = envelope.schemaVersion === 1 ? envelope.prescription : envelope.basePrescription;
   let final = { ...previous };
 
-  if (edit.distanceMeters !== undefined && edit.distanceMeters !== previous.distanceMeters) {
+  const scienceDefault = previous.science;
+  const isSciencePrescription = scienceDefault !== undefined;
+  // General skill practice may retain another sport/event as user context.
+  // Legacy prescriptions still accept only their original two event identities.
+  if (!isSciencePrescription && [provenance.intent.event?.value, provenance.context.event]
+    .some(event => event !== undefined && event !== "100m" && event !== "200m")) {
+    return { ok: false, code: "INVALID_ITEM" };
+  }
+  if (edit.distanceMeters !== undefined && edit.distanceMeters !== previous.distanceMeters && isSciencePrescription) {
+    // Do not run a science-derived GENERAL prescription through legacy event/Phase-A
+    // distance tables. A changed distance invalidates the stored fly-zone instruction
+    // unless a coach supplies a replacement in the same edit. The original science
+    // metadata remains untouched and is marked as a reference-only default below.
+    if (scienceDefault.flyMeters > 0 && (edit.executionInstructionText === undefined
+      || edit.executionInstructionText === null
+      || edit.executionInstructionText === previous.executionInstructionText)) {
+      return { ok: false, code: "INVALID_EDIT" };
+    }
+    final.distanceMeters = edit.distanceMeters;
+    if (edit.coachTargetTimeSeconds === undefined && edit.coachTargetTimeRange === undefined) {
+      final.coachTargetTimeSeconds = null;
+      final.coachTargetTimeRange = null;
+    }
+  } else if (edit.distanceMeters !== undefined && edit.distanceMeters !== previous.distanceMeters) {
     const event = provenance.intent.event?.value ?? provenance.context.event;
     const ageGroup = provenance.intent.ageGroup?.value ?? provenance.context.ageGroup ?? "UNKNOWN";
     if (event !== previous.event || ageGroup === "UNKNOWN") return { ok: false, code: "INVALID_ITEM" };
@@ -131,17 +158,27 @@ export function applyRunningCoachEdit(
   if (final.totalReps === 1 && edit.repRestSeconds !== undefined) return { ok: false, code: "INVALID_EDIT" };
   if (final.totalReps === 1) final.repRestSeconds = null;
   if (final.totalReps > 1 && final.repRestSeconds === null) {
+    if (isSciencePrescription) return { ok: false, code: "INVALID_EDIT" };
     const policy = phaseAPolicyFor(final.distanceMeters);
     final.repRestSeconds = policy?.defaultRepRestSeconds ?? null;
   }
-  const policy = phaseAPolicyFor(final.distanceMeters);
-  if (policy === null) return { ok: false, code: "DISTANCE_REVIEW_REQUIRED" };
-  if (final.totalReps < policy.minReps || final.totalReps > policy.maxReps ||
-      (final.totalReps > 1 && (final.repRestSeconds === null || final.repRestSeconds < policy.repRestMinSeconds || final.repRestSeconds > policy.repRestMaxSeconds))) {
-    return { ok: false, code: "RANGE_OUTSIDE" };
+  if (!isSciencePrescription) {
+    const policy = phaseAPolicyFor(final.distanceMeters);
+    if (policy === null) return { ok: false, code: "DISTANCE_REVIEW_REQUIRED" };
+    if (final.totalReps < policy.minReps || final.totalReps > policy.maxReps ||
+        (final.totalReps > 1 && (final.repRestSeconds === null || final.repRestSeconds < policy.repRestMinSeconds || final.repRestSeconds > policy.repRestMaxSeconds))) {
+      return { ok: false, code: "RANGE_OUTSIDE" };
+    }
   }
   final.totalDistanceMeters = final.distanceMeters * final.totalReps;
+  if (!Number.isSafeInteger(final.totalDistanceMeters) || final.totalDistanceMeters > 2_147_483_647) {
+    return { ok: false, code: "INVALID_EDIT" };
+  }
   final.minimumKnownRestSeconds = knownRest(final);
+  if (!Number.isSafeInteger(final.minimumKnownRestSeconds) || final.minimumKnownRestSeconds > 2_147_483_647) {
+    return { ok: false, code: "INVALID_EDIT" };
+  }
+  if (isSciencePrescription) final.scienceManualEdited = true;
   const availableTimeSeconds = provenance.intent.availableTimeSeconds?.value ?? provenance.context.availableTimeSeconds;
   if (availableTimeSeconds !== undefined && availableTimeSeconds <= final.minimumKnownRestSeconds) return { ok: false, code: "TIME_ADJUSTMENT_REQUIRED" };
   const validFinal = runningMenuFinalPrescriptionSchema.safeParse(final);
@@ -158,8 +195,8 @@ export function applyRunningCoachEdit(
   const output = runningMenuEnvelopeV2Schema.safeParse({
     kind: RUNNING_MENU_PRESCRIPTION_KIND,
     schemaVersion: RUNNING_MENU_COACH_EDIT_SCHEMA_VERSION,
-    policyVersion: RUNNING_POLICY_VERSION,
-    policyHash: RUNNING_POLICY_HASH,
+    policyVersion: base.policyVersion,
+    policyHash: base.policyHash,
     basePrescription: base,
     finalPrescription: validFinal.data,
     coachEditProvenance: { edited: true, edits: [...previousEdits, ...changes] },

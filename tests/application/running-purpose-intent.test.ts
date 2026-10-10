@@ -23,29 +23,29 @@ describe("purpose-aware intent boundary", () => {
     expect(verified.engineIntent.purpose).toBeNull();
     expect(verified.engineIntent.intensityPreference).toBeNull();
   });
-  it("preserves direct purpose and applies the specific fail-closed policy gate", () => {
+  it("preserves direct purpose and requires an explicit athlete context", () => {
     const quote = "加速力向上を目的に";
     const result = verifyPrimarySemanticIntentV2(quote, makeIntent([claim("PURPOSE", "ACCEL", quote)]), []);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.engineIntent.purpose).toMatchObject({ value: "ACCEL", sourceText: quote });
-    expect(createRunningMenuPreview(result.engineIntent, {}, quote)).toMatchObject({ status: "NEEDS_POLICY", reason: "ACCEL_PURPOSE_NOT_APPROVED" });
+    expect(createRunningMenuPreview(result.engineIntent, {}, quote)).toMatchObject({ status: "NEEDS_INPUT", reason: "SCIENCE_CONTEXT_REQUIRED" });
   });
 
   it.each([
-    ["ゴール前まで速さを保つ", "SPEED_ENDURANCE", "SPEED_ENDURANCE_PURPOSE_NOT_APPROVED"],
-    ["出だしを速くしたい", "ACCEL", "ACCEL_PURPOSE_NOT_APPROVED"],
-    ["トップスピードを上げたい", "MAX_SPEED", "MAX_SPEED_PURPOSE_NOT_APPROVED"],
-    ["速いペースを長く維持したい", "SPEED_ENDURANCE", "SPEED_ENDURANCE_PURPOSE_NOT_APPROVED"],
-    ["走りの土台を作りたい", "BASIC", "BASIC_PURPOSE_NOT_APPROVED"],
-    ["大会に向けてコンディションを整えたい", "PRECOMP", "PRECOMP_PURPOSE_NOT_APPROVED"],
-    ["疲労を抜いて回復したい", "RECOVERY", "RECOVERY_PURPOSE_NOT_APPROVED"],
+    ["ゴール前まで速さを保つ", "SPEED_ENDURANCE", "SCIENCE_CONTEXT_REQUIRED"],
+    ["出だしを速くしたい", "ACCEL", "SCIENCE_CONTEXT_REQUIRED"],
+    ["トップスピードを上げたい", "MAX_SPEED", "SCIENCE_CONTEXT_REQUIRED"],
+    ["速いペースを長く維持したい", "SPEED_ENDURANCE", "SCIENCE_CONTEXT_REQUIRED"],
+    ["走りの土台を作りたい", "BASIC", "SCIENCE_CONTEXT_REQUIRED"],
+    ["大会に向けてコンディションを整えたい", "PRECOMP", "SCIENCE_CONTEXT_REQUIRED"],
+    ["疲労を抜いて回復したい", "RECOVERY", "SCIENCE_CONTEXT_REQUIRED"],
   ] as const)("accepts a grounded semantic purpose paraphrase: %s", (quote, purpose, reason) => {
     const result = verifyPrimarySemanticIntentV2(quote, makeIntent([claim("PURPOSE", purpose, quote)]), []);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.engineIntent.purpose?.value).toBe(purpose);
-    expect(createRunningMenuPreview(result.engineIntent, {}, quote)).toMatchObject({ status: "NEEDS_POLICY", reason });
+    expect(createRunningMenuPreview(result.engineIntent, {}, quote)).toMatchObject({ status: "NEEDS_INPUT", reason });
   });
 
   it("uses grounded legacy unsupported quotes only as a policy gate", () => {
@@ -54,21 +54,21 @@ describe("purpose-aware intent boundary", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.engineIntent.purpose).toMatchObject({ value: "SPEED_ENDURANCE", sourceText: quote });
-    expect(createRunningMenuPreview(result.engineIntent, {}, quote)).toMatchObject({ status: "NEEDS_POLICY", reason: "SPEED_ENDURANCE_PURPOSE_NOT_APPROVED" });
+    expect(createRunningMenuPreview(result.engineIntent, {}, quote)).toMatchObject({ status: "NEEDS_INPUT", reason: "SCIENCE_CONTEXT_REQUIRED" });
   });
 
   it.each([
-    ["小学生です。加速力向上を目的に練習したい", "ELEMENTARY", "加速力向上を目的に", "ELEMENTARY_POLICY_NOT_APPROVED"],
-    ["高校生です。スピード持久力向上を目的に練習したい", "HIGH_SCHOOL", "スピード持久力向上を目的に", "SPEED_ENDURANCE_PURPOSE_NOT_APPROVED"],
-    ["中学生です。大会前日なので疲労を残さない調整をしたい", "JUNIOR_HIGH", "大会前日なので疲労を残さない調整をしたい", "PRECOMP_PURPOSE_NOT_APPROVED"],
-    ["小学生です。基礎的な走能力向上を目的に練習したい", "ELEMENTARY", "基礎的な走能力向上を目的に", "ELEMENTARY_POLICY_NOT_APPROVED"],
-    ["低強度の練習を45分行いたい", "HIGH_SCHOOL", "低強度の練習を45分行いたい", "LOW_INTENSITY_NOT_APPROVED"],
+    ["小学生です。加速力向上を目的に練習したい", "ELEMENTARY", "加速力向上を目的に", "SCIENCE_CONTEXT_REQUIRED"],
+    ["高校生です。スピード持久力向上を目的に練習したい", "HIGH_SCHOOL", "スピード持久力向上を目的に", "SCIENCE_CONTEXT_REQUIRED"],
+    ["中学生です。大会前日なので疲労を残さない調整をしたい", "JUNIOR_HIGH", "大会前日なので疲労を残さない調整をしたい", "SCIENCE_CONTEXT_REQUIRED"],
+    ["小学生です。基礎的な走能力向上を目的に練習したい", "ELEMENTARY", "基礎的な走能力向上を目的に", "SCIENCE_CONTEXT_REQUIRED"],
+    ["低強度の練習を45分行いたい", "HIGH_SCHOOL", "低強度の練習を45分行いたい", "SCIENCE_CONTEXT_REQUIRED"],
   ] as const)("routes recorded request to a gate: %s", (text, age, quote, reason) => {
     const result = verifyPrimarySemanticIntentV2(text, makeIntent([], [{ meaning: "未対応の目的または強度", sourceText: quote }]), []);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const engine = createRunningMenuPreview(result.engineIntent, { ageGroup: age }, text);
-    expect(engine).toMatchObject({ status: "NEEDS_POLICY", reason });
+    expect(engine).toMatchObject({ status: "NEEDS_INPUT", reason });
   });
 
   it("does not resurrect negated, past, or superseded purpose claims", () => {
@@ -105,7 +105,7 @@ describe("purpose-aware intent boundary", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.engineIntent).toMatchObject({ intensityPreference: { value: "LOW" }, loadReductionRequested: null });
-    expect(createRunningMenuPreview(result.engineIntent, {}, quote)).toMatchObject({ status: "NEEDS_POLICY", reason: "LOW_INTENSITY_NOT_APPROVED" });
+    expect(createRunningMenuPreview(result.engineIntent, {}, quote)).toMatchObject({ status: "NEEDS_INPUT", reason: "SCIENCE_CONTEXT_REQUIRED" });
   });
 
   it("fails closed if the legacy intent path drops a stated purpose or intensity", () => {

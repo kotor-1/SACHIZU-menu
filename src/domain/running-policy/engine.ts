@@ -14,6 +14,7 @@ import {
   RUNNING_POLICY_VERSION,
 } from "./policy";
 import { unsupportedPurposeReason } from "./purpose";
+import { planScienceRunning } from "./science-plan";
 
 type StopStatus = "NEEDS_INPUT" | "NEEDS_POLICY" | "COACH_REVIEW_REQUIRED" | "BLOCKED";
 type StopReason = Exclude<RunningFailureReason, "AVAILABLE_TIME_TOO_SHORT">;
@@ -67,6 +68,11 @@ export function planRunningPrescription(input: unknown): RunningPolicyResult {
   // explicit serious fatigue or illness concern behind an irrelevant event prompt.
   if (request.fatigueState === "STRONG_OR_UNWELL") {
     return stop("COACH_REVIEW_REQUIRED", "STRONG_FATIGUE_OR_UNWELL", request);
+  }
+  // Historical coach policy is unchanged. Purpose requests use a separately
+  // versioned scientific default and explicit athlete context, never AI doses.
+  if (request.purpose || request.intensityPreference || request.competitionDays === 1) {
+    return planScienceRunning(request);
   }
   // These policy gates do not require an event to be meaningful. Keep the
   // elementary protection visible even when the athlete has not supplied one.

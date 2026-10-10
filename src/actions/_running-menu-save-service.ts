@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { canonicalStringify, sha256Utf8Hex } from "@/domain/shared/canonical-json";
 import { menuItemInputSchema } from "@/domain/menu/schema";
-import { RUNNING_POLICY_HASH, RUNNING_POLICY_VERSION } from "@/domain/running-policy/policy";
+import { runningScienceContextSchema } from "@/domain/running-policy/science-contracts";
+import { isCurrentRunningPolicy } from "@/domain/running-policy/science-policy";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { createRunningMenuPreview } from "@/application/running-menu/preview";
 import { RUNNING_MENU_PRESCRIPTION_KIND, finalRunningMenuPrescription, parseRunningMenuEnvelope, runningMenuEnvelopeSchema, runningPrescriptionFingerprint, serializeRunningMenuEnvelope, serializeRunningMenuEnvelopeV2 } from "@/application/running-menu/persistence";
@@ -20,6 +21,7 @@ export const saveRunningMenuInputSchema = z.object({
     event: z.string().max(32).optional(),
     ageGroup: z.enum(["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT"]).optional(),
     availableTimeSeconds: z.number().int().positive().optional(),
+    science: runningScienceContextSchema.optional(),
   }).strict(),
   /** Echoed preview is compared to the signed server result. It is never a write source. */
   previewPrescription: z.unknown(),
@@ -54,11 +56,12 @@ export function evaluateSignedRunningPreview(input: SignedPreviewInput):
   try { claims = verifyRunningMenuPreviewToken(input.previewToken, runningMenuSigningKey()); }
   catch { return { ok: false, code: "STALE_PREVIEW" }; }
   if (claims === null || claims.ownerId !== DEFAULT_OWNER_ID) return { ok: false, code: "STALE_PREVIEW" };
-  if (claims.policyVersion !== RUNNING_POLICY_VERSION || claims.policyHash !== RUNNING_POLICY_HASH ||
+  if (!isCurrentRunningPolicy(claims.policyVersion, claims.policyHash) ||
       input.previewPolicyVersion !== claims.policyVersion || input.previewPolicyHash !== claims.policyHash) return { ok: false, code: "POLICY_MISMATCH" };
   if (claims.requestText !== input.requestText || canonicalStringify(claims.context) !== canonicalStringify(input.context)) return { ok: false, code: "STALE_PREVIEW" };
   const running = createRunningMenuPreview(claims.intent, claims.context, claims.requestText);
   if (running?.status !== "READY") return { ok: false, code: "RUNNING_NOT_READY" };
+  if (claims.policyVersion !== running.prescription.policyVersion || claims.policyHash !== running.prescription.policyHash) return { ok: false, code: "POLICY_MISMATCH" };
   const serverFingerprint = runningPrescriptionFingerprint(running.prescription);
   let echoedFingerprint: string;
   try { echoedFingerprint = sha256Utf8Hex(canonicalStringify(input.previewPrescription)); }

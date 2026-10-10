@@ -71,11 +71,11 @@ describe("recorded interpreter replay with an offline fixture composer (not live
 
   it("verifies the five recorded Luna interpretations and applies only the existing Engine policy", () => {
     const expected = {
-      grade5_acceleration_60: ["NEEDS_POLICY", "ELEMENTARY_POLICY_NOT_APPROVED"],
-      highschool_speed_endurance_90: ["NEEDS_POLICY", "SPEED_ENDURANCE_PURPOSE_NOT_APPROVED"],
-      junior_precompetition_40: ["NEEDS_POLICY", "PRECOMP_PURPOSE_NOT_APPROVED"],
-      elementary_beginner_60: ["NEEDS_POLICY", "ELEMENTARY_POLICY_NOT_APPROVED"],
-      strong_fatigue_low_45: ["NEEDS_POLICY", "LOW_INTENSITY_NOT_APPROVED"],
+      grade5_acceleration_60: ["NEEDS_INPUT", "SCIENCE_CONTEXT_REQUIRED"],
+      highschool_speed_endurance_90: ["NEEDS_INPUT", "SCIENCE_CONTEXT_REQUIRED"],
+      junior_precompetition_40: ["NEEDS_INPUT", "SCIENCE_CONTEXT_REQUIRED"],
+      elementary_beginner_60: ["NEEDS_INPUT", "SCIENCE_CONTEXT_REQUIRED"],
+      strong_fatigue_low_45: ["NEEDS_INPUT", "SCIENCE_CONTEXT_REQUIRED"],
     } as const;
 
     expect(recorded.cases).toHaveLength(5);

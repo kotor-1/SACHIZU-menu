@@ -79,6 +79,24 @@ describe("running intent extraction contract and application adapter", () => {
     expect(preview("高校生100m選手、今日のメニューを作って", { event: quoted("100m", "100m選手"), ageGroup: quoted("HIGH_SCHOOL", "高校生") }, { event: "200m" })).toMatchObject({ status: "COACH_REVIEW_REQUIRED", reason: "USER_CONTEXT_CONFLICT" });
   });
 
+  it("passes explicit science context through the preview adapter without deriving it from school grade", () => {
+    const result = preview("高校生100m選手、加速力向上を希望", {
+      event: quoted("100m", "100m選手"), ageGroup: quoted("HIGH_SCHOOL", "高校生"),
+      purpose: quoted("ACCEL", "加速力向上"),
+    }, { event: "100m", ageGroup: "HIGH_SCHOOL", science: {
+      ageYears: 17, experience: "EXPERIENCED", maturity: "POST", supervised: true,
+      symptomFree: true, familiarWithSprint: true, hoursSinceHighIntensity: 72,
+      hoursUntilNextHighIntensity: 72, highIntensitySessionsLast7Days: 0,
+    } });
+    expect(result?.status).toBe("READY");
+    if (result?.status !== "READY") throw new Error("Not ready");
+    expect(result.prescription.science).toMatchObject({
+      source: "SCIENCE_INFORMED_DEFAULT", coachApproval: "NOT_COACH_APPROVED", provisional: true,
+      ruleId: "SCI_ACC_EXPERIENCED", buildupMeters: 0, flyMeters: 0, decelerationMeters: 0,
+    });
+    expect(result.message).toContain("コーチ承認済みではありません");
+  });
+
   it("parses a strict OpenAI response without using a catalog of old Running templates", async () => {
     const claims = { ...empty(), event: quoted("100m", "100m選手"), ageGroup: quoted("JUNIOR_HIGH", "中学生") };
     const fetchImpl = async (_url: RequestInfo | URL, init?: RequestInit) => {

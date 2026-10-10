@@ -5,6 +5,14 @@
 - 入力資料: `docs/` の6点（Audit v1 / Perplexity / Claude / ChatGPT / Gemini Deep Research / Fable 5.1 反証レビュー）
 - 本書の性質: **実装仕様**。科学的再調査はしていない。数値の科学的妥当性を本書が保証するものではない。
 
+### 0.3 2026-10-10 状態注記（状態のみの追記）
+
+本書の当初記述と現在のrepository stateを混同しない。RuleSet JSON/manifestはimmutableな履歴として変更しない。`rs-2026.09.0` は commit `160ee18004405d43350b653d83e614d63ad72d5d` で `ACTIVE` にされた実装事実があり、現在のmanifest/runtimeもその状態を示す。このstatusは、RuleSet内の全数値が科学的に直接検証済みであること、全methodの目的別mappingがコーチ承認済みであること、あるいは現行specのOPEN-20照合ゲートが満たされたことを意味しない。未照合のsynthesis、ENGINE_POLICY、purpose-selection、coaching approval gapsは個別に残る。
+
+従って、§23 RK-01、§24 OPEN-20、§25の当初 `DRAFT` / ACTIVE化NO-GO文言は、その時点の状態・リスク記録として保持するが、現在状態の判定には本注記と§25の2026-10-10追記を優先する。ACTIVE化後のファイル変更・再hash化は許可されない。新しい科学的暫定defaultsは、ユーザー指示で別途定義する有限policy `rp-science-2026.10.0` のauthorityで扱い、旧finite policy `rp-2026.09.0` の `COACH_DEFINED` / `CONFIRMED` 表明や `rs-2026.09.0` のstatus・証拠記録を遡及変更しない。実装は旧RuleSetの数値/envelope/evidenceを読み替えず、新finite policyだけで完結する範囲に限り、legacy OPEN-20の全RuleSet reconciliation gateを誤って適用しない。これはR12のAI production gate、flag、または未解決のlegacy RuleSet利用に対する免除ではない。
+
+新しい暫定値の由来と状態分類は [`RUNNING_SCIENCE_DEFAULTS_2026_10.txt`](RUNNING_SCIENCE_DEFAULTS_2026_10.txt) に記録する。文献由来の範囲とENGINE_POLICYとして選ぶ具体的な初期値を分け、既存コーチ承認とは明確に区別する。
+
 ## 0. 読み方
 
 ### 0.1 判断ラベル（全設計判断に付与）
@@ -3223,7 +3231,7 @@ export type AiPlannerProposal = {
 
 | # | リスク | 重要度 | 対策 |
 | --- | --- | --- | --- |
-| RK-01 | [SOURCE-BACKED] の数値も全件「二次報告のみ」。DR の誤読・誤引用が混入している可能性（Gemini の RCT 誤表示のような例） | Critical | `verification` と `provisional` を必須化、初期最高 confidence を MODERATE に制限、ルールセットを DRAFT のまま運用、一次資料照合を ACTIVE 化の条件にする（OPEN-20） |
+| RK-01 | [SOURCE-BACKED] の派生数値には適用範囲の差・未照合部分が残る。DR の誤読・誤引用が混入している可能性（Gemini のRCT誤表示のような例） | Critical | 当初のDRAFT保留策は本書作成時の状態。現在の`rs-2026.09.0` ACTIVEはstatus事実で、全数値の一次検証・目的別coach approvalを意味しない。`verification` / `provisional` / directnessを保持し、細目と有限policy新defaultsを§0.3・§24・§25・[`RUNNING_SCIENCE_DEFAULTS_2026_10.txt`](RUNNING_SCIENCE_DEFAULTS_2026_10.txt)に分離して記録する |
 | RK-02 | 認証が無く、「コーチ role」を実質的に強制できない（UI を触れる人は全員コーチ扱い） | High | AI 経路とコーチ経路をモジュールと型で分離（§18）。本格的な role はマルチユーザー対応時（OPEN-19） |
 | RK-03 | 未成年の健康情報の扱い | High | 選択式のみ・非保存・AI 非送出（§13.5）。保存方針と保護者同意は OPEN-15 |
 | RK-04 | GROUP の「最も制約の強い条件」で上級者に過小処方になる | Medium | ATHLETE subject を後続で実装（OPEN-01）。GROUP では目標タイムを出さない |
@@ -3261,7 +3269,7 @@ export type AiPlannerProposal = {
 | OPEN-17 | 高速曝露の週次急増ガード | 未実装 | 研究 |
 | OPEN-18 | 個別コーチの taper テンプレート（Francis 10日型等） | 実装しない | プロダクト判断 |
 | OPEN-19 | 認証と coach role の強制 | UI 経路 = コーチ | マルチユーザー対応時 |
-| OPEN-20 | ルールセットを ACTIVE にする承認者と一次資料照合の手順 | 全版 DRAFT | ユーザー（コーチ）＋照合担当 |
+| OPEN-20 | ルールセットを ACTIVE にする承認者と一次資料照合の手順 | **現在状態: PARTIAL / legacy reconciliation remains open.** `rs-2026.09.0` は commit `160ee18004405d43350b653d83e614d63ad72d5d` でACTIVE。ACTIVEは全数値の科学的validationや目的別coach approvalを意味せず、未照合synthesis等は継続。`rp-science-2026.10.0`は別authorityのfinite-policy候補で、legacy RuleSet再承認ではない | legacy RuleSetの全体reconciliation/変更はOPEN。新finite policy経路は§0.3に従い独立扱い |
 | OPEN-21 | Special Endurance I/II の距離・時間境界 | template 名だけ持ち境界を定義しない | 研究 |
 | OPEN-22 | `plannedDate` が無いテンプレートの週次評価 | 練習作成時にのみ評価 | UX 判断 |
 | OPEN-23 | RESISTED_SPRINT の repDistanceM（10–30/10–40m 等）を裏付ける usage=PRESCRIPTION の一次資料 | ADV 10–30m=BEST_PRACTICE_SYNTHESIS（Haugen Table 2）、DEV 10–20m=ENGINE_POLICY。Petrakos の Vdec は load classification であり repDistance prescription ではない | CLOSED（OPEN20 一次資料照合） |
@@ -3293,7 +3301,9 @@ Fable の Critical 8件は本書で次のように反映済み:
 | **R12-A2以降の実装**（flag OFF） | **GO** | MenuPlanner foundation contract testを維持し、preview / accept / providerを段階実装する。DB・UI・provider接続は各段階の明示scopeに従う |
 | **R12 production enable** | **NO-GO（現時点）** | OPEN-20完了、RuleSet ACTIVE、`AI_MENU_PLANNER_ENABLED=true`がすべて必要。DRAFT RuleSetで本番AI生成を有効にしない |
 | **R13**（legacy 係数削除） | **NO-GO（現時点）** | R3・R4・R10 の完了と運用確認が前提 |
-| ルールセットの ACTIVE 化 | **NO-GO（現時点）** | 一部の資料照合は完了したが、派生policy・未照合synthesisを含むRuleSet全体のOPEN20一次資料reconciliationと人間の承認が未完了 |
+| legacy `rs-2026.09.0` status | **ACTIVE（既存状態）** | Commit `160ee18004405d43350b653d83e614d63ad72d5d` がACTIVE化した履歴。ファイル・manifestは不変。未照合synthesis、派生policy、目的別coach approvalは残り、ACTIVEはそれらの承認を含まない |
+| legacy RuleSet全体の科学的再照合・目的別承認 | **NO-GO / OPEN** | 未照合synthesis等の全体reconciliationと人間の目的別承認が未完了。新finite policyの導入をこのlegacy gateで一括停止しない |
+| `rp-science-2026.10.0` finite-policy extension | **SCOPED GO FOR IMPLEMENTATION** | 2026-10-10の明示的ユーザー指示に基づく独立authority。ENGINE_POLICYの初期値は暫定と表示し、Haugen/NSCA/youth meta-analysis由来の範囲と区別する。`rp-2026.09.0`承認記録・legacy RuleSet・R12 AI production gateは変更/迂回しない |
 
 **本書は数値の科学的妥当性を保証しません。** [SOURCE-BACKED] は出典を持つ資料由来であることを示し、`PRIMARY_CHECKED` は対象資料を照合した記録、`SECONDARY_REPORT_ONLY` はDeep Research経由の未照合記録である。照合済み資料から派生したtier値・境界・運用値まで科学的に検証済みになるわけではない。[ENGINE-POLICY] は安全側に倒した運用値であり、科学的事実として画面や AI の文章に表示してはいけません。
 

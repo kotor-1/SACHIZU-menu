@@ -9,6 +9,7 @@ import { extractRunningSemanticIntentV2 } from "@/infra/running-menu/openai-sema
 import type { RunningResponseDiagnostic } from "@/infra/running-menu/structured-response";
 import { listExercisesForMenuPlanner } from "@/infra/repositories/exercise-repository";
 import { issueRunningMenuPreviewToken, runningMenuSigningKey } from "@/infra/running-menu/preview-token";
+import { runningScienceContextSchema } from "@/domain/running-policy/science-contracts";
 
 const inputSchema = z.object({
   requestText: z.string().trim().min(1).max(2000),
@@ -16,6 +17,7 @@ const inputSchema = z.object({
     event: z.string().trim().min(1).max(32).optional(),
     ageGroup: z.enum(["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT"]).optional(),
     availableTimeSeconds: z.number().int().positive().optional(),
+    science: runningScienceContextSchema.optional(),
   }).strict(),
 }).strict();
 

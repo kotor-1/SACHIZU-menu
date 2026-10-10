@@ -4,11 +4,13 @@ import { isRunningExerciseForV2 } from "@/presentation/running/legacy-routing";
 import type { ExerciseVideoGuidance } from "@/domain/exercise/video-guidance";
 import { resolveWhitespaceQuote } from "@/domain/shared/source-quote";
 import { unprescribedRunningItemSchema } from "./unprescribed-running";
+import { runningScienceContextSchema } from "@/domain/running-policy/science-contracts";
 
 export const menuCompositionContextSchema = z.object({
   event: z.string().trim().min(1).max(32).optional(),
   ageGroup: z.enum(["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT"]).optional(),
   availableTimeSeconds: z.number().int().positive().optional(),
+  science: runningScienceContextSchema.optional(),
 }).strict();
 export const composeMenuInputSchema = z.object({
   requestText: z.string().trim().min(1).max(2000), context: menuCompositionContextSchema,

@@ -32,7 +32,9 @@ export async function generateComposedMenu(input: unknown, deps: {
     const pending = interpreted.running && interpreted.running.status !== "READY" ? interpreted.running : null;
     // Missing policy/input can leave an editable draft. Safety, conflicts and invalid
     // inputs remain stops and must not be disguised as missing approval.
-    const canDraft = pending?.status === "NEEDS_POLICY" || (pending?.status === "NEEDS_INPUT" && ["EVENT_REQUIRED", "AGE_REQUIRED"].includes(pending.reason));
+    const canDraft = pending?.status === "NEEDS_POLICY"
+      || (pending?.status === "NEEDS_INPUT" && (["EVENT_REQUIRED", "AGE_REQUIRED"].includes(pending.reason) || pending.reason.startsWith("SCIENCE_")))
+      || (pending?.status === "COACH_REVIEW_REQUIRED" && pending.reason === "RECOVERY_REST_PREFERRED");
     if (pending && !canDraft) return { ok: false, code: pending.status, message: pending.message };
     const unprescribedRunning = pending ? { reasonCode: pending.reason, reasonMessage: pending.message } : null;
     const running = interpreted.running?.status === "READY" ? interpreted.running.prescription : null;
@@ -43,13 +45,23 @@ export async function generateComposedMenu(input: unknown, deps: {
       return { ok: false, code: "TIME_CONTEXT_CONFLICT", message: "文章と入力欄の希望時間が異なります。どちらを使うか確認してください。" };
     }
     // Composer needs verified facts, while the Running token keeps its original input context.
-    const composerContext = { ...parsed.data.context,
+    const composerContext = {
+      ...(parsed.data.context.event ? { event: parsed.data.context.event } : {}),
+      ...(parsed.data.context.ageGroup ? { ageGroup: parsed.data.context.ageGroup } : {}),
       ...(interpreted.intent.event ? { event: interpreted.intent.event.value } : {}),
       ...(interpreted.intent.ageGroup ? { ageGroup: interpreted.intent.ageGroup.value } : {}),
       ...(requestedTimeSeconds !== null ? { availableTimeSeconds: requestedTimeSeconds } : {}),
     };
     const catalog = (await deps.catalog()).filter((row) => row.ownerId === deps.ownerId);
-    const candidates = selectComposerCatalog(catalog, parsed.data.requestText, interpreted.exercises.map((row) => row.id));
+    const elementaryBeginner = composerContext.ageGroup === "ELEMENTARY"
+      && parsed.data.context.science?.experience === "BEGINNER";
+    // Conservative ENGINE_POLICY retrieval boundary for the only explicit group
+    // currently covered: elementary beginners. Unknown or advanced difficulty is
+    // excluded from the AI proposal catalog; reviewed items remain human-selectable.
+    const composerEligibleCatalog = elementaryBeginner
+      ? catalog.filter((row) => Number.isInteger(row.difficulty) && row.difficulty! >= 1 && row.difficulty! <= 2)
+      : catalog;
+    const candidates = selectComposerCatalog(composerEligibleCatalog, parsed.data.requestText, interpreted.exercises.map((row) => row.id));
     const output = await deps.compose({ ...parsed.data, context: composerContext, catalog: candidates, runningPrescription: running, unprescribedRunning, unsupportedIntents: interpreted.unsupportedIntents });
     if (!output.ok) return { ok: false, code: "COMPOSITION_UNAVAILABLE", message: "メニュー案を取得できませんでした。時間をおいて再度お試しください。" };
     const runningSourceTexts = interpreted.intent.explicitDistances.map((claim) => claim.sourceText);

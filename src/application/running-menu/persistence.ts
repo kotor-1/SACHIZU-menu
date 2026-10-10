@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { canonicalStringify, sha256Utf8Hex } from "@/domain/shared/canonical-json";
 import { RUNNING_DECISION_REASONS, type RunningPrescription } from "@/domain/running-policy/contracts";
+import { runningSciencePrescriptionSchema } from "@/domain/running-policy/science-contracts";
 
 export const RUNNING_MENU_PRESCRIPTION_KIND = "RUNNING_POLICY" as const;
 export const RUNNING_MENU_PERSISTENCE_SCHEMA_VERSION = 1 as const;
@@ -9,22 +10,23 @@ export const RUNNING_MENU_COACH_EDIT_SCHEMA_VERSION = 2 as const;
 export const runningMenuPrescriptionSchema = z.object({
   policyVersion: z.string().min(1),
   policyHash: z.string().regex(/^[a-f0-9]{64}$/u),
-  event: z.enum(["100m", "200m"]),
-  distanceMeters: z.number().int().positive(),
-  totalReps: z.number().int().positive(),
-  totalDistanceMeters: z.number().int().positive(),
+  event: z.enum(["100m", "200m", "GENERAL"]),
+  science: runningSciencePrescriptionSchema.optional(),
+  distanceMeters: z.number().int().positive().max(2_147_483_647),
+  totalReps: z.number().int().positive().max(2_147_483_647),
+  totalDistanceMeters: z.number().int().positive().max(2_147_483_647),
   repsPosition: z.enum(["DEFAULT", "MIN"]),
-  repRestSeconds: z.number().int().positive().nullable(),
-  sets: z.number().int().positive(),
-  setReps: z.array(z.number().int().positive()).min(2).nullable(),
-  setRestSeconds: z.number().int().positive().nullable(),
+  repRestSeconds: z.number().int().positive().max(2_147_483_647).nullable(),
+  sets: z.number().int().positive().max(2_147_483_647),
+  setReps: z.array(z.number().int().positive().max(2_147_483_647)).min(2).max(20).nullable(),
+  setRestSeconds: z.number().int().positive().max(2_147_483_647).nullable(),
   intensityPresentation: z.literal("PLAIN_LANGUAGE"),
   executionInstructionText: z.string().max(300).nullable(),
   coachTargetTimeSeconds: z.number().positive().nullable(),
   coachTargetTimeRange: z.object({ minSeconds: z.number().positive(), maxSeconds: z.number().positive() }).strict().nullable(),
   loadReductionRequested: z.boolean(),
   repsReductionApplied: z.boolean(),
-  minimumKnownRestSeconds: z.number().int().nonnegative(),
+  minimumKnownRestSeconds: z.number().int().nonnegative().max(2_147_483_647),
   fullSessionTimeGuaranteed: z.literal(false),
   decisionReasons: z.array(z.enum(RUNNING_DECISION_REASONS)),
 }).strict().superRefine((value, context) => {
@@ -58,19 +60,22 @@ export type RunningMenuEnvelope = z.infer<typeof runningMenuEnvelopeSchema>;
 export const runningMenuFinalPrescriptionSchema = z.object({
   policyVersion: z.string().min(1),
   policyHash: z.string().regex(/^[a-f0-9]{64}$/u),
-  event: z.enum(["100m", "200m"]),
-  distanceMeters: z.number().int().positive(),
-  totalReps: z.number().int().positive(),
-  totalDistanceMeters: z.number().int().positive(),
-  repRestSeconds: z.number().int().positive().nullable(),
-  sets: z.number().int().positive(),
+  event: z.enum(["100m", "200m", "GENERAL"]),
+  science: runningSciencePrescriptionSchema.optional(),
+  /** Original science metadata remains immutable; this marks edited executable values. */
+  scienceManualEdited: z.boolean().optional(),
+  distanceMeters: z.number().int().positive().max(2_147_483_647),
+  totalReps: z.number().int().positive().max(2_147_483_647),
+  totalDistanceMeters: z.number().int().positive().max(2_147_483_647),
+  repRestSeconds: z.number().int().positive().max(2_147_483_647).nullable(),
+  sets: z.number().int().positive().max(2_147_483_647),
   setReps: z.array(z.number().int().positive()).min(2).max(20).nullable(),
   setRestSeconds: z.number().int().positive().max(2_147_483_647).nullable(),
   intensityPresentation: z.literal("PLAIN_LANGUAGE"),
   executionInstructionText: z.string().trim().min(1).max(300).regex(/^[^\u0000-\u001f\u007f-\u009f<>]*$/u).nullable(),
   coachTargetTimeSeconds: z.number().finite().positive().nullable(),
   coachTargetTimeRange: z.object({ minSeconds: z.number().finite().positive(), maxSeconds: z.number().finite().positive() }).strict().nullable(),
-  minimumKnownRestSeconds: z.number().int().nonnegative(),
+  minimumKnownRestSeconds: z.number().int().nonnegative().max(2_147_483_647),
   fullSessionTimeGuaranteed: z.literal(false),
 }).strict().superRefine((value, context) => {
   if (value.totalDistanceMeters !== value.distanceMeters * value.totalReps) context.addIssue({ code: "custom", path: ["totalDistanceMeters"], message: "total distance mismatch" });
@@ -115,9 +120,25 @@ export const runningMenuEnvelopeV2Schema = z.object({
 }).strict().superRefine((value, context) => {
   if (value.policyVersion !== value.basePrescription.policyVersion || value.policyHash !== value.basePrescription.policyHash ||
       value.policyVersion !== value.finalPrescription.policyVersion || value.policyHash !== value.finalPrescription.policyHash ||
-      value.basePrescription.event !== value.finalPrescription.event ||
-      value.basePrescription.distanceMeters !== value.finalPrescription.distanceMeters) {
+      value.basePrescription.event !== value.finalPrescription.event) {
     context.addIssue({ code: "custom", path: ["finalPrescription"], message: "base/final identity mismatch" });
+  }
+  if (canonicalStringify(value.basePrescription.science ?? null) !== canonicalStringify(value.finalPrescription.science ?? null)) {
+    context.addIssue({ code: "custom", path: ["finalPrescription", "science"], message: "science default metadata is immutable" });
+  }
+  if (value.basePrescription.science !== undefined && value.finalPrescription.scienceManualEdited !== true) {
+    context.addIssue({ code: "custom", path: ["finalPrescription", "scienceManualEdited"], message: "science coach edits must be marked" });
+  }
+  if (value.basePrescription.science === undefined && value.finalPrescription.scienceManualEdited === true) {
+    context.addIssue({ code: "custom", path: ["finalPrescription", "scienceManualEdited"], message: "science edit marker requires science metadata" });
+  }
+  if (value.basePrescription.distanceMeters !== value.finalPrescription.distanceMeters
+    && !value.coachEditProvenance.edits.some((edit) => edit.field === "distanceMeters")) {
+    context.addIssue({ code: "custom", path: ["coachEditProvenance"], message: "distance change requires coach audit" });
+  }
+  if (value.basePrescription.science?.flyMeters && value.basePrescription.distanceMeters !== value.finalPrescription.distanceMeters
+    && !value.coachEditProvenance.edits.some((edit) => edit.field === "executionInstructionText")) {
+    context.addIssue({ code: "custom", path: ["coachEditProvenance"], message: "science distance change requires instruction audit" });
   }
   // Historical v2 readers must not compare against a future current Policy.
   // Range authorization happens at the server Coach Edit write boundary.
@@ -125,7 +146,15 @@ export const runningMenuEnvelopeV2Schema = z.object({
     const edits = value.coachEditProvenance.edits.filter((entry) => entry.field === field);
     const base = value.basePrescription[field];
     const final = value.finalPrescription[field];
-    if (edits.length > 0 && canonicalStringify(edits[edits.length - 1]!.after) !== canonicalStringify(final)) {
+    let prior: unknown = base;
+    for (const edit of edits) {
+      if (value.basePrescription.science !== undefined && canonicalStringify(edit.before) !== canonicalStringify(prior)) {
+        context.addIssue({ code: "custom", path: ["coachEditProvenance"], message: "science edit history is discontinuous" });
+        break;
+      }
+      prior = edit.after;
+    }
+    if (edits.length > 0 && canonicalStringify(prior) !== canonicalStringify(final)) {
       context.addIssue({ code: "custom", path: ["coachEditProvenance"], message: "edit history does not match final value" });
     }
     if (edits.length === 0 && canonicalStringify(base) !== canonicalStringify(final)) {
@@ -142,6 +171,7 @@ export function finalRunningMenuPrescription(envelope: ParsedRunningMenuEnvelope
   const p = envelope.prescription;
   return runningMenuFinalPrescriptionSchema.parse({
     policyVersion: p.policyVersion, policyHash: p.policyHash, event: p.event,
+    ...(p.science ? { science: p.science } : {}),
     distanceMeters: p.distanceMeters, totalReps: p.totalReps,
     totalDistanceMeters: p.totalDistanceMeters, repRestSeconds: p.repRestSeconds,
     sets: p.sets, setReps: p.setReps, setRestSeconds: p.setRestSeconds,
@@ -189,7 +219,8 @@ export function parseRunningMenuEnvelope(kind: string, json: string | null): Par
 export function presentRunningMenuSnapshot(kind: string, json: string | null):
   | { status: "NOT_RUNNING_POLICY" }
   | { status: "UNREADABLE"; title: string }
-  | { status: "OK"; title: string; restText: string | null; instruction: string | null; coachEdited: boolean; targetTimeText: string | null; setText: string | null } {
+  | { status: "OK"; title: string; restText: string | null; instruction: string | null; coachEdited: boolean; targetTimeText: string | null; setText: string | null;
+      science: RunningMenuFinalPrescription["science"] | null; scienceManualEdited: boolean } {
   if (kind !== RUNNING_MENU_PRESCRIPTION_KIND) return { status: "NOT_RUNNING_POLICY" };
   const snapshot = parseRunningMenuEnvelope(kind, json);
   if (snapshot === null) return { status: "UNREADABLE", title: "走る練習の処方を読み込めません" };
@@ -200,6 +231,8 @@ export function presentRunningMenuSnapshot(kind: string, json: string | null):
     restText: p.repRestSeconds === null ? null : `1本ごとの休憩 ${p.repRestSeconds / 60}分`,
     instruction: p.executionInstructionText,
     coachEdited: snapshot.schemaVersion === 2,
+    science: p.science ?? null,
+    scienceManualEdited: p.scienceManualEdited ?? false,
     targetTimeText: p.coachTargetTimeRange !== null
       ? `目標タイム ${p.coachTargetTimeRange.minSeconds}〜${p.coachTargetTimeRange.maxSeconds}秒`
       : p.coachTargetTimeSeconds !== null ? `目標タイム ${p.coachTargetTimeSeconds}秒` : null,

@@ -17,6 +17,7 @@ import { MenuDurationEditor } from "./menu-duration-editor";
 import type { DurationPlan } from "@/domain/menu-composition/duration";
 import { EXERCISE_CATEGORIES, EXERCISE_CATEGORY_LABEL } from "@/domain/exercise/constants";
 import { UnprescribedRunningEditor } from "./unprescribed-running-editor";
+import type { RunningScienceContext } from "@/domain/running-policy/science-contracts";
 
 function reordered<T extends { id: string }>(items: T[], ids: string[]): T[] {
   const next = ids.flatMap((id) => { const item = items.find((row) => row.id === id); return item ? [item] : []; });
@@ -42,6 +43,7 @@ export function FreeformMenuComposer({ exercises }: { exercises: ComposerCatalog
   const [ageGroup, setAgeGroup] = useState("");
   const [event, setEvent] = useState("");
   const [availableMinutes, setAvailableMinutes] = useState("");
+  const [science, setScience] = useState<RunningScienceContext>({});
   const [durationPlan, setDurationPlan] = useState<DurationPlan>({ blocks: [], transitionSeconds: null });
   const [name, setName] = useState("今日のメニュー");
   const [preview, setPreview] = useState<ComposedMenuPreview | null>(null);
@@ -64,9 +66,37 @@ export function FreeformMenuComposer({ exercises }: { exercises: ComposerCatalog
       if (event) context.event = event;
       if (ageGroup) context.ageGroup = ageGroup as NonNullable<ComposeMenuInput["context"]["ageGroup"]>;
       if (availableMinutes) context.availableTimeSeconds = Math.round(Number(availableMinutes) * 60);
+      if (Object.keys(science).length > 0) context.science = science;
       const result = manual ? await createManualComposedMenuAction(context) : await generateComposedMenuAction({ requestText, context });
       if (result.ok) accept(result.preview); else setError(result.message);
     });
+  }
+  function setScienceNumber(field: "ageYears" | "hoursSinceHighIntensity" | "hoursUntilNextHighIntensity" | "highIntensitySessionsLast7Days" | "referenceDistanceMeters" | "referenceTimeSeconds", value: string) {
+    setScience((current) => {
+      const next = { ...current };
+      if (value.trim() === "") delete next[field];
+      else next[field] = Number(value) as never;
+      return next;
+    });
+    clearPreview();
+  }
+  function setScienceChoice<K extends "experience" | "maturity" | "speedEnduranceMode", V extends RunningScienceContext[K]>(field: K, value: V | "") {
+    setScience((current) => {
+      const next = { ...current };
+      if (value === "") delete next[field];
+      else next[field] = value as never;
+      return next;
+    });
+    clearPreview();
+  }
+  function setScienceBoolean(field: "supervised" | "symptomFree" | "familiarWithSprint", value: string) {
+    setScience((current) => {
+      const next = { ...current };
+      if (value === "") delete next[field];
+      else next[field] = value === "yes";
+      return next;
+    });
+    clearPreview();
   }
   function updateItem(blockId: string, itemId: string, patch: Partial<EditableItem>) {
     setBlocks((prior) => prior.map((block) => block.id !== blockId ? block : { ...block, items: block.items.map((item) => item.id !== itemId ? item : { ...item, ...patch } as EditableItem) }));
@@ -106,7 +136,25 @@ export function FreeformMenuComposer({ exercises }: { exercises: ComposerCatalog
       <details className="text-sm"><summary className="cursor-pointer">年齢・種目を補足する（任意）</summary><div className="mt-2 grid grid-cols-2 gap-2">
         <label>年齢<select className={INPUT_CLASS} value={ageGroup} disabled={pending} onChange={(e) => { setAgeGroup(e.target.value); clearPreview(); }}><option value="">希望の文章に任せる</option><option value="ELEMENTARY">小学生</option><option value="JUNIOR_HIGH">中学生</option><option value="HIGH_SCHOOL">高校生</option><option value="ADULT">成人</option></select></label>
         <label>種目<select className={INPUT_CLASS} value={event} disabled={pending} onChange={(e) => { setEvent(e.target.value); clearPreview(); }}><option value="">希望の文章に任せる</option><option value="100m">100m</option><option value="200m">200m</option></select></label>
-      </div></details>
+      </div>
+        <details className="mt-3 rounded border p-3"><summary>走の補足情報（任意・わかる範囲）</summary>
+          <p className="my-2 text-xs text-slate-600">学年や年齢から成熟度・経験を推定しません。未入力の項目は未確認として扱います。</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="text-xs">年齢（歳・任意）<input aria-label="年齢（歳）" type="number" min={6} max={100} step={1} className={INPUT_CLASS} value={science.ageYears ?? ""} disabled={pending} onChange={(e) => setScienceNumber("ageYears", e.target.value)} /></label>
+            <label className="text-xs">走の経験<select aria-label="走の経験" className={INPUT_CLASS} value={science.experience ?? ""} disabled={pending} onChange={(e) => setScienceChoice("experience", e.target.value as RunningScienceContext["experience"] | "")}><option value="">未指定</option><option value="BEGINNER">初心者</option><option value="EXPERIENCED">経験あり</option></select></label>
+            <label className="text-xs">成熟度（自己申告・任意）<select aria-label="成熟度" className={INPUT_CLASS} value={science.maturity ?? ""} disabled={pending} onChange={(e) => setScienceChoice("maturity", e.target.value as RunningScienceContext["maturity"] | "")}><option value="">未指定</option><option value="PRE">未成熟（PRE）</option><option value="CIRCA">移行期（CIRCA）</option><option value="POST">成熟後（POST）</option><option value="UNKNOWN">不明</option></select></label>
+            {([ ["supervised", "コーチ等の見守り"], ["symptomFree", "現在、痛みや体調不良がない"], ["familiarWithSprint", "スプリント練習に慣れている"] ] as const).map(([field, label]) => <label key={field} className="text-xs">{label}<select aria-label={label} className={INPUT_CLASS} value={science[field] === undefined ? "" : science[field] ? "yes" : "no"} disabled={pending} onChange={(e) => setScienceBoolean(field, e.target.value)}><option value="">未指定</option><option value="yes">はい</option><option value="no">いいえ</option></select></label>)}
+            <label className="text-xs">直近の高強度練習から（時間）<input aria-label="直近の高強度練習からの時間" type="number" min={0} max={10000} step="any" className={INPUT_CLASS} value={science.hoursSinceHighIntensity ?? ""} disabled={pending} onChange={(e) => setScienceNumber("hoursSinceHighIntensity", e.target.value)} /></label>
+            <label className="text-xs">次の高強度練習まで（時間）<input aria-label="次の高強度練習までの時間" type="number" min={0} max={10000} step="any" className={INPUT_CLASS} value={science.hoursUntilNextHighIntensity ?? ""} disabled={pending} onChange={(e) => setScienceNumber("hoursUntilNextHighIntensity", e.target.value)} /></label>
+            <label className="text-xs">直近7日間の高強度練習（回）<input aria-label="直近7日間の高強度練習回数" type="number" min={0} max={30} step={1} className={INPUT_CLASS} value={science.highIntensitySessionsLast7Days ?? ""} disabled={pending} onChange={(e) => setScienceNumber("highIntensitySessionsLast7Days", e.target.value)} /></label>
+            <label className="text-xs">スピード持久の方法<select aria-label="スピード持久の方法" className={INPUT_CLASS} value={science.speedEnduranceMode ?? ""} disabled={pending} onChange={(e) => setScienceChoice("speedEnduranceMode", e.target.value as RunningScienceContext["speedEnduranceMode"] | "")}><option value="">未指定</option><option value="SPRINT_SPECIFIC">スプリント特異的</option><option value="CONTROLLED_90_95">制御した90〜95%走</option></select></label>
+            {science.speedEnduranceMode === "CONTROLLED_90_95" && <>
+              <label className="text-xs">参照距離（m・現在60mのみ）<input aria-label="参照距離（m）" type="number" min={60} max={60} step={1} className={INPUT_CLASS} value={science.referenceDistanceMeters ?? ""} disabled={pending} onChange={(e) => setScienceNumber("referenceDistanceMeters", e.target.value)} /></label>
+              <label className="text-xs">参照タイム（秒）<input aria-label="参照タイム（秒）" type="number" min={0.01} max={300} step="any" className={INPUT_CLASS} value={science.referenceTimeSeconds ?? ""} disabled={pending} onChange={(e) => setScienceNumber("referenceTimeSeconds", e.target.value)} /></label>
+            </>}
+          </div>
+        </details>
+      </details>
       <div className="flex gap-2"><Button type="button" disabled={pending || !requestText.trim()} onClick={() => generate()}>メニュー案を作る</Button><Button type="button" variant="secondary" disabled={pending} onClick={() => generate(true)}>手動で作る</Button></div>
     </section>
     {pending && <p role="status" className="text-sm">処理しています…</p>}
@@ -120,7 +168,7 @@ export function FreeformMenuComposer({ exercises }: { exercises: ComposerCatalog
         <div className="flex items-center gap-2">{blockHandle}<input aria-label="ブロック名" className={INPUT_CLASS} value={block.name} maxLength={80} disabled={pending} onChange={(e) => setBlocks((prior) => prior.map((row) => row.id === block.id ? { ...row, name: e.target.value } : row))} /><Button type="button" variant="secondary" size="sm" disabled={pending} onClick={() => setBlocks((prior) => prior.filter((row) => row.id !== block.id))}>ブロック削除</Button></div>
         <SortableList items={block.items} onReorder={(ids) => !pending && setBlocks((prior) => prior.map((row) => row.id === block.id ? { ...row, items: reordered(row.items, ids) } : row))} renderItem={(item, handle) => <article className="space-y-3 rounded-lg border border-slate-200 p-3">
           <div className="flex items-center gap-2">{handle}<label className="flex-1 text-xs">配置<select className={INPUT_CLASS} value={block.id} disabled={pending} onChange={(e) => setBlocks((prior) => prior.map((row) => row.id === block.id ? { ...row, items: row.items.filter((x) => x.id !== item.id) } : row.id === e.target.value ? { ...row, items: [...row.items, item] } : row))}>{blocks.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label><Button type="button" size="sm" variant="secondary" disabled={pending} onClick={() => setBlocks((prior) => prior.map((row) => row.id === block.id ? { ...row, items: row.items.filter((x) => x.id !== item.id) } : row))}>削除</Button></div>
-          {item.type === "RUNNING_POLICY" && running ? <><h4 className="font-medium">{running.distanceMeters}m × {running.totalReps}本</h4><p className="text-sm">1本ごとの休憩：{running.repRestSeconds ?? 0}秒</p><p className="text-xs text-slate-500">走の数値は確認済みの処方です。</p>{running.executionInstructionText && <p>{running.executionInstructionText}</p>}{!pending && <RunningPolicyCoachEditor key={JSON.stringify(running)} initial={running} onSubmit={editRunning} />}<label className="block text-xs">メモ<textarea className={INPUT_CLASS} maxLength={1000} value={item.plannedNote} disabled={pending} onChange={(e) => updateItem(block.id, item.id, { plannedNote: e.target.value })} /></label></>
+          {item.type === "RUNNING_POLICY" && running ? <><h4 className="font-medium">{running.distanceMeters}m × {running.totalReps}本</h4><p className="text-sm">1本ごとの休憩：{running.repRestSeconds ?? 0}秒</p><p className="text-xs text-slate-500">{running.science ? running.scienceManualEdited ? "科学的根拠を参考にした元の暫定処方です（手動変更済み。現在の値は根拠による保証ではありません）。" : "科学的根拠を参考にした暫定処方・コーチ承認済みではありません。" : "走の数値は確認済みの処方です。"}</p>{running.science && <p className="text-sm">{running.science.rationale}<br />{running.science.stopInstruction}</p>}{running.executionInstructionText && <p>{running.executionInstructionText}</p>}{!pending && <RunningPolicyCoachEditor key={JSON.stringify(running)} initial={running} onSubmit={editRunning} />}<label className="block text-xs">メモ<textarea className={INPUT_CLASS} maxLength={1000} value={item.plannedNote} disabled={pending} onChange={(e) => updateItem(block.id, item.id, { plannedNote: e.target.value })} /></label></>
             : item.type === "UNPRESCRIBED_RUNNING" ? <UnprescribedRunningEditor item={item} disabled={pending} onChange={(patch) => updateItem(block.id, item.id, patch as Partial<EditableItem>)} />
             : item.type !== "RUNNING_POLICY" ? <>
               <ComposedExerciseContent item={item} exercise={item.type === "CATALOG_EXERCISE" ? exercises.find((row) => row.id === item.exerciseId) : undefined} aiProposed={originalIds.has(item.id) && JSON.stringify(originalItems.find((row) => row.id === item.id)) === JSON.stringify(item)} />

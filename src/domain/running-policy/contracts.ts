@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { RUNNING_INTENSITY_PREFERENCES, RUNNING_PURPOSES } from "./purpose";
+import { runningScienceContextSchema, type RunningSciencePrescription } from "./science-contracts";
 
 export const runningPolicyInputSchema = z.object({
+  science: runningScienceContextSchema.optional(),
   event: z.string().trim().min(1).max(32).optional(),
   ageGroup: z.enum(["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT", "UNKNOWN"]).optional(),
   /** Already extracted and verified as a human request by the future adapter. */
@@ -70,6 +72,12 @@ export const RUNNING_FAILURE_REASONS = [
   "COACH_TARGET_TIME_CONFLICT",
   "AVAILABLE_TIME_TOO_SHORT",
   "POLICY_INTEGRITY_FAILURE",
+  "SCIENCE_CONTEXT_REQUIRED", "AGE_CONTEXT_CONFLICT", "SCIENCE_POPULATION_NOT_SUPPORTED",
+  "SCIENCE_HEALTH_CONFIRMATION_REQUIRED", "SCIENCE_EXPERIENCE_REQUIRED", "SCIENCE_SUPERVISION_REQUIRED",
+  "SCIENCE_FAMILIARITY_REQUIRED", "SCIENCE_RECOVERY_INTERVAL_REQUIRED", "SCIENCE_RECOVERY_INTERVAL_VIOLATION",
+  "SCIENCE_FREQUENCY_LIMIT", "SCIENCE_MATURITY_REQUIRED", "SCIENCE_REFERENCE_REQUIRED", "SCIENCE_ENDURANCE_MODE_REQUIRED",
+  "SCIENCE_EXPLICIT_INPUT_REVIEW", "RECOVERY_REST_PREFERRED", "SCIENCE_COMPETITION_CONTEXT_REQUIRED",
+  "SCIENCE_TAPER_WINDOW_REVIEW",
 ] as const;
 export type RunningFailureReason = (typeof RUNNING_FAILURE_REASONS)[number];
 
@@ -84,13 +92,15 @@ export const RUNNING_DECISION_REASONS = [
   "COACH_SET_SPLIT_APPLIED",
   "COACH_AGE_GATE_APPROVED",
   "SIMILAR_DISTANCE_HISTORY_CONFIRMED",
+  "SCIENCE_DEFAULT_SELECTED", "COMPETITION_CONTEXT_APPLIED", "LOW_INTENSITY_CONTEXT_APPLIED",
 ] as const;
 export type RunningDecisionReason = (typeof RUNNING_DECISION_REASONS)[number];
 
 export type RunningPrescription = {
   policyVersion: string;
   policyHash: string;
-  event: "100m" | "200m";
+  event: "100m" | "200m" | "GENERAL";
+  science?: RunningSciencePrescription;
   distanceMeters: number;
   totalReps: number;
   totalDistanceMeters: number;

@@ -5,6 +5,7 @@ import { parseRunningMenuEnvelope, presentRunningMenuSnapshot } from "@/applicat
 import { saveRunningMenuPreview } from "@/actions/_running-menu-save-service";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { RUNNING_POLICY_HASH, RUNNING_POLICY_VERSION } from "@/domain/running-policy/policy";
+import { SCIENCE_POLICY_HASH, SCIENCE_POLICY_VERSION } from "@/domain/running-policy/science-policy";
 import { prisma } from "@/infra/db/prisma";
 import { findMenu, updateMenuItem } from "@/infra/repositories/menu-repository";
 import { issueRunningMenuPreviewToken } from "@/infra/running-menu/preview-token";
@@ -53,7 +54,50 @@ function makeDraft(options: { event?: "100m" | "200m"; light?: boolean; exercise
   };
 }
 
+function makeScienceDraft() {
+  const requestText = "高校生100m選手、今日は基礎的な走能力向上をしたい";
+  const claims: RunningIntentClaims = {
+    runningRequested: true,
+    event: { value: "100m", sourceText: "100m選手" },
+    ageGroup: { value: "HIGH_SCHOOL", sourceText: "高校生" },
+    explicitDistances: [], distancePreference: null, loadReductionRequested: null,
+    fatigueState: null,
+    purpose: { value: "BASIC", sourceText: "基礎的な走能力向上" },
+    intensityPreference: null, competitionDays: null, availableTimeSeconds: null,
+    humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
+  };
+  const verified = verifyRunningIntentClaims(requestText, claims, []);
+  if (!verified.ok) throw new Error(verified.reason);
+  const context = {
+    event: "100m", ageGroup: "HIGH_SCHOOL" as const,
+    science: { ageYears: 17, experience: "BEGINNER" as const, supervised: true, symptomFree: true },
+  };
+  const running = createRunningMenuPreview(verified.intent, context, requestText);
+  if (running?.status !== "READY") throw new Error(running?.status ?? "NO_RUNNING");
+  const previewToken = issueRunningMenuPreviewToken({ ownerId: DEFAULT_OWNER_ID, requestText, context, intent: verified.intent, prescription: running.prescription }, KEY);
+  return {
+    previewToken, previewPolicyVersion: running.prescription.policyVersion,
+    previewPolicyHash: running.prescription.policyHash, requestText, context,
+    previewPrescription: running.prescription, menuName: "科学的根拠の暫定走メニュー", manualBlocks: [],
+  };
+}
+
 describe("Running policy MenuItem save and reload", () => {
+  it("replays and persists signed science context without turning the default into coach approval", async () => {
+    const draft = makeScienceDraft();
+    expect(draft.previewPolicyVersion).toBe(SCIENCE_POLICY_VERSION);
+    expect(draft.previewPolicyHash).toBe(SCIENCE_POLICY_HASH);
+    expect(await saveRunningMenuPreview({ ...draft, context: { ...draft.context, science: { ...draft.context.science, ageYears: 16 } } })).toMatchObject({ ok: false, code: "STALE_PREVIEW" });
+    const saved = await saveRunningMenuPreview(draft);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+    const row = (await findMenu(saved.menuId))!.blocks[0]!.items[0]!;
+    expect(JSON.parse(row.provenanceJson!)).toMatchObject({ context: { science: draft.context.science } });
+    expect(parseRunningMenuEnvelope(row.prescriptionKind, row.prescriptionJson)?.prescription).toMatchObject({
+      event: "100m", science: { source: "SCIENCE_INFORMED_DEFAULT", coachApproval: "NOT_COACH_APPROVED", provisional: true },
+    });
+  });
+
   it.each([
     ["100m", false, 60, 4, 240],
     ["200m", false, 120, 3, 900],

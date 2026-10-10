@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 import { planRunningPrescription } from "@/domain/running-policy";
 import { historicalIntensityFromGroundedText, historicalPurposeFromGroundedText, RUNNING_PURPOSES } from "@/domain/running-policy/purpose";
 
-describe("unsupported purpose gates", () => {
+describe("purpose context and historical coach gates", () => {
   it.each([
-    ["ACCEL", "ACCEL_PURPOSE_NOT_APPROVED"],
-    ["MAX_SPEED", "MAX_SPEED_PURPOSE_NOT_APPROVED"],
-    ["SPEED_ENDURANCE", "SPEED_ENDURANCE_PURPOSE_NOT_APPROVED"],
-    ["BASIC", "BASIC_PURPOSE_NOT_APPROVED"],
-    ["PRECOMP", "PRECOMP_PURPOSE_NOT_APPROVED"],
-    ["RECOVERY", "RECOVERY_PURPOSE_NOT_APPROVED"],
-  ] as const)("blocks %s specifically even before event input", (purpose, reason) => {
-    expect(planRunningPrescription({ purpose, ageGroup: "HIGH_SCHOOL" })).toMatchObject({ status: "NEEDS_POLICY", reason });
+    ["ACCEL", "SCIENCE_CONTEXT_REQUIRED"],
+    ["MAX_SPEED", "SCIENCE_CONTEXT_REQUIRED"],
+    ["SPEED_ENDURANCE", "SCIENCE_CONTEXT_REQUIRED"],
+    ["BASIC", "SCIENCE_CONTEXT_REQUIRED"],
+    ["PRECOMP", "SCIENCE_CONTEXT_REQUIRED"],
+    ["RECOVERY", "SCIENCE_CONTEXT_REQUIRED"],
+  ] as const)("requires explicit scientific context for %s before prescribing", (purpose, reason) => {
+    expect(planRunningPrescription({ purpose, ageGroup: "HIGH_SCHOOL" })).toMatchObject({ status: "NEEDS_INPUT", reason });
   });
 
   it("recognizes elementary safety gate without requiring an event", () => {
@@ -19,7 +19,7 @@ describe("unsupported purpose gates", () => {
   });
 
   it("does not alias low intensity to load reduction", () => {
-    expect(planRunningPrescription({ ageGroup: "HIGH_SCHOOL", intensityPreference: "LOW" })).toMatchObject({ status: "NEEDS_POLICY", reason: "LOW_INTENSITY_NOT_APPROVED" });
+    expect(planRunningPrescription({ ageGroup: "HIGH_SCHOOL", intensityPreference: "LOW" })).toMatchObject({ status: "NEEDS_INPUT", reason: "SCIENCE_CONTEXT_REQUIRED" });
     expect(planRunningPrescription({ ageGroup: "HIGH_SCHOOL", event: "100m", loadReductionRequested: true })).toMatchObject({ status: "READY" });
   });
 

@@ -19,6 +19,7 @@ export const RUNNING_SESSION_SNAPSHOT_KIND = "RUNNING_POLICY_SNAPSHOT" as const;
 // saved Menu with the currently active prescription engine.
 const supportedPolicyHashes: Readonly<Record<string, string>> = {
   "rp-2026.09.0": "b522cdccba0fa65c5639eb823ccd313439700fb65ce00f8192edca51699b535f",
+  "rp-science-2026.10.0": "c5068433ea03572aee26ddaa981060f8a97703dc30800278cc559e3fe6a530ff",
 };
 
 const digestSchema = z.string().regex(/^[a-f0-9]{64}$/u);
@@ -199,7 +200,8 @@ export function parseRunningSessionSnapshot(kind: string, raw: string | null): R
 export function presentRunningSessionSnapshot(kind: string, raw: string | null):
   | { status: "NOT_RUNNING_POLICY" }
   | { status: "UNREADABLE" }
-  | { status: "OK"; title: string; restText: string | null; instruction: string | null; coachEdited: boolean; targetTimeText: string | null; setText: string | null } {
+  | { status: "OK"; title: string; restText: string | null; instruction: string | null; coachEdited: boolean; targetTimeText: string | null; setText: string | null;
+      science: RunningSessionSnapshot["prescription"]["science"] | null; scienceManualEdited: boolean } {
   if (kind !== RUNNING_MENU_PRESCRIPTION_KIND) return { status: "NOT_RUNNING_POLICY" };
   const snapshot = parseRunningSessionSnapshot(kind, raw);
   if (snapshot === null) return { status: "UNREADABLE" };
@@ -210,6 +212,8 @@ export function presentRunningSessionSnapshot(kind: string, raw: string | null):
     restText: p.repRestSeconds === null ? null : `1本ごとの休憩 ${p.repRestSeconds / 60}分`,
     instruction: p.executionInstructionText,
     coachEdited: snapshot.snapshotSchemaVersion === 2,
+    science: p.science ?? null,
+    scienceManualEdited: "scienceManualEdited" in p ? p.scienceManualEdited ?? false : false,
     targetTimeText: p.coachTargetTimeRange !== null
       ? `目標タイム ${p.coachTargetTimeRange.minSeconds}〜${p.coachTargetTimeRange.maxSeconds}秒`
       : p.coachTargetTimeSeconds !== null ? `目標タイム ${p.coachTargetTimeSeconds}秒` : null,

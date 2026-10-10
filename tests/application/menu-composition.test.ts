@@ -104,6 +104,48 @@ describe("Freeform menu composition authority contract", () => {
 });
 
 describe("Separated menu composition orchestration", () => {
+  it("limits only elementary beginner AI candidates to reviewed difficulty 1–2 and keeps manual IDs available", async () => {
+    const rows = [
+      catalogFixture({ id: "difficulty-1", difficulty: 1 }),
+      catalogFixture({ id: "difficulty-2", difficulty: 2 }),
+      catalogFixture({ id: "difficulty-3", difficulty: 3 }),
+      catalogFixture({ id: "difficulty-unknown", difficulty: null }),
+    ];
+    const interpreted = interpretedFixture(false);
+    interpreted.intent.ageGroup = { value: "ELEMENTARY", sourceText: "小学生", sourceType: "USER_TEXT" };
+    const compose = vi.fn<(input: MenuComposerInput) => Promise<{ ok: true; value: MenuComposition }>>()
+      .mockResolvedValue({ ok: true, value: compositionSchema.parse(proposal([catalogPlan({ exerciseId: "difficulty-1" })])) });
+    const result = await generateComposedMenu({ requestText: compositionRequest,
+      context: { ageGroup: "ELEMENTARY", science: { experience: "BEGINNER" } } }, {
+      ownerId: DEFAULT_OWNER_ID, signingKey: COMPOSITION_TEST_KEY, catalog: async () => rows,
+      interpret: async () => interpreted, compose,
+    });
+    expect(result.ok).toBe(true);
+    expect(compose.mock.calls[0][0].catalog.map((row) => row.id)).toEqual(["difficulty-1", "difficulty-2"]);
+    if (!result.ok) return;
+    const claims = verifyMenuCompositionToken(result.preview.previewToken, COMPOSITION_TEST_KEY);
+    expect(claims?.allowedExerciseIds).toEqual(rows.map((row) => row.id));
+  });
+
+  it.each([
+    ["ELEMENTARY", "EXPERIENCED"],
+    ["HIGH_SCHOOL", "BEGINNER"],
+  ] as const)("does not generalize the difficulty filter to %s / %s", async (ageGroup, experience) => {
+    const rows = [catalogFixture({ id: "easy", difficulty: 2 }), catalogFixture({ id: "advanced", difficulty: 3 }),
+      catalogFixture({ id: "unknown", difficulty: null })];
+    const interpreted = interpretedFixture(false);
+    interpreted.intent.ageGroup = { value: ageGroup, sourceText: "explicit age group", sourceType: "USER_TEXT" };
+    const compose = vi.fn<(input: MenuComposerInput) => Promise<{ ok: true; value: MenuComposition }>>()
+      .mockResolvedValue({ ok: true, value: compositionSchema.parse(proposal([catalogPlan({ exerciseId: "easy" })])) });
+    const result = await generateComposedMenu({ requestText: compositionRequest,
+      context: { ageGroup, science: { experience } } }, {
+      ownerId: DEFAULT_OWNER_ID, signingKey: COMPOSITION_TEST_KEY, catalog: async () => rows,
+      interpret: async () => interpreted, compose,
+    });
+    expect(result.ok).toBe(true);
+    expect(compose.mock.calls[0][0].catalog.map((row) => row.id).sort()).toEqual(["advanced", "easy", "unknown"]);
+  });
+
   it("passes verified full-session time to the composer without rebinding the Running input context", async () => {
     const interpreted = interpretedFixture();
     interpreted.intent.availableTimeSeconds = { value: 5400, sourceText: "90分の練習", sourceType: "USER_TEXT" };

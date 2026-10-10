@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { canonicalStringify } from "@/domain/shared/canonical-json";
-import { RUNNING_POLICY_HASH, RUNNING_POLICY_VERSION } from "@/domain/running-policy/policy";
+import { runningScienceContextSchema } from "@/domain/running-policy/science-contracts";
 import type { RunningPrescription } from "@/domain/running-policy/contracts";
 import { runningPrescriptionFingerprint } from "@/application/running-menu/persistence";
 import type { RunningMenuContextInput } from "@/application/running-menu/preview";
@@ -30,6 +30,7 @@ const tokenSchema = z.object({
     event: z.string().max(32).optional(),
     ageGroup: z.enum(["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT"]).optional(),
     availableTimeSeconds: z.number().int().positive().optional(),
+    science: runningScienceContextSchema.optional(),
   }).strict(),
   intent: z.object({
     runningRequested: z.literal(true),
@@ -72,8 +73,8 @@ export function issueRunningMenuPreviewToken(input: {
     menuId: randomUUID(),
     issuedAtMs: nowMs,
     expiresAtMs: nowMs + 2 * 60 * 60 * 1000,
-    policyVersion: RUNNING_POLICY_VERSION,
-    policyHash: RUNNING_POLICY_HASH,
+    policyVersion: input.prescription.policyVersion,
+    policyHash: input.prescription.policyHash,
     requestText: input.requestText,
     context: input.context,
     intent: input.intent,

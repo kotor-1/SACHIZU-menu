@@ -6,6 +6,7 @@ import { applyRunningCoachEdit, runningCoachEditRequestSchema } from "@/applicat
 import { runningMenuEnvelopeSchema, RUNNING_MENU_PRESCRIPTION_KIND } from "@/application/running-menu/persistence";
 import { HMAC_TOKEN_MAX_LENGTH } from "@/infra/security/hmac-token";
 import { evaluateSignedRunningPreview, runningSaveProvenance } from "./_running-menu-save-service";
+import { runningScienceContextSchema } from "@/domain/running-policy/science-contracts";
 
 const inputSchema = z.object({
   previewToken: z.string().min(1).max(HMAC_TOKEN_MAX_LENGTH),
@@ -16,6 +17,7 @@ const inputSchema = z.object({
     event: z.string().max(32).optional(),
     ageGroup: z.enum(["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT"]).optional(),
     availableTimeSeconds: z.number().int().positive().optional(),
+    science: runningScienceContextSchema.optional(),
   }).strict(),
   previewPrescription: z.unknown(),
   coachEdit: runningCoachEditRequestSchema,

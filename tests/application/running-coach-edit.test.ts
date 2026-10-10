@@ -6,7 +6,8 @@ import {
   finalRunningMenuPrescription, parseRunningMenuEnvelope, presentRunningMenuSnapshot,
   runningMenuEnvelopeSchema, serializeRunningMenuEnvelope, serializeRunningMenuEnvelopeV2,
 } from "@/application/running-menu/persistence";
-import { snapshotSavedRunningMenuItem, parseRunningSessionSnapshot, serializeRunningSessionSnapshot } from "@/application/running-session/snapshot";
+import { snapshotSavedRunningMenuItem, parseRunningSessionSnapshot, serializeRunningSessionSnapshot, presentRunningSessionSnapshot } from "@/application/running-session/snapshot";
+import { SCIENCE_POLICY_HASH, SCIENCE_POLICY_VERSION } from "@/domain/running-policy/science-policy";
 
 const at = "2026-09-29T10:00:00.000Z";
 
@@ -35,6 +36,33 @@ function fixture(options: { event?: "100m" | "200m"; age?: "JUNIOR_HIGH" | "HIGH
   return { p, envelope, provenanceJson };
 }
 
+function scienceFixture() {
+  const science = {
+    ageYears: 17, experience: "EXPERIENCED" as const, maturity: "POST" as const,
+    supervised: true, symptomFree: true, familiarWithSprint: true,
+    hoursSinceHighIntensity: 48, hoursUntilNextHighIntensity: 48,
+    highIntensitySessionsLast7Days: 0,
+  };
+  const result = planRunningPrescription({
+    event: "100m", ageGroup: "HIGH_SCHOOL", purpose: "MAX_SPEED", science,
+    fatigueState: "NONE", humanExplicitDistances: [],
+  });
+  if (result.status !== "READY") throw new Error(result.status);
+  const p = result.prescription;
+  const envelope = runningMenuEnvelopeSchema.parse({
+    kind: "RUNNING_POLICY", schemaVersion: 1, policyVersion: p.policyVersion,
+    policyHash: p.policyHash, prescription: p,
+  });
+  const provenanceJson = JSON.stringify({
+    schemaVersion: 1, source: "SIGNED_RUNNING_PREVIEW", requestDigest: "0".repeat(64),
+    intent: {
+      event: { value: "100m" }, ageGroup: { value: "HIGH_SCHOOL" },
+      loadReductionRequested: null, fatigueState: null, availableTimeSeconds: null,
+    }, context: { event: "100m", ageGroup: "HIGH_SCHOOL", science },
+  });
+  return { p, envelope, provenanceJson };
+}
+
 function edit(input: ReturnType<typeof fixture>, request: unknown) {
   return applyRunningCoachEdit(input.envelope, input.provenanceJson, request, at);
 }
@@ -56,6 +84,36 @@ function sessionSource(input: ReturnType<typeof fixture>, prescriptionJson: stri
 }
 
 describe("Coach edit v2 contracts and frozen policy", () => {
+  it("keeps science defaults immutable, marks coach edits, and requires a replacement fly instruction", () => {
+    const source = scienceFixture();
+    expect(source.p).toMatchObject({
+      policyVersion: SCIENCE_POLICY_VERSION, policyHash: SCIENCE_POLICY_HASH,
+      event: "100m", science: { source: "SCIENCE_INFORMED_DEFAULT", coachApproval: "NOT_COACH_APPROVED", provisional: true, flyMeters: 10 },
+    });
+    expect(edit(source, { distanceMeters: 60 })).toEqual({ ok: false, code: "INVALID_EDIT" });
+    const result = edit(source, { distanceMeters: 60, executionInstructionText: "助走から滑らかに走り、十分に減速する" });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.envelope.finalPrescription).toMatchObject({
+      distanceMeters: 60, science: source.p.science, scienceManualEdited: true,
+    });
+    expect(result.envelope.basePrescription.science).toEqual(source.p.science);
+    expect(result.envelope.coachEditProvenance.edits).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: "distanceMeters", actorClass: "COACH" }),
+      expect.objectContaining({ field: "executionInstructionText", actorClass: "COACH" }),
+    ]));
+    const savedJson = serializeRunningMenuEnvelopeV2(result.envelope);
+    const session = snapshotSavedRunningMenuItem(sessionSource(source, savedJson));
+    expect(session).toMatchObject({
+      policyVersion: SCIENCE_POLICY_VERSION, policyHash: SCIENCE_POLICY_HASH,
+      prescription: { science: source.p.science, scienceManualEdited: true },
+    });
+    expect(parseRunningSessionSnapshot("RUNNING_POLICY", serializeRunningSessionSnapshot(session))).toEqual(session);
+    expect(presentRunningSessionSnapshot("RUNNING_POLICY", serializeRunningSessionSnapshot(session))).toMatchObject({
+      status: "OK", science: source.p.science, scienceManualEdited: true,
+    });
+  });
+
   it.each([
     [{ totalReps: 5, repRestSeconds: 300 }, 5, 300],
     [{ totalReps: 3, repRestSeconds: 180 }, 3, 180],
