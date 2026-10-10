@@ -7,6 +7,7 @@ vi.mock("@/actions/running-coach-preview-actions", () => ({ previewRunningCoachE
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 import { FreeformMenuComposer } from "@/components/menu/freeform-menu-composer";
 import { MenuItemForm } from "@/components/menu/menu-item-form";
+import type { MenuItemFormValues } from "@/components/menu/menu-item-form";
 import { legacyRunningExercise, runningSelectionValues } from "../presentation/running/menu-fixtures";
 
 describe("Freeform composer UI and frozen Running boundary", () => {
@@ -26,5 +27,15 @@ describe("Freeform composer UI and frozen Running boundary", () => {
     const html = renderMarkup(MenuItemForm as never, { action: vi.fn(), exercises: [legacyRunningExercise], initial: runningSelectionValues(), submitLabel: "追加", runningPolicyContext: true, runningV2Enabled: false } as never);
     const text = stripTags(html);
     expect(text).not.toContain("推奨処方を入れる"); expect(text).not.toContain("練習の型"); expect(text).toContain("走の確認済み処方とコーチ調整");
+  });
+  it("keeps a saved unprescribed Running placeholder out of the exercise picker and recommendation flow", () => {
+    const initial: MenuItemFormValues = { exerciseId: "", displayName: "走（未処方）", sets: "", reps: "", distanceMeters: "", durationSeconds: "", restSeconds: "", intensityPercent: "", loadKg: "", note: "" };
+    const html = renderMarkup(MenuItemForm as never, { action: vi.fn(), exercises: [legacyRunningExercise], initial,
+      submitLabel: "保存", runningPolicyContext: true, unprescribedRunning: { reasonCode: "MISSING_CONTEXT", reasonMessage: "年齢・種目の条件が不足しています。" } } as never);
+    const text = stripTags(html);
+    expect(text).toContain("走・未処方"); expect(text).toContain("年齢・種目の条件が不足しています。");
+    expect(text).toContain("Engineの処方・推奨値はありません");
+    expect(html).not.toContain("カタログから選ぶ"); expect(text).not.toContain("推奨処方を入れる");
+    expect(text).not.toContain("手入力（Engine未処方）");
   });
 });

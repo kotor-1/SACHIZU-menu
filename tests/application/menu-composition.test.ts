@@ -54,6 +54,33 @@ describe("Freeform menu composition authority contract", () => {
     const item = freeformPlan({ originalUserInstruction: "120mを走る" } as Partial<ReturnType<typeof freeformPlan>>);
     expect(validate([runningPlan, item], { runningAvailable: true, requestText: "120mを走る", runningSourceTexts: ["120m"] })).toMatchObject({ ok: false, code: "RUNNING_AUTHORITY" });
   });
+  it.each(["OTHER", "DRILL"] as const)("rejects pending AI numeric freeform despite a non-Running category: %s", category => {
+    const item = freeformPlan({ category, originalUserInstruction: "走りたい", plannedReps: 5 });
+    expect(validate([item], { requestText: "走りたい", unprescribedRunningAvailable: true })).toMatchObject({ ok: false, code: "RUNNING_AUTHORITY" });
+  });
+  it("keeps pending freeform unconfigured until a person enters its quantity", () => {
+    const item = freeformPlan({ plannedSets: null, plannedReps: null });
+    expect(validate([item], { unprescribedRunningAvailable: true }).ok).toBe(true);
+    let id = 0;
+    const edited = editableComposition(compositionSchema.parse(proposal([item])), () => `manual-${++id}`);
+    const row = edited.blocks[0].items[0];
+    if (row.type !== "FREEFORM") throw Error("fixture");
+    row.plannedReps = 4;
+    expect(validateComposition(edited, { catalog: [], ownerId: DEFAULT_OWNER_ID, requestText: compositionRequest,
+      runningAvailable: false, unprescribedRunningAvailable: true, edited: true }).ok).toBe(true);
+    expect(validate([freeformPlan()]).ok).toBe(true);
+  });
+  it("cannot smuggle pending Running doses through freeform prose", () => {
+    const item = freeformPlan({ category: "OTHER", originalUserInstruction: "走りたい", plannedSets: null, plannedReps: null,
+      displayName: "200mを5本", executionInstruction: "全力で200mを5本、休息30秒", plannedNote: "強度100%", reason: "承認済み" });
+    const result = validate([item], { requestText: "走りたい", unprescribedRunningAvailable: true });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const freeform = result.value.blocks[0].items[0];
+    expect(freeform).toMatchObject({ type: "FREEFORM", displayName: "自由項目（元の希望）", executionInstruction: "走りたい",
+      plannedNote: "", plannedSets: null, plannedReps: null });
+    expect(JSON.stringify(freeform)).not.toMatch(/200m|5本|30秒|100%|承認済み/);
+  });
   it.each([
     { exerciseId: "unknown" }, { displayName: "似た別の練習" }, { plannedSets: 0 }, { plannedReps: Number.NaN },
     { plannedDistanceMeters: Number.POSITIVE_INFINITY }, { plannedDurationSeconds: -1 },
@@ -77,6 +104,32 @@ describe("Freeform menu composition authority contract", () => {
 });
 
 describe("Separated menu composition orchestration", () => {
+  it("passes verified full-session time to the composer without rebinding the Running input context", async () => {
+    const interpreted = interpretedFixture();
+    interpreted.intent.availableTimeSeconds = { value: 5400, sourceText: "90分の練習", sourceType: "USER_TEXT" };
+    const compose = vi.fn<(input: MenuComposerInput) => Promise<{ ok: true; value: MenuComposition }>>()
+      .mockResolvedValue({ ok: true, value: compositionSchema.parse(proposal([runningPlan, catalogPlan()])) });
+    const result = await generateComposedMenu({ requestText: compositionRequest, context: {} }, {
+      ownerId: DEFAULT_OWNER_ID, signingKey: COMPOSITION_TEST_KEY, catalog: async () => [catalogFixture()],
+      interpret: async () => interpreted, compose,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(compose.mock.calls[0][0].context.availableTimeSeconds).toBe(5400);
+    expect(result.preview.context).toEqual({});
+    expect(result.preview.requestedTimeSeconds).toBe(5400);
+    expect(verifyMenuCompositionToken(result.preview.previewToken, COMPOSITION_TEST_KEY)).toMatchObject({ requestedTimeSeconds: 5400, context: {} });
+  });
+  it("does not silently override conflicting session time for an exercise-only menu", async () => {
+    const interpreted = interpretedFixture(false);
+    interpreted.intent.availableTimeSeconds = { value: 2400, sourceText: "40分の練習", sourceType: "USER_TEXT" };
+    const compose = vi.fn();
+    const result = await generateComposedMenu({ requestText: compositionRequest, context: { availableTimeSeconds: 2700 } }, {
+      ownerId: DEFAULT_OWNER_ID, signingKey: COMPOSITION_TEST_KEY, catalog: async () => [], interpret: async () => interpreted, compose,
+    });
+    expect(result).toMatchObject({ ok: false, code: "TIME_CONTEXT_CONFLICT" });
+    expect(compose).not.toHaveBeenCalled();
+  });
   it.each([true, false])("uses one interpreter stage + one composer stage; Running=%s", async (withRunning) => {
     const interpret = vi.fn(async () => interpretedFixture(withRunning));
     const compose = vi.fn<(input: MenuComposerInput) => Promise<{ ok: true; value: MenuComposition }>>().mockResolvedValue({ ok: true, value: compositionSchema.parse(proposal([...(withRunning ? [runningPlan] : []), catalogPlan(), freeformPlan()])) });

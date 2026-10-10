@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RUNNING_INTENSITY_PREFERENCES, RUNNING_PURPOSES } from "./purpose";
 
 export const runningPolicyInputSchema = z.object({
   event: z.string().trim().min(1).max(32).optional(),
@@ -8,6 +9,12 @@ export const runningPolicyInputSchema = z.object({
   distancePreference: z.enum(["NONE", "SHORT", "LONG"]).default("NONE"),
   loadReductionRequested: z.boolean().default(false),
   fatigueState: z.enum(["NONE", "REPORTED", "STRONG_OR_UNWELL"]).default("NONE"),
+  /** Sourced user intent. Values are understood but currently have no approved purpose dose. */
+  purpose: z.enum(RUNNING_PURPOSES).optional(),
+  /** Explicit low-intensity preference; never aliases volume reduction. */
+  intensityPreference: z.enum(RUNNING_INTENSITY_PREFERENCES).optional(),
+  /** Context only. The active policy does not change a dose from competition date alone. */
+  competitionDays: z.number().int().nonnegative().optional(),
   similarDistanceHistoryStatus: z.enum(["CONFIRMED", "UNKNOWN"]).default("UNKNOWN"),
   coachAgeGateApproval: z.boolean().default(false),
   availableTimeSeconds: z.number().int().positive().optional(),
@@ -45,6 +52,13 @@ export const RUNNING_FAILURE_REASONS = [
   "AGE_REQUIRED",
   "EVENT_POLICY_NOT_SUPPORTED",
   "ELEMENTARY_POLICY_NOT_APPROVED",
+  "ACCEL_PURPOSE_NOT_APPROVED",
+  "MAX_SPEED_PURPOSE_NOT_APPROVED",
+  "SPEED_ENDURANCE_PURPOSE_NOT_APPROVED",
+  "BASIC_PURPOSE_NOT_APPROVED",
+  "PRECOMP_PURPOSE_NOT_APPROVED",
+  "RECOVERY_PURPOSE_NOT_APPROVED",
+  "LOW_INTENSITY_NOT_APPROVED",
   "MULTIPLE_EXPLICIT_DISTANCES",
   "HUMAN_EXPLICIT_UNSUPPORTED_DISTANCE",
   "JUNIOR_HIGH_LONG_DISTANCE_HISTORY_REQUIRED",

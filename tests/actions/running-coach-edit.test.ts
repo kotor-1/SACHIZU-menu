@@ -159,6 +159,7 @@ describe("server validated Running Coach Edit lifecycle", () => {
         runningRequested: true, event: { value: "100m", sourceText: "100m選手" },
         ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学生" }, explicitDistances: [],
         distancePreference: null, loadReductionRequested: null, fatigueState: null,
+        purpose: null, intensityPreference: null, competitionDays: null,
         availableTimeSeconds: null, humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
       };
       const verified = verifyRunningIntentClaims(requestText, claims, []);

@@ -3,6 +3,7 @@ import { EXERCISE_CATEGORIES } from "@/domain/exercise/constants";
 import { isRunningExerciseForV2 } from "@/presentation/running/legacy-routing";
 import type { ExerciseVideoGuidance } from "@/domain/exercise/video-guidance";
 import { resolveWhitespaceQuote } from "@/domain/shared/source-quote";
+import { unprescribedRunningItemSchema } from "./unprescribed-running";
 
 export const menuCompositionContextSchema = z.object({
   event: z.string().trim().min(1).max(32).optional(),
@@ -53,6 +54,7 @@ export const editableCompositionSchema = z.object({
       runningCompositionItemSchema.extend({ id: z.string().min(1).max(80), plannedNote: z.string().max(1000) }),
       catalogCompositionItemSchema.extend({ id: z.string().min(1).max(80) }),
       freeformCompositionItemSchema.extend({ id: z.string().min(1).max(80) }),
+      unprescribedRunningItemSchema,
     ])).max(30),
   }).strict()).min(1).max(12),
 }).strict();
@@ -88,21 +90,24 @@ export function exercisePlanNote(item: ExercisePlanItem): string | null {
 /** Validates both model proposals and human-edited final plans. No defaults are copied. */
 export function validateComposition(value: unknown, options: {
   catalog: readonly ComposerCatalogExercise[]; ownerId: string; requestText: string;
-  runningAvailable: boolean; runningSourceTexts?: readonly string[]; edited?: boolean;
+  runningAvailable: boolean; unprescribedRunningAvailable?: boolean; runningSourceTexts?: readonly string[]; edited?: boolean;
 }): { ok: true; value: MenuComposition | EditableComposition } | { ok: false; code: string } {
   const parsed = options.edited ? editableCompositionSchema.safeParse(value) : compositionSchema.safeParse(value);
   if (!parsed.success) return { ok: false, code: "INVALID_COMPOSITION" };
-  const items = parsed.data.blocks.flatMap((block) => block.items);
+  const items = parsed.data.blocks.flatMap<CompositionItem | EditableItem>((block) => block.items);
   if (items.length === 0) return { ok: false, code: "EMPTY_MENU" };
   if (items.length > 50) return { ok: false, code: "TOO_MANY_ITEMS" };
   const runningCount = items.filter((item) => item.type === "RUNNING_POLICY").length;
-  if (runningCount > 1 || (!options.runningAvailable && runningCount > 0) || (!options.edited && options.runningAvailable && runningCount !== 1)) return { ok: false, code: "RUNNING_AUTHORITY" };
+  const markerAvailable = options.runningAvailable || (!options.edited && options.unprescribedRunningAvailable);
+  if (runningCount > 1 || (!markerAvailable && runningCount > 0) || (!options.edited && options.runningAvailable && runningCount !== 1)) return { ok: false, code: "RUNNING_AUTHORITY" };
+  const pendingCount = items.filter(item => item.type === "UNPRESCRIBED_RUNNING").length;
+  if (pendingCount > 1 || (pendingCount > 0 && (!options.edited || !options.unprescribedRunningAvailable || options.runningAvailable))) return { ok: false, code: "RUNNING_AUTHORITY" };
   if (options.edited) {
     const ids = (parsed.data as EditableComposition).blocks.flatMap((block) => [block.id, ...block.items.map((item) => item.id)]);
     if (new Set(ids).size !== ids.length) return { ok: false, code: "DUPLICATE_ITEM_ID" };
   }
   for (const item of items) {
-    if (item.type === "RUNNING_POLICY") continue;
+    if (item.type === "RUNNING_POLICY" || item.type === "UNPRESCRIBED_RUNNING") continue;
     if ([item.plannedReps, item.plannedDurationSeconds, item.plannedDistanceMeters].filter((v) => v !== null).length > 1) return { ok: false, code: "CONFLICTING_UNITS" };
     if (item.type === "CATALOG_EXERCISE") {
       const exercise = options.catalog.find((row) => row.id === item.exerciseId);
@@ -111,10 +116,25 @@ export function validateComposition(value: unknown, options: {
       if (isRunningExerciseForV2(exercise)) return { ok: false, code: "RUNNING_AUTHORITY" };
     } else {
       if (isRunningExerciseForV2(item)) return { ok: false, code: "RUNNING_AUTHORITY" };
+      // A model-selected FREEFORM category cannot prove that an unknown exercise
+      // is non-Running. In a pending Running draft only catalog-backed exercises
+      // may receive model doses; people can still fill freeform values afterwards.
+      if (!options.edited && options.unprescribedRunningAvailable &&
+          [item.plannedSets, item.plannedReps, item.plannedDurationSeconds, item.plannedDistanceMeters, item.plannedRestSeconds].some(value => value !== null)) {
+        return { ok: false, code: "RUNNING_AUTHORITY" };
+      }
       if (!options.edited) {
         const source = resolveWhitespaceQuote(options.requestText, item.originalUserInstruction);
         if (!source) return { ok: false, code: "UNGROUNDED_USER_INSTRUCTION" };
         item.originalUserInstruction = source.sourceText;
+        if (options.unprescribedRunningAvailable) {
+          // Do not let prose reintroduce a dose hidden behind OTHER/DRILL either.
+          // Preserve the user's original request for later manual editing instead.
+          item.displayName = "自由項目（元の希望）";
+          item.executionInstruction = source.sourceText;
+          item.plannedNote = "";
+          item.reason = "未登録の項目は数量・実施方法を手動で確認してください。";
+        }
       }
       if (!item.executionInstruction && !item.plannedNote) return { ok: false, code: "MISSING_INSTRUCTION" };
       // Running clauses already bound by the frozen interpreter cannot become freeform doses.

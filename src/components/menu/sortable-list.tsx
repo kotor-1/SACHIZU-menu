@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -35,6 +35,7 @@ export function SortableList<T extends { id: string }>({
   /** 各項目の内容を描画する。第2引数の drag handle をカード内に置くこと。 */
   renderItem: (item: T, dragHandle: ReactNode) => ReactNode;
 }) {
+  const contextId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
@@ -52,6 +53,7 @@ export function SortableList<T extends { id: string }>({
 
   return (
     <DndContext
+      id={contextId}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis]}

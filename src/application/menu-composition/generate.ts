@@ -6,10 +6,12 @@ import type { MenuComposerInput } from "@/infra/menu-composition/openai-composer
 import { issueMenuCompositionToken } from "@/infra/menu-composition/preview-token";
 import type { RunningPrescription } from "@/domain/running-policy/contracts";
 import { assertUsableSigningKey } from "@/infra/security/hmac-token";
+import { EMPTY_UNPRESCRIBED_RUNNING_DOSE, type UnprescribedRunningContext } from "@/domain/menu-composition/unprescribed-running";
 
 export type ComposedMenuPreview = {
   composition: EditableComposition; previewToken: string; runningPrescription: RunningPrescription | null;
-  runningToken: string | null; requestText: string; context: ComposeMenuInput["context"]; unsupportedIntents: string[];
+  unprescribedRunning?: UnprescribedRunningContext | null;
+  requestedTimeSeconds?: number | null; runningToken: string | null; requestText: string; context: ComposeMenuInput["context"]; unsupportedIntents: string[];
 };
 export type GenerateComposedMenuResult = { ok: true; preview: ComposedMenuPreview }
   | { ok: false; code: string; message: string };
@@ -27,22 +29,52 @@ export async function generateComposedMenu(input: unknown, deps: {
     assertUsableSigningKey(deps.signingKey);
     const interpreted = await deps.interpret(parsed.data);
     if (!interpreted.ok) return { ok: false, code: interpreted.reason ?? "INTERPRETATION_INVALID", message: interpreted.message };
-    if (interpreted.running && interpreted.running.status !== "READY") return { ok: false, code: interpreted.running.status, message: interpreted.running.message };
+    const pending = interpreted.running && interpreted.running.status !== "READY" ? interpreted.running : null;
+    // Missing policy/input can leave an editable draft. Safety, conflicts and invalid
+    // inputs remain stops and must not be disguised as missing approval.
+    const canDraft = pending?.status === "NEEDS_POLICY" || (pending?.status === "NEEDS_INPUT" && ["EVENT_REQUIRED", "AGE_REQUIRED"].includes(pending.reason));
+    if (pending && !canDraft) return { ok: false, code: pending.status, message: pending.message };
+    const unprescribedRunning = pending ? { reasonCode: pending.reason, reasonMessage: pending.message } : null;
     const running = interpreted.running?.status === "READY" ? interpreted.running.prescription : null;
     if (running && !interpreted.previewToken) return { ok: false, code: "UNSIGNED_RUNNING", message: "走メニューを確認できませんでした。" };
+    const requestedTimeSeconds = interpreted.intent.availableTimeSeconds?.value ?? parsed.data.context.availableTimeSeconds ?? null;
+    if (interpreted.intent.availableTimeSeconds && parsed.data.context.availableTimeSeconds !== undefined
+      && interpreted.intent.availableTimeSeconds.value !== parsed.data.context.availableTimeSeconds) {
+      return { ok: false, code: "TIME_CONTEXT_CONFLICT", message: "文章と入力欄の希望時間が異なります。どちらを使うか確認してください。" };
+    }
+    // Composer needs verified facts, while the Running token keeps its original input context.
+    const composerContext = { ...parsed.data.context,
+      ...(interpreted.intent.event ? { event: interpreted.intent.event.value } : {}),
+      ...(interpreted.intent.ageGroup ? { ageGroup: interpreted.intent.ageGroup.value } : {}),
+      ...(requestedTimeSeconds !== null ? { availableTimeSeconds: requestedTimeSeconds } : {}),
+    };
     const catalog = (await deps.catalog()).filter((row) => row.ownerId === deps.ownerId);
     const candidates = selectComposerCatalog(catalog, parsed.data.requestText, interpreted.exercises.map((row) => row.id));
-    const output = await deps.compose({ ...parsed.data, catalog: candidates, runningPrescription: running, unsupportedIntents: interpreted.unsupportedIntents });
+    const output = await deps.compose({ ...parsed.data, context: composerContext, catalog: candidates, runningPrescription: running, unprescribedRunning, unsupportedIntents: interpreted.unsupportedIntents });
     if (!output.ok) return { ok: false, code: "COMPOSITION_UNAVAILABLE", message: "メニュー案を取得できませんでした。時間をおいて再度お試しください。" };
     const runningSourceTexts = interpreted.intent.explicitDistances.map((claim) => claim.sourceText);
     const validated = validateComposition(output.value, { catalog: candidates, ownerId: deps.ownerId,
-      requestText: parsed.data.requestText, runningAvailable: running !== null, runningSourceTexts });
+      requestText: parsed.data.requestText, runningAvailable: running !== null, unprescribedRunningAvailable: unprescribedRunning !== null, runningSourceTexts });
     if (!validated.ok) return { ok: false, code: validated.code, message: "メニュー案の項目や量を確認できませんでした。内容を少し具体的にして再度お試しください。" };
     const composition = editableComposition(validated.value as MenuComposition, randomUUID);
+    if (unprescribedRunning) {
+      const placeholder = { type: "UNPRESCRIBED_RUNNING" as const, id: randomUUID(), ...unprescribedRunning,
+        plannedNote: "", ...EMPTY_UNPRESCRIBED_RUNNING_DOSE };
+      const markerBlock = composition.blocks.find(block => block.items.some(item => item.type === "RUNNING_POLICY"));
+      if (markerBlock) markerBlock.items = markerBlock.items.map(item => item.type === "RUNNING_POLICY" ? { ...placeholder, id: item.id } : item);
+      // Respect existing menu bounds even for a model response at the block limit.
+      else if (composition.blocks.length < 12) composition.blocks.push({ id: randomUUID(), name: "走（未処方）", items: [placeholder] });
+      else {
+        const block = composition.blocks.find(row => row.items.length < 30);
+        if (!block) return { ok: false, code: "TOO_MANY_ITEMS", message: "項目数を減らして作成してください。" };
+        block.items.push(placeholder);
+      }
+      if (composition.blocks.flatMap(block => block.items).length > 50) return { ok: false, code: "TOO_MANY_ITEMS", message: "項目数を減らして作成してください。" };
+    }
     const previewToken = issueMenuCompositionToken({ ownerId: deps.ownerId, ...parsed.data,
-      proposal: composition, allowedExerciseIds: catalog.filter((row) => row.status === "REVIEWED").map((row) => row.id),
-      runningToken: interpreted.previewToken, runningPrescription: running, runningSourceTexts }, deps.signingKey);
-    return { ok: true, preview: { composition, previewToken, runningPrescription: running,
-      runningToken: interpreted.previewToken, ...parsed.data, unsupportedIntents: interpreted.unsupportedIntents } };
+      proposal: composition, requestedTimeSeconds, unprescribedRunning, allowedExerciseIds: catalog.filter((row) => row.status === "REVIEWED").map((row) => row.id),
+      runningToken: running ? interpreted.previewToken : null, runningPrescription: running, runningSourceTexts }, deps.signingKey);
+    return { ok: true, preview: { composition, previewToken, requestedTimeSeconds, unprescribedRunning, runningPrescription: running,
+      runningToken: running ? interpreted.previewToken : null, ...parsed.data, unsupportedIntents: interpreted.unsupportedIntents } };
   } catch { return { ok: false, code: "COMPOSITION_UNAVAILABLE", message: "メニュー案を作成できませんでした。時間をおいて再度お試しください。" }; }
 }

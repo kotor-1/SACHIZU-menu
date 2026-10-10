@@ -2,12 +2,17 @@ import { z } from "zod";
 import type { VerifiedRunningIntent, VerifiedClaim } from "./intent";
 import { resolveWhitespaceQuote } from "@/domain/shared/source-quote";
 import { hasSessionTimeBasis } from "./session-time-scope";
+import {
+  RUNNING_INTENSITY_PREFERENCES, RUNNING_PURPOSES, historicalIntensityFromGroundedText,
+  historicalPurposeFromGroundedText, type RunningIntensityPreference, type RunningPurpose,
+} from "@/domain/running-policy/purpose";
 
 export const RUNNING_INTERPRETER_VERSION = "running-intent-v2" as const;
 
 const fieldSchema = z.enum([
   "RUNNING_REQUEST", "EVENT", "AGE_GROUP", "TRAINING_DISTANCE", "REPS", "REST",
   "AVAILABLE_TIME", "DISTANCE_PREFERENCE", "LOAD_REDUCTION", "FATIGUE", "COMPETITION_DAYS",
+  "PURPOSE", "INTENSITY_PREFERENCE",
 ]);
 const unitSchema = z.enum(["METER", "REP", "SECOND", "MINUTE", "HOUR", "DAY", "SET", "GRADE", "NONE"]);
 const numericPartSchema = z.object({ rawText: z.string().min(1).max(24), unit: unitSchema }).strict();
@@ -18,7 +23,7 @@ const safetyEvidenceSchema = z.object({
 }).strict();
 const claimSchema = z.object({
   field: fieldSchema,
-  value: z.union([z.string().min(1).max(32), z.number().int().positive(), z.boolean()]),
+  value: z.union([z.string().min(1).max(32), z.number().int().nonnegative(), z.boolean()]),
   sourceText: z.string().min(1).max(160),
   polarity: z.enum(["AFFIRMED", "NEGATED"]),
   temporalScope: z.enum(["CURRENT", "DESIRED", "FUTURE", "PAST"]),
@@ -287,22 +292,35 @@ function valueCheck(claim: SemanticClaimV2): boolean {
     case "AGE_GROUP": return ["ELEMENTARY", "JUNIOR_HIGH", "HIGH_SCHOOL", "ADULT"].includes(String(claim.value));
     case "DISTANCE_PREFERENCE": return claim.value === "SHORT" || claim.value === "LONG";
     case "FATIGUE": return ["FATIGUED", "NOT_FATIGUED", "STRONG_OR_UNWELL"].includes(String(claim.value));
-    default: return typeof claim.value === "number";
+    case "PURPOSE": return RUNNING_PURPOSES.includes(claim.value as RunningPurpose);
+    case "INTENSITY_PREFERENCE": return RUNNING_INTENSITY_PREFERENCES.includes(claim.value as RunningIntensityPreference);
+    case "COMPETITION_DAYS": return typeof claim.value === "number" && Number.isInteger(claim.value) && claim.value >= 0;
+    default: return typeof claim.value === "number" && claim.value > 0;
   }
 }
 
-function project(claims: readonly VerifiedSemanticClaimV2[], exerciseIds: string[], runningRequested: boolean): VerifiedRunningIntent | null {
+function project(claims: readonly VerifiedSemanticClaimV2[], unsupportedSources: readonly string[], exerciseIds: string[], runningRequested: boolean): VerifiedRunningIntent | null {
   const active = claims.filter((claim) => claim.status === "ACTIVE" && claim.polarity === "AFFIRMED" && claim.temporalScope !== "PAST");
   const unique = (field: SemanticClaimV2["field"]) => {
     const found = active.filter((claim) => claim.field === field);
     return found.length > 1 ? false : found[0] ?? null;
   };
-  const fields = ["EVENT", "AGE_GROUP", "DISTANCE_PREFERENCE", "LOAD_REDUCTION", "FATIGUE", "AVAILABLE_TIME", "REPS", "REST"] as const;
+  const fields = ["EVENT", "AGE_GROUP", "DISTANCE_PREFERENCE", "LOAD_REDUCTION", "FATIGUE", "AVAILABLE_TIME", "REPS", "REST", "PURPOSE", "INTENSITY_PREFERENCE", "COMPETITION_DAYS"] as const;
   const values = Object.fromEntries(fields.map((field) => [field, unique(field)])) as Record<(typeof fields)[number], VerifiedSemanticClaimV2 | null | false>;
   if (Object.values(values).some((value) => value === false)) return null;
   const sourced = <T>(claim: VerifiedSemanticClaimV2 | null | false): VerifiedClaim<T> | null =>
     claim ? { value: claim.value as T, sourceText: claim.sourceText, sourceType: "USER_TEXT" } : null;
   const distances = active.filter((claim) => claim.field === "TRAINING_DISTANCE").map((claim) => sourced<number>(claim)!);
+  const supersededSources = claims.filter((claim) => claim.status === "SUPERSEDED" || claim.polarity === "NEGATED" || claim.temporalScope === "PAST").map((claim) => claim.sourceText);
+  // Recorded pre-purpose outputs may carry precompetition adjustment only in
+  // paired calendar/load claims. Other typed claims are not alternate purpose classifiers.
+  const legacyPrecomp = active.filter(claim => claim.field === "COMPETITION_DAYS" &&
+    active.some(other => other.field === "LOAD_REDUCTION" && other.value === true && other.sourceText === claim.sourceText) &&
+    historicalPurposeFromGroundedText(claim.sourceText) === "PRECOMP").map(claim => claim.sourceText);
+  const fallbackSources = [...unsupportedSources, ...legacyPrecomp]
+    .filter((source) => !supersededSources.some((old) => source.includes(old) || old.includes(source)));
+  const inferredPurpose = fallbackSources.map(historicalPurposeFromGroundedText).find((purpose) => purpose !== null) ?? null;
+  const inferredIntensity = fallbackSources.map(historicalIntensityFromGroundedText).find((value) => value !== null) ?? null;
   const fatigue = values.FATIGUE;
   const fatigueValue = fatigue ? fatigue.value : null;
   const load = values.LOAD_REDUCTION;
@@ -315,6 +333,9 @@ function project(claims: readonly VerifiedSemanticClaimV2[], exerciseIds: string
     loadReductionRequested: load && load.value === true ? sourced<true>(load) : null,
     fatigueState: fatigueValue === "FATIGUED" ? sourced<"REPORTED">({ ...fatigue!, value: "REPORTED" } as VerifiedSemanticClaimV2)
       : fatigueValue === "STRONG_OR_UNWELL" ? sourced<"STRONG_OR_UNWELL">(fatigue) : null,
+    purpose: sourced<RunningPurpose>(values.PURPOSE) ?? (inferredPurpose ? { value: inferredPurpose, sourceText: fallbackSources.find((source) => historicalPurposeFromGroundedText(source) === inferredPurpose)!, sourceType: "USER_TEXT" } : null),
+    intensityPreference: sourced<RunningIntensityPreference>(values.INTENSITY_PREFERENCE) ?? (inferredIntensity ? { value: inferredIntensity, sourceText: fallbackSources.find((source) => historicalIntensityFromGroundedText(source) === inferredIntensity)!, sourceType: "USER_TEXT" } : null),
+    competitionDays: sourced<number>(values.COMPETITION_DAYS),
     availableTimeSeconds: sourced<number>(values.AVAILABLE_TIME),
     humanExplicitReps: sourced<number>(values.REPS),
     humanExplicitRestSeconds: sourced<number>(values.REST),
@@ -461,6 +482,8 @@ function verifySemanticStructure(
     if (claim.field === "AVAILABLE_TIME" && !hasSessionTimeBasis(claim.sourceText, claim.numericParts.map(part => part.rawText))) {
       return { ok: false, reason: "INVALID_AI_CLAIM", issue: "SESSION_TIME_BASIS_REQUIRED" };
     }
+    // Purpose/intensity are semantic categorical claims, like age and fatigue.
+    // Exact quote, enum and lifecycle checks apply; a phrase dictionary is not their authority.
     const numericParts: VerifiedNumericPartV2[] = [];
     if (claim.numericParts.length > 0) {
       let offset = 0;
@@ -551,7 +574,7 @@ function verifySemanticStructure(
   // required before the existing safety policy can receive this classification.
   const safetyFailure = safetyEvidenceFailure(verified, review);
   if (safetyFailure) return safetyFailure;
-  const engineIntent = project(verified, intent.exerciseIds, intent.requestKind === "RUNNING");
+  const engineIntent = project(verified, intent.unsupportedIntents.map((item) => item.sourceText), intent.exerciseIds, intent.requestKind === "RUNNING");
   if (!engineIntent) return review === null && roleReview === null
     ? { ok: false, reason: "SEMANTIC_REVIEW_REQUIRED", triggers: ["UNRESOLVED_SEMANTIC_CONTRADICTION"] }
     : { ok: false, reason: "INVALID_AI_CLAIM" };

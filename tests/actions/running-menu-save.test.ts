@@ -33,6 +33,9 @@ function makeDraft(options: { event?: "100m" | "200m"; light?: boolean; exercise
     distancePreference: null,
     loadReductionRequested: options.light ? { value: true, sourceText: "軽めに" } : null,
     fatigueState: null,
+    purpose: null,
+    intensityPreference: null,
+    competitionDays: null,
     availableTimeSeconds: null,
     humanExplicitReps: null,
     humanExplicitRestSeconds: null,
@@ -117,7 +120,7 @@ describe("Running policy MenuItem save and reload", () => {
     const claims: RunningIntentClaims = {
       runningRequested: true, event: { value: "100m", sourceText: "100m選手" }, ageGroup: { value: "JUNIOR_HIGH", sourceText: "中学生" },
       explicitDistances: [{ value: 80, sourceText: "80mをやりたい" }], distancePreference: null,
-      loadReductionRequested: null, fatigueState: null, availableTimeSeconds: null,
+      loadReductionRequested: null, fatigueState: null, purpose: null, intensityPreference: null, competitionDays: null, availableTimeSeconds: null,
       humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [],
     };
     const verified = verifyRunningIntentClaims(text, claims, []);

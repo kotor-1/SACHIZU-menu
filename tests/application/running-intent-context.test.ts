@@ -7,6 +7,7 @@ const quoted = <T>(value: T, sourceText: string) => ({ value, sourceText });
 const claims = (patch: Partial<RunningIntentClaims> = {}): RunningIntentClaims => ({
   runningRequested: true, event: null, ageGroup: null, explicitDistances: [], distancePreference: null,
   loadReductionRequested: null, fatigueState: null, availableTimeSeconds: null,
+  purpose: null, intensityPreference: null, competitionDays: null,
   humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [], ...patch,
 });
 const original = "今週に２００mのレースがある。中学2年男子です。あと3日で試合ですが、疲労が抜けすぎています。少し疲労を溜めるメニューを消化したい";

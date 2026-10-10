@@ -31,6 +31,16 @@ async function makeExerciseRow(name: string) {
   );
 }
 
+async function createPendingRunningItem(menuBlockId: string) {
+  return prisma.menuItem.create({ data: {
+    menuBlockId, displayName: "走（Engine未処方）", prescriptionKind: "RUNNING_UNPRESCRIBED",
+    sets: null, reps: null, distanceMeters: null, durationSeconds: null, restSeconds: null, intensityPercent: null,
+    prescriptionJson: JSON.stringify({ kind: "UNPRESCRIBED_RUNNING", schemaVersion: 1, reasonCode: "NEEDS_POLICY", reasonMessage: "目的別処方は未承認です。" }),
+    provenanceJson: JSON.stringify({ schemaVersion: 1, source: "UNPRESCRIBED_RUNNING_DRAFT", doseAuthority: "USER_ONLY", engineApproved: false }),
+    rationale: "目的別処方は未承認です。",
+  } });
+}
+
 describe("menu repository", () => {
   beforeEach(resetDb);
 
@@ -120,6 +130,48 @@ describe("menu repository", () => {
       });
       expect(untouchedExercise.defaultSets).toBe(2);
       expect(untouchedExercise.defaultDistanceMeters).toBe(30);
+    });
+
+    it("allows user-only edits to an unprescribed Running row without changing its kind or provenance", async () => {
+      const menu = await createMenu(menuInput(), false);
+      const block = await addBlock(menu.id, { name: "走（未処方）", note: null });
+      const item = await createPendingRunningItem(block.id);
+      const priorJson = item.prescriptionJson;
+      const priorProvenance = item.provenanceJson;
+
+      await updateMenuItem(item.id, menuItemInput({ displayName: "走（未処方）", sets: "2", reps: "4", restSeconds: "30", intensityPercent: "75", note: "手入力" }));
+
+      const updated = await prisma.menuItem.findUniqueOrThrow({ where: { id: item.id } });
+      expect(updated).toMatchObject({ prescriptionKind: "RUNNING_UNPRESCRIBED", sets: 2, reps: 4, restSeconds: 30,
+        intensityPercent: 75, note: "手入力", prescriptionJson: priorJson, provenanceJson: priorProvenance });
+      expect(updated.prescriptionJson).toContain('"reasonCode":"NEEDS_POLICY"');
+      expect(updated.provenanceJson).toContain('"doseAuthority":"USER_ONLY"');
+      expect(updated.provenanceJson).toContain('"engineApproved":false');
+    });
+
+    it("does not allow an unprescribed Running row to become a catalog exercise", async () => {
+      const exercise = await makeExerciseRow("Aスキップ");
+      const menu = await createMenu(menuInput(), false);
+      const block = await addBlock(menu.id, { name: "走（未処方）", note: null });
+      const item = await createPendingRunningItem(block.id);
+
+      await expect(updateMenuItem(item.id, menuItemInput({ exerciseId: exercise.id, displayName: "", sets: "2", reps: "4" })))
+        .rejects.toThrow("未処方の走項目は登録種目に変換できません");
+      expect(await prisma.menuItem.findUniqueOrThrow({ where: { id: item.id } })).toMatchObject({
+        prescriptionKind: "RUNNING_UNPRESCRIBED", exerciseId: null,
+      });
+    });
+
+    it("rejects hand-entered unprescribed Running intensity above 100 percent", async () => {
+      const menu = await createMenu(menuInput(), false);
+      const block = await addBlock(menu.id, { name: "走（未処方）", note: null });
+      const item = await createPendingRunningItem(block.id);
+
+      await expect(updateMenuItem(item.id, menuItemInput({ displayName: "走（未処方）", intensityPercent: "101" })))
+        .rejects.toThrow("手入力の走強度は1〜100%の整数で入力してください");
+      expect(await prisma.menuItem.findUniqueOrThrow({ where: { id: item.id } })).toMatchObject({
+        prescriptionKind: "RUNNING_UNPRESCRIBED", intensityPercent: null,
+      });
     });
   });
 

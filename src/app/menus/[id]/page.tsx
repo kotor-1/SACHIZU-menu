@@ -1,3 +1,5 @@
+import { savedMenuDuration, savedMenuDurationInput } from "@/application/menu-composition/saved-duration";
+import { SavedMenuDurationEditor } from "@/components/menu/saved-menu-duration-editor";
 import { notFound } from "next/navigation";
 import {
   Badge,
@@ -37,6 +39,8 @@ export default async function MenuDetailPage({
   const menuSourceFingerprint = runningSessionSourceFingerprint(menu);
   const hasLegacyRunning = menu.blocks.some((block) => block.items.some((item) => item.prescriptionKind === "RUNNING_V2"));
   const composed = isComposedMenuContext(menu.runningContextJson);
+  const durationInput = savedMenuDurationInput(menu);
+  const duration = savedMenuDuration(menu);
 
   // [R10-B4B] feature flag が OFF なら Running v2 の読み込み・評価を一切行わない
   // （ここが null のあいだ、この画面は B4B 前とまったく同じ表示・操作になる）。
@@ -68,8 +72,7 @@ export default async function MenuDetailPage({
               </Badge>
             )}
             <span className="text-xs text-slate-500">
-              {menu.blocks.length} ブロック / {allItems.length} 種目 ・ 目安{" "}
-              {formatMinutes(menu.estimatedMinutes ?? Math.max(1, estimatedFromItems))}
+              {menu.blocks.length} ブロック / {allItems.length} 種目 ・ {duration ? (duration.plannedTotalSeconds === null ? "時間配分は未確定" : `配分合計 ${formatMinutes(Math.ceil(duration.plannedTotalSeconds / 60))}`) : `目安 ${formatMinutes(menu.estimatedMinutes ?? Math.max(1, estimatedFromItems))}`}
             </span>
             {menu.tags.map((t) => (
               <span key={t.tagId} className="text-xs text-slate-400">
@@ -99,6 +102,8 @@ export default async function MenuDetailPage({
           </>
         }
       />
+
+      {durationInput && <SavedMenuDurationEditor key={menuSourceFingerprint} menuId={menu.id} sourceFingerprint={menuSourceFingerprint} {...durationInput} />}
 
       {menu.purpose && (
         <Card className="mb-4 border-slate-200 bg-white">

@@ -9,6 +9,12 @@ export function runningMinimumPlannedSeconds(p: Pick<RunningMenuFinalPrescriptio
   return rest + p.totalReps * (p.coachTargetTimeSeconds ?? p.coachTargetTimeRange?.minSeconds ?? 0);
 }
 export function menuItemEstimatedSeconds(item: Prescription & { prescriptionKind?: string; prescriptionJson?: string | null }): number {
+  if (item.prescriptionKind === "RUNNING_UNPRESCRIBED") {
+    // Explicit human work/rest only; missing speed or duration stays unknown.
+    const work = (item.durationSeconds ?? 0) * (item.reps ?? 1) * (item.sets ?? 1);
+    const rest = Math.max(0, (item.reps ?? 1) - 1) * (item.sets ?? 1) * (item.restSeconds ?? 0);
+    return work + rest;
+  }
   if (item.prescriptionKind === "RUNNING_POLICY") {
     const envelope = parseRunningMenuEnvelope(item.prescriptionKind, item.prescriptionJson ?? null);
     return envelope ? runningMinimumPlannedSeconds(finalRunningMenuPrescription(envelope)) : 0;

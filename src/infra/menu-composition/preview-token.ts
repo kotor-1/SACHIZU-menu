@@ -5,11 +5,14 @@ import { editableCompositionSchema, menuCompositionContextSchema } from "@/domai
 import { runningMenuPrescriptionSchema } from "@/application/running-menu/persistence";
 import { RUNNING_POLICY_HASH, RUNNING_POLICY_VERSION } from "@/domain/running-policy/policy";
 import { assertUsableSigningKey, HMAC_TOKEN_MAX_LENGTH, signHmacToken, verifyHmacToken } from "@/infra/security/hmac-token";
+import { unprescribedRunningContextSchema } from "@/domain/menu-composition/unprescribed-running";
 
 const schema = z.object({
   kind: z.literal("MENU_COMPOSITION_PREVIEW"), schemaVersion: z.literal(1), ownerId: z.string().min(1),
   menuId: z.string().uuid(), issuedAtMs: z.number().int().nonnegative(), expiresAtMs: z.number().int().positive(),
   requestText: z.string().min(1).max(2000), context: menuCompositionContextSchema,
+  requestedTimeSeconds: z.number().int().positive().nullable().optional(),
+  unprescribedRunning: unprescribedRunningContextSchema.nullable().optional(),
   policyVersion: z.literal(RUNNING_POLICY_VERSION), policyHash: z.literal(RUNNING_POLICY_HASH),
   allowedExerciseIds: z.array(z.string().min(1).max(64)).max(2000),
   proposal: editableCompositionSchema, runningToken: z.string().max(HMAC_TOKEN_MAX_LENGTH).nullable(),
@@ -33,6 +36,7 @@ export function verifyMenuCompositionToken(token: string, key: string, nowMs = D
     const claims = schema.parse(JSON.parse(verified.payload));
     if (claims.issuedAtMs > nowMs || claims.expiresAtMs <= nowMs || claims.expiresAtMs - claims.issuedAtMs > 2 * 60 * 60 * 1000) return null;
     if ((claims.runningToken === null) !== (claims.runningPrescription === null)) return null;
+    if (claims.unprescribedRunning && claims.runningPrescription) return null;
     return claims;
   } catch { return null; }
 }

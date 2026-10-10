@@ -75,6 +75,7 @@ export function MenuItemForm({
   phase = null,
   runningV2Enabled = false,
   runningPolicyContext = false,
+  unprescribedRunning,
 }: {
   action: Action;
   exercises: ExercisePickerItem[];
@@ -95,6 +96,8 @@ export function MenuItemForm({
   runningV2Enabled?: boolean;
   /** New policy menus must not expose the generic legacy Running recommendation. */
   runningPolicyContext?: boolean;
+  /** Saved placeholder metadata: keep it a placeholder and never offer recommendations. */
+  unprescribedRunning?: { reasonCode: string; reasonMessage: string };
 }) {
   const [state, formAction] = useActionState(action, null);
   const [values, setValues] = useState<MenuItemFormValues>(initial);
@@ -122,6 +125,7 @@ export function MenuItemForm({
   const errors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
   const selected = exercises.find((e) => e.id === values.exerciseId);
   const metric = (selected?.metricType ?? "REPS") as MetricType;
+  const hasUnprescribedManualNumber = Boolean(unprescribedRunning) && [values.sets, values.reps, values.distanceMeters, values.durationSeconds, values.restSeconds, values.intensityPercent].some((value) => value !== "");
 
   // [R10-B4B] 走系かどうかは既存の分類（classify）で決める。種目名の一覧をここで持たない。
   const routedToRunningV2 =
@@ -221,7 +225,15 @@ export function MenuItemForm({
         </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {unprescribedRunning ? (
+        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm">
+          <p className="font-semibold">走・未処方</p>
+          <p className="mt-1">{unprescribedRunning.reasonMessage}</p>
+          <p className="mt-1 text-xs">Engineの処方・推奨値はありません。必要な数値は手入力で確認してください。</p>
+          <input type="hidden" name="exerciseId" value="" />
+          <input type="hidden" name="displayName" value="走（未処方）" />
+        </div>
+      ) : <div className="grid gap-3 sm:grid-cols-2">
         <Field label="種目" errors={errors.exerciseId}>
           <select
             name="exerciseId"
@@ -260,15 +272,15 @@ export function MenuItemForm({
             className={cn(INPUT_CLASS, "h-9 py-0 disabled:bg-slate-100 disabled:text-slate-400")}
           />
         </Field>
-      </div>
+      </div>}
 
-      {selected && routedToRunningV2 && (
+      {!unprescribedRunning && selected && routedToRunningV2 && (
         <p className="rounded border border-indigo-200 bg-white px-2.5 py-2 text-xs leading-relaxed text-slate-600">
           {runningPolicyContext ? "走の距離・本数・休憩は走の確認済み処方とコーチ調整で設定してください。" : LEGACY_RUNNING_SUGGESTION_NOTICE_JA}
         </p>
       )}
 
-      {selected && !routedToRunningV2 && (
+      {!unprescribedRunning && selected && !routedToRunningV2 && (
         <div className="space-y-1.5">
           <button
             type="button"
@@ -312,7 +324,7 @@ export function MenuItemForm({
           />
         </Field>
 
-        {(metric === "REPS" || values.reps !== "") && (
+        {(unprescribedRunning || metric === "REPS" || values.reps !== "") && (
           <Field label="回数" errors={errors.reps}>
             <input
               type="number"
@@ -324,7 +336,7 @@ export function MenuItemForm({
             />
           </Field>
         )}
-        {(metric === "DISTANCE" || values.distanceMeters !== "") && (
+        {(unprescribedRunning || metric === "DISTANCE" || values.distanceMeters !== "") && (
           <Field label="距離(m)" errors={errors.distanceMeters}>
             <input
               type="number"
@@ -337,8 +349,8 @@ export function MenuItemForm({
             />
           </Field>
         )}
-        {(metric === "TIME" || values.durationSeconds !== "") && (
-          <Field label="時間(秒)" errors={errors.durationSeconds}>
+        {(unprescribedRunning || metric === "TIME" || values.durationSeconds !== "") && (
+          <Field label={unprescribedRunning ? "1本の時間(秒)" : "時間(秒)"} errors={errors.durationSeconds}>
             <input
               type="number"
               name="durationSeconds"
@@ -367,13 +379,14 @@ export function MenuItemForm({
             name="intensityPercent"
             value={values.intensityPercent}
             onChange={set("intensityPercent")}
-            min={1}
-            max={200}
+          min={1}
+          max={unprescribedRunning ? 100 : 200}
+          step={1}
             className={numberInput}
           />
         </Field>
 
-        <Field label="重量(kg)" errors={errors.loadKg}>
+        {!unprescribedRunning && <Field label="重量(kg)" errors={errors.loadKg}>
           <input
             type="number"
             name="loadKg"
@@ -383,19 +396,22 @@ export function MenuItemForm({
             step="any"
             className={numberInput}
           />
-        </Field>
+        </Field>}
       </div>
 
+      {hasUnprescribedManualNumber && <p className="text-xs font-medium text-amber-900">手入力（Engine未処方）</p>}
+
       {/* 表示していない単位も値を落とさず送る */}
-      {metric !== "REPS" && values.reps === "" && (
+      {(unprescribedRunning || metric !== "REPS") && values.reps === "" && (
         <input type="hidden" name="reps" value="" />
       )}
-      {metric !== "DISTANCE" && values.distanceMeters === "" && (
+      {(unprescribedRunning || metric !== "DISTANCE") && values.distanceMeters === "" && (
         <input type="hidden" name="distanceMeters" value="" />
       )}
-      {metric !== "TIME" && values.durationSeconds === "" && (
+      {(unprescribedRunning || metric !== "TIME") && values.durationSeconds === "" && (
         <input type="hidden" name="durationSeconds" value="" />
       )}
+      {unprescribedRunning && <input type="hidden" name="loadKg" value="" />}
 
       <Field label="この項目への指示" errors={errors.note}>
         <input

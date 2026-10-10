@@ -13,6 +13,7 @@ import {
   RUNNING_POLICY_HASH,
   RUNNING_POLICY_VERSION,
 } from "./policy";
+import { unsupportedPurposeReason } from "./purpose";
 
 type StopStatus = "NEEDS_INPUT" | "NEEDS_POLICY" | "COACH_REVIEW_REQUIRED" | "BLOCKED";
 type StopReason = Exclude<RunningFailureReason, "AVAILABLE_TIME_TOO_SHORT">;
@@ -61,6 +62,20 @@ export function planRunningPrescription(input: unknown): RunningPolicyResult {
   if (distinctExplicit.length > 1) {
     return stop("COACH_REVIEW_REQUIRED", "MULTIPLE_EXPLICIT_DISTANCES", request);
   }
+
+  // Safety holds precede purpose policy: an unsupported goal cannot hide an
+  // explicit serious fatigue or illness concern behind an irrelevant event prompt.
+  if (request.fatigueState === "STRONG_OR_UNWELL") {
+    return stop("COACH_REVIEW_REQUIRED", "STRONG_FATIGUE_OR_UNWELL", request);
+  }
+  // These policy gates do not require an event to be meaningful. Keep the
+  // elementary protection visible even when the athlete has not supplied one.
+  if (request.ageGroup === "ELEMENTARY") {
+    return stop("NEEDS_POLICY", "ELEMENTARY_POLICY_NOT_APPROVED", request);
+  }
+  const purposeReason = unsupportedPurposeReason(request.purpose, request.intensityPreference);
+  if (purposeReason !== null) return stop("NEEDS_POLICY", purposeReason, request);
+
   const explicitDistance = distinctExplicit[0] ?? null;
   if (explicitDistance !== null && phaseAPolicyFor(explicitDistance) === null) {
     return stop("COACH_REVIEW_REQUIRED", "HUMAN_EXPLICIT_UNSUPPORTED_DISTANCE", request, explicitDistance);
@@ -91,9 +106,6 @@ export function planRunningPrescription(input: unknown): RunningPolicyResult {
   if (request.ageGroup === undefined || request.ageGroup === "UNKNOWN") {
     return stop("NEEDS_INPUT", "AGE_REQUIRED", request, distanceMeters);
   }
-  if (request.ageGroup === "ELEMENTARY") {
-    return stop("NEEDS_POLICY", "ELEMENTARY_POLICY_NOT_APPROVED", request, distanceMeters);
-  }
   if (
     request.ageGroup === "JUNIOR_HIGH"
     && RUNNING_POLICY.phaseD.juniorHighHistoryOrCoachApprovalDistances.some((distance) => distance === distanceMeters)
@@ -112,9 +124,6 @@ export function planRunningPrescription(input: unknown): RunningPolicyResult {
   }
   if (request.humanExplicitNumbers?.totalReps !== undefined || request.humanExplicitNumbers?.repRestSeconds !== undefined) {
     return stop("COACH_REVIEW_REQUIRED", "HUMAN_EXPLICIT_NUMBERS_REQUIRE_REVIEW", request, distanceMeters);
-  }
-  if (request.fatigueState === "STRONG_OR_UNWELL") {
-    return stop("COACH_REVIEW_REQUIRED", "STRONG_FATIGUE_OR_UNWELL", request, distanceMeters);
   }
   if (
     (request.coachTargetTimeSeconds !== undefined && request.coachTargetTimeRange !== undefined)
@@ -176,6 +185,9 @@ export function planRunningPrescription(input: unknown): RunningPolicyResult {
     fullSessionTimeGuaranteed: false,
     decisionReasons,
   };
+
+  // competitionDays is deliberately retained as request context and has no
+  // automatic dose effect under this policy (competitionDateAloneChangesReps=false).
 
   if (request.availableTimeSeconds !== undefined && request.availableTimeSeconds <= minimumKnownRestSeconds) {
     return {

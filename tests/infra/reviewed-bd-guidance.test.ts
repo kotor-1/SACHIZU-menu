@@ -141,7 +141,7 @@ describe("Coach-defined B/D video guidance and corrected B catalog dose", () => 
     if (!result.ok) throw new Error(result.code);
     expect(result.preview.runningPrescription).toBeNull();
     const item = result.preview.composition.blocks[0].items[0];
-    if (item.type === "RUNNING_POLICY") throw new Error("Unexpected Running item");
+    if (item.type === "RUNNING_POLICY" || item.type === "UNPRESCRIBED_RUNNING") throw new Error("Unexpected Running item");
     expect(item.executionInstruction).toBe(mockedPlan(key).executionInstruction);
     expect(exercisePlanValues(item)).toMatchObject({ reps: key === "B" ? 10 : null, distanceMeters: null, durationSeconds: null });
     if (key === "D") expect(exerciseDoseState(item)).toBe("UNCONFIGURED");

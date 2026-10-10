@@ -1,0 +1,313 @@
+{
+  "source": "recorded live Luna semantic response text; response metadata excluded",
+  "cases": [
+    {
+      "id": "elementary_beginner_60",
+      "requestText": "小学生の初心者です。基礎的な走能力向上を目的に、60分の練習メニューを作ってください。",
+      "interpretation": {
+        "interpreterVersion": "running-intent-v2",
+        "requestKind": "RUNNING",
+        "claims": [
+          {
+            "field": "AGE_GROUP",
+            "value": "ELEMENTARY",
+            "sourceText": "小学生の初心者です。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "CURRENT",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "AVAILABLE_TIME",
+            "value": 3600,
+            "sourceText": "60分の練習メニューを作ってください。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "60",
+                "unit": "MINUTE"
+              }
+            ],
+            "safetyConcernEvidence": null
+          }
+        ],
+        "corrections": [],
+        "unsupportedIntents": [
+          {
+            "meaning": "初心者であるという情報",
+            "sourceText": "小学生の初心者です。"
+          },
+          {
+            "meaning": "基礎的な走能力向上を目的とする希望",
+            "sourceText": "基礎的な走能力向上を目的に、60分の練習メニューを作ってください。"
+          }
+        ],
+        "ambiguity": null,
+        "exerciseIds": []
+      }
+    },
+    {
+      "id": "grade5_acceleration_60",
+      "requestText": "小学5年生の100m選手です。加速力向上を目的に、走練習とドリル・補強を組み合わせた60分の練習メニューを作ってください。",
+      "interpretation": {
+        "interpreterVersion": "running-intent-v2",
+        "requestKind": "RUNNING",
+        "claims": [
+          {
+            "field": "RUNNING_REQUEST",
+            "value": true,
+            "sourceText": "走練習とドリル・補強を組み合わせた60分の練習メニューを作ってください。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "AGE_GROUP",
+            "value": "ELEMENTARY",
+            "sourceText": "小学5年生の100m選手です。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "CURRENT",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "5年",
+                "unit": "GRADE"
+              }
+            ],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "EVENT",
+            "value": "100m",
+            "sourceText": "小学5年生の100m選手です。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "CURRENT",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "100m",
+                "unit": "METER"
+              }
+            ],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "AVAILABLE_TIME",
+            "value": 3600,
+            "sourceText": "走練習とドリル・補強を組み合わせた60分の練習メニューを作ってください。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "60分",
+                "unit": "MINUTE"
+              }
+            ],
+            "safetyConcernEvidence": null
+          }
+        ],
+        "corrections": [],
+        "unsupportedIntents": [
+          {
+            "meaning": "加速力向上を目的としたい。",
+            "sourceText": "加速力向上を目的に、走練習とドリル・補強を組み合わせた60分の練習メニューを作ってください。"
+          }
+        ],
+        "ambiguity": null,
+        "exerciseIds": []
+      }
+    },
+    {
+      "id": "highschool_speed_endurance_90",
+      "requestText": "高校生の100m選手です。スピード持久力向上を目的に、走練習とドリル・補強を組み合わせた90分の練習メニューを作ってください。",
+      "interpretation": {
+        "interpreterVersion": "running-intent-v2",
+        "requestKind": "RUNNING",
+        "claims": [
+          {
+            "field": "AGE_GROUP",
+            "value": "HIGH_SCHOOL",
+            "sourceText": "高校生の100m選手です。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "CURRENT",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "EVENT",
+            "value": "100m",
+            "sourceText": "高校生の100m選手です。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "CURRENT",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "100m",
+                "unit": "METER"
+              }
+            ],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "AVAILABLE_TIME",
+            "value": 5400,
+            "sourceText": "スピード持久力向上を目的に、走練習とドリル・補強を組み合わせた90分の練習メニューを作ってください。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "90分",
+                "unit": "MINUTE"
+              }
+            ],
+            "safetyConcernEvidence": null
+          }
+        ],
+        "corrections": [],
+        "unsupportedIntents": [
+          {
+            "meaning": "スピード持久力の向上を目的とする",
+            "sourceText": "スピード持久力向上を目的に、走練習とドリル・補強を組み合わせた90分の練習メニューを作ってください。"
+          },
+          {
+            "meaning": "走練習とドリル・補強を組み合わせる",
+            "sourceText": "走練習とドリル・補強を組み合わせた90分の練習メニューを作ってください。"
+          }
+        ],
+        "ambiguity": null,
+        "exerciseIds": []
+      }
+    },
+    {
+      "id": "junior_precompetition_40",
+      "requestText": "中学生です。大会前日なので疲労を残さない調整をしたいです。40分の練習メニューを作ってください。",
+      "interpretation": {
+        "interpreterVersion": "running-intent-v2",
+        "requestKind": "RUNNING",
+        "claims": [
+          {
+            "field": "RUNNING_REQUEST",
+            "value": true,
+            "sourceText": "40分の練習メニューを作ってください。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "AGE_GROUP",
+            "value": "JUNIOR_HIGH",
+            "sourceText": "中学生です。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "CURRENT",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "COMPETITION_DAYS",
+            "value": 1,
+            "sourceText": "大会前日なので疲労を残さない調整をしたいです。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "CURRENT",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "AVAILABLE_TIME",
+            "value": 2400,
+            "sourceText": "40分の練習メニューを作ってください。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "40分",
+                "unit": "MINUTE"
+              }
+            ],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "LOAD_REDUCTION",
+            "value": true,
+            "sourceText": "大会前日なので疲労を残さない調整をしたいです。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          }
+        ],
+        "corrections": [],
+        "unsupportedIntents": [],
+        "ambiguity": null,
+        "exerciseIds": []
+      }
+    },
+    {
+      "id": "strong_fatigue_low_45",
+      "requestText": "疲労が強い選手です。低強度の練習を45分行いたいです。メニューを作ってください。",
+      "interpretation": {
+        "interpreterVersion": "running-intent-v2",
+        "requestKind": "RUNNING",
+        "claims": [
+          {
+            "field": "FATIGUE",
+            "value": "FATIGUED",
+            "sourceText": "疲労が強い選手です。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "CURRENT",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "AVAILABLE_TIME",
+            "value": 45,
+            "sourceText": "低強度の練習を45分行いたいです。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [
+              {
+                "rawText": "45",
+                "unit": "MINUTE"
+              }
+            ],
+            "safetyConcernEvidence": null
+          },
+          {
+            "field": "RUNNING_REQUEST",
+            "value": true,
+            "sourceText": "低強度の練習を45分行いたいです。メニューを作ってください。",
+            "polarity": "AFFIRMED",
+            "temporalScope": "DESIRED",
+            "status": "ACTIVE",
+            "numericParts": [],
+            "safetyConcernEvidence": null
+          }
+        ],
+        "corrections": [],
+        "unsupportedIntents": [
+          {
+            "meaning": "低強度の練習を希望",
+            "sourceText": "低強度の練習を45分行いたいです。"
+          }
+        ],
+        "ambiguity": null,
+        "exerciseIds": []
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { hasNumericEvidence, hasReportedFatigue, normalizeIntentText, numericEvidence } from "./numeric-evidence";
+import { historicalIntensityFromGroundedText, historicalPurposeFromGroundedText, type RunningIntensityPreference, type RunningPurpose } from "@/domain/running-policy/purpose";
 
 const sourced = <T extends z.ZodTypeAny>(value: T) => z.object({
   value,
@@ -15,6 +16,9 @@ export const runningIntentClaimsSchema = z.object({
   distancePreference: sourced(z.enum(["SHORT", "LONG"])).nullable(),
   loadReductionRequested: sourced(z.literal(true)).nullable(),
   fatigueState: sourced(z.enum(["REPORTED", "STRONG_OR_UNWELL"])).nullable(),
+  purpose: sourced(z.enum(["ACCEL", "MAX_SPEED", "SPEED_ENDURANCE", "BASIC", "PRECOMP", "RECOVERY"])).nullable().default(null),
+  intensityPreference: sourced(z.literal("LOW")).nullable().default(null),
+  competitionDays: sourced(z.number().int().nonnegative()).nullable().default(null),
   availableTimeSeconds: sourced(z.number().int().positive()).nullable(),
   humanExplicitReps: sourced(z.number().int().positive()).nullable(),
   humanExplicitRestSeconds: sourced(z.number().int().positive()).nullable(),
@@ -34,6 +38,9 @@ export type VerifiedRunningIntent = {
   distancePreference: VerifiedClaim<"SHORT" | "LONG"> | null;
   loadReductionRequested: VerifiedClaim<true> | null;
   fatigueState: VerifiedClaim<"REPORTED" | "STRONG_OR_UNWELL"> | null;
+  purpose: VerifiedClaim<RunningPurpose> | null;
+  intensityPreference: VerifiedClaim<RunningIntensityPreference> | null;
+  competitionDays: VerifiedClaim<number> | null;
   availableTimeSeconds: VerifiedClaim<number> | null;
   humanExplicitReps: VerifiedClaim<number> | null;
   humanExplicitRestSeconds: VerifiedClaim<number> | null;
@@ -75,10 +82,15 @@ export function verifyRunningIntentClaims(
   const fatigueState = source(claims.fatigueState, (text, value) => value === "REPORTED"
     ? hasReportedFatigue(text)
     : /走れない|かなり.*疲れ|体が動かない|強い不調|体調が悪い/u.test(text));
+  const purpose = source(claims.purpose, (text, value) => historicalPurposeFromGroundedText(text) === value);
+  const intensityPreference = source(claims.intensityPreference, (text, value) => historicalIntensityFromGroundedText(text) === value);
+  const competitionDays = source(claims.competitionDays, (text, value) =>
+    hasNumericEvidence(input, text, "COMPETITION_DAYS", value));
   const availableTimeSeconds = source(claims.availableTimeSeconds, (text, value) => hasNumericEvidence(input, text, "TIME_AVAILABLE", value));
   const humanExplicitReps = source(claims.humanExplicitReps, (text, value) => hasNumericEvidence(input, text, "REPS", value));
   const humanExplicitRestSeconds = source(claims.humanExplicitRestSeconds, (text, value) => hasNumericEvidence(input, text, "REST", value));
-  const verifiedFields = { event, ageGroup, distancePreference, loadReductionRequested, fatigueState, availableTimeSeconds, humanExplicitReps, humanExplicitRestSeconds };
+  const verifiedFields = { event, ageGroup, distancePreference, loadReductionRequested, fatigueState, purpose,
+    intensityPreference, competitionDays, availableTimeSeconds, humanExplicitReps, humanExplicitRestSeconds };
   for (const [field, claim] of Object.entries(verifiedFields)) {
     if (claim === false) return { ok: false, reason: "UNSUPPORTED_SOURCE_CLAIM", field: field as keyof RunningIntentClaims };
   }
@@ -99,6 +111,8 @@ export function verifyRunningIntentClaims(
   if (evidence.some((entry) => entry.role === "TIME_AVAILABLE") && claims.availableTimeSeconds === null) return { ok: false, reason: "MISSING_AVAILABLE_TIME", field: "availableTimeSeconds" };
   if (hasReportedFatigue(input) && claims.fatigueState === null) return { ok: false, reason: "MISSING_FATIGUE_CONTEXT", field: "fatigueState" };
   if (/走れない|かなり.*疲れ|体が動かない|強い不調|体調が悪い/u.test(input) && claims.fatigueState?.value !== "STRONG_OR_UNWELL") return { ok: false, reason: "STRONG_FATIGUE_DOWNGRADED" };
+  if (historicalPurposeFromGroundedText(input) !== null && claims.purpose === null) return { ok: false, reason: "MISSING_RUNNING_PURPOSE", field: "purpose" };
+  if (historicalIntensityFromGroundedText(input) !== null && claims.intensityPreference === null) return { ok: false, reason: "MISSING_INTENSITY_PREFERENCE", field: "intensityPreference" };
   if (/(?:100|200)(?:m|メートル)選手/u.test(input) && /メニュー|練習/u.test(input) && !/走らない|補強だけ|ストレッチだけ/u.test(input) && !claims.runningRequested) return { ok: false, reason: "RUNNING_REQUEST_OMITTED" };
   if (evidence.some((entry) => entry.role === "REPS") && claims.humanExplicitReps === null) return { ok: false, reason: "MISSING_EXPLICIT_REPS", field: "humanExplicitReps" };
   if (evidence.some((entry) => entry.role === "REST") && claims.humanExplicitRestSeconds === null) return { ok: false, reason: "MISSING_EXPLICIT_REST", field: "humanExplicitRestSeconds" };
@@ -112,6 +126,9 @@ export function verifyRunningIntentClaims(
       distancePreference: distancePreference as VerifiedRunningIntent["distancePreference"],
       loadReductionRequested: loadReductionRequested as VerifiedRunningIntent["loadReductionRequested"],
       fatigueState: fatigueState as VerifiedRunningIntent["fatigueState"],
+      purpose: purpose as VerifiedRunningIntent["purpose"],
+      intensityPreference: intensityPreference as VerifiedRunningIntent["intensityPreference"],
+      competitionDays: competitionDays as VerifiedRunningIntent["competitionDays"],
       availableTimeSeconds: availableTimeSeconds as VerifiedRunningIntent["availableTimeSeconds"],
       humanExplicitReps: humanExplicitReps as VerifiedRunningIntent["humanExplicitReps"],
       humanExplicitRestSeconds: humanExplicitRestSeconds as VerifiedRunningIntent["humanExplicitRestSeconds"],

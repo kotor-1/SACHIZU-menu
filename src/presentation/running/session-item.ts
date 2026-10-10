@@ -1,5 +1,5 @@
 /** JSON-safe subset used by the existing SessionItemRow client component. */
-import { presentSavedRunningSnapshot, type SessionSnapshotSource } from "./session-snapshot";
+import { presentSavedRunningSnapshot, presentSavedUnprescribedSnapshot, type SessionSnapshotSource } from "./session-snapshot";
 
 export type SessionItemRowDto = {
   id: string;
@@ -21,10 +21,12 @@ export type SessionItemRowDto = {
   actualLoadKg: number | null;
   actualNote: string | null;
   runningSnapshot?: Exclude<ReturnType<typeof presentSavedRunningSnapshot>, undefined>;
+  unprescribedRunning?: { reasonMessage: string };
 };
 
 export function presentSessionItemRow(item: SessionItemRowDto & SessionSnapshotSource): SessionItemRowDto {
   const runningSnapshot = presentSavedRunningSnapshot(item);
+  const unprescribedRunning = presentSavedUnprescribedSnapshot(item);
   return {
     id: item.id,
     done: item.done,
@@ -45,5 +47,6 @@ export function presentSessionItemRow(item: SessionItemRowDto & SessionSnapshotS
     actualLoadKg: item.actualLoadKg,
     actualNote: item.actualNote,
     ...(runningSnapshot ? { runningSnapshot } : {}),
+    ...(unprescribedRunning ? { unprescribedRunning } : {}),
   };
 }

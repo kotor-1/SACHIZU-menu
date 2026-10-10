@@ -115,8 +115,11 @@ export function SessionItemRow({
                 カタログ参照なし
               </Badge>
             )}
+            {item.unprescribedRunning && <Badge className="border-amber-300 bg-amber-50 text-amber-900">走・未処方</Badge>}
           </div>
 
+          {item.unprescribedRunning && <p className="mt-1 text-xs text-amber-900">{item.unprescribedRunning.reasonMessage}</p>}
+          {item.unprescribedRunning && [item.plannedSets, item.plannedReps, item.plannedDistanceMeters, item.plannedDurationSeconds, item.plannedRestSeconds, item.plannedIntensityPercent].some((value) => value !== null) && <p className="mt-1 text-xs font-medium text-amber-900">手入力（Engine未処方）</p>}
           {planned && (
             <p className="mt-0.5 font-mono text-xs text-slate-500">計画 {planned}</p>
           )}

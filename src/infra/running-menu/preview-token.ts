@@ -16,7 +16,9 @@ const claim = <T extends z.ZodTypeAny>(value: T) => z.object({
 
 const tokenSchema = z.object({
   kind: z.literal("RUNNING_MENU_PREVIEW"),
-  schemaVersion: z.literal(1),
+  // Purpose-aware intent is required for re-evaluation. Reject older signed
+  // tokens that could silently omit an unsupported purpose from the Engine.
+  schemaVersion: z.literal(2),
   ownerId: z.string().min(1),
   menuId: z.string().uuid(),
   issuedAtMs: z.number().int().nonnegative(),
@@ -37,6 +39,9 @@ const tokenSchema = z.object({
     distancePreference: claim(z.enum(["SHORT", "LONG"])).nullable(),
     loadReductionRequested: claim(z.literal(true)).nullable(),
     fatigueState: claim(z.enum(["REPORTED", "STRONG_OR_UNWELL"])).nullable(),
+    purpose: claim(z.enum(["ACCEL", "MAX_SPEED", "SPEED_ENDURANCE", "BASIC", "PRECOMP", "RECOVERY"])).nullable(),
+    intensityPreference: claim(z.literal("LOW")).nullable(),
+    competitionDays: claim(z.number().int().nonnegative()).nullable(),
     availableTimeSeconds: claim(z.number().int().positive()).nullable(),
     humanExplicitReps: claim(z.number().int().positive()).nullable(),
     humanExplicitRestSeconds: claim(z.number().int().positive()).nullable(),
@@ -62,7 +67,7 @@ export function issueRunningMenuPreviewToken(input: {
   assertUsableSigningKey(key);
   const claims = tokenSchema.parse({
     kind: "RUNNING_MENU_PREVIEW",
-    schemaVersion: 1,
+    schemaVersion: 2,
     ownerId: input.ownerId,
     menuId: randomUUID(),
     issuedAtMs: nowMs,

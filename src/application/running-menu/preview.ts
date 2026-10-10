@@ -27,6 +27,13 @@ const REASON_MESSAGE: Record<string, string> = {
   USER_CONTEXT_CONFLICT: "文章と対象グループの指定が異なります。どちらを使うか確認してください。",
   UNSUPPORTED_HUMAN_NUMBERS: "明示された数値やセット分割は今回の自動処方に反映できません。コーチの確認が必要です。",
   RUNNING_INTENT_AMBIGUOUS: "走る練習の指定を確認してください。",
+  ACCEL_PURPOSE_NOT_APPROVED: "加速力向上を目的とした処方はまだ承認されていません。コーチに確認してください。",
+  MAX_SPEED_PURPOSE_NOT_APPROVED: "最高速度向上を目的とした処方はまだ承認されていません。コーチに確認してください。",
+  SPEED_ENDURANCE_PURPOSE_NOT_APPROVED: "スピード持久力向上を目的とした処方はまだ承認されていません。コーチに確認してください。",
+  BASIC_PURPOSE_NOT_APPROVED: "基礎走能力向上を目的とした処方はまだ承認されていません。コーチに確認してください。",
+  PRECOMP_PURPOSE_NOT_APPROVED: "大会前調整を目的とした処方はまだ承認されていません。コーチに確認してください。",
+  RECOVERY_PURPOSE_NOT_APPROVED: "回復を目的とした処方はまだ承認されていません。コーチに確認してください。",
+  LOW_INTENSITY_NOT_APPROVED: "低強度の処方はまだ承認されていません。コーチに確認してください。",
 };
 
 function review(reason: string, explicitDistances: number[] = []): RunningMenuPreview {
@@ -54,6 +61,9 @@ export function createRunningMenuPreview(
     distancePreference: intent.distancePreference?.value ?? "NONE",
     loadReductionRequested: intent.loadReductionRequested?.value ?? false,
     fatigueState: intent.fatigueState?.value ?? "NONE",
+    purpose: intent.purpose?.value,
+    intensityPreference: intent.intensityPreference?.value,
+    competitionDays: intent.competitionDays?.value,
     similarDistanceHistoryStatus: "UNKNOWN",
     availableTimeSeconds: intent.availableTimeSeconds?.value ?? context.availableTimeSeconds,
     humanExplicitNumbers: intent.humanExplicitReps || intent.humanExplicitRestSeconds ? {

@@ -358,6 +358,13 @@ export async function updateMenuItem(id: string, input: MenuItemInput) {
   if (current?.prescriptionKind === "RUNNING_POLICY") {
     throw new Error("この走処方は汎用の項目編集では変更できません。");
   }
+  if (current?.prescriptionKind === "RUNNING_UNPRESCRIBED" && input.exerciseId) {
+    throw new Error("未処方の走項目は登録種目に変換できません。項目を入れ替えてください。");
+  }
+  if (current?.prescriptionKind === "RUNNING_UNPRESCRIBED" && input.intensityPercent != null
+    && (!Number.isInteger(input.intensityPercent) || input.intensityPercent < 1 || input.intensityPercent > 100)) {
+    throw new Error("手入力の走強度は1〜100%の整数で入力してください。");
+  }
   return prisma.menuItem.update({ where: { id }, data: input });
 }
 

@@ -80,7 +80,8 @@ describe("saved Running Menu to immutable Session snapshot", () => {
         ageGroup: { value: event === "100m" ? "JUNIOR_HIGH" : "HIGH_SCHOOL", sourceText: ageText },
         explicitDistances: [], distancePreference: null,
         loadReductionRequested: light ? { value: true, sourceText: "軽めに" } : null,
-        fatigueState: null, availableTimeSeconds: null, humanExplicitReps: null,
+        fatigueState: null, purpose: null, intensityPreference: null, competitionDays: null,
+        availableTimeSeconds: null, humanExplicitReps: null,
         humanExplicitRestSeconds: null, exerciseIds: [],
       };
       const verified = verifyRunningIntentClaims(requestText, claims, []);

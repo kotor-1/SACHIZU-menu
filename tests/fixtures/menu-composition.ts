@@ -27,6 +27,7 @@ export function interpretedFixture(runningRequested = true, requestText = compos
   const intent: VerifiedRunningIntent = { runningRequested, event: runningRequested ? { value: "200m", sourceText: "200m選手", sourceType: "USER_TEXT" } : null,
     ageGroup: runningRequested ? { value: "JUNIOR_HIGH", sourceText: "中学生", sourceType: "USER_TEXT" } : null,
     explicitDistances: [], distancePreference: null, loadReductionRequested: null, fatigueState: null,
+    purpose: null, intensityPreference: null, competitionDays: null,
     availableTimeSeconds: null, humanExplicitReps: null, humanExplicitRestSeconds: null, exerciseIds: [] };
   const running = createRunningMenuPreview(intent, {}, requestText);
   const previewToken = running?.status === "READY" ? issueRunningMenuPreviewToken({ ownerId: DEFAULT_OWNER_ID, requestText, context: {}, intent, prescription: running.prescription }, COMPOSITION_TEST_KEY) : null;

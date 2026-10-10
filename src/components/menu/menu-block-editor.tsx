@@ -31,6 +31,7 @@ import { formatPrescription } from "@/domain/shared/prescription";
 import type { TrainingPhase } from "@/domain/menu/constants";
 import type { MenuBlockDetail } from "@/infra/repositories/menu-repository";
 import type { ExercisePickerItem } from "@/infra/repositories/exercise-repository";
+import { parseUnprescribedRunning } from "@/domain/menu-composition/unprescribed-running";
 
 const str = (v: number | null) => (v == null ? "" : String(v));
 
@@ -215,6 +216,7 @@ export function MenuBlockEditor({
             const runningItem = running?.items[item.id] ?? null;
             const newRunningItem = presentRunningMenuSnapshot(item.prescriptionKind, item.prescriptionJson);
             const newRunningEnvelope = parseRunningMenuEnvelope(item.prescriptionKind, item.prescriptionJson);
+            const unprescribedRunning = parseUnprescribedRunning(item.prescriptionKind, item.prescriptionJson);
 
             if (newRunningItem.status !== "NOT_RUNNING_POLICY") {
               return (
@@ -304,6 +306,7 @@ export function MenuBlockEditor({
                   compact
                   phase={phase}
                   runningPolicyContext={runningPolicyContext}
+                  unprescribedRunning={unprescribedRunning ?? undefined}
                 />
               );
             }
@@ -319,19 +322,21 @@ export function MenuBlockEditor({
                         href={`/exercises/${item.exercise.id}`}
                         className="text-sm font-medium text-slate-900 hover:text-indigo-600 hover:underline"
                       >
-                        {name}
+                        {unprescribedRunning ? "走（未処方）" : name}
                       </Link>
                     ) : (
-                      <span className="text-sm font-medium text-slate-900">{name}</span>
+                      <span className="text-sm font-medium text-slate-900">{unprescribedRunning ? "走（未処方）" : name}</span>
                     )}
                     {!item.exercise && (
                       <Badge className="border-slate-200 bg-white text-slate-400">
-                        カタログ外
+                        {unprescribedRunning ? "手入力対象" : "カタログ外"}
                       </Badge>
                     )}
                   </div>
 
                   <p className="mt-0.5 font-mono text-xs text-slate-600">{item.reps == null && item.distanceMeters == null && item.durationSeconds == null ? "量未設定" : prescription}</p>
+                  {unprescribedRunning && <p className="mt-1 text-xs text-amber-900">{unprescribedRunning.reasonMessage}</p>}
+                  {unprescribedRunning && [item.sets, item.reps, item.distanceMeters, item.durationSeconds, item.restSeconds, item.intensityPercent].some((value) => value !== null) && <p className="mt-1 text-xs font-medium text-amber-900">手入力（Engine未処方）</p>}
                   {item.note && (
                     <p className="mt-0.5 text-xs text-slate-500">{item.note}</p>
                   )}
