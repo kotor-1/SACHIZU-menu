@@ -55,12 +55,11 @@ export function offlineTrainingComposer(input: TrainingComposerInput): TrainingC
     }
     return selected.sort((a, b) => input.stages[a.id] - input.stages[b.id]).map(row => {
       const { item, annotation } = suggestCatalogItem(row, input.conditions, "fixture-item");
-      const { id: _id, ...proposal } = item; void _id;
-      return { item: proposal, intensity: annotation.intensity, relationship: annotation.relationship, alternativeGroup: annotation.alternativeGroup };
+      return { exerciseId: row.id, reason: item.reason, intensity: annotation.intensity, relationship: annotation.relationship, alternativeGroup: annotation.alternativeGroup };
     });
   }
   return { movement: input.requestedMovement ? choose(input.movement, input.requestedMovement, preferredMovement, input.requiredMovement >= 10) : [],
     strength: input.requestedStrength ? choose(input.strength, input.requestedStrength, preferredStrength) : [],
     explanation: "選択した主目的に向け、可動域から支持・協調、接地へ進める。補強は必要なものを選び、併用の量を調整する。",
-    uncertainty: "手書きoffline fixture。数量は登録動作に基づく編集可能な仮提案であり、実Lunaの生成結果ではない。" };
+    uncertainty: "手書きoffline fixture。種目の選択は実Lunaの生成結果ではなく、数量はアプリが登録情報から決める。" };
 }

@@ -25,6 +25,7 @@ export const TRAINING_ISSUE_MESSAGES: Record<string, string> = {
   MOVEMENT_PROPOSALS_MISSING: "条件に合う動きづくりの提案が不足しています。",
   STRENGTH_PROPOSALS_MISSING: "条件に合う補強の提案が不足しています。",
   INVALID_PROPOSAL_SCHEMA: "提案の形式を確認できませんでした。",
+  COMPOSER_UNAVAILABLE: "AIの提案を取得できませんでした。",
   UNREVIEWED_EXERCISE: "内容が確認済みでない登録種目が含まれています。",
   MOVEMENT_DESCRIPTION_MISSING: "種目の基本説明が不足しています。",
   RUNNING_ENGINE_ONLY: "走練習の処方として確認が必要な種目があります。",

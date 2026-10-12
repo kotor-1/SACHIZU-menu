@@ -12,16 +12,20 @@ async function inputFixture() {
   return captured;
 }
 describe("selection Composer transport (mock only)", () => {
-  it("encodes real minimum output counts, separate ID allowlists, no running or duration fields", async () => {
+  it("encodes real minimum output counts, separate ID allowlists, and only choice/explanation fields", async () => {
     const input = await inputFixture(); const schema = trainingComposerJsonSchema(input);
-    const props = schema.properties as Record<string, { minItems: number; items: { properties: { item: { properties: { exerciseId: { enum: string[] } } } } } }>;
-    expect(props.movement.minItems).toBe(input.requestedMovement);
+    const props = schema.properties as Record<string, { minItems: number; items: { required: string[]; properties: { exerciseId: { enum: string[] } } } }>;
+    // The minimum is the App's floor, so the model can always close an array; the margin is only asked for.
+    expect(props.movement.minItems).toBe(input.requiredMovement);
     expect(input.requestedMovement).toBe(input.requiredMovement + 2);
     expect(input.requiredMovement).toBe(10);
-    expect(props.strength.minItems).toBe(input.requestedStrength);
+    expect(props.strength.minItems).toBe(input.requiredStrength);
     expect(props.strength.minItems).toBeGreaterThanOrEqual(3);
-    expect(props.movement.items.properties.item.properties.exerciseId.enum).toEqual(input.movement.map(x => x.id));
-    expect(JSON.stringify(schema)).not.toMatch(/RUNNING_POLICY|availableTime|allocatedSeconds|transitionSeconds/);
+    expect(props.movement.items.properties.exerciseId.enum).toEqual(input.movement.map(x => x.id));
+    expect(props.strength.items.properties.exerciseId.enum).toEqual(input.strength.map(x => x.id));
+    expect(props.movement.items.required).toEqual(["exerciseId", "reason", "intensity", "relationship", "alternativeGroup"]);
+    // Names, instructions and every number belong to the App.
+    expect(JSON.stringify(schema)).not.toMatch(/planned|displayName|executionInstruction|RUNNING_POLICY|availableTime|allocatedSeconds|transitionSeconds/);
   });
   it("sends only one Luna request, no Intent stage, and retains the raw output contract", async () => {
     const input = await inputFixture(); const output = offlineTrainingComposer(input);
@@ -36,8 +40,16 @@ describe("selection Composer transport (mock only)", () => {
     expect(sent.movement.map((row: { id: string }) => row.id)).toEqual(input.movement.map(row => row.id));
     expect(sent.movement[0]).toMatchObject({ stage: input.stages[input.movement[0].id], family: input.families[input.movement[0].id] });
     expect(body.input).not.toMatch(/videoUrl|ownerId|doseObservations|sourceVideoId|analyzedAt/);
+    // Luna no longer sets doses, so registered quantities, counting rules and video Guidance stay in the App.
+    expect(body.input).not.toMatch(/defaultSets|defaultReps|defaultDurationSeconds|defaultDistanceMeters|defaultRestSeconds|metricType|countingUnit|executionSummary|typicalStructure/);
+    expect(sent.movement[0]).toMatchObject({ id: input.movement[0].id, name: input.movement[0].name, description: input.movement[0].description });
+    expect(body.instructions).toContain("アプリが登録情報から決めて表示する");
+    expect(body.instructions).toContain("1行で出力する");
+    expect(body.instructions).toContain("1は大会前日（大会は明日）");
+    expect(sent).toMatchObject({ requestedMovement: input.requestedMovement, requestedStrength: input.requestedStrength });
+    expect(sent).not.toHaveProperty("requiredMovement");
     expect(body.input.length).toBeLessThan(JSON.stringify(input).length);
-    expect(body.max_output_tokens).toBe(8000);
+    expect(body.max_output_tokens).toBe(4000);
   });
   it.each(["http", "truncated", "invalid"])("does not retry %s failure", async reason => {
     const response = reason === "http" ? new Response(null, { status: 503 }) : new Response(JSON.stringify(reason === "truncated"

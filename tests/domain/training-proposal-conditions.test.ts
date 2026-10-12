@@ -180,6 +180,19 @@ describe("catalog environment eligibility", () => {
     expect(suggestCatalogItem(mobility, confirmed())).toMatchObject({ item: { plannedSets: 2, plannedReps: 6, plannedRestSeconds: 20 },
       annotation: { stage: 0 } });
   });
+  it("says where every suggested number comes from: the registered value or the App's conservative start", () => {
+    const plank = catalogFixture();
+    expect(suggestCatalogItem(plank, confirmed()).item.plannedNote).toMatch(/^登録された既定量をもとにした編集可能な提案。登録説明どおり/u);
+    const light = confirmed(); light.condition.load = "LIGHT";
+    expect(suggestCatalogItem(plank, light).item.plannedNote).toMatch(/^登録された既定量をもとにした編集可能な提案。今日の条件に合わせて控えめに調整。/u);
+    const partial = catalogFixture({ defaultDurationSeconds: null });
+    expect(suggestCatalogItem(partial, confirmed()).item.plannedNote).toMatch(/^登録された既定量（未登録の項目はアプリの控えめな初期値）をもとにした/u);
+    const mobility = catalogFixture({ category: "MOBILITY", name: "肩回し", metricType: "REPS", description: "立位で肩を回す。",
+      defaultSets: null, defaultDurationSeconds: null, defaultRestSeconds: null });
+    const note = suggestCatalogItem(mobility, confirmed()).item.plannedNote;
+    expect(note).toMatch(/^既定量が未登録のため、アプリの控えめな初期値による編集可能な仮提案。/u);
+    expect(note.length).toBeLessThanOrEqual(200);
+  });
   it("treats a sprint prohibition as a cue but still catches a hidden running dose", async () => {
     const { assessTrainingComposition } = await import("@/domain/training-proposal/quality");
     const row = catalogFixture({ category: "DRILL", name: "ギャロップ", description: "片脚リードで前へ進む。", metricType: "DISTANCE", difficulty: 2,

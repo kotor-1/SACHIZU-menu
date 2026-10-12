@@ -1,0 +1,529 @@
+{
+  "provenance": "Real gpt-6-luna structured outputs from 2026-10-12 under the App-owned-dose contract (training_proposal_v2: Luna returns exerciseId, reason, intensity, relationship and alternativeGroup only). Effort low, one send per case, no retry, 5 requests total (run 4: F x3, run 5: A, B). Completed outputs are unmodified; the truncated run-4 response is summarized because its text is a cut JSON prefix followed by whitespace.",
+  "requests": [
+    {
+      "run": 4,
+      "seq": 1,
+      "case": "F",
+      "requestId": "req_460c48eb15ad4a60827e685071868362",
+      "model": "gpt-6-luna",
+      "responseStatus": "completed",
+      "usage": {
+        "input_tokens": 9079,
+        "output_tokens": 1140,
+        "reasoning_tokens": 0
+      },
+      "responseBodySha256": "246f533dd8ef6592aa239d1b263fe2068f20c72866734d97df26a4f424337187",
+      "codeAtRun": "d0d9778 + App-owned doses (training_proposal_v2); schema minItems = requested count (12), max_output_tokens 8000",
+      "gateAtRun": {
+        "ok": true,
+        "fallback": false
+      },
+      "output": {
+        "movement": [
+          {
+            "exerciseId": "cmtswlv3i00vuitxbkunlwymd",
+            "reason": "股関節の動きを整え、競技前の準備につなげます。",
+            "intensity": "上体を安定させ、反動を使わず滑らかに脚を回す。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsvswss00viitxbprl5nlif",
+            "reason": "股関節の可動性を高め、走動作へ移る準備をします。",
+            "intensity": "歩くリズムを保ち、上体を倒さず脚を無理なく振る。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+            "reason": "脚の引きつけ軌道を確認し、短距離走の脚運びを整えます。",
+            "intensity": "姿勢を保ち、引きつけを急ぎ過ぎず滑らかに行う。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+            "reason": "膝の引き上げと直立姿勢を確認し、走動作の協調につなげます。",
+            "intensity": "歩行のリズムで、体幹を安定させて制御する。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+            "reason": "脚を引きつけて運ぶ感覚を養い、短距離走の脚運びを整えます。",
+            "intensity": "歩く速さで、姿勢を崩さず左右を滑らかに切り替える。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtskouev00n5itxb30yad4kn",
+            "reason": "片脚での支持と脚の切り返しを確認し、短距離走の協調につなげます。",
+            "intensity": "小さく制御した動きで、接地を静かに保つ。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtrfaiqw0035itxbh243bij0",
+            "reason": "足部の支持と姿勢を整え、走動作の安定につなげます。",
+            "intensity": "落ち着いた歩行で、足部と骨盤の位置を保つ。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+            "reason": "片脚支持と腕脚の連動を確認し、短距離走の姿勢づくりに役立てます。",
+            "intensity": "動作を丁寧に制御し、軸姿勢を安定させる。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsp8gex00qjitxbc1ymvdvf",
+            "reason": "股関節を動かしながら体幹を保ち、走動作の準備をします。",
+            "intensity": "反動を避け、体幹を安定させて滑らかに行う。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9xts600hiitxbm5eqci4l",
+            "reason": "踏み込みから脚の引き上げへの連動を確認し、走動作につなげます。",
+            "intensity": "深さや速さを抑え、姿勢を保てる範囲で滑らかに行う。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmttfjoyf00wditxb8fskjutn",
+            "reason": "股関節の動きを整え、競技前の準備に役立てます。",
+            "intensity": "上体を起こし、膝や股関節に無理のない範囲で行う。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmttgdle800wsitxb34g6clw3",
+            "reason": "足首まわりを動かし、接地に向けた準備をします。",
+            "intensity": "腰の高さを保ち、かかとを静かに制御する。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          }
+        ],
+        "strength": [],
+        "explanation": "競技前日なので、主目的に沿って可動性、姿勢、脚の協調を確かめる候補を段階順に選びました。疲労が強めのため、速さや負荷を抑え、全力の刺激は加えない構成です。",
+        "uncertainty": "疲労が強い状態です。実施時に動きの質が保てるかを確認し、崩れや違和感があれば該当種目は見送ってください。"
+      }
+    },
+    {
+      "run": 4,
+      "seq": 2,
+      "case": "F",
+      "requestId": "req_bbf22f15ebbe41c29e0588ad40a023e3",
+      "model": "gpt-6-luna",
+      "responseStatus": "completed",
+      "usage": {
+        "input_tokens": 9079,
+        "output_tokens": 1321,
+        "reasoning_tokens": 0
+      },
+      "responseBodySha256": "dba04bbdc4af82326de41e2cf7614ea0308fc320edb4e84afa22991917ba82e2",
+      "codeAtRun": "d0d9778 + App-owned doses (training_proposal_v2); schema minItems = requested count (12), max_output_tokens 8000",
+      "gateAtRun": {
+        "ok": true,
+        "fallback": false
+      },
+      "output": {
+        "movement": [
+          {
+            "exerciseId": "cmtrfsmpu004hitxbq925fzwr",
+            "reason": "股関節前面と体側を整え、プレコンペティションで動きやすい姿勢につなげます。",
+            "intensity": "反動を使わず、骨盤の向きと体幹の安定を保てる範囲でゆっくり行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsi24la00m2itxbpe737r2o",
+            "reason": "股関節と胸椎の動きを滑らかにし、走動作での上体と骨盤の連動を整えます。",
+            "intensity": "呼吸を止めず、腰が崩れない範囲で小さく滑らかに回旋します。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmttg5xyy00wkitxbl5mkf9ds",
+            "reason": "全身を連動させながら可動性を整え、疾走姿勢への準備をします。",
+            "intensity": "腰や背中の形を保ち、急がず滑らかに動ける範囲で行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+            "reason": "脚を引きつける軌道を確認し、スプリント動作への接続を整えます。",
+            "intensity": "上体を保ち、左右の切り替えを急がず正確に行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+            "reason": "前進を抑えて脚の引きつけと姿勢を確認し、競技前の動作精度を高めます。",
+            "intensity": "動作を小さく制御し、骨盤と上体が揺れない範囲で行います。",
+            "relationship": "ALTERNATIVE",
+            "alternativeGroup": "引きつけ動作"
+          },
+          {
+            "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+            "reason": "膝の引き上げと腕振りを連動させ、スプリントの基本姿勢を整えます。",
+            "intensity": "歩行のリズムを保ち、反動に頼らず姿勢を制御します。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9xts600hiitxbm5eqci4l",
+            "reason": "踏み込みから脚の引き上げへの連動を確認し、疾走動作につなげます。",
+            "intensity": "深さと速さを抑え、膝とつま先の向きを揃えて安定して動きます。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtrfaiqw0035itxbh243bij0",
+            "reason": "足部と足首の支持を意識し、スプリントに必要な接地姿勢を整えます。",
+            "intensity": "重心を高く保ち、足部の形を崩さず静かな歩行で行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsp8gex00qjitxbc1ymvdvf",
+            "reason": "股関節の伸展と引きつけの動きを整え、脚の切り替えに備えます。",
+            "intensity": "体幹を安定させ、腰が回ったり反ったりしない範囲で滑らかに行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtskouev00n5itxb30yad4kn",
+            "reason": "片脚支持と膝の引き上げを結び付け、走動作のリズムと姿勢を整えます。",
+            "intensity": "骨盤を高く保ち、接地を静かにして、力みのない範囲で行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+            "reason": "支持脚で押して立ち上がる動きを確認し、加速局面に必要な姿勢と脚の連動を整えます。",
+            "intensity": "立ち上がりを急がず、軸脚と体幹を安定して保てる範囲で行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9c91400dcitxbn3tpmm27",
+            "reason": "股関節の動きと体幹の安定を合わせ、競技前の全身協調を整えます。",
+            "intensity": "過度にひねらず、支持脚が安定する範囲で制御して行います。",
+            "relationship": "ALTERNATIVE",
+            "alternativeGroup": "ランジからの脚引き上げ"
+          }
+        ],
+        "strength": [],
+        "explanation": "主目的は大会前の準備です。疲労感が強く、競技当日でもあるため、動きの確認と滑らかな準備を中心に選び、最大努力や高強度を求める構成にはしていません。動きづくりは可動性・姿勢支持から基本スプリント動作、接地や疾走への接続へ段階的に並べています。",
+        "uncertainty": "疲労感が強いため、実施前に本人と指導者が動きの軽さや集中状態を確認してください。脚の引きつけやランジの動作が当日のコンディションに合わない場合は、無理に採用しないでください。"
+      }
+    },
+    {
+      "run": 4,
+      "seq": 3,
+      "case": "F",
+      "requestId": "req_51aafdc6277247c9933d3e5ff3453afa",
+      "model": "gpt-6-luna",
+      "responseStatus": "incomplete",
+      "usage": {
+        "input_tokens": 9079,
+        "output_tokens": 8000,
+        "reasoning_tokens": 0
+      },
+      "responseBodySha256": "ce46f71eac72bf6ee2e990fe1d104cabb08306680e48319544ba28455b787564",
+      "codeAtRun": "d0d9778 + App-owned doses (training_proposal_v2); schema minItems = requested count (12), max_output_tokens 8000",
+      "gateAtRun": {
+        "ok": true,
+        "fallback": true
+      },
+      "output": null,
+      "incomplete": {
+        "reason": "max_output_tokens",
+        "textChars": 9251,
+        "trailingWhitespaceChars": 6977,
+        "itemsStarted": 10
+      }
+    },
+    {
+      "run": 5,
+      "seq": 1,
+      "case": "A",
+      "requestId": "req_c7633d1be410415f99bc69fe71a8a136",
+      "model": "gpt-6-luna",
+      "responseStatus": "completed",
+      "usage": {
+        "input_tokens": 21008,
+        "output_tokens": 1702,
+        "reasoning_tokens": 0
+      },
+      "responseBodySha256": "4bf6eff79001376bf122c15b2dc7947e1a8acaf0695a8895b6ef1eb723e2ffa9",
+      "codeAtRun": "same + schema minItems = App floor (10 / 3), max_output_tokens 4000, one-line JSON instruction",
+      "gateAtRun": {
+        "ok": true,
+        "fallback": false
+      },
+      "output": {
+        "movement": [
+          {
+            "exerciseId": "cmtrfsmpu004hitxbq925fzwr",
+            "reason": "股関節前面の可動性を整え、加速に必要な姿勢づくりにつなげます。",
+            "intensity": "反動を使わず、骨盤を正面に保ってゆっくり行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsvswss00viitxbprl5nlif",
+            "reason": "股関節の動きを引き出し、加速時の脚の前方動作を滑らかにします。",
+            "intensity": "歩くリズムを保ち、上体を大きく倒さず制御します。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+            "reason": "片脚で地面を押して姿勢を保つ感覚を養い、加速の支持動作につなげます。",
+            "intensity": "軸を保てる範囲で行い、立ち上がりを急がず丁寧に制御します。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+            "reason": "脚を引きつける軌道を確認し、加速局面の素早い脚の切り替えに役立てます。",
+            "intensity": "姿勢を崩さず、脚の軌道を確かめられる速さで行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9xts600hiitxbm5eqci4l",
+            "reason": "地面を押す動きと反対脚の引き上げを連動させ、加速動作の協調性を高めます。",
+            "intensity": "上体と骨盤を安定させ、踏み込みを制御できる強さにします。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtskouev00n5itxb30yad4kn",
+            "reason": "片脚支持と膝の引き上げを組み合わせ、加速に必要な脚の切り替えを整えます。",
+            "intensity": "骨盤を高く保ち、接地を静かにコントロールできるリズムで行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9emko00eritxbpue4p6yc",
+            "reason": "前後に分かれた接地のリズムを学び、加速時の接地協調につなげます。",
+            "intensity": "弾みを抑え、骨盤の高さと静かな接地を保てる範囲で行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmu167it7000zit6kz5xtwv9n",
+            "reason": "片脚で押し出す動きと反対脚の引き上げを結びつけ、加速の推進動作を整えます。",
+            "intensity": "高さや勢いを追わず、姿勢と接地を保てる強さにします。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+            "reason": "脚を素早く引き戻して接地する動きを練習し、加速時の脚さばきに結びつけます。",
+            "intensity": "強く叩きつけず、体の真下で静かに接地できる範囲にします。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsjobaz00mfitxb7wo93mik",
+            "reason": "姿勢を保った脚の入れ替えを通じて、加速に必要なリズムと支持の安定を養います。",
+            "intensity": "骨盤を水平に保ち、接地の静かさを損なわない小さな弾みで行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtx0ipj1000ait6kua86zv1w",
+            "reason": "腕振りと脚の入れ替えを連動させ、加速動作の全身協調を高めます。",
+            "intensity": "跳躍を小さく保ち、着地と姿勢を確実に制御します。",
+            "relationship": "ALTERNATIVE",
+            "alternativeGroup": "その場での挟み込み動作"
+          },
+          {
+            "exerciseId": "cmtsks8n100nwitxbflz1ro3m",
+            "reason": "腕の補助を抑えて支持脚の安定と脚の入れ替えを確認し、加速の基礎を整えます。",
+            "intensity": "弾みを小さくし、膝の高さと体幹を保てる範囲で行います。",
+            "relationship": "ALTERNATIVE",
+            "alternativeGroup": "その場での挟み込み動作"
+          }
+        ],
+        "strength": [
+          {
+            "exerciseId": "cmtstnvsh00thitxbaoib3s49",
+            "reason": "股関節伸展に関わる後面の筋力を養い、加速時の地面を押す動作を支えます。",
+            "intensity": "器具を使わず、背中と股関節の姿勢を保てる負荷で丁寧に行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9zlog00i8itxbum6q0o1r",
+            "reason": "片脚支持の安定性と股関節の制御を高め、加速時の支持動作に役立てます。",
+            "intensity": "骨盤を水平に保ち、ふらつきを抑えられる範囲で行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtre64jp001bitxbhymnbv1l",
+            "reason": "体幹と股関節、腕の連動を整え、加速動作の姿勢保持を支えます。",
+            "intensity": "反動を使わず、体幹の揺れを抑えて制御します。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtstgenp00taitxbpxu7l1p3",
+            "reason": "片脚での股関節伸展を強化し、加速時に地面を押す力を支えます。",
+            "intensity": "腰を反らさず、左右の姿勢を保てる範囲で行います。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          }
+        ],
+        "explanation": "主目的の加速に合わせ、動きづくりは可動性から姿勢・支持、基本的な脚動作、接地リズム、疾走動作への接続へ段階的に選びました。挟み込み系は同じ狙いの代替候補として示しています。補強は器具を要さず、股関節伸展と片脚支持、体幹の協調を中心に構成しました。",
+        "uncertainty": "挟み込みや片脚跳躍の接地負荷が、本人の現在の動作の安定性や当日の疲労感に適しているかを指導者が確認してください。"
+      }
+    },
+    {
+      "run": 5,
+      "seq": 2,
+      "case": "B",
+      "requestId": "req_69afef4a0bc64689a47e271c1966f963",
+      "model": "gpt-6-luna",
+      "responseStatus": "completed",
+      "usage": {
+        "input_tokens": 20238,
+        "output_tokens": 1631,
+        "reasoning_tokens": 0
+      },
+      "responseBodySha256": "55916bf4e7df67a82bd3bc28af13072da073a4eff3f08b67d48ab90701404b2a",
+      "codeAtRun": "same + schema minItems = App floor (10 / 3), max_output_tokens 4000, one-line JSON instruction",
+      "gateAtRun": {
+        "ok": true,
+        "fallback": false
+      },
+      "output": {
+        "movement": [
+          {
+            "exerciseId": "cmtrfsmpu004hitxbq925fzwr",
+            "reason": "股関節の可動性と姿勢の準備を整え、加速動作につなげる。",
+            "intensity": "反動を使わず、骨盤を安定させて動きを丁寧に制御する。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+            "reason": "片脚で地面を押し、膝を引き上げる動作を通じて加速時の姿勢と協調性を養う。",
+            "intensity": "軸を保てる範囲で滑らかに立ち上がり、着地音を静かにする。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtskouev00n5itxb30yad4kn",
+            "reason": "骨盤を高く保つ片脚の押しと引き上げを、加速に必要なリズムへ結びつける。",
+            "intensity": "姿勢を崩さず、膝の引き上げと接地を軽快に制御する。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9xts600hiitxbm5eqci4l",
+            "reason": "踏み込みから地面を押して脚を切り替える連動を養い、加速動作を整える。",
+            "intensity": "深く沈み込みすぎず、体幹を保って滑らかに行う。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtrfaiqw0035itxbh243bij0",
+            "reason": "足部と足首の支持を意識し、加速時の安定した接地を準備する。",
+            "intensity": "重心を高く保ち、足の外側への荷重を無理なく制御する。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+            "reason": "脚を引きつける軌道を確認し、加速時の素早い脚の回収につなげる。",
+            "intensity": "歩行の速さで、上体を安定させて脚の軌道を正確に保つ。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+            "reason": "その場で脚の引きつけを確認し、加速に必要な脚の切り替えを整える。",
+            "intensity": "移動を抑え、姿勢を保てる速さで丁寧に行う。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9emko00eritxbpue4p6yc",
+            "reason": "左右の接地リズムと脚の切り替えを学び、加速への動作接続を準備する。",
+            "intensity": "弾みを小さく保ち、接地音を静かにしてリズムを崩さない。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsglq0b00lcitxbf539jwx2",
+            "reason": "片脚の反発と支持を養い、加速時の地面への力の伝達を補助する。",
+            "intensity": "跳ね上がりを抑え、姿勢と静かな接地を保てる範囲で行う。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+            "reason": "脚を素早く引き戻して体の近くで接地する意識を、加速動作につなげる。",
+            "intensity": "力みを避け、軸を保ちながら動作を制御する。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtsks8n100nwitxbflz1ro3m",
+            "reason": "片脚支持と素早い入れ替えを養い、加速時の接地と脚の切り替えに結びつける。",
+            "intensity": "小さな弾みで、骨盤の高さと静かな接地を保つ。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtx0ipj1000ait6kua86zv1w",
+            "reason": "腕振りと脚の入れ替えを連動させ、加速動作への接続を整える。",
+            "intensity": "跳躍を小さく抑え、姿勢を崩さず滑らかに切り替える。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          }
+        ],
+        "strength": [
+          {
+            "exerciseId": "cmts9zlog00i8itxbum6q0o1r",
+            "reason": "片脚での股関節伸展とバランスを養い、加速時の支持脚の安定につなげる。",
+            "intensity": "骨盤を水平に保ち、ふらつかない深さでゆっくり制御する。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmttkl6zz00y0itxb1mb9j0ce",
+            "reason": "体幹を安定させながら膝を引きつけ、加速時の脚の運びを補助する。",
+            "intensity": "腰が反ったり上下に揺れたりしない速さで行う。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtstgenp00taitxbpxu7l1p3",
+            "reason": "股関節伸展の力を養い、加速局面で地面を押す動作を支える。",
+            "intensity": "腰を反らさず、臀部で持ち上げる感覚を保つ。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          },
+          {
+            "exerciseId": "cmtrg8ip20056itxbl2ouptrx",
+            "reason": "下肢全体の基礎的な力と姿勢制御を養い、加速時の地面を押す力を支える。",
+            "intensity": "足裏全体で安定して押し、膝の向きを保って無理なく動く。",
+            "relationship": "COMBINABLE",
+            "alternativeGroup": null
+          }
+        ],
+        "explanation": "加速を主目的に、動きづくりは可動域・姿勢支持から基本的な脚の運び、接地リズム、疾走動作への接続へ段階的に構成しました。補強は器具不要で股関節伸展、片脚支持、体幹の安定を中心に選んでいます。",
+        "uncertainty": "土の路面で滑りや沈みがないか、特に弾む動作の接地を実施前に確認してください。動作中に痛みや姿勢の崩れが出る場合は中止し、指導者に確認してください。"
+      }
+    }
+  ]
+}

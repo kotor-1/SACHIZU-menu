@@ -25,7 +25,10 @@ function suggestedRestSeconds(row: ComposerCatalogExercise, eligibility: Exercis
   return row.category.toUpperCase() === "MOBILITY" || eligibility.stage === 0 ? 20 : 30;
 }
 
-/** Editable starting values for a human's catalog addition, never an Engine dose. */
+/**
+ * Editable starting values for every catalog item: the Composer's picks, the rule-based
+ * fallback and a human's addition all receive the same App numbers. Never an Engine dose.
+ */
 export function suggestCatalogItem(row: ComposerCatalogExercise, conditions: TrainingConditions, id = crypto.randomUUID()): {
   item: Extract<EditableItem, { type: "CATALOG_EXERCISE" }>; annotation: TrainingItemAnnotation;
 } {
@@ -41,12 +44,18 @@ export function suggestCatalogItem(row: ComposerCatalogExercise, conditions: Tra
   const quantity = row.metricType === "TIME" ? Math.min(row.defaultDurationSeconds ?? (light ? 10 : 20), light ? 20 : 60)
     : row.metricType === "DISTANCE" ? Math.min(row.defaultDistanceMeters ?? 10, conditions.environment.straightMeters ?? 0)
       : Math.min(row.defaultReps ?? (light ? 4 : 6), light ? 6 : 30);
+  // Every number needs a visible basis: the coach's registered value, or the App's conservative start.
+  const registeredQuantity = row.metricType === "TIME" ? row.defaultDurationSeconds : row.metricType === "DISTANCE" ? row.defaultDistanceMeters : row.defaultReps;
+  const registeredCount = [row.defaultSets !== null && row.defaultSets > 0, registeredQuantity !== null].filter(Boolean).length;
+  const adjusted = (row.defaultSets !== null && row.defaultSets > 0 && sets !== row.defaultSets) || (registeredQuantity !== null && quantity !== registeredQuantity);
+  const source = registeredCount === 0 ? "既定量が未登録のため、アプリの控えめな初期値による編集可能な仮提案。"
+    : `${registeredCount === 2 ? "登録された既定量" : "登録された既定量（未登録の項目はアプリの控えめな初期値）"}をもとにした編集可能な提案。${adjusted ? "今日の条件に合わせて控えめに調整。" : ""}`;
   const counting = count === "ROUND_TRIP" ? "登録された往復を1回として数える。"
     : count === "ALTERNATING_TOTAL" || count === "TOTAL_REPS" ? "左右合計で数える。"
       : perSide ? "回数欄は片側の回数。左右の順序は登録説明に従う。"
         : alternating ? "回数欄は左右合計。交互に行う登録動作を数える。"
         : "登録説明の動作を1回として数える。";
-  const plannedNote = `編集可能な仮提案。${row.metricType === "REPS" ? counting : "登録説明どおりの動作を行う。"}疲労や動作の崩れが出たら中止。`;
+  const plannedNote = `${source}${row.metricType === "REPS" ? counting : "登録説明どおりの動作を行う。"}疲労や動作の崩れが出たら中止。`;
   const strength = eligibility.section === "STRENGTH";
   const jump = row.category.toUpperCase() === "JUMP";
   const intensity = strength
