@@ -177,7 +177,7 @@ describe("catalog environment eligibility", () => {
     expect(suggestCatalogItem(plank, light).item).toMatchObject({ plannedSets: 2, plannedDurationSeconds: 20, plannedRestSeconds: 60 });
     const mobility = catalogFixture({ category: "MOBILITY", name: "肩回し", metricType: "REPS", description: "立位で肩を回す。",
       defaultSets: null, defaultDurationSeconds: null, defaultRestSeconds: null });
-    expect(suggestCatalogItem(mobility, confirmed())).toMatchObject({ item: { plannedSets: 2, plannedReps: 6, plannedRestSeconds: 20 },
+    expect(suggestCatalogItem(mobility, confirmed())).toMatchObject({ item: { plannedSets: 1, plannedReps: 8, plannedRestSeconds: 20 },
       annotation: { stage: 0 } });
   });
   it("says where every suggested number comes from: the registered value or the App's conservative start", () => {
@@ -186,12 +186,62 @@ describe("catalog environment eligibility", () => {
     const light = confirmed(); light.condition.load = "LIGHT";
     expect(suggestCatalogItem(plank, light).item.plannedNote).toMatch(/^登録された既定量をもとにした編集可能な提案。今日の条件に合わせて控えめに調整。/u);
     const partial = catalogFixture({ defaultDurationSeconds: null });
-    expect(suggestCatalogItem(partial, confirmed()).item.plannedNote).toMatch(/^登録された既定量（未登録の項目はアプリの控えめな初期値）をもとにした/u);
+    expect(suggestCatalogItem(partial, confirmed()).item.plannedNote).toMatch(/^登録された既定量（未登録の項目はアプリの初期値）をもとにした/u);
     const mobility = catalogFixture({ category: "MOBILITY", name: "肩回し", metricType: "REPS", description: "立位で肩を回す。",
       defaultSets: null, defaultDurationSeconds: null, defaultRestSeconds: null });
     const note = suggestCatalogItem(mobility, confirmed()).item.plannedNote;
-    expect(note).toMatch(/^既定量が未登録のため、アプリの控えめな初期値による編集可能な仮提案。/u);
+    expect(note).toMatch(/^既定量が未登録のため、可動域の準備運動の一般的な範囲からアプリが決めた初期値（編集可能な仮提案）。/u);
     expect(note.length).toBeLessThanOrEqual(200);
+  });
+  const unregistered = (name: string, patch: Parameters<typeof catalogFixture>[0]) => catalogFixture({ id: name, name, difficulty: 2,
+    defaultSets: null, defaultReps: null, defaultDurationSeconds: null, defaultDistanceMeters: null, defaultRestSeconds: null, ...patch });
+  it("keeps a stopping margin after bouncing drills, shortens a registered distance and says so, and holds layout-bound drills", () => {
+    const park = confirmed(); park.environment.straightMeters = 30;
+    const gallop = catalogFixture({ id: "gallop", category: "DRILL", name: "ギャロップ（片脚リード走）", metricType: "DISTANCE", description: "片脚リードで前へ進む。",
+      difficulty: 2, defaultSets: 3, defaultDurationSeconds: null, defaultDistanceMeters: 30, defaultRestSeconds: 60 });
+    expect(assessExerciseEligibility(gallop, park)).toMatchObject({ eligible: true, stage: 3 });
+    const shortened = suggestCatalogItem(gallop, park).item;
+    expect(shortened).toMatchObject({ plannedSets: 3, plannedDistanceMeters: 20, plannedRestSeconds: 60 });
+    expect(shortened.plannedNote).toContain("直線30mのため、止まる余裕10mを残して20m（登録は30m）。");
+    // Walking-pace drills stop within a step and may use the whole straight.
+    const narrow = confirmed(); narrow.environment.straightMeters = 12;
+    expect(assessExerciseEligibility(movement, narrow)).toMatchObject({ eligible: true, stage: 2 });
+    expect(suggestCatalogItem(movement, narrow).item).toMatchObject({ plannedDistanceMeters: 12 });
+    expect(suggestCatalogItem(movement, narrow).item.plannedNote).toContain("直線12mに合わせて12m。");
+    // A bouncing drill needs 10m of travel on top of the margin.
+    const short = confirmed(); short.environment.straightMeters = 15;
+    expect(assessExerciseEligibility(gallop, short).reasons).toContain("MOVEMENT_SPACE_TOO_SHORT");
+    // Hurdle spacing fixes the layout, so a shorter variant is held instead of shortened.
+    const hurdles = catalogFixture({ id: "hurdles", category: "DRILL", name: "ミニハードルまたぎ", metricType: "DISTANCE",
+      description: "並べたミニハードルを1台ずつ膝を引き上げてまたぎ越して歩く。", difficulty: 2, defaultSets: 2, defaultDurationSeconds: null, defaultDistanceMeters: 20, defaultRestSeconds: null });
+    const yard = confirmed(); yard.environment.straightMeters = 15; yard.environment.equipment = ["MINI_HURDLE"];
+    expect(assessExerciseEligibility(hurdles, yard).reasons).toContain("REGISTERED_DISTANCE_EXCEEDS_SPACE");
+    yard.environment.straightMeters = 25;
+    expect(assessExerciseEligibility(hurdles, yard).eligible).toBe(true);
+  });
+  it("starts unregistered items from the kind of movement, and a reduced day lowers volume only", () => {
+    const c = confirmed();
+    const hop = unregistered("ケンケン", { category: "DRILL", metricType: "DISTANCE", description: "片脚で弾みながら前へ進む。" });
+    const skip = unregistered("スキップ", { category: "DRILL", metricType: "DISTANCE", description: "リズムよくスキップで前へ進む。" });
+    for (const row of [hop, skip]) expect(assessExerciseEligibility(row, c)).toMatchObject({ eligible: true, stage: 3 });
+    // Hops load a leg on every contact: shorter passes and a full walk back.
+    expect(suggestCatalogItem(hop, c).item).toMatchObject({ plannedSets: 2, plannedDistanceMeters: 10, plannedRestSeconds: 60 });
+    expect(suggestCatalogItem(skip, c).item).toMatchObject({ plannedSets: 2, plannedDistanceMeters: 20, plannedRestSeconds: 45 });
+    const squat = unregistered("自重スクワット", { category: "STRENGTH", metricType: "REPS", description: "足を肩幅に開いてしゃがみ、立ち上がる。" });
+    const oneLeg = unregistered("シングルヒップリフト", { category: "CORE", metricType: "REPS", description: "仰向けで片脚ずつ腰を持ち上げる。" });
+    const alternating = unregistered("手つきプランクからの膝引きつけ", { category: "CORE", metricType: "REPS", description: "腕立て姿勢から膝を引きつける動作を左右交互に繰り返す。" });
+    expect(suggestCatalogItem(squat, c).item).toMatchObject({ plannedSets: 2, plannedReps: 10, plannedRestSeconds: 60 });
+    expect(suggestCatalogItem(oneLeg, c).item).toMatchObject({ plannedSets: 2, plannedReps: 8 });
+    expect(suggestCatalogItem(alternating, c).item).toMatchObject({ plannedSets: 2, plannedReps: 16 });
+    expect(suggestCatalogItem(alternating, c).item.plannedNote).toContain("回数欄は左右合計");
+    // "交互" between two positions is not a left/right count.
+    const catDog = unregistered("キャット&ドッグ", { category: "MOBILITY", metricType: "REPS", description: "四つ這いで背中を丸める動きと反らせる動きを交互にゆっくり繰り返す。" });
+    expect(suggestCatalogItem(catDog, c).item).toMatchObject({ plannedSets: 1, plannedReps: 8, plannedRestSeconds: 20 });
+    expect(suggestCatalogItem(catDog, c).item.plannedNote).not.toContain("左右合計");
+    const light = confirmed(); light.condition.load = "LIGHT";
+    expect(suggestCatalogItem(skip, light).item).toMatchObject({ plannedSets: 1, plannedDistanceMeters: 15, plannedRestSeconds: 45 });
+    expect(suggestCatalogItem(squat, light).item).toMatchObject({ plannedSets: 1, plannedReps: 8 });
+    expect(suggestCatalogItem(alternating, light).item).toMatchObject({ plannedSets: 1, plannedReps: 12 });
   });
   it("treats a sprint prohibition as a cue but still catches a hidden running dose", async () => {
     const { assessTrainingComposition } = await import("@/domain/training-proposal/quality");

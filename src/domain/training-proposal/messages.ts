@@ -49,6 +49,7 @@ export const TRAINING_ISSUE_MESSAGES: Record<string, string> = {
   ADVANCED_MOVEMENT_READINESS_UNCONFIRMED: "高度な動作に必要な経験・見守りが未確認です。",
   CHILD_MOVEMENT_REQUIRES_CONFIRMED_SIMPLE_SUPERVISED_CONTENT: "小学生向けの動作と見守りを確認できませんでした。",
   MOVEMENT_SPACE_UNCONFIRMED: "動作に必要な直線距離が未確認、または走れる直線がありません。",
+  MOVEMENT_SPACE_TOO_SHORT: "移動する種目に必要な直線距離が足りません（弾む・リズム系は動作10m＋止まる余裕10m、歩く種目は5m）。",
 };
 
 /** Codes become Japanese; already-Japanese messages pass through; unknown codes never leak. */

@@ -1,7 +1,7 @@
 import type { ComposerCatalogExercise, EditableItem } from "@/domain/menu-composition/contracts";
 import { trainingReducedLoad, type TrainingConditions } from "./conditions";
 import type { TrainingItemAnnotation } from "./contracts";
-import { assessExerciseEligibility, type ExerciseEligibility } from "./eligibility";
+import { assessExerciseEligibility, trainingStopMarginMeters, trainingUsableMeters, type ExerciseEligibility } from "./eligibility";
 
 const STAGE_REASONS = [
   "可動域と身体操作を整える準備として選択。",
@@ -18,11 +18,32 @@ const STAGE_INTENSITY = [
   "リズムよく軽快に。接地は短く静かに、余裕を残した強さで行う。",
 ] as const;
 
-function suggestedRestSeconds(row: ComposerCatalogExercise, eligibility: ExerciseEligibility): number {
-  // A registered coach value wins. Otherwise: mobility flows on, drills walk back, strength/jumps recover.
-  if (row.defaultRestSeconds !== null) return Math.min(Math.max(0, row.defaultRestSeconds), 300);
-  if (eligibility.section === "STRENGTH") return row.category.toUpperCase() === "JUMP" ? 90 : 60;
-  return row.category.toUpperCase() === "MOBILITY" || eligibility.stage === 0 ? 20 : 30;
+type Volume = { sets: number; reps: number; seconds: number; meters: number };
+/**
+ * Starting volumes when the coach has registered nothing, from common coaching ranges for warm-up
+ * drills and supporting bodyweight strength. They are editable starting points, not physiological
+ * prescriptions: a reduced day lowers the volume, never the intent of the movement. A distance
+ * drill counts passes as sets (one pass, then walk back), and the rest covers that walk.
+ */
+const STARTING_VOLUME = {
+  // Mobility flows on: one pass or one set, little rest.
+  MOBILITY: { label: "可動域の準備運動", rest: 20, normal: { sets: 1, reps: 8, seconds: 20, meters: 15 }, reduced: { sets: 1, reps: 6, seconds: 15, meters: 10 } },
+  DRILL: { label: "姿勢・基本動作のドリル", rest: 30, normal: { sets: 2, reps: 6, seconds: 20, meters: 15 }, reduced: { sets: 1, reps: 4, seconds: 10, meters: 10 } },
+  // Skips and switches need room for rhythm and a little longer recovery to keep contacts quick.
+  RHYTHM: { label: "リズム・疾走へつなぐドリル", rest: 45, normal: { sets: 2, reps: 6, seconds: 15, meters: 20 }, reduced: { sets: 1, reps: 4, seconds: 10, meters: 15 } },
+  // Hops load one or both legs on every contact: short passes and a full walk back.
+  HOP: { label: "弾む・跳ねるドリル", rest: 60, normal: { sets: 2, reps: 6, seconds: 10, meters: 10 }, reduced: { sets: 1, reps: 4, seconds: 10, meters: 10 } },
+  STRENGTH: { label: "自重の補強", rest: 60, normal: { sets: 2, reps: 10, seconds: 30, meters: 10 }, reduced: { sets: 1, reps: 8, seconds: 20, meters: 10 } },
+  JUMP: { label: "跳躍の補強", rest: 90, normal: { sets: 2, reps: 5, seconds: 10, meters: 20 }, reduced: { sets: 1, reps: 4, seconds: 10, meters: 15 } },
+} as const satisfies Record<string, { label: string; rest: number; normal: Volume; reduced: Volume }>;
+type VolumeKind = keyof typeof STARTING_VOLUME;
+
+function volumeKind(row: ComposerCatalogExercise, eligibility: ExerciseEligibility): VolumeKind {
+  const category = row.category.toUpperCase();
+  if (eligibility.section === "STRENGTH") return category === "JUMP" ? "JUMP" : "STRENGTH";
+  if (category === "MOBILITY" || eligibility.stage === 0) return "MOBILITY";
+  if (eligibility.stage >= 3) return /ケンケン|ケンパ|ジャンプ|ホップ|バウンド|バウンディ|跳|踏み切/u.test(row.name) ? "HOP" : "RHYTHM";
+  return "DRILL";
 }
 
 /**
@@ -36,26 +57,40 @@ export function suggestCatalogItem(row: ComposerCatalogExercise, conditions: Tra
   const light = trainingReducedLoad(conditions);
   const count = row.videoGuidance?.videoAnalysisStatus === "COACH_REVIEWED" ? row.videoGuidance.countingUnit : null;
   const description = row.description ?? "";
-  const alternating = /交互/u.test(description);
+  // "交互" alone can mean alternating positions (cat & dog, pelvic tilts); only left/right is a two-sided count.
+  const alternating = /交互/u.test(description) && /左右/u.test(description);
   const perSide = count === "PER_SIDE" || (!count && !alternating && /片側|反対側|左右.*(?:ずつ|それぞれ)|片脚ずつ/u.test(description));
-  // Registered Exercise.default* values are preferred; a reduced day only scales total volume.
-  const registeredSets = row.defaultSets !== null && row.defaultSets > 0 ? row.defaultSets : 2;
-  const sets = Math.min(light ? Math.max(1, Math.ceil(registeredSets / 2)) : registeredSets, light ? 2 : 4);
-  const quantity = row.metricType === "TIME" ? Math.min(row.defaultDurationSeconds ?? (light ? 10 : 20), light ? 20 : 60)
-    : row.metricType === "DISTANCE" ? Math.min(row.defaultDistanceMeters ?? 10, conditions.environment.straightMeters ?? 0)
-      : Math.min(row.defaultReps ?? (light ? 4 : 6), light ? 6 : 30);
-  // Every number needs a visible basis: the coach's registered value, or the App's conservative start.
+  const total = count === "ALTERNATING_TOTAL" || count === "TOTAL_REPS" || (!count && alternating);
+  const kind = volumeKind(row, eligibility);
+  const plan = STARTING_VOLUME[kind];
+  const start = light ? plan.reduced : plan.normal;
+  // One-sided or alternating strength work is a little shorter per side; a left/right total counts both sides.
+  const reps = (volume: Volume) => (kind === "STRENGTH" && (perSide || total) ? volume.reps - 2 : volume.reps) * (total ? 2 : 1);
+  // Registered Exercise.default* values are preferred. A reduced day halves registered sets and keeps a
+  // registered count or time only up to the ordinary starting volume; a registered distance stays.
+  const registeredSets = row.defaultSets !== null && row.defaultSets > 0 ? row.defaultSets : null;
   const registeredQuantity = row.metricType === "TIME" ? row.defaultDurationSeconds : row.metricType === "DISTANCE" ? row.defaultDistanceMeters : row.defaultReps;
-  const registeredCount = [row.defaultSets !== null && row.defaultSets > 0, registeredQuantity !== null].filter(Boolean).length;
-  const adjusted = (row.defaultSets !== null && row.defaultSets > 0 && sets !== row.defaultSets) || (registeredQuantity !== null && quantity !== registeredQuantity);
-  const source = registeredCount === 0 ? "既定量が未登録のため、アプリの控えめな初期値による編集可能な仮提案。"
-    : `${registeredCount === 2 ? "登録された既定量" : "登録された既定量（未登録の項目はアプリの控えめな初期値）"}をもとにした編集可能な提案。${adjusted ? "今日の条件に合わせて控えめに調整。" : ""}`;
+  const sets = registeredSets === null ? start.sets : Math.min(light ? Math.max(1, Math.ceil(registeredSets / 2)) : registeredSets, light ? 2 : 4);
+  const straight = conditions.environment.straightMeters;
+  const usable = trainingUsableMeters(eligibility.stage, straight);
+  const wantedMeters = registeredQuantity ?? start.meters;
+  const quantity = row.metricType === "TIME" ? Math.min(registeredQuantity ?? start.seconds, light ? 20 : 60)
+    : row.metricType === "DISTANCE" ? Math.min(wantedMeters, usable)
+      : Math.min(registeredQuantity ?? reps(start), light ? Math.min(reps(plan.normal), 12) : 30);
+  // Every number needs a visible basis: the coach's registered value, or the App's starting range.
+  const registeredCount = [registeredSets !== null, registeredQuantity !== null].filter(Boolean).length;
+  const reduced = (registeredSets !== null && sets !== registeredSets) || (registeredQuantity !== null && row.metricType !== "DISTANCE" && quantity !== registeredQuantity);
+  const source = registeredCount === 0 ? `既定量が未登録のため、${plan.label}の一般的な範囲からアプリが決めた初期値（編集可能な仮提案）。`
+    : `${registeredCount === 2 ? "登録された既定量" : "登録された既定量（未登録の項目はアプリの初期値）"}をもとにした編集可能な提案。${reduced ? "今日の条件に合わせて控えめに調整。" : ""}`;
+  const margin = trainingStopMarginMeters(eligibility.stage);
+  const space = row.metricType === "DISTANCE" && quantity > 0 && quantity < wantedMeters
+    ? `${margin ? `直線${straight}mのため、止まる余裕${margin}mを残して` : `直線${straight}mに合わせて`}${quantity}m${registeredQuantity !== null ? `（登録は${registeredQuantity}m）` : ""}。` : "";
   const counting = count === "ROUND_TRIP" ? "登録された往復を1回として数える。"
     : count === "ALTERNATING_TOTAL" || count === "TOTAL_REPS" ? "左右合計で数える。"
       : perSide ? "回数欄は片側の回数。左右の順序は登録説明に従う。"
         : alternating ? "回数欄は左右合計。交互に行う登録動作を数える。"
         : "登録説明の動作を1回として数える。";
-  const plannedNote = `${source}${row.metricType === "REPS" ? counting : "登録説明どおりの動作を行う。"}疲労や動作の崩れが出たら中止。`;
+  const plannedNote = `${source}${space}${row.metricType === "REPS" ? counting : "登録説明どおりの動作を行う。"}疲労や動作の崩れが出たら中止。`;
   const strength = eligibility.section === "STRENGTH";
   const jump = row.category.toUpperCase() === "JUMP";
   const intensity = strength
@@ -70,7 +105,7 @@ export function suggestCatalogItem(row: ComposerCatalogExercise, conditions: Tra
       reason, plannedSets: sets, plannedReps: row.metricType === "REPS" ? quantity : null,
       plannedDurationSeconds: row.metricType === "TIME" ? quantity : null,
       plannedDistanceMeters: row.metricType === "DISTANCE" && quantity > 0 ? quantity : null,
-      plannedRestSeconds: suggestedRestSeconds(row, eligibility) },
+      plannedRestSeconds: Math.min(Math.max(0, row.defaultRestSeconds ?? plan.rest), 300) },
     annotation: { intensity: `${intensity}編集可能な提案値。`,
       stage: eligibility.section === "MOVEMENT" ? eligibility.stage : null, family: eligibility.family,
       relationship: "COMBINABLE", alternativeGroup: null },

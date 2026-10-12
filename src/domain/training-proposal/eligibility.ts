@@ -7,6 +7,18 @@ export type ExerciseEligibility = {
 };
 type CatalogRow = ComposerCatalogExercise & { equipmentTags?: readonly string[] };
 
+/**
+ * Space a travelling drill may use. Bouncing and rhythm drills (stage 3+) keep a 10m stopping
+ * margin before the end of the straight, the Running Engine's smallest margin; walking-pace
+ * drills stop within a step and may use the whole straight. An App heuristic, not a measurement.
+ */
+export function trainingStopMarginMeters(stage: number): number { return stage >= 3 ? 10 : 0; }
+export function trainingUsableMeters(stage: number, straightMeters: number | null): number {
+  return straightMeters === null || straightMeters <= 0 ? 0 : Math.max(0, straightMeters - trainingStopMarginMeters(stage));
+}
+/** The shortest travel that still holds a few movement cycles. */
+const minimumTravelMeters = (stage: number) => stage >= 3 ? 10 : 5;
+
 /** Conservative retrieval boundary, not an exercise prescription or a suitability guarantee. */
 export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingConditions): ExerciseEligibility {
   const reasons: string[] = [];
@@ -87,9 +99,12 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
     || state.competitionDays !== null && state.competitionDays <= 1)) reasons.push("HIGH_LOAD_INCOMPATIBLE_WITH_CURRENT_CONDITIONS");
   if (athlete.ageGroup === "ELEMENTARY" && (row.difficulty === null || row.difficulty > 2 || athlete.supervised !== true)) reasons.push("CHILD_MOVEMENT_REQUIRES_CONFIRMED_SIMPLE_SUPERVISED_CONTENT");
   if (moving && (env.straightMeters === null || env.straightMeters <= 0)) reasons.push("MOVEMENT_SPACE_UNCONFIRMED");
-  // This retrieval check cannot validate a shortened variant of the registered
-  // distance. Hold it for review rather than silently authorizing that variant.
-  if (moving && row.defaultDistanceMeters !== null && env.straightMeters !== null && row.defaultDistanceMeters > env.straightMeters) {
+  else if (moving && trainingUsableMeters(stage, env.straightMeters) < minimumTravelMeters(stage)) reasons.push("MOVEMENT_SPACE_TOO_SHORT");
+  // A registered distance is shortened to the usable straight, and the suggestion's note says so.
+  // Where the distance fixes an equipment layout (hurdle or marker spacing) a shorter variant is
+  // a different drill, so it is held for review instead.
+  if (moving && row.defaultDistanceMeters !== null && env.straightMeters !== null && /ハードル|マーカー|コーン/u.test(text)
+    && row.defaultDistanceMeters > trainingUsableMeters(stage, env.straightMeters)) {
     reasons.push("REGISTERED_DISTANCE_EXCEEDS_SPACE");
   }
   // Group only the same named movement and its parenthesized variants; unrelated

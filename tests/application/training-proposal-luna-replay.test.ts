@@ -80,9 +80,9 @@ describe("recorded Luna selection outputs (replay, no API)", () => {
     const movement = result.preview.composition.blocks[0].items;
     expect(movement).toHaveLength(11);
     expect(result.preview.messages.join(" ")).not.toMatch(/除外しました|AIを使わない基本提案/);
-    // Luna gave this REPS exercise a distance; the App uses the registered unit.
+    // Luna gave this REPS exercise a distance; the App uses the registered unit (a left/right total, 4 per side).
     const lunge = movement.find(item => item.type === "CATALOG_EXERCISE" && item.displayName === "ウォーキングランジ＆ニーリフト");
-    expect(lunge).toMatchObject({ plannedReps: 4, plannedDistanceMeters: null, plannedSets: 1 });
+    expect(lunge).toMatchObject({ plannedReps: 8, plannedDistanceMeters: null, plannedSets: 1 });
     // The placeholder repeat of the same ID is normalized away, whatever its recorded display name said.
     expect(movement.filter(item => item.type === "CATALOG_EXERCISE" && item.displayName === "引きつけウォーク")).toHaveLength(1);
     for (const item of movement) if (item.type === "CATALOG_EXERCISE") expect(item.plannedSets).toBe(1);
