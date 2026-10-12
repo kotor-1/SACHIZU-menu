@@ -1,6 +1,7 @@
 import type { ComposerCatalogExercise, ExercisePlanItem } from "@/domain/menu-composition/contracts";
 import { exerciseDoseState, exercisePlanValues } from "@/domain/menu-composition/contracts";
 import { formatPrescription } from "@/domain/shared/prescription";
+import { exerciseUsesPerSideCount, exerciseUsesTotalCount } from "@/domain/menu-composition/dose-counting";
 import { VIDEO_COUNTING_UNIT_LABEL } from "@/domain/exercise/video-guidance";
 
 export function safeExerciseVideoUrl(url: string | null): string | null {
@@ -15,6 +16,8 @@ export function ComposedExerciseContent({ item, exercise, aiProposed = true }: {
     <div className="flex flex-wrap items-center gap-2"><h4 className="font-medium">{item.displayName}</h4><span className="text-xs text-slate-500">{item.type === "FREEFORM" ? "今回だけの項目" : "カタログ種目"} ・ {aiProposed ? "AIの提案（編集可）" : "手動で編集"}</span></div>
     <p className="text-sm font-semibold">今回の実施内容</p>
     <p className="text-sm font-medium" data-dose-state={exerciseDoseState(item)}>{exerciseDoseState(item) === "UNCONFIGURED" ? "量未設定" : formatPrescription(exercisePlanValues(item))}</p>
+    {item.plannedReps !== null && exerciseUsesPerSideCount(item, exercise) && <p className="text-xs text-slate-600">回数欄は片側ごとの回数です（左右それぞれ{item.plannedReps}回）。</p>}
+    {item.plannedReps !== null && exerciseUsesTotalCount(exercise) && <p className="text-xs text-slate-600">回数欄は合計の回数です（合計{item.plannedReps}回）。</p>}
     {item.executionInstruction && <p className="whitespace-pre-wrap text-sm">実施指示：{item.executionInstruction}</p>}
     {item.plannedNote && <p className="whitespace-pre-wrap text-sm">メモ：{item.plannedNote}</p>}
     {item.type === "FREEFORM" && <p className="whitespace-pre-wrap text-xs text-slate-500">元の希望：{item.originalUserInstruction}</p>}

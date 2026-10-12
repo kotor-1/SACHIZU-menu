@@ -45,6 +45,7 @@ function fromSeconds(seconds: number | null): string {
 function normalizePlan(composition: EditableComposition, plan: DurationPlan): DurationPlan {
   const prior = new Map(plan.blocks.map((block) => [block.blockId, block]));
   return {
+    ...plan,
     blocks: composition.blocks.map((block) => prior.get(block.id) ?? {
       blockId: block.id,
       phase: "OTHER" as const,
@@ -76,11 +77,13 @@ export function MenuDurationEditor({
   const current = normalizePlan(composition, plan);
   const summary = calculateMenuDuration(composition, running, requestedSeconds, current);
   const allocationById = new Map(current.blocks.map((block) => [block.blockId, block]));
+  const staleBlockIds = new Set(summary.planIssues.filter((issue) => issue.code === "STALE_BASIS").map((issue) => issue.blockId));
+  const hasStaleEstimate = staleBlockIds.size > 0;
   const allocationsComplete = current.blocks.every((block) => block.allocatedSeconds !== null)
     && current.transitionSeconds !== null;
   const enteredAllocationSeconds = current.blocks.reduce((sum, block) => sum + (block.allocatedSeconds ?? 0), 0)
     + (current.transitionSeconds ?? 0);
-  const allocationTotalLabel = allocationsComplete ? "配分合計" : "入力済み配分の小計";
+  const allocationTotalLabel = hasStaleEstimate ? "旧配分を含む合計（再見積もりが必要）" : allocationsComplete ? "配分合計" : "入力済み配分の小計";
   const phaseCoverage = DURATION_PHASES.map((phase) => {
     const rows = current.blocks.filter((block) => block.phase === phase);
     const allocatedCount = rows.filter((block) => block.allocatedSeconds !== null).length;
@@ -104,7 +107,7 @@ export function MenuDurationEditor({
       <div>
         <h2 id="menu-duration-title" className="text-sm font-semibold text-slate-900">時間配分（計画用）</h2>
         <p className="mt-1 text-xs leading-relaxed text-slate-600">
-          ブロックごとの計画枠です。種目の処方・本数・休憩は変更せず、実際の所要時間を保証するものでもありません。
+          ブロックごとの計画枠です。種目の処方・本数・休憩は変更せず、実際の所要時間を保証するものでもありません。AIの見積もりと処方からの計算値を表示しており、実際に計測した時間ではありません。
         </p>
       </div>
 
@@ -114,7 +117,7 @@ export function MenuDurationEditor({
           <p className="mt-1 text-sm font-semibold" data-testid="duration-requested">{formatSeconds(requestedSeconds)}</p>
         </div>
         <div className="rounded-lg bg-slate-50 p-3">
-          <p className="text-xs text-slate-500">計算できる運動・休息・移動準備の最低時間</p>
+          <p className="text-xs text-slate-500">数値から計算できる運動・休息の最低時間</p>
           <p className="mt-1 text-sm font-semibold" data-testid="duration-known-minimum">{formatSeconds(summary.knownMinimumSeconds)}</p>
         </div>
         <div className="rounded-lg bg-slate-50 p-3">
@@ -123,7 +126,10 @@ export function MenuDurationEditor({
         </div>
       </div>
 
-      <p className="text-sm font-medium" data-testid="duration-status">{STATUS_LABEL[summary.status]}</p>
+      <p className="text-sm font-medium" data-testid="duration-status">{hasStaleEstimate ? "内容を変更したため、以前の時間見積もりは無効です。再見積もりが必要です。" : STATUS_LABEL[summary.status]}</p>
+      <p className="text-xs text-slate-600">計画の合計と実施時間の確実さは別です。移動・準備の見積もりは、運動・休息の最低時間に含めません。</p>
+      {current.transitionDescription && <p className="text-xs text-slate-600">移動・準備の内容：{current.transitionDescription}</p>}
+      {summary.planIssues.length > 0 && <p className="text-xs text-amber-900">内訳の要確認：{[...new Set(summary.planIssues.map(issue => issue.message))].join(" ")}</p>}
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="block text-xs text-slate-700">
           ブロック間の移動・準備時間（分）
@@ -139,7 +145,7 @@ export function MenuDurationEditor({
             <p>配分合計は未確定です。作業量・休息・時間配分の未入力項目を確認してください。</p>
           ) : (
             <>
-              <p>計画合計：<strong>{formatSeconds(summary.plannedTotalSeconds)}</strong></p>
+              <p>{hasStaleEstimate ? "旧配分を含む合計：" : "計画合計："}<strong>{formatSeconds(summary.plannedTotalSeconds)}</strong></p>
               <p className="mt-1">
                 {summary.budgetDifferenceSeconds === null ? (
                   <>希望との差：<strong>目安時間は未指定です</strong></>
@@ -156,7 +162,8 @@ export function MenuDurationEditor({
       <div className="space-y-2">
         {composition.blocks.map((block, index) => {
           const allocation = allocationById.get(block.id)!;
-          const measured = summary.blocks[index]!;
+          const calculated = summary.blocks[index]!;
+          const estimateIsStale = staleBlockIds.has(block.id);
           return (
             <div key={block.id} className="grid gap-2 rounded-lg border border-slate-100 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
               <p className="self-center truncate text-sm font-medium text-slate-800">{block.name}</p>
@@ -181,8 +188,9 @@ export function MenuDurationEditor({
                 />
               </label>
               <div className="text-xs text-slate-600 sm:col-span-3">
-                <span>既知の最低時間：{formatSeconds(measured.knownMinimumSeconds)}</span>
-                {measured.underallocated && <p className="mt-1 font-medium text-rose-700">配分が既知の最低時間を下回っています。</p>}
+                <span>既知の最低時間：{formatSeconds(calculated.knownMinimumSeconds)}</span>
+                {estimateIsStale ? <p className="mt-1 font-medium text-amber-900" data-testid="stale-duration-estimate">内容変更前の見積もりは無効です。種目・実施量・実施指示を確認して、時間を見積もり直してください。</p> : allocation.allocationBasis && <div className="mt-1"><p>種目順の計画見積もり（実測ではありません）：{allocation.allocationBasis.itemEstimatesSeconds.map(formatSeconds).join(" / ")}。ブロック内準備：{formatSeconds(allocation.allocationBasis.preparationSeconds)}。</p><p>{allocation.allocationBasis.explanation}</p><p>{allocation.allocationBasis.preparationDescription}</p></div>}
+                {calculated.underallocated && <p className="mt-1 font-medium text-rose-700">配分が既知の最低時間を下回っています。</p>}
               </div>
             </div>
           );

@@ -1,0 +1,785 @@
+{
+  "provenance": "AUTHORED_OFFLINE_SESSION_DRAFT: human-authored deterministic test fixture using isolated catalog descriptions and previous real Luna Running prescription; NOT new AI output, NOT a coach-approved prescription, NOT a completed 90-minute plan.",
+  "request": {
+    "requestText": "高校生の100mです。来週末の試合に向けて少し疲労をためたいです。今は10が一番疲労が強いとしたら1です。",
+    "context": {
+      "availableTimeSeconds": 5400
+    }
+  },
+  "runningPrescription": {
+    "coachTargetTimeRange": null,
+    "coachTargetTimeSeconds": null,
+    "decisionReasons": [
+      "EVENT_DEFAULT_DISTANCE_SELECTED"
+    ],
+    "distanceMeters": 60,
+    "event": "100m",
+    "executionInstructionText": null,
+    "fullSessionTimeGuaranteed": false,
+    "intensityPresentation": "PLAIN_LANGUAGE",
+    "loadReductionRequested": false,
+    "minimumKnownRestSeconds": 720,
+    "policyHash": "b522cdccba0fa65c5639eb823ccd313439700fb65ce00f8192edca51699b535f",
+    "policyVersion": "rp-2026.09.0",
+    "repRestSeconds": 240,
+    "repsPosition": "DEFAULT",
+    "repsReductionApplied": false,
+    "setReps": null,
+    "setRestSeconds": null,
+    "sets": 1,
+    "totalDistanceMeters": 240,
+    "totalReps": 4
+  },
+  "catalog": [
+    {
+      "id": "cmtsxtnwk00w6itxbiblxkogw",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "軽く弾みながらの腕回し（前回し・左右交互）",
+      "category": "MOBILITY",
+      "description": "軽く弾むリズムで前進しながら、両腕を肘を伸ばしたまま前方向へ大きく回す。左右の腕は交互に回す。",
+      "coachingPoint": "・軽く弾むリズムで前進しながら、腕を大きく回している。\r\n・腕は肘を伸ばしたまま、前方向へ頭上を通る大きな円を描いている。\r\n・左右の腕は交互に回している。\r\n・上体を大きく倒さず、弾むリズムを保ったまま進んでいる。",
+      "commonMistake": "・肘が曲がって回す円が小さくなる。\r\n・腕を回すのに合わせて上体が左右にねじれる。\r\n・肩がすくみ、首まわりに力が入る。\r\n・弾むリズムが止まり、ただ歩くだけになる。\r\n・左右で回す大きさやテンポに差が出る。\r\n・腕の動きに合わせて進む向きが乱れる。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/l5eo2oxoAWs",
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "肩",
+        "ダイナミックストレッチ",
+        "肩",
+        "腕回し",
+        "前回し"
+      ],
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtswcp0h00voitxbo9n8558g",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "後ろ向きに進みながらの股関節回し（内から外）",
+      "category": "MOBILITY",
+      "description": "後ろ向きに進みながら、片脚の膝を曲げて体の前で持ち上げ、そこから外側へ開くように回して下ろし接地する。次の一歩で反対脚を同じように回し、左右交互に繰り返す。",
+      "coachingPoint": "・後ろ向きに進みながら、一歩ごとに片脚の股関節を回している。\r\n・膝を曲げて体の前で持ち上げ、そこから外側へ開くように回して下ろしている。\r\n・膝は腰の高さ付近まで上げている。\r\n・上体を大きく倒さずに保ったまま、左右交互に繰り返している。",
+      "commonMistake": "・膝が上がらず、脚を横に振るだけになる。\r\n・脚を回そうとして上体が左右に傾く。\r\n・回す軌道が小さく、股関節の動く範囲を使えていない。\r\n・左右で上がる高さや回す大きさに差が出る。\r\n・反動で振り回し、動きが速くなる。\r\n・後ろ向きに進む向きや歩幅が乱れる。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/37O4JTJ6VvI",
+      "purposes": [
+        "HIP_JOINT"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "股関節",
+        "ダイナミックストレッチ",
+        "脚の振り上げ",
+        "股関節回し",
+        "後ろ向き"
+      ],
+      "videoGuidance": null
+    },
+    {
+      "id": "cmttgdle800wsitxb34g6clw3",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "くの字姿勢での足踏み（かかとの押し下げ）",
+      "category": "MOBILITY",
+      "description": "両手と両足を地面につけ、腰を高く上げた「くの字」の姿勢をつくり、その姿勢を保ったまま左右のかかとを交互に押し下げる足踏みを繰り返しながら進む。",
+      "coachingPoint": "・両手と両足を地面につけ、腰を高く上げた姿勢を保っている。\r\n・膝はほぼ伸ばしたまま行っている。\r\n・左右のかかとを交互に地面へ押し下げている。\r\n・腰の高さを変えずに、足踏みを続けながら進んでいる。",
+      "commonMistake": "・膝が大きく曲がって、脚の後ろ側が伸びない。\r\n・腰が下がって体が反ってしまう。\r\n・かかとの押し下げが浅く、ふくらはぎが伸びない。\r\n・肩がすくみ、腕で体を支えきれずに沈む。\r\n・動作が速くなり、左右の押し下げが雑になる。\r\n・左右で押し下げる深さに差が出る。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/eQzOu8w-tas",
+      "purposes": [
+        "ANKLE_JOINT"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "ダイナミックストレッチ",
+        "ふくらはぎ",
+        "ハムストリングス",
+        "ふくらはぎ",
+        "くの字姿勢",
+        "足踏み",
+        "かかと"
+      ],
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtskpig200n6itxbr4wjkrnk",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "ニーアップウォーク",
+      "category": "DRILL",
+      "description": "直立姿勢を保ちながら歩行し、一歩ごとに膝（大腿部）を骨盤の高さまでしっかりと引き上げるウォーキング形式の基礎ドリル。",
+      "coachingPoint": "・膝を引き上げた際に骨盤が後傾したり、上体が後ろに反ったりしないよう体幹を安定させる。\r\n・支持脚の膝が曲がって腰が落ちないよう、軸足側で地面をしっかり押して背筋を伸ばす。\r\n・足首はだらんと下げず、つま先をやや上に向ける（背屈）意識を持つ。\r\n・反動を使わず、股関節の腸腰筋を使ってコントロールしながら引き上げる。",
+      "commonMistake": "・膝を引き上げた反動で上半身が後傾してしまう。\r\n・支持脚の膝が曲がり、腰が引けて重心が低くなってしまう。\r\n・つま先が下を向き（底屈）、足首が脱力している。\r\n・腕振りが左右にぶれたり、脚の動きと連動していない。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/iML6rdOO3Hs",
+      "purposes": [
+        "ARM_SWING",
+        "BALANCE",
+        "HIP_JOINT",
+        "POSTURE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "MIDDLE_DISTANCE",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "MOBILITY",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoGuidance": null
+    },
+    {
+      "id": "cmts9twus00g9itxblmdj4rgc",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "もも上げ叩きつけ（スイングダウンドリル）",
+      "category": "DRILL",
+      "description": "その場で片脚の膝を股関節の高さまで素早く引き上げ、体の真下へ向けて鋭く振り下ろして地面を叩きつけるように力強く接地するドリル。",
+      "coachingPoint": "・引き上げた脚は自然落下ではなく、上から下へ素早く引き戻す意識で地面を捉える。\r\n・接地位置が体の前方にならないよう、重心の真下近くで接地する。\r\n・接地の瞬間に腰が沈み込んだり膝が曲がりすぎないよう、体幹と軸脚を安定させて高い重心を保つ。\r\n・脚の引き上げ・引き戻しに合わせて腕振りを連動させる。",
+      "commonMistake": "・接地が体の前方になり、ブレーキがかかるような着地になってしまう。\r\n・接地の衝撃で腰が落ちたり、骨盤が後傾してしまう。\r\n・振り下ろす際に上体が前後に過度に傾いてしまう。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/EEfb22Lfmx0",
+      "purposes": [
+        "GROUND_CONTACT",
+        "HIP_JOINT",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "SPRINT"
+      ],
+      "targets": [
+        "ACCELERATION",
+        "COORDINATION",
+        "TECHNIQUE"
+      ],
+      "tags": [
+        "スプリントドリル",
+        "股関節",
+        "体幹",
+        "足関節",
+        "接地",
+        "叩きつけ",
+        "スイングダウン",
+        "大腿部",
+        "もも上げ",
+        "引き戻し"
+      ],
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtrdeh840017itxbb6b5pqq4",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "仰向けハンドプレス（腹圧・腰椎圧迫キープ）",
+      "category": "CORE",
+      "description": "マット上に仰向けになり、腰と床の間に差し入れた手を腰椎（背中）で押し潰すように腹圧をかけ、その姿勢を維持するドリル。",
+      "coachingPoint": "・腰と床の隙間を完全になくし、手全体に均等に圧力がかかるよう腰椎を真下に押しつける。\r\n・腹圧をかけた状態でも息を止めず、自然な呼吸を継続する。\r\n・脚が脱力して外側に開かないよう、つま先をまっすぐ上に向けて下肢の軸を保つ。\r\n・首や肩、顎に過度な力が入らないようリラックスさせる。",
+      "commonMistake": "・腹圧が抜けて腰が反り、手と腰の間に隙間ができてしまう。\r\n・手を押し潰そうとして肩や首・顎をすくめて力んでしまう。\r\n・圧力をかける際に息を止めてしまう。",
+      "metricType": "TIME",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/e691Iodixgs",
+      "purposes": [
+        "BALANCE",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "LONG_JUMP",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtrdzqhe001aitxbgnaelg5i",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "ニー・トゥ・エルボー（対角膝肘引きつけ）",
+      "category": "CORE",
+      "description": "マット上に仰向けになり、片手を後頭部に当てた姿勢から、対角側の膝を曲げて胸へ引き寄せると同時に上体を斜めに丸め起こし、肘と膝を近づける動作を繰り返す体幹回旋・屈曲ドリル。",
+      "coachingPoint": "・首や手で頭を無理に引っ張らず、腹斜筋とみぞおちを意識して体幹を斜めに丸め込む。\r\n・脚の引きつけと上体のひねりを連動させ、肘と膝が最も近づく瞬間に息をしっかりと吐ききる。\r\n・動作中に腰が反って床との間に隙間が空かないよう、下腹部の圧力を常に一定に保つ。\r\n・反動や勢いで行わず、戻す局面でもコントロールして丁寧に脚と上体を戻す。",
+      "commonMistake": "・手で首を前や斜めに強く引っ張り、頸部に過度な負担がかかる。\r\n・脚を伸ばして戻す局面で腹圧が抜け、腰が床から浮いて反ってしまう。\r\n・肘だけを前に出してしまい、体幹の回旋・丸め込みが不十分になる。\r\n・勢いや反動を使って動作してしまう。",
+      "metricType": "REPS",
+      "difficulty": 2,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/aUziWtgcOcI",
+      "purposes": [
+        "BALANCE",
+        "HIP_JOINT",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "LONG_JUMP",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "STRENGTH",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoGuidance": {
+        "executionSummary": "仰向けで片手を頭付近に置き、片膝を引き寄せながら上体を斜めに起こして肘を膝へ近づけ、脚と上体を戻す動作を繰り返している。",
+        "movementPattern": "仰臥位から片膝の引きつけと体幹の起こし・回旋を組み合わせ、伸ばした姿勢へ戻る。",
+        "countingUnit": "PER_SIDE",
+        "bilateralCounting": "COACH_DEFINED: SEQUENTIAL_SIDES。片側10回を完了してから反対側10回。左右交互ではない。",
+        "typicalStructure": "COACH_DEFINED: 10 reps one side → 10 reps opposite side。片側の寄せて戻す1周期を1回とする。",
+        "equipment": [
+          "マット"
+        ],
+        "setup": "仰向けで脚を伸ばし、片手を頭付近、もう片方を体の横または腹部へ置いて開始している。",
+        "keyCues": [
+          "動画では膝の引きつけに合わせて上体を斜めに起こしている。",
+          "戻す局面では脚と上体を伸ばした姿勢に戻っている。"
+        ],
+        "commonErrors": [],
+        "doseObservations": [
+          "COACH_DEFINED: 片側10回→反対側10回。動画観測回数ではなく今回のコーチ指定。",
+          "VISUAL_OBSERVATION: 膝・肘を寄せて戻す動作を確認。原動画43.2秒。動画の長さから計画時間を決めない。",
+          "COACH_DEFINED: Aの動画mappingは承認済み。年齢・大会前・疲労時の別処方は定義していない。"
+        ],
+        "videoAnalysisStatus": "COACH_REVIEWED",
+        "sourceVideoId": "cmtrdyds90000itzdke807ren",
+        "analysisVersion": "coach-guidance-v1-20261002",
+        "analyzedAt": "2026-10-02T09:08:01.414Z",
+        "coachReviewedAt": "2026-10-02T12:00:16.528Z"
+      }
+    },
+    {
+      "id": "cmtso0lp400pxitxb2r9fcfpl",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "キャット&ドッグ",
+      "category": "MOBILITY",
+      "description": "両手と両膝を地面につけた四つ這いの姿勢から、背中を丸めて頭を下げる動きと、背中を反らせて頭を上げる動きを交互にゆっくり繰り返す。",
+      "coachingPoint": "・両手と両膝の位置を変えずに、四つ這いの土台を保っている。\r\n・背中を丸める局面では頭を下げ、反らせる局面では頭を上げており、背骨の動きと頭の動きが連動している。\r\n・反動をつけず、ゆっくりとした速度で2つの姿勢を行き来している。\r\n・背中全体を大きく動かしている。",
+      "commonMistake": "・腰だけが動いて背中の上部（胸のあたり）が動いていない。\r\n・肘が曲がって体が沈み、腕で支えきれていない。\r\n・肩がすくみ、首まわりに力が入る。\r\n・反動をつけて速く動かし、可動域を使い切れていない。\r\n・手や膝の位置がずれて土台が崩れる。\r\n・頭の動きが背骨の動きと合っていない。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/nH0FUVB2kbc",
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "可動域",
+        "ウォームアップ",
+        "四つ這い",
+        "脊柱",
+        "脊柱",
+        "背骨"
+      ],
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsowvsd00qcitxbh9e11gfx",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "横向き胸椎回旋",
+      "category": "MOBILITY",
+      "description": "横向きに寝て両脚を重ねた姿勢から、上側の手を頭に添え、その肘を後方へ開くようにして上体をゆっくり回旋させ、元の姿勢へ戻す。",
+      "coachingPoint": "・横向きに寝て両脚を重ねた姿勢を保ったまま行っている。\r\n・上側の手を頭に添え、その肘を後方へ開くように上体を回している。\r\n・下半身は重ねた位置をほぼ保ったまま、上体だけを回している。\r\n・反動を使わず、ゆっくりとした速度で開く／戻すを繰り返している。",
+      "commonMistake": "・上体と一緒に骨盤や脚まで倒れてしまい、下半身の位置が崩れる。\r\n・胸ではなく腰から回してしまう。\r\n・肩がすくみ、首まわりに力が入る。\r\n・可動域を出そうとして反動を使い、動作が速くなる。\r\n・頭に添えた手で首を引っ張ってしまう。\r\n・呼吸を止めて力んだまま行う。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "videoUrl": "https://youtu.be/0FQXHDjZJuY",
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "横向き",
+        "回旋",
+        "可動域",
+        "ウォームアップ",
+        "胸椎",
+        "胸椎"
+      ],
+      "videoGuidance": null
+    }
+  ],
+  "composition": {
+    "overview": {
+      "title": "100mへ向けた導入・技術・走・補助・整理の下書き",
+      "objective": "来週末の100mに向け、少し疲労をためたい希望を保持して練習の順序を組みます。終了時の疲労感を確認し、この処方で希望する負荷になったかを判断します。",
+      "approach": "導入→技術→走→補助→整理の順。走は既存処方のまま、補助も元の2種目と実施量を維持。今回は37分の計画見積もりで、希望90分のうち53分は未配分です。追加走や補強、待機で埋めず、90分の完成案とは扱いません。"
+    },
+    "transitionSeconds": 240,
+    "transitionDescription": "5ブロック間の4回の移動・飲水・準備を各60秒、計240秒と仮定。同じ練習場所で行う条件の編集可能な見積もり。ブロック内の説明・本間休息とは重複させない。",
+    "blocks": [
+      {
+        "name": "導入：全身を動かす",
+        "phase": "WARM_UP",
+        "allocatedSeconds": 240,
+        "allocationBasis": {
+          "itemEstimatesSeconds": [
+            40,
+            60,
+            50
+          ],
+          "preparationSeconds": 90,
+          "explanation": "腕回し20mを約40秒、後ろ向き股関節回し20mを約60秒、くの字の足踏み5mを約50秒と置く計画見積もり。速度目標や動画実測ではない。運動150秒＋動きの説明90秒＝240秒。",
+          "preparationDescription": "各動作の短い説明・姿勢確認を30秒ずつ、計90秒。既に分かる動作なら短縮する。"
+        },
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtsxtnwk00w6itxbiblxkogw",
+            "displayName": "軽く弾みながらの腕回し（前回し・左右交互）",
+            "executionInstruction": "軽く弾んで前進し、左右の腕を交互に前へ大きく回して20m。上体をねじらず肩をすくめない。",
+            "plannedNote": "登録説明に沿った編集可能な実施量案。登録既定値・実測値ではありません。",
+            "reason": "肩・腕と脚を連動させる導入。跳躍量を増やす目的ではない。",
+            "plannedSets": 1,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": 20,
+            "plannedRestSeconds": 0
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtswcp0h00voitxbo9n8558g",
+            "displayName": "後ろ向きに進みながらの股関節回し（内から外）",
+            "executionInstruction": "後ろ向きに歩きながら片脚の膝を体の前へ上げ、外側へ開いて下ろす。左右交互に20m。進行方向と周囲を確認し、上体を大きく傾けない。",
+            "plannedNote": "登録説明に沿った編集可能な実施量案。登録既定値・実測値ではありません。",
+            "reason": "股関節を歩行の中で動かし、後のドリルへつなぐ。",
+            "plannedSets": 1,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": 20,
+            "plannedRestSeconds": 0
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmttgdle800wsitxb34g6clw3",
+            "displayName": "くの字姿勢での足踏み（かかとの押し下げ）",
+            "executionInstruction": "手足を接地して腰を高く保ち、膝をほぼ伸ばしたまま左右のかかとを交互に押し下げる。制御した足踏みで5m進み、腰の高さと肩の支えを保つ。",
+            "plannedNote": "登録説明に沿った編集可能な実施量案。登録既定値・実測値ではありません。",
+            "reason": "登録動作で脚の後面と足首を動かして技術練習へつなぐ。",
+            "plannedSets": 1,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": 5,
+            "plannedRestSeconds": 0
+          }
+        ]
+      },
+      {
+        "name": "技術：姿勢と真下への接地",
+        "phase": "DRILLS_STRENGTH",
+        "allocatedSeconds": 360,
+        "allocationBasis": {
+          "itemEstimatesSeconds": [
+            180,
+            120
+          ],
+          "preparationSeconds": 60,
+          "explanation": "ニーアップは20m約60秒×2＋休息60秒＝180秒。叩きつけは左右各5回×2セット＝20周期、周期間の姿勢の戻しを含む約3秒×20＋休息60秒＝120秒。速い接地動作自体を3秒に遅くする指示ではない。",
+          "preparationDescription": "各動作の姿勢確認を30秒ずつ、計60秒。"
+        },
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+            "displayName": "ニーアップウォーク",
+            "executionInstruction": "直立姿勢で一歩ごとに膝を骨盤の高さへ引き上げる。20mを2セット、セット間60秒。軸脚で地面を押し、上体を後ろへ反らさない。",
+            "plannedNote": "登録説明に沿った編集可能な実施量案。登録既定値・実測値ではありません。",
+            "reason": "歩行で支持脚と膝の引き上げを確認。",
+            "plannedSets": 2,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": 20,
+            "plannedRestSeconds": 60
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+            "displayName": "もも上げ叩きつけ（スイングダウンドリル）",
+            "executionInstruction": "その場で片脚の膝を上げ、体の真下へ素早く振り下ろして接地。片側5回、反対側5回を1セットとして2セット。セット間60秒。回数欄は片側5回。",
+            "plannedNote": "登録説明に沿った編集可能な実施量案。登録既定値・実測値ではありません。",
+            "reason": "登録説明に沿った接地位置と腕脚の連動を確認。",
+            "plannedSets": 2,
+            "plannedReps": 5,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": 60
+          }
+        ]
+      },
+      {
+        "name": "走：既存処方を実施",
+        "phase": "RUNNING",
+        "allocatedSeconds": 960,
+        "allocationBasis": {
+          "itemEstimatesSeconds": [
+            760
+          ],
+          "preparationSeconds": 200,
+          "explanation": "既存60m×4本、本間240秒をそのまま使用。3回の休息720秒＋計画上の走行見積もり約10秒×4＝760秒。10秒は実測・目標タイム・強度指定ではない。戻りは処方の本間休息内で扱い二重加算しない。",
+          "preparationDescription": "レーンと開始位置の確認120秒、処方・開始手順の説明80秒。走の本数や距離、強度、休息を増やす時間ではない。"
+        },
+        "items": [
+          {
+            "type": "RUNNING_POLICY"
+          }
+        ]
+      },
+      {
+        "name": "補助：体幹の制御",
+        "phase": "DRILLS_STRENGTH",
+        "allocatedSeconds": 240,
+        "allocationBasis": {
+          "itemEstimatesSeconds": [
+            85,
+            60
+          ],
+          "preparationSeconds": 95,
+          "explanation": "ハンドプレス20秒×2＋休息45秒＝85秒。膝肘は片側10回→反対10回の20周期×約3秒＝60秒の計画見積もり。数値欄はPER_SIDEの10回を維持。補助運動と休息145秒＋準備95秒＝240秒。",
+          "preparationDescription": "床・マットの位置確認30秒、姿勢説明30秒、種目間と左右の姿勢切替35秒。マットまたは適した床面の確保は要確認。"
+        },
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtrdeh840017itxbb6b5pqq4",
+            "displayName": "仰向けハンドプレス（腹圧・腰椎圧迫キープ）",
+            "executionInstruction": "仰向けになり、腰と床の間の手を腰で押さえるように腹圧を保つ。息を止めず20秒を2セット、セット間45秒。",
+            "plannedNote": "登録説明に沿った編集可能な実施量案。登録既定値・実測値ではありません。",
+            "reason": "元の案にあった体幹項目を補助へ配置。セットや種目を追加して時間を埋めない。",
+            "plannedSets": 2,
+            "plannedReps": null,
+            "plannedDurationSeconds": 20,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": 45
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtrdzqhe001aitxbgnaelg5i",
+            "displayName": "ニー・トゥ・エルボー（対角膝肘引きつけ）",
+            "executionInstruction": "仰向けで片膝と対角の肘を近づけて戻す。片側10回を終えてから反対側10回。左右交互にはしない。回数欄は片側10回。",
+            "plannedNote": "片側10回→反対側10回は確認済み定義。1セットの採用と時間見積もりは今回の編集可能な計画案。",
+            "reason": "コーチ確認済みの数え方と順序をそのまま使う。",
+            "plannedSets": 1,
+            "plannedReps": 10,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": 0
+          }
+        ]
+      },
+      {
+        "name": "整理：動きを落ち着かせて確認",
+        "phase": "COOL_DOWN",
+        "allocatedSeconds": 180,
+        "allocationBasis": {
+          "itemEstimatesSeconds": [
+            36,
+            48
+          ],
+          "preparationSeconds": 96,
+          "explanation": "キャット&ドッグは1往復約6秒×6＝36秒。胸椎回旋は左右各6回の12周期×約4秒＝48秒。いずれも計画用のペース仮定で実測ではない。",
+          "preparationDescription": "姿勢切替と説明36秒、終了時の疲労感と違和感を言葉で記録する60秒。長い休息を追加する枠ではない。"
+        },
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtso0lp400pxitxb2r9fcfpl",
+            "displayName": "キャット&ドッグ",
+            "executionInstruction": "四つ這いで、背中を丸める→反らせる往復を今回の1回として、ゆっくり6回。手と膝の位置を保ち、呼吸を止めない。",
+            "plannedNote": "登録説明に沿った編集可能な実施量案。登録既定値・実測値ではありません。",
+            "reason": "動きを落ち着かせ、体の状態を確認する整理。回復効果や疲労除去は断定しない。",
+            "plannedSets": 1,
+            "plannedReps": 6,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": 0
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtsowvsd00qcitxbh9e11gfx",
+            "displayName": "横向き胸椎回旋",
+            "executionInstruction": "横向きで脚を重ね、上側の手を頭へ添える。肘を開いて戻す動作を左右各6回。骨盤を大きく動かさず反動を使わない。回数欄は片側6回。",
+            "plannedNote": "登録説明に沿った編集可能な実施量案。登録既定値・実測値ではありません。",
+            "reason": "登録済みのゆっくりした動作で終了時の可動感を確認。",
+            "plannedSets": 1,
+            "plannedReps": 6,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": 0
+          }
+        ]
+      }
+    ],
+    "sessionPlan": {
+      "blocks": [
+        {
+          "name": "導入：全身を動かす",
+          "phase": "WARM_UP",
+          "purpose": "肩・股関節・脚を動かして技術練習に入る。",
+          "allocatedSeconds": 240
+        },
+        {
+          "name": "技術：姿勢と真下への接地",
+          "phase": "DRILLS_STRENGTH",
+          "purpose": "姿勢を保った膝の引き上げと真下への接地を確認する。",
+          "allocatedSeconds": 360
+        },
+        {
+          "name": "走：既存処方を実施",
+          "phase": "RUNNING",
+          "purpose": "既存の60m×4本、本間240秒の走処方を変更せず実施する。",
+          "allocatedSeconds": 960
+        },
+        {
+          "name": "補助：体幹の制御",
+          "phase": "DRILLS_STRENGTH",
+          "purpose": "元の案の体幹2種目を補助として実施。補強量の水増しはしない。",
+          "allocatedSeconds": 240
+        },
+        {
+          "name": "整理：動きを落ち着かせて確認",
+          "phase": "COOL_DOWN",
+          "purpose": "ゆっくりした登録動作で状態を確認し、終了時の疲労感を記録する。",
+          "allocatedSeconds": 180
+        }
+      ],
+      "timeBudgetReasoning": "先に導入・技術・走・補助・整理の役割を置き、その役割に必要な種目と実施量から時間を見積もった。計画37分で希望90分のうち53分は未配分。走60m×4本・本間240秒を固定したまま、長い準備・待機や追加補強で埋める根拠はない。「少し疲労をためたい」を軽負荷・回復希望へ読み替えず、その意図を走負荷へ数値化する方針は未定として残す。"
+    }
+  },
+  "assessment": {
+    "provenance": "AUTHORED_OFFLINE_CANDIDATE_FIXTURE_NOT_MODEL_OUTPUT",
+    "externalApiCalls": 0,
+    "sourceExerciseCount": 158,
+    "reviewedExerciseCount": 157,
+    "requestedSeconds": 5400,
+    "plannedSeconds": 2220,
+    "unallocatedSeconds": 3180,
+    "blocks": [
+      {
+        "name": "導入：全身を動かす",
+        "allocatedSeconds": 240,
+        "items": [
+          {
+            "id": "cmtsxtnwk00w6itxbiblxkogw",
+            "name": "軽く弾みながらの腕回し（前回し・左右交互）"
+          },
+          {
+            "id": "cmtswcp0h00voitxbo9n8558g",
+            "name": "後ろ向きに進みながらの股関節回し（内から外）"
+          },
+          {
+            "id": "cmttgdle800wsitxb34g6clw3",
+            "name": "くの字姿勢での足踏み（かかとの押し下げ）"
+          }
+        ]
+      },
+      {
+        "name": "技術：姿勢と真下への接地",
+        "allocatedSeconds": 360,
+        "items": [
+          {
+            "id": "cmtskpig200n6itxbr4wjkrnk",
+            "name": "ニーアップウォーク"
+          },
+          {
+            "id": "cmts9twus00g9itxblmdj4rgc",
+            "name": "もも上げ叩きつけ（スイングダウンドリル）"
+          }
+        ]
+      },
+      {
+        "name": "走：既存処方を実施",
+        "allocatedSeconds": 960,
+        "items": [
+          {
+            "id": null,
+            "name": "Running Engine prescription"
+          }
+        ]
+      },
+      {
+        "name": "補助：体幹の制御",
+        "allocatedSeconds": 240,
+        "items": [
+          {
+            "id": "cmtrdeh840017itxbb6b5pqq4",
+            "name": "仰向けハンドプレス（腹圧・腰椎圧迫キープ）"
+          },
+          {
+            "id": "cmtrdzqhe001aitxbgnaelg5i",
+            "name": "ニー・トゥ・エルボー（対角膝肘引きつけ）"
+          }
+        ]
+      },
+      {
+        "name": "整理：動きを落ち着かせて確認",
+        "allocatedSeconds": 180,
+        "items": [
+          {
+            "id": "cmtso0lp400pxitxb2r9fcfpl",
+            "name": "キャット&ドッグ"
+          },
+          {
+            "id": "cmtsowvsd00qcitxbh9e11gfx",
+            "name": "横向き胸椎回旋"
+          }
+        ]
+      }
+    ],
+    "runningUnchanged": {
+      "distanceMeters": 60,
+      "totalReps": 4,
+      "repRestSeconds": 240,
+      "setCount": 1,
+      "totalDistanceMeters": 240,
+      "repRestTotalSeconds": 720,
+      "workEstimateSeconds": 40,
+      "targetTimeOrIntensityPrescribedByFixture": false
+    },
+    "bodyLoadComparison": "Original technical/core work quantities and configured inter-set rests are unchanged from the previous corrected offline draft. The one-set knee-to-elbow rest field is clarified from null to 0 (no between-set rest exists). Add only three short mobility traversals (20m, 20m, 5m) and two low-repetition mobility items for introduction/end; no added running, jumps-as-workout, strength sets, or circuits.",
+    "status": "IMPROVED_PHASE_COVERAGE_BUT_NOT_COMPLETE_90_MINUTES",
+    "needsConfirmation": [
+      "Whether the existing Running prescription adequately expresses the request to accumulate a little fatigue; unsupported intent is not a request for light training.",
+      "Exact competition date; next weekend must not be silently converted into a number of days.",
+      "Current usual warm-up and whether additional progressive sprint preparation is needed; this fixture adds no extra Running prescription.",
+      "Usable straight 20m/60m space and suitable floor/mat; no hurdles or bench assumed.",
+      "Individual movement tempo and real setup time; all such values are planning estimates."
+    ],
+    "candidateSelectionSuggestion": {
+      "warmUpIds": [
+        "cmtsxtnwk00w6itxbiblxkogw",
+        "cmtswcp0h00voitxbo9n8558g",
+        "cmttgdle800wsitxb34g6clw3"
+      ],
+      "techniqueIds": [
+        "cmtskpig200n6itxbr4wjkrnk",
+        "cmts9twus00g9itxblmdj4rgc"
+      ],
+      "auxiliaryIds": [
+        "cmtrdeh840017itxbb6b5pqq4",
+        "cmtrdzqhe001aitxbgnaelg5i"
+      ],
+      "coolDownIds": [
+        "cmtso0lp400pxitxb2r9fcfpl",
+        "cmtsowvsd00qcitxbh9e11gfx"
+      ],
+      "excludeAsAutomaticTimeFillers": [
+        "Hurdle run-outs or sprint-transition drills (untracked extra running)",
+        "Repeated bounding / depth jumps / high-speed tapping solely to reach 90min",
+        "PNF with unresolved counting definition",
+        "35-50 minutes of generalized preparation, rest or video review without a user-provided reason"
+      ]
+    },
+    "complete90Minutes": false,
+    "newExercises": 5,
+    "runningDoseChanged": false,
+    "expectedPlanningStatus": "NEEDS_REVIEW",
+    "expectedPlanIssueCodes": [
+      "TARGET_MISMATCH"
+    ],
+    "warmupAndCooldownAdequacy": "Whole-session role coverage improved, but complete sprint preparation and fatigue outcome still require review. The addition is five modest mobility items, not a claim of a coach-approved complete session.",
+    "scopeOfDurationConclusion": "37 minutes is this authored draft at the chosen quantities and assumptions, not the maximum justified duration of the catalog or the only correct session length. The remaining 53 minutes of intended work/activity is undecided under the preserved Running prescription; it is not proof that the 158-exercise catalog lacks enough candidates.",
+    "candidateSelectionEvidence": "All nine chosen catalog IDs must be included in natural selectComposerCatalog output for the actual 158-entry isolated corpus and the user request, with no preferred IDs or name/ID hardcodes. Evidence: artifacts/session-composition/catalog-retrieval-evaluation.json."
+  }
+}

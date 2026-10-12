@@ -6,6 +6,7 @@ import {
   menuBlockInputSchema,
   menuInputSchema,
   menuItemInputSchema,
+  type MenuItemInput,
 } from "@/domain/menu/schema";
 import { parseCsvInput } from "@/domain/shared/zod-helpers";
 import { actionError, actionOk, type ActionResult } from "@/domain/shared/result";
@@ -28,6 +29,20 @@ import {
   updateMenuItem,
 } from "@/infra/repositories/menu-repository";
 import { pruneOrphanTags } from "@/infra/repositories/tag-repository";
+import { listComposerCatalog } from "@/infra/menu-composition/catalog-repository";
+import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
+import { exerciseRepetitionCountMatches } from "@/domain/menu-composition/dose-counting";
+import { isRunningExerciseForV2 } from "@/presentation/running/legacy-routing";
+
+async function repetitionCountError(input: MenuItemInput): Promise<ActionResult<never> | null> {
+  if (input.reps === null || !input.exerciseId) return null;
+  const exercise = (await listComposerCatalog(DEFAULT_OWNER_ID)).find(row => row.id === input.exerciseId);
+  if (exercise && isRunningExerciseForV2(exercise)) return null;
+  if (exerciseRepetitionCountMatches({ plannedReps: input.reps, executionInstruction: input.note ?? "", plannedNote: "" }, exercise)) return null;
+  return actionError("実施指示の回数と数値欄が一致していません。片側ごとの回数か左右合計かを確認してください。", {
+    reps: ["数え方に合わせて回数と実施指示をそろえてください。"],
+  });
+}
 
 function expandTags(formData: FormData): void {
   const raw = formData.get("tags");
@@ -163,6 +178,8 @@ export async function addMenuItemAction(
   const parsed = parseForm(menuItemInputSchema, formData);
   if (!parsed.ok) return parsed.result;
   try {
+    const countError = await repetitionCountError(parsed.data);
+    if (countError) return countError;
     await addMenuItem(blockId, parsed.data);
   } catch (e) {
     return toActionError(e);
@@ -189,6 +206,8 @@ export async function updateMenuItemAction(
   const parsed = parseForm(menuItemInputSchema, formData);
   if (!parsed.ok) return parsed.result;
   try {
+    const countError = kind === "RUNNING_UNPRESCRIBED" ? null : await repetitionCountError(parsed.data);
+    if (countError) return countError;
     await updateMenuItem(itemId, parsed.data);
   } catch (e) {
     return toActionError(e);

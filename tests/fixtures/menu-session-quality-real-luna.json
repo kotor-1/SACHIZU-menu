@@ -1,0 +1,115 @@
+{
+  "sessionPlan": {
+    "blocks": [
+      {
+        "name": "動きの準備",
+        "phase": "WARM_UP",
+        "purpose": "全身を動かし、足部・足首を使うドリルへつなげる。",
+        "allocatedSeconds": 300
+      },
+      {
+        "name": "走動作ドリル",
+        "phase": "DRILLS_STRENGTH",
+        "purpose": "姿勢と脚の入れ替えを確認してから走へ進む。",
+        "allocatedSeconds": 240
+      },
+      {
+        "name": "走",
+        "phase": "RUNNING",
+        "purpose": "登録済みの固定処方を行う。",
+        "allocatedSeconds": 1500
+      }
+    ],
+    "timeBudgetReasoning": "希望時間は全体で90分。走は登録済みの処方を変更せず、既知の休息だけで少なくとも12分を見込む必要があります。走の実施時間はここでは確定できないため、走ブロックの配分は計画目安であり、実施時間の保証ではありません。導入・ドリル・ブロック間の移動を含む提案は約34分で、希望時間との差を根拠のない待機や追加の走量で埋めていません。"
+  },
+  "overview": {
+    "title": "100mに向けた動作準備と走",
+    "objective": "高校生の100mに向けて、動作の準備をしてから登録済みの走処方へつなげる。",
+    "approach": "本人は疲労度を独自尺度で1と報告し、来週末の試合に向けて疲労をためたいと希望しています。尺度値を既存の疲労区分へ読み替えず、走の処方も希望に合わせて変更していません。必要な準備と走を配置しましたが、実施時間が未確定のため90分には届かない計画目安です。"
+  },
+  "transitionSeconds": 300,
+  "transitionDescription": "ブロック間の移動・走る場所への準備として合計5分を見積もり。個別の移動距離や設備条件による実時間は未確定です。",
+  "blocks": [
+    {
+      "name": "動きの準備",
+      "phase": "WARM_UP",
+      "allocatedSeconds": 300,
+      "allocationBasis": {
+        "itemEstimatesSeconds": [
+          180,
+          90
+        ],
+        "preparationSeconds": 30,
+        "explanation": "インチワームは手足を交互に歩かせて前進する動作を、姿勢を確認しながら行う想定で約3分。アウトエッジウォークは足の外側で歩く動作をゆっくり確認する想定で約1分30秒。距離に基づく実測時間ではなく、進行上の目安です。",
+        "preparationDescription": "床面と進行方向を確認し、動作を始める準備として30秒。"
+      },
+      "items": [
+        {
+          "type": "CATALOG_EXERCISE",
+          "exerciseId": "cmttg5xyy00wkitxbl5mkf9ds",
+          "displayName": "インチワーム（手足歩き）",
+          "executionInstruction": "立位から前屈して手を前へ歩かせ、続けて足を手元へ歩かせて前進する。膝を伸ばし、腰の高い姿勢を保って行う。",
+          "plannedNote": "距離は未設定。手歩きと足歩きの動作を行う今回の計画案。",
+          "reason": "全身を使う準備動作として選択。",
+          "plannedSets": 1,
+          "plannedReps": null,
+          "plannedDurationSeconds": null,
+          "plannedDistanceMeters": null,
+          "plannedRestSeconds": null
+        },
+        {
+          "type": "CATALOG_EXERCISE",
+          "exerciseId": "cmtrfaiqw0035itxbh243bij0",
+          "displayName": "アウトエッジウォーク",
+          "executionInstruction": "足の外側以外を地面につけないように前進する。骨盤を高く保ち、足の内側が落ちないようにする。",
+          "plannedNote": "距離は未設定。足の外側で前進する動作を行う今回の計画案。",
+          "reason": "足部・足首の動きを確認するため。",
+          "plannedSets": 1,
+          "plannedReps": null,
+          "plannedDurationSeconds": null,
+          "plannedDistanceMeters": null,
+          "plannedRestSeconds": null
+        }
+      ]
+    },
+    {
+      "name": "走動作ドリル",
+      "phase": "DRILLS_STRENGTH",
+      "allocatedSeconds": 240,
+      "allocationBasis": {
+        "itemEstimatesSeconds": [
+          120
+        ],
+        "preparationSeconds": 120,
+        "explanation": "その場で脚を入れ替える動作を、左右の姿勢を確認しながら行う想定で項目時間を約2分とした計画目安です。動作の実所要時間は未計測です。",
+        "preparationDescription": "その場で行える場所を確保し、着地姿勢と腕振りを確認する準備として2分。"
+      },
+      "items": [
+        {
+          "type": "CATALOG_EXERCISE",
+          "exerciseId": "cmtx0ipj1000ait6kua86zv1w",
+          "displayName": "その場で挟み込み1回入れ替え（腕振りあり）",
+          "executionInstruction": "その場で片膝を上げて立ち、小さく跳んで空中で脚を1回入れ替える。反対側の膝を上げて着地し、腕を前後に振る。前後へ移動せず、上体を直立に保つ。",
+          "plannedNote": "回数は未設定。脚を1回入れ替えて着地する動作を行う今回の計画案。",
+          "reason": "走へ進む前に脚の入れ替えと腕振りを確認するため。",
+          "plannedSets": 1,
+          "plannedReps": 6,
+          "plannedDurationSeconds": null,
+          "plannedDistanceMeters": null,
+          "plannedRestSeconds": null
+        }
+      ]
+    },
+    {
+      "name": "走",
+      "phase": "RUNNING",
+      "allocatedSeconds": 1500,
+      "allocationBasis": null,
+      "items": [
+        {
+          "type": "RUNNING_POLICY"
+        }
+      ]
+    }
+  ]
+}

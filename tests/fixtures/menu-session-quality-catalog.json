@@ -1,0 +1,992 @@
+{
+  "provenance": "CAPTURED_CATALOG_AND_UNCHANGED_ENGINE_NOT_GENERATED_SUCCESS",
+  "catalog": [
+    {
+      "id": "cmtrfaiqw0035itxbh243bij0",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "アウトエッジウォーク",
+      "category": "DRILL",
+      "description": "足の外側以外を地面に着けずに前進歩行する足部・足首強化ドリル。",
+      "coachingPoint": "・歩行中に足の内側が徐々に下がってしまわないよう、常に高く引き上げた状態をキープする。\r\n・腰が引けたり膝が深く曲がったりしないよう、骨盤を高く保ち頭のてっぺんから引き上げられるような高い重心姿勢を維持する。\r\n・肩の力を抜き、腕は自然に振ってリラックスした状態でバランスを取る。",
+      "commonMistake": "・接地時に足の内側が落ちて地面についてしまう。\r\n・前傾姿勢になりすぎたり、お尻が後ろに引けて重心が低くなってしまう。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "ANKLE_JOINT",
+        "BALANCE",
+        "GROUND_CONTACT",
+        "POSTURE"
+      ],
+      "events": [
+        "COMMON",
+        "HIGH_JUMP",
+        "HURDLE",
+        "LONG_JUMP",
+        "SPRINT",
+        "TRIPLE_JUMP"
+      ],
+      "targets": [
+        "COORDINATION",
+        "STRENGTH",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoUrl": "https://youtu.be/B5vwsZ0ChS4",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmttjmzuj00xaitxblz4kwiei",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "うつ伏せでの脚クロス（スコーピオン）",
+      "category": "MOBILITY",
+      "description": "うつ伏せになり両腕を左右に開いて地面につける。つま先を立てて足をまっすぐ揃えた姿勢から、片脚を上げて反対側へ回し、膝を90°にしていけるところまでひねる。肩が地面から離れない範囲で回旋し、戻すときは自分でコントロールして戻す。下半身を動かしているが、狙いは胸椎（上半身の背骨）の回旋。",
+      "coachingPoint": "・開始時につま先を立てて足をまっすぐにする。両つま先が内側に向いて寝てしまうと、股関節がすでに内旋していてよい姿勢とは言えない。\n・肩が地面から離れない範囲で回旋する。離れないところまででよい。\n・片脚を持ち上げて反対側へ回し、膝を90°にしていけるところまで行く。\n・戻すときにストーンと落とさず、自分でコントロールして戻す。\n・腹筋から股関節、太ももの前側が伸びていれば正しくできている。\n・動かしているのは下半身だが、狙いは胸椎（上半身の背骨）の回旋。回旋時に上半身は固定する。",
+      "commonMistake": "・開始姿勢で両つま先が内側に向いて寝てしまっている（股関節が内旋している）。\n・回旋しすぎて肩が地面から大きく離れる。\n・膝が伸びたままで、90°の形になっていない。\n・戻すときに力を抜いて落としてしまう。\n・上半身が一緒に回ってしまい、胸椎の回旋になっていない。\n・腹筋から腿前の伸びが感じられないまま回数だけこなしている。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "体幹",
+        "臀部",
+        "回旋",
+        "可動域",
+        "マット",
+        "うつ伏せ",
+        "スコーピオン",
+        "コンディショニング"
+      ],
+      "videoUrl": "https://youtu.be/ss5eK1Ics7A",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmts9twus00g9itxblmdj4rgc",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "もも上げ叩きつけ（スイングダウンドリル）",
+      "category": "DRILL",
+      "description": "その場で片脚の膝を股関節の高さまで素早く引き上げ、体の真下へ向けて鋭く振り下ろして地面を叩きつけるように力強く接地するドリル。",
+      "coachingPoint": "・引き上げた脚は自然落下ではなく、上から下へ素早く引き戻す意識で地面を捉える。\r\n・接地位置が体の前方にならないよう、重心の真下近くで接地する。\r\n・接地の瞬間に腰が沈み込んだり膝が曲がりすぎないよう、体幹と軸脚を安定させて高い重心を保つ。\r\n・脚の引き上げ・引き戻しに合わせて腕振りを連動させる。",
+      "commonMistake": "・接地が体の前方になり、ブレーキがかかるような着地になってしまう。\r\n・接地の衝撃で腰が落ちたり、骨盤が後傾してしまう。\r\n・振り下ろす際に上体が前後に過度に傾いてしまう。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "GROUND_CONTACT",
+        "HIP_JOINT",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "SPRINT"
+      ],
+      "targets": [
+        "ACCELERATION",
+        "COORDINATION",
+        "TECHNIQUE"
+      ],
+      "tags": [
+        "スプリントドリル",
+        "股関節",
+        "体幹",
+        "足関節",
+        "接地",
+        "叩きつけ",
+        "スイングダウン",
+        "大腿部",
+        "もも上げ",
+        "引き戻し"
+      ],
+      "videoUrl": "https://youtu.be/EEfb22Lfmx0",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtrdzqhe001aitxbgnaelg5i",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "ニー・トゥ・エルボー（対角膝肘引きつけ）",
+      "category": "CORE",
+      "description": "マット上に仰向けになり、片手を後頭部に当てた姿勢から、対角側の膝を曲げて胸へ引き寄せると同時に上体を斜めに丸め起こし、肘と膝を近づける動作を繰り返す体幹回旋・屈曲ドリル。",
+      "coachingPoint": "・首や手で頭を無理に引っ張らず、腹斜筋とみぞおちを意識して体幹を斜めに丸め込む。\r\n・脚の引きつけと上体のひねりを連動させ、肘と膝が最も近づく瞬間に息をしっかりと吐ききる。\r\n・動作中に腰が反って床との間に隙間が空かないよう、下腹部の圧力を常に一定に保つ。\r\n・反動や勢いで行わず、戻す局面でもコントロールして丁寧に脚と上体を戻す。",
+      "commonMistake": "・手で首を前や斜めに強く引っ張り、頸部に過度な負担がかかる。\r\n・脚を伸ばして戻す局面で腹圧が抜け、腰が床から浮いて反ってしまう。\r\n・肘だけを前に出してしまい、体幹の回旋・丸め込みが不十分になる。\r\n・勢いや反動を使って動作してしまう。",
+      "metricType": "REPS",
+      "difficulty": 2,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "BALANCE",
+        "HIP_JOINT",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "LONG_JUMP",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "STRENGTH",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoUrl": "https://youtu.be/aUziWtgcOcI",
+      "videoGuidance": {
+        "executionSummary": "仰向けで片手を頭付近に置き、片膝を引き寄せながら上体を斜めに起こして肘を膝へ近づけ、脚と上体を戻す動作を繰り返している。",
+        "movementPattern": "仰臥位から片膝の引きつけと体幹の起こし・回旋を組み合わせ、伸ばした姿勢へ戻る。",
+        "countingUnit": "PER_SIDE",
+        "bilateralCounting": "COACH_DEFINED: SEQUENTIAL_SIDES。片側10回を完了してから反対側10回。左右交互ではない。",
+        "typicalStructure": "COACH_DEFINED: 10 reps one side → 10 reps opposite side。片側の寄せて戻す1周期を1回とする。",
+        "equipment": [
+          "マット"
+        ],
+        "setup": "仰向けで脚を伸ばし、片手を頭付近、もう片方を体の横または腹部へ置いて開始している。",
+        "keyCues": [
+          "動画では膝の引きつけに合わせて上体を斜めに起こしている。",
+          "戻す局面では脚と上体を伸ばした姿勢に戻っている。"
+        ],
+        "commonErrors": [],
+        "doseObservations": [
+          "COACH_DEFINED: 片側10回→反対側10回。動画観測回数ではなく今回のコーチ指定。",
+          "VISUAL_OBSERVATION: 膝・肘を寄せて戻す動作を確認。原動画43.2秒。動画の長さから計画時間を決めない。",
+          "COACH_DEFINED: Aの動画mappingは承認済み。年齢・大会前・疲労時の別処方は定義していない。"
+        ],
+        "videoAnalysisStatus": "COACH_REVIEWED",
+        "sourceVideoId": "cmtrdyds90000itzdke807ren",
+        "analysisVersion": "coach-guidance-v1-20261002",
+        "analyzedAt": "2026-10-02T09:08:01.414Z",
+        "coachReviewedAt": "2026-10-02T12:00:16.528Z"
+      }
+    },
+    {
+      "id": "cmtso0lp400pxitxb2r9fcfpl",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "キャット&ドッグ",
+      "category": "MOBILITY",
+      "description": "両手と両膝を地面につけた四つ這いの姿勢から、背中を丸めて頭を下げる動きと、背中を反らせて頭を上げる動きを交互にゆっくり繰り返す。",
+      "coachingPoint": "・両手と両膝の位置を変えずに、四つ這いの土台を保っている。\r\n・背中を丸める局面では頭を下げ、反らせる局面では頭を上げており、背骨の動きと頭の動きが連動している。\r\n・反動をつけず、ゆっくりとした速度で2つの姿勢を行き来している。\r\n・背中全体を大きく動かしている。",
+      "commonMistake": "・腰だけが動いて背中の上部（胸のあたり）が動いていない。\r\n・肘が曲がって体が沈み、腕で支えきれていない。\r\n・肩がすくみ、首まわりに力が入る。\r\n・反動をつけて速く動かし、可動域を使い切れていない。\r\n・手や膝の位置がずれて土台が崩れる。\r\n・頭の動きが背骨の動きと合っていない。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "可動域",
+        "ウォームアップ",
+        "四つ這い",
+        "脊柱",
+        "脊柱",
+        "背骨"
+      ],
+      "videoUrl": "https://youtu.be/nH0FUVB2kbc",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtskpig200n6itxbr4wjkrnk",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "ニーアップウォーク",
+      "category": "DRILL",
+      "description": "直立姿勢を保ちながら歩行し、一歩ごとに膝（大腿部）を骨盤の高さまでしっかりと引き上げるウォーキング形式の基礎ドリル。",
+      "coachingPoint": "・膝を引き上げた際に骨盤が後傾したり、上体が後ろに反ったりしないよう体幹を安定させる。\r\n・支持脚の膝が曲がって腰が落ちないよう、軸足側で地面をしっかり押して背筋を伸ばす。\r\n・足首はだらんと下げず、つま先をやや上に向ける（背屈）意識を持つ。\r\n・反動を使わず、股関節の腸腰筋を使ってコントロールしながら引き上げる。",
+      "commonMistake": "・膝を引き上げた反動で上半身が後傾してしまう。\r\n・支持脚の膝が曲がり、腰が引けて重心が低くなってしまう。\r\n・つま先が下を向き（底屈）、足首が脱力している。\r\n・腕振りが左右にぶれたり、脚の動きと連動していない。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "ARM_SWING",
+        "BALANCE",
+        "HIP_JOINT",
+        "POSTURE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "MIDDLE_DISTANCE",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "MOBILITY",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoUrl": "https://youtu.be/iML6rdOO3Hs",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmttgdle800wsitxb34g6clw3",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "くの字姿勢での足踏み（かかとの押し下げ）",
+      "category": "MOBILITY",
+      "description": "両手と両足を地面につけ、腰を高く上げた「くの字」の姿勢をつくり、その姿勢を保ったまま左右のかかとを交互に押し下げる足踏みを繰り返しながら進む。",
+      "coachingPoint": "・両手と両足を地面につけ、腰を高く上げた姿勢を保っている。\r\n・膝はほぼ伸ばしたまま行っている。\r\n・左右のかかとを交互に地面へ押し下げている。\r\n・腰の高さを変えずに、足踏みを続けながら進んでいる。",
+      "commonMistake": "・膝が大きく曲がって、脚の後ろ側が伸びない。\r\n・腰が下がって体が反ってしまう。\r\n・かかとの押し下げが浅く、ふくらはぎが伸びない。\r\n・肩がすくみ、腕で体を支えきれずに沈む。\r\n・動作が速くなり、左右の押し下げが雑になる。\r\n・左右で押し下げる深さに差が出る。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "ANKLE_JOINT"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "ダイナミックストレッチ",
+        "ふくらはぎ",
+        "ハムストリングス",
+        "ふくらはぎ",
+        "くの字姿勢",
+        "足踏み",
+        "かかと"
+      ],
+      "videoUrl": "https://youtu.be/eQzOu8w-tas",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtx0ipj1000ait6kua86zv1w",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "その場で挟み込み1回入れ替え（腕振りあり）",
+      "category": "DRILL",
+      "description": "その場で片脚の膝を高く引き上げて立ち、小さく跳び上がって空中で左右の脚を1回入れ替え、反対脚の膝が上がった状態で着地する。腕は腰に当てず、走るときと同じように前後に振る。",
+      "coachingPoint": "・その場で行い、前後に移動しない。\r\n・片脚の膝を引き上げた姿勢から小さく跳び、空中で脚を1回入れ替える。\r\n・着地したときには反対脚の膝が上がった状態になっている。\r\n・腕は腰に当てず、脚の入れ替えに合わせて前後に振る。\r\n・上体をほぼ直立に保ち、前足部から着地する。",
+      "commonMistake": "・入れ替えが空中で終わらず、着地してから脚を替えてしまう。\r\n・跳び上がりが大きくなり、その場から前後へ移動する。\r\n・引き上げた膝が低く、入れ替えが浅くなる。\r\n・着地で膝が深く曲がって腰が落ちる。\r\n・腕振りが脚の入れ替えとずれる。\r\n・上体が後ろへ反る、または左右に傾く。\r\n・左右で入れ替えの速さに差が出る。",
+      "metricType": "REPS",
+      "difficulty": 2,
+      "energySystem": "NEURAL",
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "TECHNIQUE"
+      ],
+      "events": [
+        "SPRINT"
+      ],
+      "targets": [
+        "TECHNIQUE"
+      ],
+      "tags": [
+        "股関節",
+        "挟み込み",
+        "腕振り",
+        "その場"
+      ],
+      "videoUrl": "https://youtu.be/Z0Jzfpt8mlE",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtrdeh840017itxbb6b5pqq4",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "仰向けハンドプレス（腹圧・腰椎圧迫キープ）",
+      "category": "CORE",
+      "description": "マット上に仰向けになり、腰と床の間に差し入れた手を腰椎（背中）で押し潰すように腹圧をかけ、その姿勢を維持するドリル。",
+      "coachingPoint": "・腰と床の隙間を完全になくし、手全体に均等に圧力がかかるよう腰椎を真下に押しつける。\r\n・腹圧をかけた状態でも息を止めず、自然な呼吸を継続する。\r\n・脚が脱力して外側に開かないよう、つま先をまっすぐ上に向けて下肢の軸を保つ。\r\n・首や肩、顎に過度な力が入らないようリラックスさせる。",
+      "commonMistake": "・腹圧が抜けて腰が反り、手と腰の間に隙間ができてしまう。\r\n・手を押し潰そうとして肩や首・顎をすくめて力んでしまう。\r\n・圧力をかける際に息を止めてしまう。",
+      "metricType": "TIME",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "BALANCE",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "LONG_JUMP",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoUrl": "https://youtu.be/e691Iodixgs",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsmtyi700pqitxb08vntem4",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "両腕広げて胸押し付け",
+      "category": "MOBILITY",
+      "description": "膝を地面につけて腰を踵に近づけた姿勢から、両腕を左右に大きく広げて前方へ伸ばし、胸を地面に向けて押し付けるように下げて保持する。",
+      "coachingPoint": "・腰を踵に近づけたまま、大きく前後に動かさずに保持している。\r\n・両腕は左右に大きく開いた状態で前方へ伸ばしている。\r\n・胸を地面に向けて低く下げている。\r\n・反動をつけず、その場で姿勢を保っている。",
+      "commonMistake": "・腰が踵から浮き上がり、股関節の屈曲が浅くなる。\r\n・肩がすくみ、首や肩まわりに力が入る。\r\n・腕を大きく開かず、体の近くに寄せてしまう。\r\n・胸を下げようとして反動をつけ、勢いよく沈み込む。\r\n・呼吸を止めてしまい、力んだ状態が続く。",
+      "metricType": "TIME",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "肩",
+        "可動域",
+        "ウォームアップ",
+        "胸椎",
+        "胸椎",
+        "肩甲骨",
+        "ストレッチ"
+      ],
+      "videoUrl": "https://youtu.be/DKnsXxAstXs",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsx7hga00w0itxbizdut0u9",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "軽く弾みながらの腕回し（後ろ回し・左右交互）",
+      "category": "MOBILITY",
+      "description": "軽く弾むリズムで前進しながら、両腕を肘を伸ばしたまま後ろ方向へ大きく回す。左右の腕は交互に回す。",
+      "coachingPoint": "・軽く弾むリズムで前進しながら、腕を大きく回している。\r\n・腕は肘を伸ばしたまま、後ろ方向へ頭上を通る大きな円を描いている。\r\n・左右の腕は交互に回している。\r\n・上体を大きく倒さず、弾むリズムを保ったまま進んでいる。",
+      "commonMistake": "・肘が曲がって回す円が小さくなる。\r\n・腕を回すのに合わせて上体が左右にねじれる。\r\n・肩がすくみ、首まわりに力が入る。\r\n・弾むリズムが止まり、ただ歩くだけになる。\r\n・左右で回す大きさやテンポに差が出る。\r\n・腕の動きに合わせて進む向きが乱れる。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "肩",
+        "ダイナミックストレッチ",
+        "肩",
+        "腕回し",
+        "後ろ回し"
+      ],
+      "videoUrl": "https://youtu.be/2FORiywtfdo",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsxtnwk00w6itxbiblxkogw",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "軽く弾みながらの腕回し（前回し・左右交互）",
+      "category": "MOBILITY",
+      "description": "軽く弾むリズムで前進しながら、両腕を肘を伸ばしたまま前方向へ大きく回す。左右の腕は交互に回す。",
+      "coachingPoint": "・軽く弾むリズムで前進しながら、腕を大きく回している。\r\n・腕は肘を伸ばしたまま、前方向へ頭上を通る大きな円を描いている。\r\n・左右の腕は交互に回している。\r\n・上体を大きく倒さず、弾むリズムを保ったまま進んでいる。",
+      "commonMistake": "・肘が曲がって回す円が小さくなる。\r\n・腕を回すのに合わせて上体が左右にねじれる。\r\n・肩がすくみ、首まわりに力が入る。\r\n・弾むリズムが止まり、ただ歩くだけになる。\r\n・左右で回す大きさやテンポに差が出る。\r\n・腕の動きに合わせて進む向きが乱れる。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "肩",
+        "ダイナミックストレッチ",
+        "肩",
+        "腕回し",
+        "前回し"
+      ],
+      "videoUrl": "https://youtu.be/l5eo2oxoAWs",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsu3ei500toitxb2xhyuzrb",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "サイドアブダクション",
+      "category": "CORE",
+      "description": "横向きに寝て下側の脚を伸ばして地面につけ、上側の脚を膝を曲げたまま持ち上げて下ろす動きを繰り返す。",
+      "coachingPoint": "・横向きの姿勢を保ち、上体と骨盤の向きを変えずに行っている。\r\n・上側の脚は膝を曲げたまま持ち上げている。\r\n・下ろすときもコントロールして元の位置へ戻している。\r\n・反動を使わず、一定のテンポで繰り返している。",
+      "commonMistake": "・体が後ろへ倒れ、脚が前方へ上がってしまう。\r\n・骨盤が前後に回ってしまう。\r\n・反動を使って脚を振り上げる。\r\n・下ろすときに力を抜いて落としてしまう。\r\n・左右で高さや回数に差が出る。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "HIP_JOINT"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "STRENGTH"
+      ],
+      "tags": [
+        "股関節",
+        "股関節",
+        "臀部",
+        "横向き",
+        "臀部",
+        "アブダクション"
+      ],
+      "videoUrl": "https://youtu.be/-njRP0KAc6I",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsowvsd00qcitxbh9e11gfx",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "横向き胸椎回旋",
+      "category": "MOBILITY",
+      "description": "横向きに寝て両脚を重ねた姿勢から、上側の手を頭に添え、その肘を後方へ開くようにして上体をゆっくり回旋させ、元の姿勢へ戻す。",
+      "coachingPoint": "・横向きに寝て両脚を重ねた姿勢を保ったまま行っている。\r\n・上側の手を頭に添え、その肘を後方へ開くように上体を回している。\r\n・下半身は重ねた位置をほぼ保ったまま、上体だけを回している。\r\n・反動を使わず、ゆっくりとした速度で開く／戻すを繰り返している。",
+      "commonMistake": "・上体と一緒に骨盤や脚まで倒れてしまい、下半身の位置が崩れる。\r\n・胸ではなく腰から回してしまう。\r\n・肩がすくみ、首まわりに力が入る。\r\n・可動域を出そうとして反動を使い、動作が速くなる。\r\n・頭に添えた手で首を引っ張ってしまう。\r\n・呼吸を止めて力んだまま行う。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "横向き",
+        "回旋",
+        "可動域",
+        "ウォームアップ",
+        "胸椎",
+        "胸椎"
+      ],
+      "videoUrl": "https://youtu.be/0FQXHDjZJuY",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmttg5xyy00wkitxbl5mkf9ds",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "インチワーム（手足歩き）",
+      "category": "MOBILITY",
+      "description": "立った姿勢から前屈して手を地面につき、膝を伸ばしたまま手を交互に前へ歩かせて体を伸ばす。続けて足を手の方へ歩かせて腰を高く戻し、この繰り返しで前進する。",
+      "coachingPoint": "・膝を伸ばしたまま行い、腰を高く上げた「くの字」の姿勢をつくっている。\r\n・手を片方ずつ前へ歩かせ、体が伸びた姿勢まで進める。\r\n・続けて足を片方ずつ手の方へ歩かせ、腰の高い姿勢に戻している。\r\n・手歩きと足歩きを交互に繰り返しながら前進している。",
+      "commonMistake": "・膝が曲がって、脚の後ろ側が伸びない。\r\n・腰が落ちて体が反ってしまう。\r\n・手を前へ進めるときに肩がすくむ。\r\n・足を歩かせるときにかかとが大きく浮く。\r\n・動作が速くなり、姿勢が崩れたまま進む。\r\n・進む向きが左右にぶれる。",
+      "metricType": "DISTANCE",
+      "difficulty": 2,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "肩",
+        "ダイナミックストレッチ",
+        "ハムストリングス",
+        "ハムストリングス",
+        "インチワーム",
+        "前屈"
+      ],
+      "videoUrl": "https://youtu.be/SPcfCozC1-g",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtswcp0h00voitxbo9n8558g",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "後ろ向きに進みながらの股関節回し（内から外）",
+      "category": "MOBILITY",
+      "description": "後ろ向きに進みながら、片脚の膝を曲げて体の前で持ち上げ、そこから外側へ開くように回して下ろし接地する。次の一歩で反対脚を同じように回し、左右交互に繰り返す。",
+      "coachingPoint": "・後ろ向きに進みながら、一歩ごとに片脚の股関節を回している。\r\n・膝を曲げて体の前で持ち上げ、そこから外側へ開くように回して下ろしている。\r\n・膝は腰の高さ付近まで上げている。\r\n・上体を大きく倒さずに保ったまま、左右交互に繰り返している。",
+      "commonMistake": "・膝が上がらず、脚を横に振るだけになる。\r\n・脚を回そうとして上体が左右に傾く。\r\n・回す軌道が小さく、股関節の動く範囲を使えていない。\r\n・左右で上がる高さや回す大きさに差が出る。\r\n・反動で振り回し、動きが速くなる。\r\n・後ろ向きに進む向きや歩幅が乱れる。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "HIP_JOINT"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "股関節",
+        "ダイナミックストレッチ",
+        "脚の振り上げ",
+        "股関節回し",
+        "後ろ向き"
+      ],
+      "videoUrl": "https://youtu.be/37O4JTJ6VvI",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsfb6nt00ktitxboez8u0xb",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "引きつけ軌道確認",
+      "category": "DRILL",
+      "description": "ほぼその場に近い位置に立ったまま、片脚を接地させた状態でもう片方の膝を高く引き上げて足を体の下まで引きつけ、その軌道を確認する。",
+      "coachingPoint": "・前方へ大きく進まず、その場に近い位置で動作を繰り返している。\r\n・膝を高い位置まで素早く引き上げ、足を体の真下まで引きつけている。\r\n・上体をほぼ直立に保ち、脚の動きに合わせて腕を振っている。",
+      "commonMistake": null,
+      "metricType": "REPS",
+      "difficulty": 2,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "HIP_JOINT"
+      ],
+      "events": [
+        "SPRINT"
+      ],
+      "targets": [
+        "TECHNIQUE"
+      ],
+      "tags": [
+        "股関節",
+        "引きつけ",
+        "もも上げ",
+        "膝",
+        "陸上ドリル",
+        "軌道確認"
+      ],
+      "videoUrl": "https://youtu.be/r8rzaDuH_8g",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtrg7td1004sitxb7b7nogtb",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "スタンディング・アウトエッジカーフレイズ（両足）",
+      "category": "STRENGTH",
+      "description": "両足を腰幅程度に開いて直立し、膝を伸ばしたまま両足の踵を垂直に高く持ち上げる。底屈させた後、足の外側のみで立ち、コントロールを保ちながらゆっくりと踵を下ろす動作を反復する。",
+      "coachingPoint": "・足首が外に倒し、しっかり荷重して押し上げる。\r\n・膝を曲げずに伸ばした状態を保ち、脛の内側の筋肉を意識して動かす。\r\n・踵を急激に落とさず、コントロールしながらゆっくりと下ろす。",
+      "commonMistake": "・足首が内側に逃げて親指側に体重が乗ってしまう。\r\n・膝が曲がってしまい、足関節への負荷が抜ける。\r\n・勢いや反動を使ってしまい、下ろす動作のコントロールが抜ける。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "ANKLE_JOINT",
+        "GROUND_CONTACT",
+        "STRENGTH"
+      ],
+      "events": [
+        "COMMON",
+        "SPRINT"
+      ],
+      "targets": [
+        "STRENGTH",
+        "TECHNIQUE"
+      ],
+      "tags": [
+        "自重",
+        "足関節",
+        "カーフレイズ",
+        "下腿",
+        "足部",
+        "ヒールレイズ",
+        "足首",
+        "母趾球",
+        "ふくらはぎ",
+        "補強"
+      ],
+      "videoUrl": "https://youtu.be/RtaCgH20n9k",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtslvmvi00p4itxbwlt7f59v",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "下向き胸椎回旋",
+      "category": "MOBILITY",
+      "description": "両膝と片手を地面につけた四つ這いの姿勢から、もう一方の手を頭の後ろに添え、その肘を上へ開いてから下・内側へ潜らせるように上体をゆっくり回旋させる。",
+      "coachingPoint": "・両膝と片手で支えた四つ這いの姿勢を保って行っている。\r\n・頭の後ろに添えた手の肘を、上へ開く／下・内側へ潜らせるという2方向へ動かしている。\r\n・反動を使わず、ゆっくりとした速度で回旋している。\r\n・支持している腕は肘を伸ばしたまま体を支えている。",
+      "commonMistake": "・胸ではなく腰から回してしまう。\r\n・骨盤や下半身まで一緒に回ってしまい、四つ這いの土台が崩れる。\r\n・支持している腕の肘が曲がり、体が沈む。\r\n・可動域を出そうとして反動を使い、動作が速くなる。\r\n・首だけを回して上体が回旋していない。\r\n・肩がすくみ、首まわりに力が入る。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "MOBILITY"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "回旋",
+        "可動域",
+        "ウォームアップ",
+        "胸椎",
+        "胸椎",
+        "四つ這い"
+      ],
+      "videoUrl": "https://youtu.be/zUlvYjKk7dA",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsuz0ne00uritxbetljqt2j",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "骨盤の横の傾き",
+      "category": "MOBILITY",
+      "description": "低い台に腰かけて足を地面につけ、両手を骨盤の横に当てた状態から、骨盤を左右へ交互に傾ける。",
+      "coachingPoint": "・低い台に腰かけ、足の位置と座る位置を変えずに行っている。\r\n・両手を骨盤の横に当てた状態を保っている。\r\n・上体を大きく倒さず、骨盤だけを左右へ傾けている。\r\n・動きの幅は小さく、ゆっくりとした速度で行っている。",
+      "commonMistake": "・骨盤ではなく上体を左右に倒してしまう。\r\n・片側にだけ体重が乗り、座る位置がずれる。\r\n・動きが速くなり、骨盤の傾きを感じられないまま繰り返す。\r\n・足が地面から離れる、または足の位置がずれる。\r\n・肩がすくんで首まわりに力が入る。\r\n・左右で傾く量に差が出る。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "POSTURE"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "骨盤",
+        "骨盤",
+        "台",
+        "可動域",
+        "ウォームアップ",
+        "座位"
+      ],
+      "videoUrl": "https://youtu.be/Mg4eTvEeCJc",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsjobaz00mfitxb7wo93mik",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "挟み込み　その場で3回で入れ替え",
+      "category": "DRILL",
+      "description": "両手を腰に当てて体幹をまっすぐ保ち、はさみこみ動作を連続で3回行うドリル\r\n\r\n【実施手順】\r\n1. 背筋を伸ばして直立し、両手を腰に当てる（手腰姿勢）。\r\n2. 片脚（遊脚）の股関節と膝を約90度屈曲させ、大腿部が地面と平行になる高さまで引き上げて姿勢をキープする。\r\n3. 支持脚の膝にわずかなゆとりを持たせ、軽くはねて足を入れ替える。\r\n4. 跳躍中も上体が前後に倒れたり骨盤が左右に傾いたりしないよう、体幹の軸を垂直に固定する。\r\n5. 規定の回数（または時間）を行ったら、反対側の脚も同様に行う。",
+      "coachingPoint": "・両手を腰に置くことで腕振りの助力を排除し、体幹の安定性と支持脚の足首・膝の純粋なバネを高める。\r\n・遊脚（引き上げた側の脚）の大腿の高さやつま先の角度を落とさず、常に一定の姿勢をキープする。\r\n・接地時は踵をベタ付けせず、前足部（母趾球）で地面を弾くように捉えて接地時間を短くする。\r\n・頭から支持脚の接地ポイントまでが一直線になる垂直軸を意識し、左右の腰の高さ（骨盤）を水平に保つ。\r\n・上体が反ったり前傾したりせず、腹圧を入れて胸を張った姿勢を保つ。",
+      "commonMistake": "・ホップを繰り返すうちに引き上げた側の脚（遊脚）の膝が徐々に下がってくる。\r\n・接地時に足首や膝が潰れて踵が地面に落ち、接地時間が長くなってしまう。\r\n・バランスを崩して骨盤が傾いたり、上体が左右前後に揺れて軸がブレる。\r\n・その場で跳べずに前後左右に移動してしまう。",
+      "metricType": "REPS",
+      "difficulty": 2,
+      "energySystem": null,
+      "defaultSets": 3,
+      "defaultReps": 15,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": 60,
+      "purposes": [
+        "ANKLE_JOINT",
+        "BALANCE",
+        "GROUND_CONTACT",
+        "HIP_JOINT",
+        "POSTURE",
+        "RHYTHM"
+      ],
+      "events": [
+        "COMMON",
+        "LONG_JUMP",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "POWER",
+        "TECHNIQUE"
+      ],
+      "tags": [
+        "股関節",
+        "体幹",
+        "下肢",
+        "片足ホップ",
+        "足関節",
+        "片脚支持",
+        "姿勢保持",
+        "もも上げ",
+        "手腰",
+        "足首のバネ",
+        "リバウンド",
+        "母趾球接地"
+      ],
+      "videoUrl": "https://youtu.be/xfkdR8qOZ4g",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtstnvsh00thitxbaoib3s49",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "ルーマニアンデッドリフト",
+      "category": "STRENGTH",
+      "description": "立った姿勢から膝を軽く曲げた状態を保ち、股関節を後ろへ引きながら上体を前へ倒していき、そこから起き上がる動きを繰り返す。",
+      "coachingPoint": "・膝を軽く曲げた角度を保ったまま、お尻を後ろへ引いて上体を倒している。\r\n・倒した局面でも背中を丸めずに保っている。\r\n・股関節を戻すようにして上体を起こしている。\r\n・足の位置を変えず、反動を使わずに一定のテンポで繰り返している。\r\n・両手は腰の後ろに添え、器具は持たずに行っている。",
+      "commonMistake": "・背中が丸まって上体を倒してしまう。\r\n・膝を深く曲げてしゃがむ動きになる。\r\n・お尻を後ろへ引かず、腰から折るだけになる。\r\n・起き上がるときに腰を反らせすぎる。\r\n・反動を使って上体を振る。\r\n・足の裏の体重が前に寄ってかかとが浮く。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "HIP_JOINT"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "STRENGTH"
+      ],
+      "tags": [
+        "ハムストリングス",
+        "臀部",
+        "自重",
+        "ヒップヒンジ",
+        "臀部",
+        "デッドリフト"
+      ],
+      "videoUrl": "https://youtu.be/9mDcXKppP1U",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsv3q8700uyitxbnwrorzw0",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "骨盤の回旋",
+      "category": "MOBILITY",
+      "description": "低い台に腰かけて足を地面につけ、両手を骨盤の横に当てた状態から、骨盤を左右へ交互に回す（片側を前へ、反対側を後ろへ）。",
+      "coachingPoint": "・低い台に腰かけ、足の位置と座る位置を変えずに行っている。\r\n・両手を骨盤の横に当てた状態を保っている。\r\n・上体を大きく振らず、骨盤を左右へ回している。\r\n・動きの幅は小さく、ゆっくりとした速度で行っている。",
+      "commonMistake": "・骨盤ではなく上体をひねってしまう。\r\n・体重が片側に寄り、座る位置がずれる。\r\n・動きが速くなり、骨盤の回旋を感じられないまま繰り返す。\r\n・足が地面から離れる、または足の位置がずれる。\r\n・肩がすくんで首まわりに力が入る。\r\n・左右で回る量に差が出る。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "POSTURE"
+      ],
+      "events": [
+        "COMMON"
+      ],
+      "targets": [
+        "MOBILITY"
+      ],
+      "tags": [
+        "骨盤",
+        "骨盤",
+        "台",
+        "回旋",
+        "可動域",
+        "座位"
+      ],
+      "videoUrl": "https://youtu.be/SasEu5gOZ9A",
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtsks8n100nwitxbflz1ro3m",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "手腰挟み込み1回入れ替え",
+      "category": "DRILL",
+      "description": "両手を腰に当てて体幹を直立に保ち、片脚の膝を前上方へ引き上げて保持したまま、軸脚の前足部を使ってその場で挟み込み動作を行う。",
+      "coachingPoint": "・両手を腰に当てて上体を真っ直ぐ保ち、骨盤が傾いたり沈み込んだりしないように姿勢を安定させる。\r\n・引き上げた側の膝は大腿部が水平になる高さを保ち、ホップの衝撃で位置が下がらないようにキープする。\r\n・軸脚は踵を床につけず、前足部で素早く弾むように短い接地時間で反発をもらう。\r\n・膝を過度に曲げず、挟み込みを繰り返す。",
+      "commonMistake": "・接地時に踵がベタッと床に落ちてしまい、反発が得られず衝撃を吸収してしまう。\r\n・ホップのたびに体幹が揺れ、引き上げた膝が徐々に下がってしまう。\r\n・軸脚の膝が深く曲がりすぎて腰の位置が低くなる。",
+      "metricType": "REPS",
+      "difficulty": 2,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "ANKLE_JOINT",
+        "BALANCE",
+        "GROUND_CONTACT",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "POWER",
+        "TECHNIQUE"
+      ],
+      "tags": [
+        "股関節",
+        "体幹",
+        "アンクルホップ",
+        "接地反発",
+        "片足ホップ",
+        "足関節",
+        "バランス",
+        "足部",
+        "膝引き上げ",
+        "自重",
+        "手腰",
+        "リバウンド"
+      ],
+      "videoUrl": "https://youtu.be/EkSIydWyLJk",
+      "videoGuidance": null
+    }
+  ],
+  "runningPrescription": {
+    "policyVersion": "rp-2026.09.0",
+    "policyHash": "b522cdccba0fa65c5639eb823ccd313439700fb65ce00f8192edca51699b535f",
+    "event": "100m",
+    "distanceMeters": 60,
+    "totalReps": 4,
+    "totalDistanceMeters": 240,
+    "repsPosition": "DEFAULT",
+    "repRestSeconds": 240,
+    "sets": 1,
+    "setReps": null,
+    "setRestSeconds": null,
+    "intensityPresentation": "PLAIN_LANGUAGE",
+    "executionInstructionText": null,
+    "coachTargetTimeSeconds": null,
+    "coachTargetTimeRange": null,
+    "loadReductionRequested": false,
+    "repsReductionApplied": false,
+    "minimumKnownRestSeconds": 720,
+    "fullSessionTimeGuaranteed": false,
+    "decisionReasons": [
+      "EVENT_DEFAULT_DISTANCE_SELECTED"
+    ]
+  }
+}

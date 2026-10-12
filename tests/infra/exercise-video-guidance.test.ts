@@ -36,6 +36,44 @@ describe("One-time reusable video guidance, injected offline analyzer", () => {
     expect(analyze).toHaveBeenCalledTimes(1);
     await expect(recordVideoGuidanceCoachReview({ ...input, analysisVersion: "other" }, store)).rejects.toThrow("STALE_VIDEO_GUIDANCE");
   });
+  it("keeps same-asset coach guidance when a newer automatic analysis version is requested", async () => {
+    const store = new FileVideoGuidanceStore(directory);
+    const analyze = vi.fn(async () => observations);
+    const deps = { store, analyzer: { analyze }, findLocalVideo: async () => source };
+    await enrichExerciseVideo(input, deps);
+    const reviewed = await recordVideoGuidanceCoachReview(input, store);
+    const next = await enrichExerciseVideo({ ...input, analysisVersion: "guidance-v2" }, deps);
+    expect(next).toEqual({ guidance: reviewed, reused: true });
+    expect(analyze).toHaveBeenCalledTimes(1);
+    expect(await store.read(input.ownerId, input.exerciseId)).toEqual(reviewed);
+    await expect(enrichExerciseVideo({ ...input, ownerId: "other-owner", analysisVersion: "guidance-v2" }, deps)).rejects.toThrow("INVALID_VIDEO_SOURCE");
+  });
+  it("refreshes AI-only guidance on version change and preserves it if a later analysis fails", async () => {
+    const store = new FileVideoGuidanceStore(directory);
+    const analyze = vi.fn(async () => observations);
+    const deps = { store, analyzer: { analyze }, findLocalVideo: async () => source };
+    await enrichExerciseVideo(input, deps);
+    const next = await enrichExerciseVideo({ ...input, analysisVersion: "guidance-v2" }, deps);
+    expect(next.reused).toBe(false);
+    expect(next.guidance).toMatchObject({ analysisVersion: "guidance-v2", videoAnalysisStatus: "AI_ANALYZED", coachReviewedAt: null });
+    expect(analyze).toHaveBeenCalledTimes(2);
+    analyze.mockRejectedValueOnce(new Error("OFFLINE_ANALYSIS_FAILED"));
+    await expect(enrichExerciseVideo({ ...input, analysisVersion: "guidance-v3" }, deps)).rejects.toThrow("OFFLINE_ANALYSIS_FAILED");
+    expect(await store.read(input.ownerId, input.exerciseId)).toEqual(next.guidance);
+  });
+  it("does not reuse coach approval for a different asset", async () => {
+    const store = new FileVideoGuidanceStore(directory);
+    const analyze = vi.fn(async () => observations);
+    const deps = { store, analyzer: { analyze }, findLocalVideo: async () => source };
+    await enrichExerciseVideo(input, deps);
+    await recordVideoGuidanceCoachReview(input, store);
+    const next = await enrichExerciseVideo({ ...input, sourceVideoId: "video-b" }, {
+      ...deps, findLocalVideo: async () => ({ ...source, id: "video-b" }),
+    });
+    expect(next.reused).toBe(false);
+    expect(next.guidance).toMatchObject({ sourceVideoId: "video-b", videoAnalysisStatus: "AI_ANALYZED", coachReviewedAt: null });
+    expect(analyze).toHaveBeenCalledTimes(2);
+  });
   it("does not reuse another owner/asset/version and rejects source ownership mismatch before analysis", async () => {
     const store = new FileVideoGuidanceStore(directory);
     const analyze = vi.fn(async () => observations);

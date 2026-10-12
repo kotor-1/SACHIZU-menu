@@ -1,0 +1,122 @@
+{
+  "provenance": "Recorded real gpt-6-luna Composer response from 2026-10-11; no new model call. Response metadata and secrets omitted.",
+  "composition": {
+    "blocks": [
+      {
+        "name": "導入・可動域づくり",
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtsmtyi700pqitxb08vntem4",
+            "displayName": "両腕広げて胸押し付け",
+            "executionInstruction": "膝を地面につけて腰を踵に近づけ、両腕を左右に広げて前方へ伸ばします。胸を地面に向けて下げた姿勢を保ち、反動をつけず呼吸を続けます。",
+            "plannedNote": "実施時間・回数は今回未設定。",
+            "reason": "登録済みの可動域種目。",
+            "plannedSets": null,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmts9wyug00h4itxbzgq6xemm",
+            "displayName": "ハードル股関節屈曲ドリル",
+            "executionInstruction": "ハードルの横に立ち、体幹をまっすぐ保ちながら片脚を股関節から外側へ小さく回します。軸足と骨盤を安定させ、左右で行います。",
+            "plannedNote": "今回の回数・セット数は未設定。",
+            "reason": "100mに関連する登録済みの股関節モビリティ種目。",
+            "plannedSets": null,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          }
+        ],
+        "phase": "WARM_UP",
+        "allocatedSeconds": 600
+      },
+      {
+        "name": "動きづくり",
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+            "displayName": "ニーアップウォーク",
+            "executionInstruction": "直立姿勢で歩き、一歩ごとに膝を骨盤の高さまで引き上げます。体幹を安定させ、つま先をやや上に向けて行います。",
+            "plannedNote": "距離・回数は今回未設定。",
+            "reason": "登録済みのスプリント向け基礎ドリル。",
+            "plannedSets": null,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+            "displayName": "もも上げ叩きつけ（スイングダウンドリル）",
+            "executionInstruction": "その場で片脚の膝を引き上げ、脚を体の真下近くへ鋭く振り下ろして接地します。体幹と軸脚を安定させ、腕振りを脚の動きに合わせます。",
+            "plannedNote": "今回の回数・セット数は未設定。",
+            "reason": "登録済みの接地動作ドリル。",
+            "plannedSets": null,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          }
+        ],
+        "phase": "DRILLS_STRENGTH",
+        "allocatedSeconds": 900
+      },
+      {
+        "name": "走",
+        "items": [
+          {
+            "type": "RUNNING_POLICY"
+          }
+        ],
+        "phase": "RUNNING",
+        "allocatedSeconds": 1500
+      },
+      {
+        "name": "補強",
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtrg8ip20056itxbl2ouptrx",
+            "displayName": "自重スクワット（手腰スクワット・基礎下肢強化）",
+            "executionInstruction": "両手を腰に当て、足を肩幅程度に開いて立ちます。背筋を保ち、股関節とお尻を後方へ引きながら沈み、足裏全体で地面を押して立ち上がります。",
+            "plannedNote": "今回の回数・セット数は未設定。疲労感を踏まえて実施量は人が調整してください。",
+            "reason": "登録済みの基礎下肢強化種目。",
+            "plannedSets": null,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtrdzqhe001aitxbgnaelg5i",
+            "displayName": "ニー・トゥ・エルボー（対角膝肘引きつけ）",
+            "executionInstruction": "仰向けで片手を後頭部に当て、対角側の膝を引き寄せながら上体を斜めに丸め起こします。片側を終えてから反対側へ移り、左右交互には行いません。",
+            "plannedNote": "片側の寄せて戻す1周期を1回として、片側10回を完了してから反対側10回。COACH_REVIEWED guidanceに基づく指定です。",
+            "reason": "承認済みguidanceで左右の順序と回数が定義されている登録種目。",
+            "plannedSets": 1,
+            "plannedReps": 20,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          }
+        ],
+        "phase": "DRILLS_STRENGTH",
+        "allocatedSeconds": 1500
+      }
+    ],
+    "overview": {
+      "title": "100m向け練習メニュー",
+      "objective": "100mに向けた動きづくりと補強を行い、今回の疲労感も考慮して進める構成です。",
+      "approach": "来週末の試合と本人の疲労感を踏まえつつ、疲労をためる量は新たに設定していません。走は既存の処方参照をそのまま配置し、全体時間は計画上の目安として扱います。"
+    },
+    "transitionSeconds": null
+  }
+}

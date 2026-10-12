@@ -1,0 +1,238 @@
+{
+  "provenance": "Same-input diagnostic, real gpt-6-luna responses; 2026-10-10. This is not the original failed response. Catalog trimmed to selected exercises; private video guidance and media references omitted.",
+  "input": {
+    "context": {
+      "availableTimeSeconds": 5400
+    },
+    "requestText": "高校生の100mです。来週末の試合に向けて少し疲労をためたいです。今は１０が一番疲労が強いとしたら１です。"
+  },
+  "interpretation": {
+    "ok": true,
+    "intent": {
+      "runningRequested": true,
+      "event": {
+        "value": "100m",
+        "sourceText": "高校生の100mです。",
+        "sourceType": "USER_TEXT"
+      },
+      "ageGroup": {
+        "value": "HIGH_SCHOOL",
+        "sourceText": "高校生の100mです。",
+        "sourceType": "USER_TEXT"
+      },
+      "explicitDistances": [],
+      "distancePreference": null,
+      "loadReductionRequested": null,
+      "fatigueState": null,
+      "purpose": {
+        "value": "PRECOMP",
+        "sourceText": "来週末の試合に向けて少し疲労をためたいです。",
+        "sourceType": "USER_TEXT"
+      },
+      "intensityPreference": null,
+      "competitionDays": null,
+      "availableTimeSeconds": null,
+      "humanExplicitReps": null,
+      "humanExplicitRestSeconds": null,
+      "exerciseIds": []
+    },
+    "running": {
+      "status": "NEEDS_INPUT",
+      "reason": "SCIENCE_CONTEXT_REQUIRED",
+      "message": "走の補足情報（年齢・経験・体調・回復状況など）を入力してください。",
+      "explicitDistances": []
+    },
+    "exercises": [],
+    "unsupportedIntents": [
+      "疲労をためたいという希望。",
+      "試合は来週末の予定。"
+    ],
+    "persistable": false,
+    "previewToken": null
+  },
+  "catalog": [
+    {
+      "id": "cmtrdeh840017itxbb6b5pqq4",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "仰向けハンドプレス（腹圧・腰椎圧迫キープ）",
+      "category": "CORE",
+      "description": "マット上に仰向けになり、腰と床の間に差し入れた手を腰椎（背中）で押し潰すように腹圧をかけ、その姿勢を維持するドリル。",
+      "coachingPoint": "・腰と床の隙間を完全になくし、手全体に均等に圧力がかかるよう腰椎を真下に押しつける。\r\n・腹圧をかけた状態でも息を止めず、自然な呼吸を継続する。\r\n・脚が脱力して外側に開かないよう、つま先をまっすぐ上に向けて下肢の軸を保つ。\r\n・首や肩、顎に過度な力が入らないようリラックスさせる。",
+      "commonMistake": "・腹圧が抜けて腰が反り、手と腰の間に隙間ができてしまう。\r\n・手を押し潰そうとして肩や首・顎をすくめて力んでしまう。\r\n・圧力をかける際に息を止めてしまう。",
+      "metricType": "TIME",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "BALANCE",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "LONG_JUMP",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoUrl": null,
+      "videoGuidance": null
+    },
+    {
+      "id": "cmts9twus00g9itxblmdj4rgc",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "もも上げ叩きつけ（スイングダウンドリル）",
+      "category": "DRILL",
+      "description": "その場で片脚の膝を股関節の高さまで素早く引き上げ、体の真下へ向けて鋭く振り下ろして地面を叩きつけるように力強く接地するドリル。",
+      "coachingPoint": "・引き上げた脚は自然落下ではなく、上から下へ素早く引き戻す意識で地面を捉える。\r\n・接地位置が体の前方にならないよう、重心の真下近くで接地する。\r\n・接地の瞬間に腰が沈み込んだり膝が曲がりすぎないよう、体幹と軸脚を安定させて高い重心を保つ。\r\n・脚の引き上げ・引き戻しに合わせて腕振りを連動させる。",
+      "commonMistake": "・接地が体の前方になり、ブレーキがかかるような着地になってしまう。\r\n・接地の衝撃で腰が落ちたり、骨盤が後傾してしまう。\r\n・振り下ろす際に上体が前後に過度に傾いてしまう。",
+      "metricType": "REPS",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "GROUND_CONTACT",
+        "HIP_JOINT",
+        "POSTURE",
+        "TECHNIQUE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "SPRINT"
+      ],
+      "targets": [
+        "ACCELERATION",
+        "COORDINATION",
+        "TECHNIQUE"
+      ],
+      "tags": [
+        "スプリントドリル",
+        "股関節",
+        "体幹",
+        "足関節",
+        "接地",
+        "叩きつけ",
+        "スイングダウン",
+        "大腿部",
+        "もも上げ",
+        "引き戻し"
+      ],
+      "videoUrl": null,
+      "videoGuidance": null
+    },
+    {
+      "id": "cmtskpig200n6itxbr4wjkrnk",
+      "ownerId": "default-coach",
+      "status": "REVIEWED",
+      "name": "ニーアップウォーク",
+      "category": "DRILL",
+      "description": "直立姿勢を保ちながら歩行し、一歩ごとに膝（大腿部）を骨盤の高さまでしっかりと引き上げるウォーキング形式の基礎ドリル。",
+      "coachingPoint": "・膝を引き上げた際に骨盤が後傾したり、上体が後ろに反ったりしないよう体幹を安定させる。\r\n・支持脚の膝が曲がって腰が落ちないよう、軸足側で地面をしっかり押して背筋を伸ばす。\r\n・足首はだらんと下げず、つま先をやや上に向ける（背屈）意識を持つ。\r\n・反動を使わず、股関節の腸腰筋を使ってコントロールしながら引き上げる。",
+      "commonMistake": "・膝を引き上げた反動で上半身が後傾してしまう。\r\n・支持脚の膝が曲がり、腰が引けて重心が低くなってしまう。\r\n・つま先が下を向き（底屈）、足首が脱力している。\r\n・腕振りが左右にぶれたり、脚の動きと連動していない。",
+      "metricType": "DISTANCE",
+      "difficulty": 1,
+      "energySystem": null,
+      "defaultSets": null,
+      "defaultReps": null,
+      "defaultDurationSeconds": null,
+      "defaultDistanceMeters": null,
+      "defaultRestSeconds": null,
+      "purposes": [
+        "ARM_SWING",
+        "BALANCE",
+        "HIP_JOINT",
+        "POSTURE"
+      ],
+      "events": [
+        "COMMON",
+        "HURDLE",
+        "MIDDLE_DISTANCE",
+        "SPRINT"
+      ],
+      "targets": [
+        "COORDINATION",
+        "MOBILITY",
+        "TECHNIQUE"
+      ],
+      "tags": [],
+      "videoUrl": null,
+      "videoGuidance": null
+    }
+  ],
+  "composition": {
+    "blocks": [
+      {
+        "name": "走の位置",
+        "items": [
+          {
+            "type": "RUNNING_POLICY"
+          }
+        ]
+      },
+      {
+        "name": "動きづくり",
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+            "displayName": "ニーアップウォーク",
+            "executionInstruction": "直立姿勢と体幹を保ち、一歩ごとに膝を骨盤の高さまで引き上げて歩く。つま先をやや上に向け、反動を使わずに行う。",
+            "plannedNote": "回数・距離は未設定。",
+            "reason": "スプリント向けの基礎動作づくり。",
+            "plannedSets": null,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+            "displayName": "もも上げ叩きつけ（スイングダウンドリル）",
+            "executionInstruction": "その場で片脚の膝を引き上げ、体の真下近くへ素早く振り下ろして接地する。上体と軸脚を安定させ、腕振りを脚の動きに合わせる。",
+            "plannedNote": "回数は未設定。",
+            "reason": "スプリント動作のドリルとして選択。",
+            "plannedSets": null,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          }
+        ]
+      },
+      {
+        "name": "補強",
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtrdeh840017itxbb6b5pqq4",
+            "displayName": "仰向けハンドプレス（腹圧・腰椎圧迫キープ）",
+            "executionInstruction": "仰向けで腰と床の間の手を腰椎で押し、腰を床に押し付けた状態を保つ。息を止めず、首や肩はリラックスさせる。",
+            "plannedNote": "保持時間は未設定。",
+            "reason": "体幹の姿勢保持項目として選択。",
+            "plannedSets": null,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          }
+        ]
+      }
+    ]
+  }
+}

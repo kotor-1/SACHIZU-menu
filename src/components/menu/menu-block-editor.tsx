@@ -8,6 +8,7 @@ import {
   EMPTY_MENU_ITEM_FORM,
   MenuItemForm,
   type MenuItemFormValues,
+  type ExerciseCountingUnits,
 } from "./menu-item-form";
 import { SortableList } from "./sortable-list";
 import {
@@ -31,6 +32,7 @@ import { formatPrescription } from "@/domain/shared/prescription";
 import type { TrainingPhase } from "@/domain/menu/constants";
 import type { MenuBlockDetail } from "@/infra/repositories/menu-repository";
 import type { ExercisePickerItem } from "@/infra/repositories/exercise-repository";
+import { exerciseUsesPerSideCount, exerciseUsesTotalCount } from "@/domain/menu-composition/dose-counting";
 import { parseUnprescribedRunning } from "@/domain/menu-composition/unprescribed-running";
 
 const str = (v: number | null) => (v == null ? "" : String(v));
@@ -101,6 +103,7 @@ export function MenuBlockEditor({
   running = null,
   runningCoachFingerprints = {},
   runningPolicyContext = false,
+  countingUnits = {},
 }: {
   menuId: string;
   block: MenuBlockDetail;
@@ -113,6 +116,7 @@ export function MenuBlockEditor({
   running?: MenuBlockRunningView | null;
   runningCoachFingerprints?: Record<string, string>;
   runningPolicyContext?: boolean;
+  countingUnits?: ExerciseCountingUnits;
 }) {
   const [adding, setAdding] = useState(false);
   const [addingRunning, setAddingRunning] = useState(false);
@@ -217,6 +221,10 @@ export function MenuBlockEditor({
             const newRunningItem = presentRunningMenuSnapshot(item.prescriptionKind, item.prescriptionJson);
             const newRunningEnvelope = parseRunningMenuEnvelope(item.prescriptionKind, item.prescriptionJson);
             const unprescribedRunning = parseUnprescribedRunning(item.prescriptionKind, item.prescriptionJson);
+            const countingUnit = item.exerciseId ? countingUnits[item.exerciseId] : undefined;
+            const countingCatalog = countingUnit ? { videoGuidance: { countingUnit, videoAnalysisStatus: "COACH_REVIEWED" as const } } : undefined;
+            const perSideCount = !unprescribedRunning && exerciseUsesPerSideCount({ executionInstruction: item.note ?? "", plannedNote: "" }, countingCatalog);
+            const totalCount = !unprescribedRunning && exerciseUsesTotalCount(countingCatalog);
 
             if (newRunningItem.status !== "NOT_RUNNING_POLICY") {
               return (
@@ -306,6 +314,7 @@ export function MenuBlockEditor({
                   compact
                   phase={phase}
                   runningPolicyContext={runningPolicyContext}
+                  countingUnits={countingUnits}
                   unprescribedRunning={unprescribedRunning ?? undefined}
                 />
               );
@@ -335,6 +344,8 @@ export function MenuBlockEditor({
                   </div>
 
                   <p className="mt-0.5 font-mono text-xs text-slate-600">{item.reps == null && item.distanceMeters == null && item.durationSeconds == null ? "量未設定" : prescription}</p>
+                  {item.reps !== null && perSideCount && <p className="mt-0.5 text-xs text-slate-600">回数は片側ごと（左右それぞれ{item.reps}回）です。</p>}
+                  {item.reps !== null && totalCount && <p className="mt-0.5 text-xs text-slate-600">回数は合計（合計{item.reps}回）です。</p>}
                   {unprescribedRunning && <p className="mt-1 text-xs text-amber-900">{unprescribedRunning.reasonMessage}</p>}
                   {unprescribedRunning && [item.sets, item.reps, item.distanceMeters, item.durationSeconds, item.restSeconds, item.intensityPercent].some((value) => value !== null) && <p className="mt-1 text-xs font-medium text-amber-900">手入力（Engine未処方）</p>}
                   {item.note && (
@@ -397,6 +408,7 @@ export function MenuBlockEditor({
             phase={phase}
             runningV2Enabled={running !== null}
             runningPolicyContext={runningPolicyContext}
+            countingUnits={countingUnits}
           />
         ) : (
           <button

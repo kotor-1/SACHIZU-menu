@@ -104,7 +104,7 @@ describe("Freeform menu composition authority contract", () => {
 });
 
 describe("Separated menu composition orchestration", () => {
-  it("limits only elementary beginner AI candidates to reviewed difficulty 1–2 and keeps manual IDs available", async () => {
+  it("limits elementary beginner or unconfirmed AI candidates to reviewed difficulty 1–2 and keeps manual IDs available", async () => {
     const rows = [
       catalogFixture({ id: "difficulty-1", difficulty: 1 }),
       catalogFixture({ id: "difficulty-2", difficulty: 2 }),
@@ -128,9 +128,10 @@ describe("Separated menu composition orchestration", () => {
   });
 
   it.each([
+    ["ELEMENTARY", undefined],
     ["ELEMENTARY", "EXPERIENCED"],
     ["HIGH_SCHOOL", "BEGINNER"],
-  ] as const)("does not generalize the difficulty filter to %s / %s", async (ageGroup, experience) => {
+  ] as const)("applies the difficulty boundary conservatively for %s / %s", async (ageGroup, experience) => {
     const rows = [catalogFixture({ id: "easy", difficulty: 2 }), catalogFixture({ id: "advanced", difficulty: 3 }),
       catalogFixture({ id: "unknown", difficulty: null })];
     const interpreted = interpretedFixture(false);
@@ -138,12 +139,13 @@ describe("Separated menu composition orchestration", () => {
     const compose = vi.fn<(input: MenuComposerInput) => Promise<{ ok: true; value: MenuComposition }>>()
       .mockResolvedValue({ ok: true, value: compositionSchema.parse(proposal([catalogPlan({ exerciseId: "easy" })])) });
     const result = await generateComposedMenu({ requestText: compositionRequest,
-      context: { ageGroup, science: { experience } } }, {
+      context: { ageGroup, science: experience ? { experience } : {} } }, {
       ownerId: DEFAULT_OWNER_ID, signingKey: COMPOSITION_TEST_KEY, catalog: async () => rows,
       interpret: async () => interpreted, compose,
     });
     expect(result.ok).toBe(true);
-    expect(compose.mock.calls[0][0].catalog.map((row) => row.id).sort()).toEqual(["advanced", "easy", "unknown"]);
+    expect(compose.mock.calls[0][0].catalog.map((row) => row.id).sort()).toEqual(
+      ageGroup === "ELEMENTARY" && experience !== "EXPERIENCED" ? ["easy"] : ["advanced", "easy", "unknown"]);
   });
 
   it("passes verified full-session time to the composer without rebinding the Running input context", async () => {

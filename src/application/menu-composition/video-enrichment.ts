@@ -14,7 +14,10 @@ export async function enrichExerciseVideo(input: { ownerId: string; exerciseId: 
   const source = await deps.findLocalVideo(input.sourceVideoId);
   if (!source || source.id !== input.sourceVideoId || source.ownerId !== input.ownerId || source.exerciseId !== input.exerciseId) throw new Error("INVALID_VIDEO_SOURCE");
   const cached = await deps.store.read(input.ownerId, input.exerciseId);
-  if (cached?.sourceVideoId === source.id && cached.analysisVersion === input.analysisVersion) return { guidance: cached, reused: true };
+  // An automatic analysis revision must not replace a human-reviewed definition
+  // for the same asset. A different asset still requires fresh analysis/review.
+  if (cached?.sourceVideoId === source.id
+    && (cached.videoAnalysisStatus === "COACH_REVIEWED" || cached.analysisVersion === input.analysisVersion)) return { guidance: cached, reused: true };
   const observations = videoGuidanceObservationSchema.parse(await deps.analyzer.analyze(source));
   const guidance = exerciseVideoGuidanceSchema.parse({ ...observations, videoAnalysisStatus: "AI_ANALYZED",
     sourceVideoId: source.id, analysisVersion: input.analysisVersion,

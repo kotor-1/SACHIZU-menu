@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { extractRunningSemanticIntentV2, SEMANTIC_INTENT_V2_OUTPUT_SCHEMA } from "@/infra/running-menu/openai-semantic-intent-v2";
+import { extractRunningSemanticIntentV2, SEMANTIC_INTENT_V2_OUTPUT_SCHEMA, SEMANTIC_INTENT_V2_INSTRUCTIONS, SEMANTIC_REVIEW_V2_INSTRUCTIONS } from "@/infra/running-menu/openai-semantic-intent-v2";
 import { runningSemanticClientConfig, type RunningResponseDiagnostic } from "@/infra/running-menu/structured-response";
 import { verifyPrimarySemanticIntentV2 } from "@/application/running-menu/semantic-intent-v2";
 
@@ -13,6 +13,40 @@ const envelope = (text: string) => ({ status: "completed", output: [{ type: "mes
 const response = (value: unknown) => new Response(JSON.stringify(envelope(JSON.stringify(value))), { status: 200, headers: { "content-type": "application/json" } });
 
 describe("semantic interpreter v2 OpenAI contract", () => {
+  it("keeps race timing, desired fatigue accumulation, and a numeric self-rating semantically separate", async () => {
+    const requestText = "高校生の100mです。来週末の試合に向けて少し疲労をためたいです。今は１０が一番疲労が強いとしたら１です。";
+    const quote = "高校生の100mです。";
+    const expected = {
+      interpreterVersion: "running-intent-v2", requestKind: "RUNNING",
+      claims: [
+        { field: "RUNNING_REQUEST", value: true, sourceText: quote, polarity: "AFFIRMED", temporalScope: "CURRENT", status: "ACTIVE", numericParts: [], safetyConcernEvidence: null },
+        { field: "AGE_GROUP", value: "HIGH_SCHOOL", sourceText: quote, polarity: "AFFIRMED", temporalScope: "CURRENT", status: "ACTIVE", numericParts: [], safetyConcernEvidence: null },
+        { field: "EVENT", value: "100m", sourceText: quote, polarity: "AFFIRMED", temporalScope: "CURRENT", status: "ACTIVE", numericParts: [{ rawText: "100", unit: "METER" }], safetyConcernEvidence: null },
+      ],
+      corrections: [],
+      unsupportedIntents: [
+        { meaning: "試合に向けた疲労蓄積の希望", sourceText: "来週末の試合に向けて少し疲労をためたいです。" },
+        { meaning: "本人が説明した現在の数値疲労尺度", sourceText: "今は１０が一番疲労が強いとしたら１です。" },
+      ],
+      ambiguity: null, exerciseIds: [],
+    };
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response(expected));
+    const result = await extractRunningSemanticIntentV2({ requestText, exercises: [] }, { apiKey: "test-key", fetchImpl });
+    expect(result).toMatchObject({ ok: true, interpretation: { requestKind: "RUNNING", unsupportedIntents: expected.unsupportedIntents } });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const verification = verifyPrimarySemanticIntentV2(requestText, expected, []);
+    expect(verification.ok).toBe(true);
+    if (verification.ok) expect(verification.engineIntent).toMatchObject({
+      ageGroup: { value: "HIGH_SCHOOL" }, event: { value: "100m" }, purpose: null,
+      fatigueState: null, loadReductionRequested: null,
+    });
+    for (const instructions of [SEMANTIC_INTENT_V2_INSTRUCTIONS, SEMANTIC_REVIEW_V2_INSTRUCTIONS]) {
+      expect(instructions).toContain("日程や「大会に向けて」という方向づけだけではPURPOSE=PRECOMPにしない");
+      expect(instructions).toContain("疲労をためたい／疲労を蓄積したい希望");
+      expect(instructions).toContain("数値をFATIGUE enum、医学的尺度");
+    }
+  });
+
   it("uses only the primary stage for a normal grounded request without prescription fields", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(response(interpretation)).mockResolvedValueOnce(response(numericRoleReview)).mockResolvedValueOnce(response(review));
     const result = await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, { apiKey: "test-key", model: "gpt-6-luna", fetchImpl });
@@ -60,14 +94,14 @@ describe("semantic interpreter v2 OpenAI contract", () => {
   it("recovers a body read failure and keeps safe HTTP diagnostics", async () => {
     const diagnostics: RunningResponseDiagnostic[] = [];
     const unreadable = new Response("body", { headers: { "content-type": "application/json; charset=utf-8" } });
-    vi.spyOn(unreadable, "text").mockRejectedValue(new Error("sensitive raw response"));
+    vi.spyOn(unreadable, "arrayBuffer").mockRejectedValue(new Error("sensitive raw response"));
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(unreadable)
       .mockResolvedValueOnce(response(interpretation)).mockResolvedValueOnce(response(numericRoleReview)).mockResolvedValueOnce(response(review));
     expect(await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, {
       apiKey: "test-key", fetchImpl, onAttempt: d => diagnostics.push(d),
     })).toMatchObject({ ok: true });
     expect(diagnostics[0]).toMatchObject({ httpStatus: 200, contentType: "application/json",
-      responseBodyPresent: true, other: "BODY_READ_FAILURE", retryable: true });
+      responseBodyPresent: null, bodyByteLength: null, errorClass: "BODY_READ_FAILURE", other: "BODY_READ_FAILURE", retryable: true });
     expect(JSON.stringify(diagnostics)).not.toContain("sensitive");
   });
 
@@ -113,5 +147,69 @@ describe("semantic interpreter v2 OpenAI contract", () => {
     if (result.ok) expect(verifyPrimarySemanticIntentV2("200出る", result.interpretation, [], result.review))
       .toMatchObject({ ok: false, reason: "INVALID_AI_CLAIM" });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("records bounded usage and parsing metadata without response or exception content", async () => {
+    const body = { ...envelope(JSON.stringify(interpretation)), usage: { input_tokens: 123, input_tokens_details: { cached_tokens: 100 },
+      output_tokens: 456, output_tokens_details: { reasoning_tokens: 300 }, total_tokens: 579 }, private_data: "sensitive body" };
+    const diagnostics: RunningResponseDiagnostic[] = [];
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(response(numericRoleReview)).mockResolvedValueOnce(response(review));
+    expect(await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, {
+      apiKey: "private-api-key", model: "gpt-6.1-sol", reasoningEffort: "high", timeoutMs: 30000, fetchImpl, onAttempt: d => diagnostics.push(d),
+    })).toMatchObject({ ok: true });
+    expect(diagnostics[0]).toMatchObject({ model: "gpt-6.1-sol", effort: "high", timeoutMs: 30000, retryNumber: 0,
+      bodyByteLength: new TextEncoder().encode(JSON.stringify(body)).byteLength, jsonParseSuccess: true,
+      structuredJsonParseSuccess: true, structuredSchemaSuccess: true, responseStatus: "completed", errorClass: null,
+      usage: { inputTokens: 123, cachedInputTokens: 100, outputTokens: 456, reasoningTokens: 300, totalTokens: 579 } });
+    expect(diagnostics.every(d => d.elapsedMs >= 0)).toBe(true);
+    expect(JSON.stringify(diagnostics)).not.toMatch(/sensitive|private-api-key|200出る/u);
+  });
+
+  it("distinguishes a native timeout from network failure and bounds its retry", async () => {
+    const diagnostics: RunningResponseDiagnostic[] = [];
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => new Promise((_resolve, reject) => {
+      init!.signal!.addEventListener("abort", () => reject(init!.signal!.reason), { once: true });
+    }));
+    expect(await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, {
+      apiKey: "test-key", timeoutMs: 10, fetchImpl, onAttempt: d => diagnostics.push(d),
+    })).toEqual({ ok: false, reason: "UNAVAILABLE" });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(diagnostics.map(d => d.errorClass)).toEqual(["TIMEOUT", "TIMEOUT"]);
+    expect(diagnostics.map(d => d.retryNumber)).toEqual([0, 1]);
+    expect(diagnostics.every(d => d.httpStatus === null && d.bodyByteLength === null)).toBe(true);
+  });
+
+  it("records an allowlisted network cause without its sensitive message", async () => {
+    const diagnostics: RunningResponseDiagnostic[] = [];
+    const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("secret host and request", { cause: { code: "ECONNRESET", message: "secret" } }));
+    expect(await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, {
+      apiKey: "test-key", fetchImpl, onAttempt: d => diagnostics.push(d),
+    })).toEqual({ ok: false, reason: "UNAVAILABLE" });
+    expect(diagnostics[0]).toMatchObject({ errorClass: "NETWORK_FAILURE", errorName: "TypeError", networkErrorCode: "ECONNRESET" });
+    expect(JSON.stringify(diagnostics)).not.toContain("secret");
+  });
+
+  it("cannot throw or log object-valued metadata from a malformed envelope", async () => {
+    const diagnostics: RunningResponseDiagnostic[] = [];
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
+      status: { toString: "sensitive" }, incomplete_details: { reason: { toString: "sensitive" } }, output: [],
+    })));
+    expect(await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, {
+      apiKey: "test-key", fetchImpl, onAttempt: d => diagnostics.push(d),
+    })).toEqual({ ok: false, reason: "INVALID_OUTPUT" });
+    expect(diagnostics[0]).toMatchObject({ jsonParseSuccess: true, responseStatus: null, incompleteReason: "UNKNOWN" });
+    expect(JSON.stringify(diagnostics)).not.toContain("sensitive");
+  });
+
+  it("counts received bytes before replacement decoding a corrupted UTF-8 body", async () => {
+    const diagnostics: RunningResponseDiagnostic[] = [];
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response(new Uint8Array([0xff])))
+      .mockResolvedValueOnce(response(interpretation)).mockResolvedValueOnce(response(numericRoleReview)).mockResolvedValueOnce(response(review));
+    expect(await extractRunningSemanticIntentV2({ requestText: "200出る", exercises: [] }, {
+      apiKey: "test-key", fetchImpl, onAttempt: d => diagnostics.push(d),
+    })).toMatchObject({ ok: true });
+    expect(diagnostics[0]).toMatchObject({ bodyByteLength: 1, responseBodyPresent: true,
+      jsonParseSuccess: false, errorClass: "ENVELOPE_PARSE_FAILURE", retryable: true });
   });
 });

@@ -1,0 +1,59 @@
+/** User-facing Japanese text for proposal diagnostic codes. Codes never reach the screen untranslated. */
+export const TRAINING_ISSUE_MESSAGES: Record<string, string> = {
+  THREE_SECTIONS_REQUIRED: "動きづくり・走練習・補強の構成を確認できませんでした。",
+  RUNNING_SECTION_REQUIRED: "走練習が正しい区分に配置されていません。",
+  CATALOG_EXERCISE_REQUIRED: "登録種目として確認できない候補が含まれています。",
+  UNKNOWN_EXERCISE: "登録情報を確認できない種目があります。",
+  WRONG_EXERCISE_SECTION: "種目と練習区分が一致していません。",
+  DUPLICATE_EXERCISE: "同じ種目が重複しています。",
+  INTENSITY_REQUIRED: "強度の目安が不足しています。",
+  ALTERNATIVE_GROUP_REQUIRED: "選び替える候補の関係を確認できませんでした。",
+  DUPLICATE_MOVEMENT_FAMILY: "似た動作に候補が偏っています。",
+  MOVEMENT_ORDER_INVALID: "動きづくりの段階と順序が一致していません。",
+  MOVEMENT_STAGE_MISSING: "動きづくりの段階（可動域から疾走への接続まで）に抜けがあります。",
+  DOSE_INCOMPLETE: "実施量・セット数・休息の指定が不足しています。",
+  REGISTERED_UNIT_MISMATCH: "実施量の単位が種目の登録情報と一致していません。",
+  PURPOSE_AND_INSTRUCTION_REQUIRED: "種目の目的・実施指示が不足しています。",
+  DOSE_COUNT_MISMATCH: "回数と左右の数え方が一致していません。",
+  EXERCISE_DISTANCE_EXCEEDS_SPACE: "使用できる距離を超える種目があります。",
+  REGISTERED_DISTANCE_EXCEEDS_SPACE: "登録種目に必要な距離を確保できません。",
+  DOSE_TEXT_CONFLICT: "数値と実施指示の量が一致していません。",
+  REST_TEXT_CONFLICT: "数値と実施指示の休息が一致していません。",
+  RUNNING_INSTRUCTION_OUTSIDE_ENGINE: "走練習以外の種目に走の処方が混在しています。",
+  DOSE_REQUIRES_COACH_REVIEW: "実施量をコーチと確認する必要があります。",
+  LOAD_CONDITION_CONFLICT: "強度が今日の状態・希望する負荷と一致していません。",
+  MOVEMENT_PROPOSALS_MISSING: "条件に合う動きづくりの提案が不足しています。",
+  STRENGTH_PROPOSALS_MISSING: "条件に合う補強の提案が不足しています。",
+  INVALID_PROPOSAL_SCHEMA: "提案の形式を確認できませんでした。",
+  UNREVIEWED_EXERCISE: "内容が確認済みでない登録種目が含まれています。",
+  MOVEMENT_DESCRIPTION_MISSING: "種目の基本説明が不足しています。",
+  RUNNING_ENGINE_ONLY: "走練習の処方として確認が必要な種目があります。",
+  UNSUPPORTED_EXERCISE_CATEGORY: "提案に使えない種目区分が含まれています。",
+  SAFE_WORK_AREA_UNCONFIRMED: "平坦さ・通行・障害物の安全確認が「はい」になっていません。",
+  SURFACE_UNCONFIRMED: "練習に使う路面が未確認のため、移動や跳躍を伴う種目を除いています。",
+  UNKNOWN_EQUIPMENT_REQUIREMENT: "登録種目に必要な用具の条件を確認できませんでした。",
+  HIGH_LOAD_INCOMPATIBLE_WITH_CURRENT_CONDITIONS: "負荷の高い種目が今日の状態・大会予定に合っていません。",
+  CURRENT_CONDITION_REQUIRES_REVIEW: "痛み・体調不良があるため、練習の可否と内容を指導者が確認してください。",
+  STRONG_FATIGUE_LOW_INTENSITY_ONLY: "疲労・筋肉痛が強いため、低強度の可動域・姿勢づくり以外を保留しています。",
+  STRONG_FATIGUE_STRENGTH_HELD: "疲労・筋肉痛が強いため、補強を保留しています。",
+  STEP_DETAILS_UNCONFIRMED: "段差の高さ・安定性・安全性が未確認です。",
+  WALL_STABILITY_UNCONFIRMED: "壁の安定性が未確認です。",
+  HILL_DETAILS_UNCONFIRMED: "坂の距離・傾斜・安全性が未確認です。",
+  MINI_HURDLE_UNAVAILABLE: "ミニハードルの使用を確認できません。",
+  HURDLE_UNAVAILABLE: "ハードルの使用を確認できません。",
+  HURDLE_USE_REQUIRES_CONFIRMED_EXPERIENCE_AND_SUPERVISION: "ハードル練習の経験と見守りが未確認です。",
+  CONES_UNAVAILABLE: "マーカーの使用を確認できません。",
+  EXTERNAL_LOAD_DETAILS_UNCONFIRMED: "負荷を加える用具の条件が未確認です。",
+  HIGH_IMPACT_READINESS_UNCONFIRMED: "跳躍などの衝撃に備えた状態・経験・路面が未確認です。",
+  ADVANCED_MOVEMENT_READINESS_UNCONFIRMED: "高度な動作に必要な経験・見守りが未確認です。",
+  CHILD_MOVEMENT_REQUIRES_CONFIRMED_SIMPLE_SUPERVISED_CONTENT: "小学生向けの動作と見守りを確認できませんでした。",
+  MOVEMENT_SPACE_UNCONFIRMED: "動作に必要な直線距離が未確認、または走れる直線がありません。",
+};
+
+/** Codes become Japanese; already-Japanese messages pass through; unknown codes never leak. */
+export function explainTrainingIssue(issue: string): string {
+  if (TRAINING_ISSUE_MESSAGES[issue]) return TRAINING_ISSUE_MESSAGES[issue];
+  if (issue.startsWith("OTHER_EQUIPMENT_UNCONFIRMED:")) return `種目で使う用具（${issue.slice("OTHER_EQUIPMENT_UNCONFIRMED:".length)}）が「その他の器具」に入力されていません。`;
+  if (/[A-Z][A-Z0-9]*_[A-Z0-9_]+/.test(issue) || !/[ぁ-んァ-ヶ一-龠]/.test(issue)) return "入力値または提案内容の整合性を確認できませんでした。";
+  return issue;
+}

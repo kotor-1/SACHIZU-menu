@@ -26,9 +26,12 @@ export function savedMenuDurationInput(menu: MenuDetail) {
         byItemId[item.id] = envelope ? finalRunningMenuPrescription(envelope) : null;
         return { id: item.id, type: "RUNNING_POLICY" as const, plannedNote: item.note ?? "" };
       }
-      return { id: item.id, type: "FREEFORM" as const, category: "OTHER" as const,
-        originalUserInstruction: "保存済み項目", displayName: item.displayName ?? item.exercise?.name ?? "項目",
-        executionInstruction: "", plannedNote: "", reason: "", plannedSets: item.sets, plannedReps: item.reps,
+      return { id: item.id, ...(item.exerciseId
+        ? { type: "CATALOG_EXERCISE" as const, exerciseId: item.exerciseId }
+        : { type: "FREEFORM" as const, category: "OTHER" as const, originalUserInstruction: "" }), displayName: item.displayName ?? item.exercise?.name ?? "項目",
+        // The persisted note already contains the original request, instruction and note.
+        // Hash that same text once so edit invalidation survives a save/reload.
+        executionInstruction: item.note ?? "", plannedNote: "", reason: "", plannedSets: item.sets, plannedReps: item.reps,
         plannedDistanceMeters: item.distanceMeters, plannedDurationSeconds: item.durationSeconds, plannedRestSeconds: item.restSeconds };
     }),
   })) };

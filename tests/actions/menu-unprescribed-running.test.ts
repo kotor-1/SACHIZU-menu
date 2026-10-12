@@ -32,7 +32,7 @@ async function makeRecordedPendingDraft(caseId = "highschool_speed_endurance_90"
   if (!verified.ok) throw new Error(`Recorded interpretation rejected: ${caseId}`);
   const running = createRunningMenuPreview(verified.engineIntent, {}, row.requestText);
   if (!running || running.status === "READY") throw new Error(`Expected an unprescribed hold: ${caseId}`);
-  const exercise = await prisma.exercise.create({ data: { name: "プランク", category: "CORE", metricType: "TIME", status: "REVIEWED" } });
+  const exercise = await prisma.exercise.create({ data: { name: "プランク", category: "CORE", metricType: "TIME", difficulty: 1, status: "REVIEWED" } });
   const proposal: MenuComposition = compositionSchema.parse({ blocks: [{ name: "補強", items: [catalogPlan({ exerciseId: exercise.id })] }] });
   let composerInput: MenuComposerInput | null = null;
   const result = await generateComposedMenu({ requestText: row.requestText, context: {} }, {

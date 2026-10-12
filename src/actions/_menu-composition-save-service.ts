@@ -90,11 +90,13 @@ export async function saveComposedMenu(rawInput: unknown): Promise<SaveComposedM
         }),
       }));
       const digest = sha256Utf8Hex(canonicalStringify({ name: input.menuName, composition: input.composition, runningPrescription: input.runningPrescription, coachEdit: input.coachEdit, durationPlan: input.durationPlan }));
-      const marker = { kind: "MENU_COMPOSITION" as const, schemaVersion: 1 as const, confirmedPlanDigest: digest, requestedTimeSeconds: claims.requestedTimeSeconds ?? claims.context.availableTimeSeconds ?? null };
+      const marker = { kind: "MENU_COMPOSITION" as const, schemaVersion: 1 as const, confirmedPlanDigest: digest, requestedTimeSeconds: claims.requestedTimeSeconds ?? claims.context.availableTimeSeconds ?? null,
+        overview: claims.overview, athleteLabel: claims.athleteLabel };
       const prior = await prisma.menuTemplate.findUnique({ where: { id: claims.menuId } });
       if (prior) return prior.ownerId === DEFAULT_OWNER_ID && parseConfirmedCompositionContext(prior.runningContextJson)?.confirmedPlanDigest === digest
         ? { ok: true as const, menuId: prior.id, alreadySaved: true } : { ok: false as const, code: "STALE_PREVIEW" };
       const created = await prisma.menuTemplate.create({ data: { id: claims.menuId, ownerId: DEFAULT_OWNER_ID, name: input.menuName, status: "DRAFT", runningContextJson: canonicalStringify(marker),
+        purpose: claims.overview?.objective, description: claims.overview?.approach,
         blocks: { create: data.map((block) => ({ ...block, items: { create: block.items } })) } }, include: { blocks: { orderBy: { sortOrder: "asc" } } } });
       if (input.durationPlan) {
         const persistedPlan = { ...input.durationPlan, blocks: input.durationPlan.blocks.map(row => ({ ...row,

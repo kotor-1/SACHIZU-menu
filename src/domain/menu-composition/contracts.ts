@@ -5,6 +5,9 @@ import type { ExerciseVideoGuidance } from "@/domain/exercise/video-guidance";
 import { resolveWhitespaceQuote } from "@/domain/shared/source-quote";
 import { unprescribedRunningItemSchema } from "./unprescribed-running";
 import { runningScienceContextSchema } from "@/domain/running-policy/science-contracts";
+import { DURATION_PHASES, allocationEstimateSchema } from "./duration";
+import { exerciseRepetitionCountMatches } from "./dose-counting";
+import { proposalPlanningSchema } from "./session-planning";
 
 export const menuCompositionContextSchema = z.object({
   event: z.string().trim().min(1).max(32).optional(),
@@ -43,10 +46,48 @@ export const runningCompositionItemSchema = z.object({ type: z.literal("RUNNING_
 export const compositionItemSchema = z.discriminatedUnion("type", [
   runningCompositionItemSchema, catalogCompositionItemSchema, freeformCompositionItemSchema,
 ]);
+export const menuOverviewSchema = z.object({
+  title: z.string().trim().min(1).max(100),
+  objective: z.string().trim().min(1).max(240),
+  approach: z.string().trim().min(1).max(320),
+}).strict();
+export type MenuOverview = z.infer<typeof menuOverviewSchema>;
+/** Generation outline, not a second prescription or a measured duration. Legacy drafts may omit it. */
+export const sessionPlanSchema = z.object({
+  blocks: z.array(z.object({
+    name: z.string().trim().min(1).max(80),
+    phase: z.enum(DURATION_PHASES),
+    purpose: z.string().trim().min(1).max(160),
+    allocatedSeconds: z.number().int().min(0).max(604800).nullable(),
+  }).strict()).min(1).max(12),
+  timeBudgetReasoning: z.string().trim().min(1).max(400),
+}).strict();
+export const compositionBlockSchema = z.object({
+  planBlockId: z.string().min(1).max(80).optional(),
+  name: z.string().trim().min(1).max(80),
+  items: z.array(compositionItemSchema).min(1).max(30),
+  phase: z.enum(DURATION_PHASES).optional(),
+  allocatedSeconds: z.number().int().min(0).max(604800).nullable().optional(),
+  allocationBasis: allocationEstimateSchema.nullable().optional(),
+}).strict();
 export const compositionSchema = z.object({
-  blocks: z.array(z.object({ name: z.string().trim().min(1).max(80), items: z.array(compositionItemSchema).min(1).max(30) }).strict()).min(1).max(12),
+  planning: proposalPlanningSchema.optional(),
+  sessionPlan: sessionPlanSchema.optional(),
+  blocks: z.array(compositionBlockSchema).min(1).max(12),
+  overview: menuOverviewSchema.optional(),
+  transitionSeconds: z.number().int().min(0).max(604800).nullable().optional(),
+  transitionDescription: z.string().trim().max(400).optional(),
 }).strict();
 export type MenuComposition = z.infer<typeof compositionSchema>;
+export function sessionPlanMatchesComposition(value: MenuComposition): boolean {
+  const outline = value.sessionPlan;
+  return !outline || (outline.blocks.length === value.blocks.length
+    && outline.blocks.every((block, index) => {
+      const actual = value.blocks[index];
+      return block.name === actual.name && block.phase === actual.phase
+        && block.allocatedSeconds === actual.allocatedSeconds;
+    }));
+}
 export type CompositionItem = z.infer<typeof compositionItemSchema>;
 export type ExercisePlanItem = Exclude<CompositionItem, { type: "RUNNING_POLICY" }>;
 export const editableCompositionSchema = z.object({
@@ -70,6 +111,7 @@ export type ComposerCatalogExercise = {
   defaultSets: number | null; defaultReps: number | null; defaultDurationSeconds: number | null;
   defaultDistanceMeters: number | null; defaultRestSeconds: number | null;
   purposes: string[]; events: string[]; targets: string[]; tags: string[];
+  equipmentTags?: string[];
   videoUrl: string | null; videoGuidance: ExerciseVideoGuidance | null;
 };
 export const EMPTY_EXERCISE_DOSE = {
@@ -96,6 +138,9 @@ export function validateComposition(value: unknown, options: {
 }): { ok: true; value: MenuComposition | EditableComposition } | { ok: false; code: string } {
   const parsed = options.edited ? editableCompositionSchema.safeParse(value) : compositionSchema.safeParse(value);
   if (!parsed.success) return { ok: false, code: "INVALID_COMPOSITION" };
+  if (!options.edited && !sessionPlanMatchesComposition(parsed.data as MenuComposition)) {
+    return { ok: false, code: "SESSION_PLAN_MISMATCH" };
+  }
   const items = parsed.data.blocks.flatMap<CompositionItem | EditableItem>((block) => block.items);
   if (items.length === 0) return { ok: false, code: "EMPTY_MENU" };
   if (items.length > 50) return { ok: false, code: "TOO_MANY_ITEMS" };
@@ -116,6 +161,7 @@ export function validateComposition(value: unknown, options: {
       if (!exercise || exercise.ownerId !== options.ownerId || exercise.status !== "REVIEWED") return { ok: false, code: "INVALID_EXERCISE" };
       if (exercise.name !== item.displayName) return { ok: false, code: "EXERCISE_NAME_MISMATCH" };
       if (isRunningExerciseForV2(exercise)) return { ok: false, code: "RUNNING_AUTHORITY" };
+      if (!exerciseRepetitionCountMatches(item, exercise)) return { ok: false, code: "DOSE_COUNT_MISMATCH" };
     } else {
       if (isRunningExerciseForV2(item)) return { ok: false, code: "RUNNING_AUTHORITY" };
       // A model-selected FREEFORM category cannot prove that an unknown exercise

@@ -21,6 +21,7 @@ export async function listComposerCatalog(ownerId: string, store: VideoGuidanceS
       defaultDistanceMeters: row.defaultDistanceMeters, defaultRestSeconds: row.defaultRestSeconds,
       purposes: row.purposes.map((x) => x.purpose), events: row.events.map((x) => x.event),
       targets: row.targets.map((x) => x.target), tags: row.tags.map((x) => x.tag.name),
+      equipmentTags: row.tags.filter((x) => x.tag.kind === "EQUIPMENT").map((x) => x.tag.name),
       videoUrl: row.videoUrl, videoGuidance,
     };
   }));

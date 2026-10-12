@@ -1,0 +1,154 @@
+{
+  "provenance": "OFFLINE_EDITED_EXPECTATION: manually revised from actual 2026-10-12 Luna output; NOT a new AI output, NOT an approved training recommendation or a completed 90-minute menu.",
+  "input": {
+    "requestText": "高校生の100mです。来週末の試合に向けて少し疲労をためたいです。今は10が一番疲労が強いとしたら1です。",
+    "context": {
+      "availableTimeSeconds": 5400
+    }
+  },
+  "composition": {
+    "overview": {
+      "title": "100m・実Luna案を用いたオフライン編集例",
+      "objective": "100mの試合に向け、登録済みの動きづくり・体幹項目と、既存の走処方を組み合わせます。",
+      "approach": "前回実応答の5項目を維持した編集例。登録説明から非Running実施量と計画時間を仮に置く。計29分で希望90分には61分不足し、完成とは扱わない。追加走・補強や長い待機で時間を埋めない。疲労の希望は走の数値に反映していない。"
+    },
+    "transitionSeconds": 180,
+    "transitionDescription": "動きづくり→走、走→体幹の場所移動を各90秒、計180秒と仮定。",
+    "blocks": [
+      {
+        "name": "動きづくり",
+        "phase": "WARM_UP",
+        "allocatedSeconds": 480,
+        "allocationBasis": {
+          "itemEstimatesSeconds": [
+            180,
+            120,
+            85
+          ],
+          "preparationSeconds": 95,
+          "explanation": "歩行20mを約60秒×2＋セット間60秒＝180秒。ドリル計20回×約3秒＋セット間60秒＝120秒。保持20秒×2＋セット間45秒＝85秒。歩行・動作ペースは計画上の仮定。",
+          "preparationDescription": "場所確保35秒、動作説明60秒。実際の指導状況で編集する。"
+        },
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+            "displayName": "ニーアップウォーク",
+            "executionInstruction": "直立姿勢を保って歩き、一歩ごとに膝を骨盤の高さまで引き上げます。体幹を安定させ、つま先をやや上に向けます。",
+            "plannedNote": "編集可能な提案：20mを2セット、セット間60秒。登録の歩行動作に沿う仮の実施量。",
+            "reason": "スプリント種目に関連する歩行形式の基礎ドリルです。",
+            "plannedSets": 2,
+            "plannedReps": null,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": 20,
+            "plannedRestSeconds": 60
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+            "displayName": "もも上げ叩きつけ（スイングダウンドリル）",
+            "executionInstruction": "その場で片脚の膝を股関節の高さまで引き上げ、体の真下近くへ素早く振り下ろして接地します。腕振りを脚の動きに合わせます。",
+            "plannedNote": "編集可能な提案：左右各5回を2セット、セット間60秒。回数欄は片側の回数。",
+            "reason": "登録説明に沿ったスプリント動作のドリルです。",
+            "plannedSets": 2,
+            "plannedReps": 5,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": 60
+          },
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtrdeh840017itxbb6b5pqq4",
+            "displayName": "仰向けハンドプレス（腹圧・腰椎圧迫キープ）",
+            "executionInstruction": "仰向けになり、腰と床の間の手を腰で押さえるように腹圧を保ちます。息を止めず、脚と首・肩はリラックスさせます。",
+            "plannedNote": "編集可能な提案：20秒を2セット、セット間45秒。実測ではなく計画値。",
+            "reason": "登録説明に沿った姿勢・腹圧のドリルです。",
+            "plannedSets": 2,
+            "plannedReps": null,
+            "plannedDurationSeconds": 20,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": 45
+          }
+        ]
+      },
+      {
+        "name": "走練習",
+        "phase": "RUNNING",
+        "allocatedSeconds": 960,
+        "allocationBasis": {
+          "itemEstimatesSeconds": [
+            760
+          ],
+          "preparationSeconds": 200,
+          "explanation": "Engineの60m×4本・本間240秒を維持。休息240秒×3＝720秒に、計画上の走行見積もり約10秒×4＝40秒を加算。10秒は目標タイムや強度指定ではない。戻りは本間休息内で扱う。",
+          "preparationDescription": "レーンと開始位置の確認120秒、開始前の説明80秒。追加の反復や休息ではない。"
+        },
+        "items": [
+          {
+            "type": "RUNNING_POLICY"
+          }
+        ]
+      },
+      {
+        "name": "体幹",
+        "phase": "DRILLS_STRENGTH",
+        "allocatedSeconds": 120,
+        "allocationBasis": {
+          "itemEstimatesSeconds": [
+            60
+          ],
+          "preparationSeconds": 60,
+          "explanation": "回数欄はPER_SIDEの10回。片側10回→反対10回、計20周期×約3秒＝60秒の計画見積もり。回数欄を20へ変換しない。",
+          "preparationDescription": "床スペース確認30秒、姿勢説明30秒。"
+        },
+        "items": [
+          {
+            "type": "CATALOG_EXERCISE",
+            "exerciseId": "cmtrdzqhe001aitxbgnaelg5i",
+            "displayName": "ニー・トゥ・エルボー（対角膝肘引きつけ）",
+            "executionInstruction": "仰向けで、片膝を引き寄せながら対角側の肘を近づけ、脚と上体を戻します。片側10回を終えてから反対側10回を行い、左右交互にはしません。1回は片側の引き寄せて戻す1周期です。腰を反らさず、反動を使わずに行います。",
+            "plannedNote": "コーチ確認済みの順序と回数を維持しています。",
+            "reason": "登録済みのコーチ確認済みガイダンスに従います。",
+            "plannedSets": 1,
+            "plannedReps": 10,
+            "plannedDurationSeconds": null,
+            "plannedDistanceMeters": null,
+            "plannedRestSeconds": null
+          }
+        ]
+      }
+    ]
+  },
+  "runningPrescription": {
+    "coachTargetTimeRange": null,
+    "coachTargetTimeSeconds": null,
+    "decisionReasons": [
+      "EVENT_DEFAULT_DISTANCE_SELECTED"
+    ],
+    "distanceMeters": 60,
+    "event": "100m",
+    "executionInstructionText": null,
+    "fullSessionTimeGuaranteed": false,
+    "intensityPresentation": "PLAIN_LANGUAGE",
+    "loadReductionRequested": false,
+    "minimumKnownRestSeconds": 720,
+    "policyHash": "b522cdccba0fa65c5639eb823ccd313439700fb65ce00f8192edca51699b535f",
+    "policyVersion": "rp-2026.09.0",
+    "repRestSeconds": 240,
+    "repsPosition": "DEFAULT",
+    "repsReductionApplied": false,
+    "setReps": null,
+    "setRestSeconds": null,
+    "sets": 1,
+    "totalDistanceMeters": 240,
+    "totalReps": 4
+  },
+  "assessment": {
+    "plannedSeconds": 1740,
+    "unallocatedSeconds": 3660,
+    "complete90Minutes": false,
+    "newExercises": 0,
+    "runningDoseChanged": false,
+    "warmupAndCooldownAdequacy": "Requires coach review; registered preparation drills alone do not establish a complete warm-up or cooldown."
+  }
+}

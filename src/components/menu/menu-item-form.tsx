@@ -22,7 +22,11 @@ import {
   isRunningExerciseForV2,
 } from "@/presentation/running/legacy-routing";
 import type { ExercisePickerItem } from "@/infra/repositories/exercise-repository";
+import { exerciseUsesPerSideCount, exerciseUsesTotalCount } from "@/domain/menu-composition/dose-counting";
+import type { ExerciseVideoGuidance } from "@/domain/exercise/video-guidance";
 import type { ActionResult } from "@/domain/shared/result";
+
+export type ExerciseCountingUnits = Record<string, ExerciseVideoGuidance["countingUnit"]>;
 
 export type MenuItemFormValues = {
   exerciseId: string;
@@ -76,6 +80,7 @@ export function MenuItemForm({
   runningV2Enabled = false,
   runningPolicyContext = false,
   unprescribedRunning,
+  countingUnits = {},
 }: {
   action: Action;
   exercises: ExercisePickerItem[];
@@ -98,6 +103,7 @@ export function MenuItemForm({
   runningPolicyContext?: boolean;
   /** Saved placeholder metadata: keep it a placeholder and never offer recommendations. */
   unprescribedRunning?: { reasonCode: string; reasonMessage: string };
+  countingUnits?: ExerciseCountingUnits;
 }) {
   const [state, formAction] = useActionState(action, null);
   const [values, setValues] = useState<MenuItemFormValues>(initial);
@@ -125,6 +131,10 @@ export function MenuItemForm({
   const errors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
   const selected = exercises.find((e) => e.id === values.exerciseId);
   const metric = (selected?.metricType ?? "REPS") as MetricType;
+  const countingUnit = countingUnits[values.exerciseId];
+  const countingCatalog = countingUnit ? { videoGuidance: { countingUnit, videoAnalysisStatus: "COACH_REVIEWED" as const } } : undefined;
+  const perSideCount = !unprescribedRunning && exerciseUsesPerSideCount({ executionInstruction: values.note, plannedNote: "" }, countingCatalog);
+  const totalCount = !unprescribedRunning && exerciseUsesTotalCount(countingCatalog);
   const hasUnprescribedManualNumber = Boolean(unprescribedRunning) && [values.sets, values.reps, values.distanceMeters, values.durationSeconds, values.restSeconds, values.intensityPercent].some((value) => value !== "");
 
   // [R10-B4B] 走系かどうかは既存の分類（classify）で決める。種目名の一覧をここで持たない。
@@ -325,10 +335,11 @@ export function MenuItemForm({
         </Field>
 
         {(unprescribedRunning || metric === "REPS" || values.reps !== "") && (
-          <Field label="回数" errors={errors.reps}>
+          <Field label={perSideCount ? "片側ごとの回数" : totalCount ? "合計の回数" : "回数"} errors={errors.reps}>
             <input
               type="number"
               name="reps"
+              aria-label={perSideCount ? "片側ごとの回数" : totalCount ? "合計の回数" : "回数"}
               value={values.reps}
               onChange={set("reps")}
               min={1}

@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { MenuDurationEditor } from "@/components/menu/menu-duration-editor";
-import type { DurationPlan } from "@/domain/menu-composition/duration";
+import { durationBasisKey, type DurationPlan } from "@/domain/menu-composition/duration";
 import type { EditableComposition } from "@/domain/menu-composition/contracts";
 import { expandTree, findAll, renderMarkup, stripTags, type HostTree } from "../presentation/running/helpers";
 
@@ -49,6 +49,39 @@ describe("MenuDurationEditor", () => {
     expect(noTargetText).toMatch(/希望との差：\s*目安時間は未指定です/u);
     expect(noTargetText).not.toContain("（一致）");
     expect(noTargetText).toContain("クールダウン：未割当（必要性を確認。ブロックや配分を自動追加しません。）");
+  });
+
+  it.each([
+    ["dose", { plannedSets: 3 }],
+    ["exercise", { exerciseId: "exercise-2" }],
+    ["instruction", { executionInstruction: "左右それぞれ丁寧に実施する" }],
+  ])("invalidates the prior estimate visibly after a %s edit", (_field, patch) => {
+    const priorPlan: DurationPlan = { blocks: [{ blockId, phase: "WARM_UP", allocatedSeconds: 180,
+      allocationBasis: { durationBasisKey: durationBasisKey(composition.blocks[0]!, null), itemEstimatesSeconds: [90],
+        preparationSeconds: 90, explanation: "保存前の見積もりの説明", preparationDescription: "器具の準備" } }], transitionSeconds: 0 };
+    const changed: EditableComposition = { blocks: [{ ...composition.blocks[0]!, items: [{ ...blockItem, ...patch }] }] };
+    const html = renderMarkup(MenuDurationEditor, { composition: changed, running: null, requestedSeconds: 180, plan: priorPlan, onChange: vi.fn() });
+    const text = stripTags(html);
+    expect(text).toContain("以前の時間見積もりは無効です");
+    expect(text).toContain("旧配分を含む合計");
+    expect(text).not.toContain("保存前の見積もりの説明");
+    expect(text).not.toContain("配分が目安時間に一致しています");
+    expect(text).toContain("実際に計測した時間ではありません");
+  });
+
+  it("does not certify an outdated basis just because a user changes its allocation minutes", () => {
+    const onChange = vi.fn();
+    const originalKey = durationBasisKey(composition.blocks[0]!, null);
+    const priorPlan: DurationPlan = { blocks: [{ blockId, phase: "WARM_UP", allocatedSeconds: 180,
+      allocationBasis: { durationBasisKey: originalKey, itemEstimatesSeconds: [90], preparationSeconds: 90,
+        explanation: "以前の見積もり", preparationDescription: "器具の準備" } }], transitionSeconds: 0 };
+    const changed: EditableComposition = { blocks: [{ ...composition.blocks[0]!, items: [{ ...blockItem, plannedSets: 3 }] }] };
+    const nodes = expandTree(createElement(MenuDurationEditor, { composition: changed, running: null, requestedSeconds: 180, plan: priorPlan, onChange }));
+    (inputByLabel(nodes, "準備の配分（分）").props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "5" } });
+    const updated = onChange.mock.calls[0]![0] as DurationPlan;
+    expect(updated.blocks[0]!.allocatedSeconds).toBe(300);
+    expect(updated.blocks[0]!.allocationBasis!.durationBasisKey).toBe(originalKey);
+    expect(stripTags(renderMarkup(MenuDurationEditor, { composition: changed, running: null, requestedSeconds: 300, plan: updated, onChange }))).toContain("以前の時間見積もりは無効です");
   });
 
   it("converts block minutes to seconds and changes phase without mutating doses", () => {

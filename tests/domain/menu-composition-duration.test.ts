@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateMenuDuration, durationPlanSchema, type DurationPlan } from "@/domain/menu-composition/duration";
+import { calculateMenuDuration, durationBasisKey, durationPlanSchema, type DurationPlan } from "@/domain/menu-composition/duration";
 import type { EditableComposition } from "@/domain/menu-composition/contracts";
 import type { RunningMenuFinalPrescription } from "@/application/running-menu/persistence";
 
@@ -26,6 +26,15 @@ function run(target: number | null, range: { minSeconds: number; maxSeconds: num
 const plan = (blocks: DurationPlan["blocks"], transitionSeconds: number | null = 0): DurationPlan => ({ blocks, transitionSeconds });
 
 describe("menu duration accounting", () => {
+  it("does not turn a known work duration into an unentered block allocation", () => {
+    const result = calculateMenuDuration(composition([exercise()]), null, 75,
+      plan([{ blockId: blockA, phase: "OTHER", allocatedSeconds: null }]));
+    expect(result.knownMinimumSeconds).toBe(75);
+    expect(result.blocks[0].physicalDurationExact).toBe(true);
+    expect(result.plannedTotalSeconds).toBeNull();
+    expect(result.planningStatus).toBe("NEEDS_REVIEW");
+  });
+
   it("counts explicit work and only between-set rest", () => {
     const result = calculateMenuDuration(composition([exercise()]), null, 100, plan([{ blockId: blockA, phase: "DRILLS_STRENGTH", allocatedSeconds: 75 }]));
     expect(result.knownMinimumSeconds).toBe(75);
@@ -65,7 +74,7 @@ describe("menu duration accounting", () => {
   it("uses minimum running target and known rest without claiming a range is exact", () => {
     const result = calculateMenuDuration(composition([{ type: "RUNNING_POLICY", id: itemB, plannedNote: "" }]), run(null, { minSeconds: 15, maxSeconds: 18 }), 200,
       plan([{ blockId: blockA, phase: "RUNNING", allocatedSeconds: 180 }], 20));
-    expect(result.knownMinimumSeconds).toBe(185); // 3 × 15s + 2 × 60s + 20s transition
+    expect(result.knownMinimumSeconds).toBe(165); // Exercise work/rest only: 3 × 15s + 2 × 60s
     expect(result.blocks[0].physicalDurationExact).toBe(false);
     expect(result.unknownComponents.some((row) => row.component === "RUNNING_TARGET_RANGE")).toBe(true);
   });
@@ -107,7 +116,7 @@ describe("menu duration accounting", () => {
     const reps = exercise({ plannedReps: 8, plannedDurationSeconds: null, plannedRestSeconds: 20, plannedSets: 3 });
     const result = calculateMenuDuration(composition([reps]), null, 90,
       plan([{ blockId: blockA, phase: "DRILLS_STRENGTH", allocatedSeconds: null }], 51));
-    expect(result.knownMinimumSeconds).toBe(91); // 2 prescribed rests + explicit transition
+    expect(result.knownMinimumSeconds).toBe(40); // dose minimum excludes the 51s planned transition
     expect(result.status).toBe("OVER_BUDGET");
   });
 
@@ -115,7 +124,7 @@ describe("menu duration accounting", () => {
     const input = composition([exercise()]);
     const before = JSON.stringify(input);
     const result = calculateMenuDuration(input, null, 85,
-      plan([{ blockId: blockA, phase: "DRILLS_STRENGTH", allocatedSeconds: 75 }], 10));
+      { ...plan([{ blockId: blockA, phase: "DRILLS_STRENGTH", allocatedSeconds: 75 }], 10), transitionDescription: "ブロック間の移動" });
     expect(result.status).toBe("MATCHES_REQUEST");
     expect(result.physicalDurationExact).toBe(false);
     expect(JSON.stringify(input)).toBe(before);
@@ -131,5 +140,92 @@ describe("menu duration accounting", () => {
     expect(result.phases.COOL_DOWN.allocatedSeconds).toBe(80);
     expect(durationPlanSchema.safeParse({ blocks: [{ blockId: "", phase: "OTHER", allocatedSeconds: -1 }], transitionSeconds: null }).success).toBe(false);
     expect(durationPlanSchema.safeParse({ blocks: [{ blockId: blockA, phase: "OTHER", allocatedSeconds: 604801 }], transitionSeconds: null }).success).toBe(false);
+  });
+
+  it("accounts for an explicit per-item estimate breakdown without claiming physical duration exactness", () => {
+    const item = exercise({ plannedSets: 1, plannedDurationSeconds: 75, plannedRestSeconds: null });
+    const input = composition([item]);
+    const allocationBasis = { itemEstimatesSeconds: [75], preparationSeconds: 15, explanation: "1回75秒の実施と15秒の準備枠", preparationDescription: "器具を準備", durationBasisKey: durationBasisKey(input.blocks[0], null) };
+    const result = calculateMenuDuration(input, null, 90, plan([{ blockId: blockA, phase: "DRILLS_STRENGTH", allocatedSeconds: 90, allocationBasis }], 0));
+    expect(result).toMatchObject({ knownMinimumSeconds: 75, plannedTotalSeconds: 90, budgetDifferenceSeconds: 0,
+      status: "MATCHES_REQUEST", planningStatus: "ACCOUNTED_FOR", planIssues: [], physicalDurationExact: false });
+  });
+
+  it("shows two 25-minute exercises as 25 planned minutes against 90 requested, not a false 90-minute match", () => {
+    const first = exercise({ plannedSets: 1, plannedDurationSeconds: 750, plannedRestSeconds: null });
+    const second = { ...exercise({ plannedSets: 1, plannedDurationSeconds: 750, plannedRestSeconds: null }), id: itemB };
+    const input = composition([first, second]);
+    const allocationBasis = { itemEstimatesSeconds: [750, 750], preparationSeconds: 0, explanation: "各種目の明示時間", preparationDescription: "", durationBasisKey: durationBasisKey(input.blocks[0], null) };
+    const result = calculateMenuDuration(input, null, 90 * 60, plan([{ blockId: blockA, phase: "DRILLS_STRENGTH", allocatedSeconds: 25 * 60, allocationBasis }], 0));
+    expect(result).toMatchObject({ knownMinimumSeconds: 25 * 60, plannedTotalSeconds: 25 * 60, budgetDifferenceSeconds: -65 * 60,
+      status: "UNDERALLOCATED", planningStatus: "NEEDS_REVIEW" });
+    expect(result.planIssues.some((issue) => issue.code === "TARGET_MISMATCH")).toBe(true);
+  });
+
+  it("requires a non-running item's dose fields even when the arithmetic breakdown is filled", () => {
+    const item = exercise({ plannedSets: null, plannedReps: null, plannedDurationSeconds: null, plannedDistanceMeters: null, plannedRestSeconds: null });
+    const input = composition([item]);
+    const allocationBasis = { itemEstimatesSeconds: [5000], preparationSeconds: 400, explanation: "見積", preparationDescription: "準備枠", durationBasisKey: durationBasisKey(input.blocks[0], null) };
+    const result = calculateMenuDuration(input, null, 90 * 60, plan([{ blockId: blockA, phase: "OTHER", allocatedSeconds: 90 * 60, allocationBasis }], 0));
+    expect(result.status).toBe("MATCHES_REQUEST"); // arithmetic only; UI must consult planningStatus
+    expect(result.planningStatus).toBe("NEEDS_REVIEW");
+    expect(result.planIssues.some((issue) => issue.code === "DOSE_MISSING")).toBe(true);
+  });
+
+  it("invalidates a basis after a dose edit and preserves unknown Running work as a separate unknown", () => {
+    const input = composition([exercise({ plannedSets: 1, plannedDurationSeconds: 30, plannedRestSeconds: null })]);
+    const allocationBasis = { itemEstimatesSeconds: [30], preparationSeconds: 0, explanation: "明示時間", preparationDescription: "", durationBasisKey: durationBasisKey(input.blocks[0], null) };
+    const basisPlan = plan([{ blockId: blockA, phase: "OTHER", allocatedSeconds: 30, allocationBasis }], 0);
+    const changed = composition([exercise({ plannedSets: 2, plannedDurationSeconds: 30, plannedRestSeconds: 15 })]);
+    const stale = calculateMenuDuration(changed, null, 30, basisPlan);
+    expect(stale.planningStatus).toBe("NEEDS_REVIEW");
+    expect(stale.planIssues.some((issue) => issue.code === "STALE_BASIS")).toBe(true);
+
+    const running = composition([{ type: "RUNNING_POLICY", id: itemB, plannedNote: "" }]);
+    const runningInput = { byItemId: { [itemB]: run(null) } };
+    const runningBasis = { itemEstimatesSeconds: [140], preparationSeconds: 460, explanation: "処方休息120秒と走行20秒の計画見積もり。目標タイムではない。", preparationDescription: "準備枠", durationBasisKey: durationBasisKey(running.blocks[0], runningInput) };
+    const accounted = calculateMenuDuration(running, runningInput, 600, plan([{ blockId: blockA, phase: "RUNNING", allocatedSeconds: 600, allocationBasis: runningBasis }], 0));
+    expect(accounted.planningStatus).toBe("ACCOUNTED_FOR");
+    expect(accounted.unknownComponents.some((component) => component.component === "WORK")).toBe(true);
+  });
+
+  it("invalidates instruction/name changes even when numeric doses stay the same", () => {
+    const input = composition([exercise()]);
+    const key = durationBasisKey(input.blocks[0], null);
+    for (const patch of [{ executionInstruction: "左右それぞれ30秒" }, { plannedNote: "休止せず次へ移る" }, { displayName: "別の種目" }]) {
+      expect(durationBasisKey(composition([exercise(patch)]).blocks[0], null)).not.toBe(key);
+    }
+    const renamedIds = composition([{ ...exercise(), id: "persisted-item" }], ["persisted-block"]);
+    expect(durationBasisKey(renamedIds.blocks[0], null)).toBe(key);
+  });
+
+  it("does not count missing work or rest as a complete planning estimate", () => {
+    const input = composition([{ type: "RUNNING_POLICY", id: itemB, plannedNote: "" }]);
+    for (const prescription of [run(null), { ...run(10), repRestSeconds: null }]) {
+      const minimum = prescription.repRestSeconds === null ? 30 : 120;
+      const basis = { itemEstimatesSeconds: [minimum], preparationSeconds: 600 - minimum,
+        explanation: "不足する実施・休息は準備枠で埋められない", preparationDescription: "準備",
+        durationBasisKey: durationBasisKey(input.blocks[0], prescription) };
+      const result = calculateMenuDuration(input, prescription, 600, plan([{ blockId: blockA, phase: "RUNNING", allocatedSeconds: 600, allocationBasis: basis }]));
+      expect(result.planningStatus).toBe("NEEDS_REVIEW");
+      expect(result.planIssues.map(issue => issue.code)).toContain(prescription.repRestSeconds === null ? "DOSE_MISSING" : "WORK_ESTIMATE_MISSING");
+    }
+  });
+
+  it("requires a description for a positive transition estimate", () => {
+    const input = composition([exercise({ plannedSets: 1, plannedDurationSeconds: 30, plannedRestSeconds: null })]);
+    const allocationBasis = { itemEstimatesSeconds: [30], preparationSeconds: 0, explanation: "明示時間", preparationDescription: "", durationBasisKey: durationBasisKey(input.blocks[0], null) };
+    const result = calculateMenuDuration(input, null, null, { blocks: [{ blockId: blockA, phase: "OTHER", allocatedSeconds: 30, allocationBasis }], transitionSeconds: 10 });
+    expect(result.planningStatus).toBe("NEEDS_REVIEW");
+    expect(result.planIssues.some((issue) => issue.code === "TRANSITION_UNSPECIFIED")).toBe(true);
+  });
+
+  it("rejects arithmetic breakdowns that do not sum to the slot or understate an item minimum", () => {
+    const item = exercise({ plannedSets: 1, plannedDurationSeconds: 75, plannedRestSeconds: null });
+    const input = composition([item]);
+    const allocationBasis = { itemEstimatesSeconds: [60], preparationSeconds: 10, explanation: "見積", preparationDescription: "準備", durationBasisKey: durationBasisKey(input.blocks[0], null) };
+    const result = calculateMenuDuration(input, null, 70, plan([{ blockId: blockA, phase: "OTHER", allocatedSeconds: 80, allocationBasis }], 0));
+    expect(result.planIssues.map((issue) => issue.code)).toEqual(expect.arrayContaining(["BELOW_MINIMUM", "BREAKDOWN_MISMATCH"]));
+    expect(result.planningStatus).toBe("NEEDS_REVIEW");
   });
 });

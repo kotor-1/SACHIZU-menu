@@ -1,0 +1,90 @@
+{
+  "overview": {
+    "title": "100mに向けた動きづくりと走練習",
+    "objective": "100mの試合に向け、登録済みの動きづくり・体幹項目と、既存の走処方を組み合わせます。",
+    "approach": "疲労をためたいという希望と疲労度の申告は確認していますが、走の数値には反映していません。走は登録済み処方を参照し、それ以外はカタログの種目で構成します。希望時間は90分ですが、実施時間が不明な項目を使って埋めることはせず、配分は未確定とします。"
+  },
+  "transitionSeconds": null,
+  "transitionDescription": "ブロック間の移動・準備時間を合理的に見積もる情報がないため、未設定です。",
+  "blocks": [
+    {
+      "name": "動きづくり",
+      "phase": "WARM_UP",
+      "allocatedSeconds": null,
+      "allocationBasis": null,
+      "items": [
+        {
+          "type": "CATALOG_EXERCISE",
+          "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+          "displayName": "ニーアップウォーク",
+          "executionInstruction": "直立姿勢を保って歩き、一歩ごとに膝を骨盤の高さまで引き上げます。体幹を安定させ、つま先をやや上に向けます。",
+          "plannedNote": "距離・回数は未設定です。実施量は必要に応じて編集してください。",
+          "reason": "スプリント種目に関連する歩行形式の基礎ドリルです。",
+          "plannedSets": null,
+          "plannedReps": null,
+          "plannedDurationSeconds": null,
+          "plannedDistanceMeters": null,
+          "plannedRestSeconds": null
+        },
+        {
+          "type": "CATALOG_EXERCISE",
+          "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+          "displayName": "もも上げ叩きつけ（スイングダウンドリル）",
+          "executionInstruction": "その場で片脚の膝を股関節の高さまで引き上げ、体の真下近くへ素早く振り下ろして接地します。腕振りを脚の動きに合わせます。",
+          "plannedNote": "回数・セット数は未設定です。実施量は必要に応じて編集してください。",
+          "reason": "登録説明に沿ったスプリント動作のドリルです。",
+          "plannedSets": null,
+          "plannedReps": null,
+          "plannedDurationSeconds": null,
+          "plannedDistanceMeters": null,
+          "plannedRestSeconds": null
+        },
+        {
+          "type": "CATALOG_EXERCISE",
+          "exerciseId": "cmtrdeh840017itxbb6b5pqq4",
+          "displayName": "仰向けハンドプレス（腹圧・腰椎圧迫キープ）",
+          "executionInstruction": "仰向けになり、腰と床の間の手を腰で押さえるように腹圧を保ちます。息を止めず、脚と首・肩はリラックスさせます。",
+          "plannedNote": "保持時間・セット数は未設定です。実施量は必要に応じて編集してください。",
+          "reason": "登録説明に沿った姿勢・腹圧のドリルです。",
+          "plannedSets": null,
+          "plannedReps": null,
+          "plannedDurationSeconds": null,
+          "plannedDistanceMeters": null,
+          "plannedRestSeconds": null
+        }
+      ]
+    },
+    {
+      "name": "走練習",
+      "phase": "RUNNING",
+      "allocatedSeconds": null,
+      "allocationBasis": null,
+      "items": [
+        {
+          "type": "RUNNING_POLICY"
+        }
+      ]
+    },
+    {
+      "name": "体幹",
+      "phase": "DRILLS_STRENGTH",
+      "allocatedSeconds": null,
+      "allocationBasis": null,
+      "items": [
+        {
+          "type": "CATALOG_EXERCISE",
+          "exerciseId": "cmtrdzqhe001aitxbgnaelg5i",
+          "displayName": "ニー・トゥ・エルボー（対角膝肘引きつけ）",
+          "executionInstruction": "仰向けで、片膝を引き寄せながら対角側の肘を近づけ、脚と上体を戻します。片側10回を終えてから反対側10回を行い、左右交互にはしません。1回は片側の引き寄せて戻す1周期です。腰を反らさず、反動を使わずに行います。",
+          "plannedNote": "コーチ確認済みの順序と回数を維持しています。",
+          "reason": "登録済みのコーチ確認済みガイダンスに従います。",
+          "plannedSets": 1,
+          "plannedReps": 10,
+          "plannedDurationSeconds": null,
+          "plannedDistanceMeters": null,
+          "plannedRestSeconds": null
+        }
+      ]
+    }
+  ]
+}

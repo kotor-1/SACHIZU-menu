@@ -7,7 +7,7 @@ import { renderMarkup, stripTags } from "../presentation/running/helpers";
 describe("menu science context entry", () => {
   it("offers optional explicit context without inferring maturity from age or school grade", () => {
     const text = stripTags(renderMarkup(FreeformMenuComposer, { exercises: [] }));
-    expect(text).toContain("走の補足情報（任意・わかる範囲）");
+    expect(text).toContain("走の補足情報（わかる範囲で任意）");
     expect(text).toContain("学年や年齢から成熟度・経験を推定しません");
     expect(text).toContain("初心者");
     expect(text).toContain("成熟度（自己申告・任意）");

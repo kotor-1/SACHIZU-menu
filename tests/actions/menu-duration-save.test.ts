@@ -10,6 +10,8 @@ import { prisma } from "@/infra/db/prisma";
 import { findMenu } from "@/infra/repositories/menu-repository";
 import { compositionRequest, freeformPlan, interpretedFixture, runningPlan, COMPOSITION_TEST_KEY } from "../fixtures/menu-composition";
 import { issueRunningMenuPreviewToken } from "@/infra/running-menu/preview-token";
+import { verifyMenuCompositionToken } from "@/infra/menu-composition/preview-token";
+import { parseConfirmedCompositionContext } from "@/domain/menu-composition/saved-context";
 import { resetDb } from "../helpers";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -32,6 +34,72 @@ function planFor(blockIds: string[], allocation: number, transitionSeconds = 0):
 }
 
 describe("menu duration plan persistence", () => {
+  it("generates, signs, saves, and reloads overview, athlete label, and Engine-bounded duration allocations", async () => {
+    const overview = { title: "100m 基礎練習", objective: "走りの土台づくり", approach: "希望した動きと走を組み合わせます" };
+    const result = await generateComposedMenu({ requestText: compositionRequest,
+      context: { ageGroup: "JUNIOR_HIGH", event: "200m", availableTimeSeconds: 1200 } }, {
+      ownerId: DEFAULT_OWNER_ID, signingKey: COMPOSITION_TEST_KEY,
+      catalog: () => listComposerCatalog(DEFAULT_OWNER_ID), interpret: async () => interpretedFixture(false),
+      compose: async () => ({ ok: true, value: { overview, transitionSeconds: 30, blocks: [{ name: "動きづくり",
+        phase: "DRILLS_STRENGTH", allocatedSeconds: 60,
+        items: [freeformPlan({ plannedReps: null, plannedDurationSeconds: 30, plannedRestSeconds: 45 })] }] } }),
+    });
+    if (!result.ok) throw new Error(result.code);
+    const preview = result.preview;
+    const claims = verifyMenuCompositionToken(preview.previewToken, COMPOSITION_TEST_KEY);
+    expect(preview.overview).toEqual(overview);
+    expect(preview.athleteLabel).toBe("中学生・200m");
+    expect(preview.durationPlan?.blocks).toHaveLength(preview.composition.blocks.length);
+    expect(preview.durationPlan?.blocks[0]).toMatchObject({ blockId: preview.composition.blocks[0].id,
+      phase: "DRILLS_STRENGTH", allocatedSeconds: 120 }); // known 105s work/rest minimum rounded up to a minute
+    expect(claims).toMatchObject({ overview, athleteLabel: "中学生・200m", requestedTimeSeconds: 1200 });
+    expect(claims?.proposal.blocks.map(block => block.id)).toEqual(preview.composition.blocks.map(block => block.id));
+
+    const saved = await saveComposedMenu({ previewToken: preview.previewToken, menuName: "メタデータ保存確認",
+      composition: preview.composition, durationPlan: preview.durationPlan, runningPrescription: preview.runningPrescription });
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+    const reloaded = await findMenu(saved.menuId);
+    expect(reloaded).not.toBeNull();
+    const context = parseConfirmedCompositionContext(reloaded!.runningContextJson);
+    expect(context).toMatchObject({ overview, athleteLabel: "中学生・200m", requestedTimeSeconds: 1200,
+      durationPlan: { transitionSeconds: 30 } });
+    expect(context?.durationPlan?.blocks).toEqual([{ ...preview.durationPlan!.blocks[0], blockId: reloaded!.blocks[0].id }]);
+    expect(reloaded!.blocks).toHaveLength(1);
+  });
+
+  it("keeps estimate basis through save/reload and marks it stale when item doses change", async () => {
+    const result = await generateComposedMenu({ requestText: compositionRequest, context: { availableTimeSeconds: 180 } }, {
+      ownerId: DEFAULT_OWNER_ID, signingKey: COMPOSITION_TEST_KEY,
+      catalog: () => listComposerCatalog(DEFAULT_OWNER_ID), interpret: async () => interpretedFixture(false),
+      compose: async () => ({ ok: true, value: { transitionSeconds: 30, transitionDescription: "場所の移動と準備30秒の計画", blocks: [{
+        name: "動きづくり", phase: "DRILLS_STRENGTH", allocatedSeconds: 150,
+        allocationBasis: { itemEstimatesSeconds: [120], preparationSeconds: 30,
+          explanation: "30秒を2セット、間の休息60秒で120秒。開始前の準備30秒。",
+          preparationDescription: "開始前の場所確認30秒" },
+        items: [freeformPlan({ plannedSets: 2, plannedReps: null, plannedDurationSeconds: 30, plannedRestSeconds: 60 })],
+      }] } }),
+    });
+    if (!result.ok) throw new Error(result.code);
+    const preview = result.preview;
+    expect(calculateMenuDuration(preview.composition, null, 180, preview.durationPlan).planningStatus).toBe("ACCOUNTED_FOR");
+    const saved = await saveComposedMenu({ previewToken: preview.previewToken, menuName: "配分根拠の保存",
+      composition: preview.composition, durationPlan: preview.durationPlan, runningPrescription: null });
+    if (!saved.ok) throw new Error(saved.code);
+    const reload = (await findMenu(saved.menuId))!;
+    const input = savedMenuDurationInput(reload)!;
+    expect(input.plan.transitionDescription).toBe("場所の移動と準備30秒の計画");
+    expect(input.plan.blocks[0].allocationBasis).toEqual(preview.durationPlan!.blocks[0].allocationBasis);
+    expect(calculateMenuDuration(input.composition, input.running, 180, input.plan).planningStatus).toBe("ACCOUNTED_FOR");
+    await prisma.menuItem.update({ where: { id: reload.blocks[0].items[0].id }, data: { durationSeconds: 40 } });
+    const changed = savedMenuDurationInput((await findMenu(saved.menuId))!)!;
+    expect(calculateMenuDuration(changed.composition, changed.running, 180, changed.plan).planningStatus).toBe("NEEDS_REVIEW");
+    await prisma.menuItem.update({ where: { id: reload.blocks[0].items[0].id }, data: { durationSeconds: 30, note: "片側30秒ずつ保持する" } });
+    const changedText = savedMenuDurationInput((await findMenu(saved.menuId))!)!;
+    expect(calculateMenuDuration(changedText.composition, changedText.running, 180, changedText.plan).planIssues)
+      .toContainEqual(expect.objectContaining({ code: "STALE_BASIS" }));
+  });
+
   it("saves the manual allocation against persisted block IDs and reloads its summary", async () => {
     const { createManualComposedMenuAction } = await import("@/actions/menu-composition-actions");
     const manual = await createManualComposedMenuAction({ availableTimeSeconds: 1200 });
