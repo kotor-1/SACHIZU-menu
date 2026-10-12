@@ -15,8 +15,11 @@ describe("selection Composer transport (mock only)", () => {
   it("encodes real minimum output counts, separate ID allowlists, no running or duration fields", async () => {
     const input = await inputFixture(); const schema = trainingComposerJsonSchema(input);
     const props = schema.properties as Record<string, { minItems: number; items: { properties: { item: { properties: { exerciseId: { enum: string[] } } } } } }>;
-    expect(props.movement.minItems).toBe(10);
-    expect(props.strength.minItems).toBeGreaterThanOrEqual(2);
+    expect(props.movement.minItems).toBe(input.requestedMovement);
+    expect(input.requestedMovement).toBe(input.requiredMovement + 2);
+    expect(input.requiredMovement).toBe(10);
+    expect(props.strength.minItems).toBe(input.requestedStrength);
+    expect(props.strength.minItems).toBeGreaterThanOrEqual(3);
     expect(props.movement.items.properties.item.properties.exerciseId.enum).toEqual(input.movement.map(x => x.id));
     expect(JSON.stringify(schema)).not.toMatch(/RUNNING_POLICY|availableTime|allocatedSeconds|transitionSeconds/);
   });

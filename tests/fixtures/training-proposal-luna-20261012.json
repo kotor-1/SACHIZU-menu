@@ -1,0 +1,1539 @@
+{
+ "provenance": "Real gpt-6-luna structured outputs from 2026-10-12 (effort low, one send per case, no retry, 6 requests total). Outputs are unmodified.",
+ "requests": [
+  {
+   "run": 1,
+   "case": "A",
+   "requestId": "req_3626ce9f1db74ffcadf2c2841433a1bf",
+   "model": "gpt-6-luna",
+   "usage": {
+    "input_tokens": 33073,
+    "output_tokens": 3564
+   },
+   "responseBodySha256": "3f2f19831d11a87dcce7a262f11e243cea6b4010f4a8c00eedbecc98438745e0",
+   "codeAtRun": "code b1c893d; Composer asked for >=10 movement / >=3 strength",
+   "gateAtRun": {
+    "ok": true,
+    "issues": []
+   },
+   "output": {
+    "movement": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrfsmpu004hitxbq925fzwr",
+       "displayName": "ウォーキングランジ＆体幹側屈",
+       "executionInstruction": "左右交互に踏み出し、前脚の足裏全体で支えて腰を沈めます。後脚側の腕を頭上へ伸ばし、骨盤を正面に保ったまま前脚側へ体側を倒し、軸を崩さず立ち上がります。",
+       "plannedNote": "仮提案の回数。左右交互の合計回数。",
+       "reason": "股関節前面と体側を動かし、加速動作に必要な姿勢づくりにつなげるため。",
+       "plannedSets": 1,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 20
+      },
+      "intensity": "反動を使わず、左右とも安定した可動域で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtslvmvi00p4itxbwlt7f59v",
+       "displayName": "下向き胸椎回旋",
+       "executionInstruction": "四つ這いで片手を頭の後ろに添え、骨盤を動かさずに肘を上へ開き、続けて下・内側へ潜らせます。左右を交互に行います。",
+       "plannedNote": "仮提案の回数。左右合計で数える。",
+       "reason": "胸椎の回旋と体幹の操作性を整え、腕振りを含むスプリント姿勢の準備をするため。",
+       "plannedSets": 1,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 15
+      },
+      "intensity": "痛みのない範囲でゆっくり行い、腰や骨盤の回旋で代償しない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+       "displayName": "リバースランジ",
+       "executionInstruction": "片脚を後方へ引いて腰を真下に落とし、前脚で地面を押して立ち上がりながら後脚の膝を引き上げます。左右交互に、軸脚を伸ばして一瞬安定させます。",
+       "plannedNote": "仮提案の回数。左右交互の合計回数。",
+       "reason": "加速に関わる片脚支持、地面を押す動作、膝の引き上げを連動させるため。",
+       "plannedSets": 1,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 20
+      },
+      "intensity": "速さより姿勢の安定を優先し、膝が内側に入る場合は動作を小さくする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+       "displayName": "引きつけ軌道確認",
+       "executionInstruction": "ほぼその場で立ち、片脚を接地したまま反対膝を高く引き上げて足を体の下へ引きつけます。上体を直立に保ち、左右交互に行います。",
+       "plannedNote": "仮提案の回数。左右交互の合計回数。",
+       "reason": "走動作へ進む前に、膝の引き上げと足を体の下へ収める軌道を確認するため。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 15
+      },
+      "intensity": "小さく正確な動作で行い、上体や骨盤が揺れない範囲にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrfaiqw0035itxbh243bij0",
+       "displayName": "アウトエッジウォーク",
+       "executionInstruction": "足の外側以外を地面につけないようにしながら、骨盤を高く保って歩きます。肩の力を抜き、姿勢が崩れない範囲で前進します。",
+       "plannedNote": "距離は仮提案。直線距離の上限内で実施する。",
+       "reason": "足部・足首の支持と高い姿勢を意識し、加速時の接地準備をするため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 20
+      },
+      "intensity": "急がず、足の内側が落ちたり重心が低くなったりしない速さで行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+       "displayName": "引きつけウォーク",
+       "executionInstruction": "歩行のペースで前進し、一歩ごとに膝を引き上げて足を体の下へ収めます。上体をまっすぐ保ち、腕振りと脚の切り替えを合わせます。",
+       "plannedNote": "距離は仮提案。直線距離の上限内で実施する。",
+       "reason": "歩行から基本スプリント動作へつなぎ、股関節から脚を引きつける感覚を整えるため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 15,
+       "plannedRestSeconds": 20
+      },
+      "intensity": "歩行の範囲で、動作の正確さを保てる速度にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9xts600hiitxbm5eqci4l",
+       "displayName": "ウォーキングランジ＆ニーリフト",
+       "executionInstruction": "前方へ踏み出して腰を沈め、前脚で押して立ち上がると同時に後脚の膝を前上方へ引き上げます。左右交互に進みます。",
+       "plannedNote": "仮提案の回数。左右交互の合計回数。",
+       "reason": "片脚で押す動作と反対脚の引き上げを結びつけ、加速の基本動作を準備するため。",
+       "plannedSets": 1,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 20
+      },
+      "intensity": "踏み込みと立ち上がりを制御し、バランスを保てる範囲で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9emko00eritxbpue4p6yc",
+       "displayName": "ギャロップ（片脚リード走）",
+       "executionInstruction": "骨盤を高く保ち、前足と後ろ足が別々に接地する「タ・タン」のリズムで進みます。左右のリード脚を入れ替えて行います。",
+       "plannedNote": "距離は仮提案。疾走ではなく、登録動作のリズム練習として行う。",
+       "reason": "加速に役立つ接地リズムと脚の切り返しを、基本動作から発展させて練習するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 15,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "跳ね上がりや速さを追わず、接地が別々になるリズムと姿勢を優先する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsfthqf00l1itxb382v0qwb",
+       "displayName": "ケンパー引きつけ",
+       "executionInstruction": "片脚の前足部で小さく弾みながら反対膝を引きつけ、その後両脚をそろえて着地します。この順序を一定のリズムで繰り返し、左右を交互に使います。",
+       "plannedNote": "距離は仮提案。跳躍の高さを抑えて行う。",
+       "reason": "脚の引きつけと接地リズムを結びつけ、加速の動きへ段階的につなげるため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "小さな弾みで接地を短く保つ。フォームが崩れたら中断する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+       "displayName": "もも上げ叩きつけ（スイングダウンドリル）",
+       "executionInstruction": "その場で片膝を股関節の高さまで引き上げ、脚を体の真下近くへ素早く振り下ろして接地します。軸を保って左右交互に行います。",
+       "plannedNote": "仮提案の回数。左右交互の合計回数。",
+       "reason": "基本動作で整えた膝の引き上げを、加速に関わる素早い引き戻しと接地へつなげるため。",
+       "plannedSets": 1,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "強く踏みつけることを目的にせず、体の真下で静かに制御できる範囲で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     }
+    ],
+    "strength": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9zlog00i8itxbum6q0o1r",
+       "displayName": "シングルレッグデッドリフト（自重）",
+       "executionInstruction": "片脚で立ち、軸足の膝を軽く緩めます。股関節から上体を前傾させながら反対脚を後方へ伸ばし、骨盤を水平に保って戻ります。左右交互に行います。",
+       "plannedNote": "仮提案の回数。左右交互の合計回数。",
+       "reason": "片脚支持で臀部・ハムストリングスと姿勢保持を補い、加速時の支持脚の安定につなげるため。",
+       "plannedSets": 2,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "自重でゆっくり制御し、骨盤や足首が大きくぶれる前に可動域を止める。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrg8ip20056itxbl2ouptrx",
+       "displayName": "自重スクワット（手腰スクワット・基礎下肢強化）",
+       "executionInstruction": "足を肩幅程度に開き、背筋を保って股関節を後ろへ引きながら腰を下ろします。膝をつま先の方向へ向け、足裏全体で地面を押して立ち上がります。",
+       "plannedNote": "仮提案の回数。",
+       "reason": "下肢の基礎筋力と地面を押す動作を補強し、加速の推進力づくりを支えるため。",
+       "plannedSets": 2,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "自重で余裕を残し、膝の向きと体幹の姿勢を保てる深さで行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrg7td1004sitxb7b7nogtb",
+       "displayName": "スタンディング・アウトエッジカーフレイズ（両足）",
+       "executionInstruction": "両足を腰幅に開いて立ち、膝を伸ばしたまま踵を上げます。足の外側に荷重した状態を保ちながら、踵をゆっくり下ろします。",
+       "plannedNote": "仮提案の回数。",
+       "reason": "足首まわりの筋力と接地時の支持を補い、加速時の地面への力伝達を支えるため。",
+       "plannedSets": 2,
+       "plannedReps": 10,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "反動を使わず、足首を外側へ傾ける際も痛みのない範囲で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     }
+    ],
+    "explanation": "主目的の加速に合わせ、動きづくりは可動域・姿勢支持から接地への接続まで段階的に構成しました。補強は器具を使わず、片脚支持、下肢の基礎筋力、足首の支持を補う候補です。候補はすべて実施する義務ではなく、状態や指導者の判断に合わせて採用してください。",
+    "uncertainty": "登録済みの標準量がない種目は、編集可能な仮量として提示しています。特に跳躍を含む候補は、当日の動作品質や指導者の確認に応じて省略・調整してください。"
+   }
+  },
+  {
+   "run": 1,
+   "case": "B",
+   "requestId": "req_a214e1405c6047449b44f9b24ce5e6aa",
+   "model": "gpt-6-luna",
+   "usage": {
+    "input_tokens": 31879,
+    "output_tokens": 3881
+   },
+   "responseBodySha256": "024e309358229275431b64c4903fd682b6c9e864554bd5bf00d5cbbc3e59d00c",
+   "codeAtRun": "code b1c893d; Composer asked for >=10 movement / >=3 strength",
+   "gateAtRun": {
+    "ok": true,
+    "issues": []
+   },
+   "output": {
+    "movement": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtswlv3i00vuitxbkunlwymd",
+       "displayName": "前向きに進みながらの股関節回し（外から内）",
+       "executionInstruction": "膝を腰の高さ付近まで持ち上げ、股関節から外側→前方へゆっくり回して歩きます。上体を傾けず、左右交互に進んでください。",
+       "plannedNote": "仮提案の距離です。動作を保てる範囲で行い、30m以内で折り返しはしません。",
+       "reason": "股関節を動かしやすくし、加速に必要な脚の前方への運びを準備するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 20,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "反動を使わず、左右で同じ可動域を保てるゆっくりした歩行ペース。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmttg5xyy00wkitxbl5mkf9ds",
+       "displayName": "インチワーム（手足歩き）",
+       "executionInstruction": "立位から前屈して手を地面につき、膝を伸ばしたまま手を前へ歩かせます。体を伸ばした姿勢から足を手元へ歩かせ、腰を高く戻しながら前進します。",
+       "plannedNote": "仮提案の距離です。動作を丁寧に行い、30m以内で実施します。",
+       "reason": "体幹と肩まわりを支えながら動かし、走動作へ入る前の身体操作を整えるため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "急がず、腰が反らない範囲で姿勢を制御します。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+       "displayName": "引きつけ軌道確認",
+       "executionInstruction": "ほぼその場で直立し、片脚を接地させたまま反対膝を高く引き上げ、足を体の下へ引きつけて戻します。左右を交互に行います。",
+       "plannedNote": "仮提案の回数です。左右交互の合計回数として数えます。",
+       "reason": "膝を引き上げて足を身体の下へ戻す軌道を確認し、加速時の脚の切り替えにつなげるため。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "その場で姿勢を崩さず、速さよりも膝と足の軌道を正確にします。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+       "displayName": "リバースランジ",
+       "executionInstruction": "片脚を後方へ引いて腰を落とし、前脚で地面を押して立ち上がりながら後脚の膝を前上方へ引き上げます。左右交互に行います。",
+       "plannedNote": "仮提案の回数です。左右交互の合計回数として数えます。",
+       "reason": "支持脚で押す動作と反対脚の引き上げを組み合わせ、加速に関わる股関節の伸展・屈曲と姿勢制御を準備するため。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "深さは姿勢を保てる範囲にとどめ、膝が内側に入らないよう制御します。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrfaiqw0035itxbh243bij0",
+       "displayName": "アウトエッジウォーク",
+       "executionInstruction": "足の外側で地面を捉えて歩きます。足の内側を地面につけず、骨盤を高く保ち、肩の力を抜いてください。",
+       "plannedNote": "仮提案の距離です。30m以内で、フォームを崩さずに行います。",
+       "reason": "足部・足首の支持と姿勢を整え、接地時の安定性を準備するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "ゆっくりした歩行で、足の内側が落ちない範囲に制御します。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9xts600hiitxbm5eqci4l",
+       "displayName": "ウォーキングランジ＆ニーリフト",
+       "executionInstruction": "前方へ一歩踏み込んでランジ姿勢をとり、前脚で押して立ち上がりながら後脚の膝を前上方へ引き上げます。左右交互にその場で動作します。",
+       "plannedNote": "仮提案の回数です。左右交互の合計回数として数えます。",
+       "reason": "片脚で地面を押す動作と反対脚の引き上げを連動させ、加速の基本動作へつなげるため。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "反動を抑え、骨盤と上体を安定させられる範囲で行います。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtskouev00n5itxb30yad4kn",
+       "displayName": "片足もも上げ（片脚ニーアップ）",
+       "executionInstruction": "前進しながら指定側の膝を腰の高さまで引き上げ、足首を背屈させて切り返します。説明どおり同側のニーアップを繰り返し、反対側も同様に行います。",
+       "plannedNote": "仮提案の距離です。片側ずつ、各10m以内で行います。",
+       "reason": "膝の引き上げと支持脚の接地リズムを意識し、加速に必要な脚の切り替えを準備するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "歩行から軽い動作の範囲で、骨盤が落ちず足首の背屈を保てる速さにします。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9emko00eritxbpue4p6yc",
+       "displayName": "ギャロップ（片脚リード走）",
+       "executionInstruction": "骨盤を高く保ち、リード脚の接地直後に後ろ足を接地させる「タ・タン」のリズムで進みます。片側ずつ短い距離で行います。",
+       "plannedNote": "仮提案の距離です。登録の30mより短く、左右各10mで行います。",
+       "reason": "非対称な接地リズムと素早い切り返しを整え、加速時のリズムづくりにつなげるため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 20,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "跳ね上がりすぎず、接地のリズムと体幹の安定を保てる範囲で行います。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmu167it7000zit6kz5xtwv9n",
+       "displayName": "片脚強調スキップ走（3歩ハイニースキップ）",
+       "executionInstruction": "3歩のリズムで進み、踏切脚で地面を押しながら反対膝を引き上げます。左右の脚を交互に強調し、体幹をまっすぐ保ちます。",
+       "plannedNote": "仮提案の距離です。登録量ではなく、左右の動作を確認できる距離として合計20mに設定しています。",
+       "reason": "踏切と膝の引き上げをリズムよく連動させ、加速に向けた地面への力の伝え方を整えるため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 20,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "高く跳ぶことよりも、短く安定した接地と左右均等な動作を優先します。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+       "displayName": "もも上げ叩きつけ（スイングダウンドリル）",
+       "executionInstruction": "その場で片膝を股関節の高さまで上げ、脚を素早く振り下ろして身体の真下近くで接地します。左右を交互に行います。",
+       "plannedNote": "仮提案の回数です。左右交互の合計回数として数えます。",
+       "reason": "脚の引き上げから接地までの切り返しを確認し、加速動作の接地準備を行うため。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "その場で姿勢を保ち、強く踏みつけるのではなく素早く制御して接地します。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsks8n100nwitxbflz1ro3m",
+       "displayName": "手腰挟み込み1回入れ替え",
+       "executionInstruction": "両手を腰に当て、片膝を引き上げた姿勢から軸脚で小さく弾み、空中で脚を一度入れ替えます。その場で左右交互に行います。",
+       "plannedNote": "仮提案の回数です。左右交互の合計回数として数えます。",
+       "reason": "姿勢を保ちながら脚を入れ替える動作を練習し、加速に必要な切り替えの協調性を整えるため。",
+       "plannedSets": 1,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "小さな跳躍で、着地時に腰が落ちず膝の高さを保てる範囲にします。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     }
+    ],
+    "strength": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrg8ip20056itxbl2ouptrx",
+       "displayName": "自重スクワット（手腰スクワット・基礎下肢強化）",
+       "executionInstruction": "足を肩幅程度に開き、手を腰に当てます。背筋を保って股関節を後ろへ引きながら腰を落とし、足裏全体で地面を押して立ち上がります。",
+       "plannedNote": "仮提案の量です。自重でフォームを確かめる範囲に設定しています。",
+       "reason": "下肢の基礎的な筋力と、足裏全体で地面を押す動作を補強するため。",
+       "plannedSets": 2,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "余裕を残し、膝が内側に入らず姿勢を保てる自重負荷で行います。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtstnvsh00thitxbaoib3s49",
+       "displayName": "ルーマニアンデッドリフト",
+       "executionInstruction": "膝を軽く緩め、両手を腰の後ろに添えます。背中を保ったまま股関節から上体を前へ倒し、お尻を後ろへ引いてから股関節を伸ばして戻ります。",
+       "plannedNote": "仮提案の量です。器具を使わず、動作を習得する範囲に設定しています。",
+       "reason": "臀部・腿裏の股関節伸展を補強し、加速時の押し出しに関わる後面の筋群を整えるため。",
+       "plannedSets": 2,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "反動を使わず、背中を丸めない可動域で自重により行います。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrg7td1004sitxb7b7nogtb",
+       "displayName": "スタンディング・アウトエッジカーフレイズ（両足）",
+       "executionInstruction": "直立して膝を伸ばしたまま踵を持ち上げます。足の外側に荷重する意識を保ち、踵をゆっくり下ろします。",
+       "plannedNote": "仮提案の量です。痛みがなく、足首の向きを制御できる範囲で行います。",
+       "reason": "足首まわりの支持力と接地時の安定性を補強するため。",
+       "plannedSets": 2,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "踵を勢いよく落とさず、足首が内側へ崩れない範囲に制御します。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     }
+    ],
+    "explanation": "主目的の加速に合わせ、動きづくりは可動性・姿勢と脚の操作から始め、リズム接地、疾走動作への接続へ段階的に構成しました。補強は器具なしで実施できる下肢・股関節・足首の基礎種目を選んでいます。走種目や走処方は含めていません。候補はすべて実施必須ではなく、状態に合わせて採用するものを選んでください。",
+    "uncertainty": "登録量がない動きは編集可能な仮量として提案しています。ギャロップや片脚強調スキップなどの跳躍を伴う動作は、土の路面が滑らかであることを確認し、フォームが保てない場合は採用しないでください。"
+   }
+  },
+  {
+   "run": 1,
+   "case": "F",
+   "requestId": "req_73e6383a341f423cb1b6c20ad0348aad",
+   "model": "gpt-6-luna",
+   "usage": {
+    "input_tokens": 14574,
+    "output_tokens": 2577
+   },
+   "responseBodySha256": "42bcc3528e03c40d929eaebd79ace33ee34504298b1c565d220fc20b4a236cd7",
+   "codeAtRun": "code b1c893d; Composer asked for >=10 movement / >=3 strength",
+   "gateAtRun": {
+    "ok": false,
+    "issues": [
+     "MOVEMENT_PROPOSALS_MISSING"
+    ]
+   },
+   "output": {
+    "movement": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+       "displayName": "引きつけウォーク",
+       "executionInstruction": "上体をまっすぐ保ち、膝を高く引き上げて足を体の真下へ引きつけながら、左右交互に歩いて前進する。",
+       "plannedNote": "仮提案の距離。左右交互に歩く距離として実施する。",
+       "reason": "引きつけ動作と姿勢を穏やかに確認するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "歩行ペースで、姿勢と引きつけを崩さず行える範囲。速さや力強さは求めない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsey9cb00kmitxbifzkt1u5",
+       "displayName": "引きつけウォーク",
+       "executionInstruction": "常に片脚を接地させ、上体をほぼ直立に保つ。左右交互に膝を高く引き上げ、歩行のペースで前進する。",
+       "plannedNote": "仮提案の距離。片脚接地を保つ動作で実施する。",
+       "reason": "接地を保ったままの引きつけと姿勢制御を確認するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "ゆっくりした歩行ペース。バランスと姿勢を制御できる範囲で行う。",
+      "relationship": "ALTERNATIVE",
+      "alternativeGroup": "引きつけウォーク"
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtswcp0h00voitxbo9n8558g",
+       "displayName": "後ろ向きに進みながらの股関節回し（内から外）",
+       "executionInstruction": "後ろ向きに小さく進みながら、片膝を持ち上げて外側へ開き、下ろして接地する。左右交互に行い、進行方向を確認して安全に実施する。",
+       "plannedNote": "仮提案の距離。後ろ向き動作のため、周囲を確認してゆっくり行う。",
+       "reason": "股関節の動きを穏やかに確認するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "反動を使わず、バランスを保てる小さな可動域と速度で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtswlv3i00vuitxbkunlwymd",
+       "displayName": "前向きに進みながらの股関節回し（外から内）",
+       "executionInstruction": "前向きに歩きながら、片膝を外側へ持ち上げて体の前へ回し、接地する。左右交互に行い、上体を傾けない。",
+       "plannedNote": "仮提案の距離。歩行の範囲でゆっくり実施する。",
+       "reason": "股関節の可動域と姿勢を無理なく確認するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "歩行ペースで、上体の傾きや反動が出ない範囲。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtslvmvi00p4itxbwlt7f59v",
+       "displayName": "下向き胸椎回旋",
+       "executionInstruction": "四つ這いで片手を頭の後ろに添える。肘をゆっくり上へ開き、次に下・内側へ通す。骨盤を動かさず、左右交互に行う。",
+       "plannedNote": "仮提案の回数。左右合計で数える。",
+       "reason": "胸椎の回旋を反動なく確認するため。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "呼吸を止めず、痛みのない範囲でゆっくり行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtso0lp400pxitxb2r9fcfpl",
+       "displayName": "キャット&ドッグ",
+       "executionInstruction": "四つ這いの姿勢を保ち、背中を丸めて頭を下げる動きと、背中を反らせて頭を上げる動きをゆっくり交互に行う。",
+       "plannedNote": "仮提案の回数。丸める・反らせる一往復を1回として数える。",
+       "reason": "背骨を穏やかに動かし、動きづくりを行うため。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "反動を使わず、背中全体を無理なく動かせる範囲。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmttg5xyy00wkitxbl5mkf9ds",
+       "displayName": "インチワーム（手足歩き）",
+       "executionInstruction": "立位から前屈して手を前へ歩かせ、体を伸ばす。続けて足を手の方へ歩かせて戻る。姿勢を保てる範囲で前進する。",
+       "plannedNote": "仮提案の距離。手歩きと足歩きを交互に繰り返す。",
+       "reason": "全身の可動域を穏やかに確認するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "ゆっくり行い、腰が反る・膝が大きく曲がるなど姿勢が崩れる前に止める。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+       "displayName": "引きつけ軌道確認",
+       "executionInstruction": "その場に近い位置で片脚を接地し、反対の膝を高く引き上げて足を体の下へ引きつける。左右交互に、上体を直立させて行う。",
+       "plannedNote": "仮提案の回数。左右合計で数える。",
+       "reason": "移動せずに引きつけの軌道と姿勢を確認するため。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "動作を制御できるゆっくりしたペース。高さより姿勢の安定を優先する。",
+      "relationship": "ALTERNATIVE",
+      "alternativeGroup": "引きつけ動作の確認"
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+       "displayName": "リバースランジ",
+       "executionInstruction": "片脚を後ろへ引いて腰を真下に落とし、前脚で押して立ち上がる。同時に後脚を前へ引き上げ、安定してから次の反復に移る。左右交互に行う。",
+       "plannedNote": "仮提案の回数。左右合計で数える。競技前日のため深く沈み込まず、軽く行う。",
+       "reason": "姿勢と脚の切り替えを軽負荷で確認するため。",
+       "plannedSets": 1,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "自重のみで、滑らかに立ち上がれる浅めの範囲。力強さや疲労を求めない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+       "displayName": "ニーアップウォーク",
+       "executionInstruction": "直立姿勢で歩き、一歩ごとに膝を骨盤の高さまで引き上げる。つま先を軽く上げ、左右交互に進む。",
+       "plannedNote": "仮提案の距離。歩行で実施し、急がない。",
+       "reason": "姿勢と脚の引き上げを低負荷で確認するため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "歩行ペース。膝の高さや歩幅を無理に大きくせず、体幹を安定させる。",
+      "relationship": "ALTERNATIVE",
+      "alternativeGroup": "引きつけ動作の確認"
+     }
+    ],
+    "strength": [],
+    "explanation": "主目的は大会前調整（PRECOMP）です。大会まで1日のため、低負荷の可動域・姿勢確認を中心にし、動きづくりは段階順に構成しました。stage 0〜2の候補を含めています。疲労度が高いため、動作の質を優先し、疲労が増す場合は中止してください。補強種目は提案していません。",
+    "uncertainty": "数量は登録済みの標準量ではなく、編集可能な仮提案です。大会前日の実施可否や各動作の適合性は、本人の疲労状態を確認したうえで指導者が判断してください。引きつけウォークは同名の候補を重複採用せず、別の引きつけ確認種目を代替候補として示しています。"
+   }
+  },
+  {
+   "run": 2,
+   "case": "F",
+   "requestId": "req_031b0df2c3ef44779a27b6a716d3fab1",
+   "model": "gpt-6-luna",
+   "usage": {
+    "input_tokens": 14365,
+    "output_tokens": 3267
+   },
+   "responseBodySha256": "adf77efa3359356c7a937ac5b632bd98fc37640bf00a74f07289e7da4fdd67ed",
+   "codeAtRun": "b1c893d + duplicate-name pool fix; asked for >=12 movement / >=4 strength",
+   "gateAtRun": {
+    "ok": false,
+    "issues": [
+     "DOSE_COUNT_MISMATCH",
+     "REGISTERED_UNIT_MISMATCH"
+    ]
+   },
+   "output": {
+    "movement": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtso0lp400pxitxb2r9fcfpl",
+       "displayName": "キャット&ドッグ",
+       "executionInstruction": "四つ這いで手足の位置を保ち、背中を丸める動きと反らせる動きをゆっくり交互に行う。腰だけでなく背中全体を動かし、呼吸を止めない。",
+       "plannedNote": "仮提案：左右を分けず、ゆっくりした1往復を1回として8回。大会前日かつ疲労が高いため、無理のない可動域にとどめる。",
+       "reason": "体幹と脊柱を穏やかに動かし、スプリント前の身体操作を整える。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "反動を使わず、痛みのない範囲で呼吸を続ける。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+       "displayName": "引きつけウォーク",
+       "executionInstruction": "上体を直立させて歩きながら、膝を高く引き上げ、足を体の下へ引きつけて左右交互に進む。",
+       "plannedNote": "仮提案：1セット10m。疲労と大会前日の条件を考慮し、歩行速度で行う。",
+       "reason": "膝の引き上げと脚の運びを低負荷で確認する。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "歩行のテンポで、姿勢と引きつけの軌道を制御できる強さにする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+       "displayName": "引きつけ軌道確認",
+       "executionInstruction": "その場に近い位置で上体を直立させ、片脚を接地したまま反対脚の膝を引き上げて足を体の下へ引きつける。左右を交互に行う。",
+       "plannedNote": "仮提案：左右合計8回。片側4回ずつ、軌道を確かめる程度に行う。",
+       "reason": "前進を伴わずに脚の引きつけ軌道と姿勢を確認する。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "ゆっくり制御し、上体が傾いたり力んだりしない範囲で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmttg5xyy00wkitxbl5mkf9ds",
+       "displayName": "インチワーム（手足歩き）",
+       "executionInstruction": "立位から前屈して手を前へ歩かせ、体を伸ばした姿勢を経て、足を手元へ歩かせる。膝を無理に伸ばし切らず、ゆっくり前進する。",
+       "plannedNote": "仮提案：1セット10m。大会前日のため、可動域を無理に広げず、動作を丁寧に行う。",
+       "reason": "全身の連動と股関節周辺の動きを穏やかに準備する。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "反動を使わず、姿勢を保てるゆっくりした速度にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtswlv3i00vuitxbkunlwymd",
+       "displayName": "前向きに進みながらの股関節回し（外から内）",
+       "executionInstruction": "前向きにゆっくり歩き、片膝を腰の高さ付近まで持ち上げて外から内へ回して接地する。左右交互に行う。",
+       "plannedNote": "仮提案：1セット10m。疲労が高いため、膝の高さや回旋範囲を無理に大きくしない。",
+       "reason": "股関節の動きを確認し、走動作前の脚運びを整える。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "歩行速度で、体幹を傾けず滑らかに制御できる範囲にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtswcp0h00voitxbo9n8558g",
+       "displayName": "後ろ向きに進みながらの股関節回し（内から外）",
+       "executionInstruction": "後ろ向きにゆっくり進みながら、膝を前で持ち上げ、内から外へ回して接地する。進行方向を確認し、安全に左右交互に行う。",
+       "plannedNote": "仮提案：1セット10m。大会前日のため、歩行速度で行い、歩幅を小さくする。",
+       "reason": "股関節の可動域を穏やかに確認する。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "バランスを保てる低い強度で、ふらつく場合は中止する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+       "displayName": "リバースランジ",
+       "executionInstruction": "直立から片脚を後方へ引いて浅めに腰を落とし、前脚で立ち上がりながら後脚の膝を軽く引き上げる。左右交互に行い、体幹を安定させる。",
+       "plannedNote": "仮提案：左右合計8回。大会前日かつ疲労が高いため、深く沈まず、力強い押し込みは避ける。",
+       "reason": "片脚支持時の姿勢と脚の切り替えを低負荷で確認する。",
+       "plannedSets": 1,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "動作を完全に制御できる軽い負荷にし、スピードや力強さを追求しない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9c91400dcitxbn3tpmm27",
+       "displayName": "クロスオーバーランジ（膝引き上げ）",
+       "executionInstruction": "片脚を後方斜め反対側へ小さく踏み込み、浅く沈んで戻る。支持脚で安定して立ち、膝を軽く引き上げる動作を左右交互に行う。",
+       "plannedNote": "仮提案：左右合計6回。大会前日のため、踏み込みを浅くし、回旋や押し出しを強くしない。",
+       "reason": "股関節と体幹の協調を、少ない反復で確認する。",
+       "plannedSets": 1,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "バランスを崩さず制御できる範囲に限定する。痛みや違和感が出たら中止する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+       "displayName": "ニーアップウォーク",
+       "executionInstruction": "直立姿勢で歩き、一歩ごとに膝を無理のない高さまで引き上げる。足首を背屈させ、腕を脚と連動させる。",
+       "plannedNote": "仮提案：1セット10m。大会前日のため、膝を過度に高く上げず、歩行で行う。",
+       "reason": "姿勢と腕脚の協調を穏やかに整える。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "リラックスした歩行強度で、腰が落ちずに動作できる範囲にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9xts600hiitxbm5eqci4l",
+       "displayName": "ウォーキングランジ＆ニーリフト",
+       "executionInstruction": "浅めに前へ踏み込み、立ち上がりながら後脚を軽く前へ引き上げる。左右交互に歩行し、体幹と膝の向きを安定させる。",
+       "plannedNote": "仮提案：1セット10m。通常の深いランジや素早い切り替えは避け、大会前日の軽い動作確認にとどめる。",
+       "reason": "踏み込みから脚の引き上げまでの連動を低負荷で確認する。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "歩行速度で、動作を楽に制御できる強度にする。疲労感が増す場合は中止する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsvswss00viitxbprl5nlif",
+       "displayName": "歩きながらのストレートレッグキック（腕の振り上げつき）",
+       "executionInstruction": "歩くテンポで前進し、膝を伸ばした脚を無理のない高さまで前に振り上げる。反対側の腕も自然に振り、左右交互に行う。",
+       "plannedNote": "仮提案：1セット10m。大会前日のため、脚を高く上げようとせず、動きを滑らかに保つ。",
+       "reason": "股関節の動きと腕脚の連動を軽く確認する。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 30
+      },
+      "intensity": "歩行速度で、上体を大きく反らさず制御できる範囲にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+       "displayName": "引きつけウォーク（短い動作確認）",
+       "executionInstruction": "姿勢を高く保ち、膝を引き上げて足を体の下へ引きつけながら、ゆっくり前進する。",
+       "plannedNote": "この候補は同一familyの「引きつけウォーク」と重複するため採用しない。",
+       "reason": "重複候補のため実施候補ではない。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "実施しない。",
+      "relationship": "ALTERNATIVE",
+      "alternativeGroup": "引きつけウォーク"
+     }
+    ],
+    "strength": [],
+    "explanation": "主目的は大会前調整（PRECOMP）です。大会まで1日で疲労度も高いため、走りの量や強度を追加せず、可動域・姿勢・歩行での動作確認を中心にした低負荷の候補を並べています。段階0から2まで、提示された適格候補のある段階を含めています。全てを行う前提ではなく、当日の状態に応じて採用する候補を選んでください。",
+    "uncertainty": "数量は登録済みの既定値がない種目を含むため編集可能な仮提案であり、承認済みの処方量ではありません。疲労が高く大会前日でもあるため、動作の質が落ちる、疲労が増す、痛みや違和感が出る場合は該当候補を省いてください。最後の重複項目は family 重複を避ける説明用で、実施候補には含めません。"
+   }
+  },
+  {
+   "run": 2,
+   "case": "A",
+   "requestId": "req_ec2857780f3845d0a23a64712ecf2026",
+   "model": "gpt-6-luna",
+   "usage": {
+    "input_tokens": 32864,
+    "output_tokens": 4282
+   },
+   "responseBodySha256": "bdea5078e6301fc95792807405a23d8a6a7342aafec289834583b3b123980461",
+   "codeAtRun": "b1c893d + duplicate-name pool fix; asked for >=12 movement / >=4 strength",
+   "gateAtRun": {
+    "ok": false,
+    "issues": [
+     "RUNNING_INSTRUCTION_OUTSIDE_ENGINE"
+    ]
+   },
+   "output": {
+    "movement": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrfsmpu004hitxbq925fzwr",
+       "displayName": "ウォーキングランジ＆体幹側屈",
+       "executionInstruction": "前脚の足裏全体で踏み込み、骨盤を正面に保ったまま体側を前脚側へゆっくり側屈する。体幹を反らさず、立ち上がりは軸を保つ。",
+       "plannedNote": "仮提案の回数。左右交互に進み、片側ごとに数える。",
+       "reason": "股関節前面と体側を動的に伸ばし、加速動作に必要な股関節の動きと姿勢づくりにつなげる。",
+       "plannedSets": 1,
+       "plannedReps": 5,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "反動を使わず、痛みのない範囲でゆっくりコントロールする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtswcp0h00voitxbo9n8558g",
+       "displayName": "後ろ向きに進みながらの股関節回し（内から外）",
+       "executionInstruction": "後ろ向きに安全を確認しながら進み、一歩ごとに膝を持ち上げて外側へ回して下ろす。上体を大きく傾けず、左右交互に行う。",
+       "plannedNote": "仮提案の距離。直線で行い、後方の進路を確認できる場合に限る。",
+       "reason": "股関節の可動性を整え、加速に必要な脚の引き上げ動作を準備する。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "歩行ペースで、可動域とバランスを優先する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+       "displayName": "リバースランジ",
+       "executionInstruction": "片脚を後方へ引いて腰を落とし、前脚で床を押して立ち上がる。同時に後脚の膝を前上方へ引き上げ、体幹を安定させて一瞬保持する。左右交互に行う。",
+       "plannedNote": "仮提案の回数。左右それぞれの回数で数える。",
+       "reason": "加速時の押し出しと、支持脚を保ちながら膝を引き上げる動作の協調を養う。",
+       "plannedSets": 2,
+       "plannedReps": 5,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "勢い任せにせず、膝と骨盤の向きを保てる範囲で力強く立ち上がる。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9c91400dcitxbn3tpmm27",
+       "displayName": "クロスオーバーランジ（膝引き上げ）",
+       "executionInstruction": "片脚を後方斜め反対側へ踏み込み、体幹を垂直に保って腰を落とす。支持脚で床を押して立ち上がり、反対脚の膝を前上方へ引き上げる。左右交互に行う。",
+       "plannedNote": "仮提案の回数。左右それぞれの回数で数える。",
+       "reason": "片脚支持時の骨盤・体幹の安定と、脚の引き上げの協調を補い、加速動作の姿勢制御につなげる。",
+       "plannedSets": 1,
+       "plannedReps": 4,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "動作をゆっくり正確に行い、体幹が傾いたり膝が内側に入ったりする前に止める。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrfaiqw0035itxbh243bij0",
+       "displayName": "アウトエッジウォーク",
+       "executionInstruction": "足の外側以外を接地させないように歩く。骨盤を高く保ち、膝を深く曲げず、自然な腕振りでバランスを取る。",
+       "plannedNote": "仮提案の距離。直線で行い、足の内側が接地した場合は姿勢を整え直す。",
+       "reason": "足部・足首の支持と姿勢の安定を促し、加速時の接地準備を行う。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "ゆっくり歩き、足の外側で安定して支持できる範囲にとどめる。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9xts600hiitxbm5eqci4l",
+       "displayName": "ウォーキングランジ＆ニーリフト",
+       "executionInstruction": "前方へ踏み込んで腰を落とし、前脚で床を押して立ち上がると同時に後脚の膝を引き上げる。骨盤を高く保ち、左右交互に前進する。",
+       "plannedNote": "仮提案の回数。左右交互に進み、片側ごとに数える。",
+       "reason": "加速に関わる股関節伸展と膝の引き上げを連動させる。",
+       "plannedSets": 1,
+       "plannedReps": 5,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "歩行からゆっくり行い、姿勢を崩さずに連動できる範囲にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+       "displayName": "ニーアップウォーク",
+       "executionInstruction": "直立姿勢で歩き、一歩ごとに膝を骨盤の高さ付近まで引き上げる。軸足で床を押し、つま先を軽く上げて左右交互に進む。",
+       "plannedNote": "仮提案の距離。歩行のリズムを保って行う。",
+       "reason": "姿勢と脚の引き上げを確認し、加速で必要となる股関節の動作を準備する。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 15,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "歩行ペースで行い、上体の後傾や骨盤の落ち込みがない強度にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9emko00eritxbpue4p6yc",
+       "displayName": "ギャロップ（片脚リード走）",
+       "executionInstruction": "骨盤を高く保ち、リード脚を前上方へ引き出す。前足と後ろ足を「タ・タン」の順に接地させ、左右のリード脚を入れ替えて行う。",
+       "plannedNote": "登録の標準量（3セット・30m・セット間休息60秒）を採用。",
+       "reason": "加速に役立つ脚の切り替えと接地リズムを練習する。",
+       "plannedSets": 3,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 30,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "リズムと短い接地を保てる速さで行い、全力疾走にしない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsepjm100kfitxbkwxyt2pu",
+       "displayName": "引きつけジャンプ走",
+       "executionInstruction": "小さな片脚ホップと反対脚の膝の引き上げを合わせ、着地後すぐに左右を切り替えながら前進する。上体をやや前傾させ、滞空を大きくしすぎない。",
+       "plannedNote": "仮提案の距離。片脚ホップと引きつけのリズムが保てる範囲で行う。",
+       "reason": "脚の引きつけと接地後の切り替えを組み合わせ、加速動作への接続を促す。",
+       "plannedSets": 2,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "跳躍を大きくせず、短い接地と安定した体幹を保てる強度にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmu167it7000zit6kz5xtwv9n",
+       "displayName": "片脚強調スキップ走（3歩ハイニースキップ）",
+       "executionInstruction": "一定のつなぎ歩数の後、踏切脚で床を押して弾み、逆脚の膝を引き上げる。左右を交互に行い、骨盤を高く保って直線を進む。",
+       "plannedNote": "仮提案の距離。動作の質が落ちる前に終える。",
+       "reason": "加速に関連する押し出し、膝の引き上げ、リズムの連動を練習する。",
+       "plannedSets": 2,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 15,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "力みすぎず、接地と膝の引き上げを正確に保てる範囲で弾む。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9twus00g9itxblmdj4rgc",
+       "displayName": "もも上げ叩きつけ（スイングダウンドリル）",
+       "executionInstruction": "その場で片膝を股関節の高さまで引き上げ、脚を素早く振り下ろして体の真下近くで接地する。体幹と軸脚を安定させ、左右交互に行う。",
+       "plannedNote": "仮提案の回数。左右それぞれの回数で数える。",
+       "reason": "脚の引き上げから接地までの切り替えを確認し、加速時の接地動作につなげる。",
+       "plannedSets": 2,
+       "plannedReps": 5,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 45
+      },
+      "intensity": "鋭く動かすが、接地音や姿勢が乱れない範囲で制御する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsksuzn00o8itxbpowohlcs",
+       "displayName": "引きつけ走",
+       "executionInstruction": "膝を股関節から前上方へ引きつけ、支持脚で地面を押しながらリズムよく前進する。骨盤を高く水平に保ち、反対側の腕を脚に合わせて振る。",
+       "plannedNote": "仮提案の距離。直線で行い、フォームを保てる範囲にする。",
+       "reason": "脚の引きつけと支持脚の押し出しを結びつけ、加速動作に必要な協調を高める。",
+       "plannedSets": 2,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 15,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "力みすぎず、骨盤の高さと脚の切り替えを保てる速さで行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     }
+    ],
+    "strength": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrg7td1004sitxb7b7nogtb",
+       "displayName": "スタンディング・アウトエッジカーフレイズ（両足）",
+       "executionInstruction": "膝を伸ばして踵を持ち上げ、足首を外側へ保ちながらコントロールして下ろす。痛みのない範囲で反復する。",
+       "plannedNote": "仮提案の回数。",
+       "reason": "足関節の支持力を補い、加速時の接地を支える足部・下腿の強化を図る。",
+       "plannedSets": 2,
+       "plannedReps": 10,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "反動を使わず、足首が内側へ逃げない範囲で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtrg8ip20056itxbl2ouptrx",
+       "displayName": "自重スクワット（手腰スクワット・基礎下肢強化）",
+       "executionInstruction": "足裏全体で床を踏み、股関節を後方へ引きながら腰を落とす。膝をつま先の方向に保ち、安定して立ち上がる。",
+       "plannedNote": "仮提案の回数。自重で無理のない深さに調整する。",
+       "reason": "下肢全体の基礎的な力発揮を補強し、加速時の支持と押し出しを支える。",
+       "plannedSets": 2,
+       "plannedReps": 8,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "余力を残し、姿勢を保てる範囲で実施する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9zlog00i8itxbum6q0o1r",
+       "displayName": "シングルレッグデッドリフト（自重）",
+       "executionInstruction": "片脚立ちから軸足の膝を軽く緩め、股関節を折りたたんで上体を前傾させる。反対脚を後方へ伸ばし、骨盤を正面に保って戻る。左右交互に行う。",
+       "plannedNote": "仮提案の回数。左右それぞれの回数で数える。",
+       "reason": "片脚支持でのバランスと臀部・腿裏の股関節伸展力を補い、加速時の姿勢安定を支える。",
+       "plannedSets": 2,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "ゆっくり行い、骨盤が開いたり体幹がねじれたりしない範囲にする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtstgenp00taitxbpxu7l1p3",
+       "displayName": "シングルヒップリフト",
+       "executionInstruction": "仰向けで片足を床につけ、反対脚を伸ばして浮かせる。接地脚で床を押して腰を持ち上げ、腰を反らさずに下ろす。左右交互に行う。",
+       "plannedNote": "仮提案の回数。左右それぞれの回数で数える。",
+       "reason": "臀部の股関節伸展力と片脚支持時の骨盤安定を補強する。",
+       "plannedSets": 2,
+       "plannedReps": 6,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 60
+      },
+      "intensity": "腰を反らさず、左右で高さをそろえられる範囲で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     }
+    ],
+    "explanation": "主目的の加速に合わせ、可動域・姿勢づくりから片脚支持、引きつけ、接地リズム、疾走動作への接続へ進む構成です。補強は器具なしで実施できる下肢・足部と片脚支持の候補から選びました。提示した候補はすべて実施必須ではなく、状態や指導者の判断に合わせて採用してください。",
+    "uncertainty": "登録量のあるギャロップ以外の数量は、カタログに標準量がない種目についての編集可能な仮提案です。技術の質が落ちる場合はその候補を中止・調整し、特に跳躍系や片脚動作の適合性は指導者が確認してください。"
+   }
+  },
+  {
+   "run": 3,
+   "case": "F",
+   "requestId": "req_e0182061b0984faab422030cd37b9425",
+   "model": "gpt-6-luna",
+   "usage": {
+    "input_tokens": 14521,
+    "output_tokens": 3485
+   },
+   "responseBodySha256": "82fa7a1a07143857c231ec322ba3a5f25a0a94badd751d1725e2094d8ffb550c",
+   "codeAtRun": "b1c893d + pool fix + item-level gate + counting/unit/no-placeholder rules; asked for >=12 movement",
+   "gateAtRun": {
+    "ok": true,
+    "issues": []
+   },
+   "output": {
+    "movement": [
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtslvmvi00p4itxbwlt7f59v",
+       "displayName": "下向き胸椎回旋",
+       "executionInstruction": "四つ這いで片手を頭の後ろに添え、肘をゆっくり上へ開いてから内側へ潜らせます。骨盤を動かさず、左右交互に行います。",
+       "plannedNote": "登録された既定量がないため、仮提案として左右各4回。セット数も仮提案です。",
+       "reason": "胸椎をゆっくり動かし、走動作に向けた上体の動きやすさを整えるため。",
+       "plannedSets": 1,
+       "plannedReps": 4,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "反動を使わず、痛みのない小さめの可動域で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtso0lp400pxitxb2r9fcfpl",
+       "displayName": "キャット&ドッグ",
+       "executionInstruction": "四つ這いの姿勢を保ち、背中を丸める動きと反らせる動きをゆっくり交互に行います。",
+       "plannedNote": "登録された既定量がないため、仮提案として4回。セット数も仮提案です。",
+       "reason": "背骨を無理なく動かし、準備運動として姿勢の動かしやすさを整えるため。",
+       "plannedSets": 1,
+       "plannedReps": 4,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "呼吸を止めず、腰だけでなく背中全体をゆっくり動かす。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsowvsd00qcitxbh9e11gfx",
+       "displayName": "横向き胸椎回旋",
+       "executionInstruction": "横向きで両脚を重ね、上側の手を頭に添えます。下半身を保ちながら肘を後方へ開き、ゆっくり戻します。左右行います。",
+       "plannedNote": "登録された既定量がないため、仮提案として左右各4回。セット数も仮提案です。",
+       "reason": "胸椎の回旋を穏やかに促し、上体の可動性を整えるため。",
+       "plannedSets": 1,
+       "plannedReps": 4,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "首を手で引かず、骨盤や脚を動かさない範囲で制御する。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtswlv3i00vuitxbkunlwymd",
+       "displayName": "前向きに進みながらの股関節回し（外から内）",
+       "executionInstruction": "前向きにゆっくり進み、一歩ごとに膝を持ち上げて外側から体の前へ回します。上体を傾けず、左右交互に行います。",
+       "plannedNote": "登録された既定量がないため、仮提案として10m。100mの直線内で無理なく行える距離に設定しています。",
+       "reason": "股関節を動かし、スプリント前に脚を動かしやすくするため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "歩く速さで、膝の高さや回旋幅を無理に大きくしない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmttgdle800wsitxb34g6clw3",
+       "displayName": "くの字姿勢での足踏み（かかとの押し下げ）",
+       "executionInstruction": "両手両足を地面につき、腰を高くした姿勢で左右のかかとを交互にゆっくり押し下げながら前進します。",
+       "plannedNote": "登録された既定量がないため、仮提案として10m。100mの直線内で姿勢を保てる距離に設定しています。",
+       "reason": "足首まわりを穏やかに動かし、接地に向けて足部の準備をするため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "腰の高さを保ち、かかとを強く押し込まずにゆっくり行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmttg5xyy00wkitxbl5mkf9ds",
+       "displayName": "インチワーム（手足歩き）",
+       "executionInstruction": "立位から前屈して手を前へ歩かせ、続けて足を手元へ歩かせます。膝や腰に無理のない範囲でゆっくり前進します。",
+       "plannedNote": "登録された既定量がないため、仮提案として5m。100mの直線内で動作を制御できる距離に設定しています。",
+       "reason": "全身を穏やかに動かし、準備運動として身体の動きやすさを整えるため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 5,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "反動を使わず、腰が反ったり肩がすくんだりしない範囲で行う。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsvswss00viitxbprl5nlif",
+       "displayName": "歩きながらのストレートレッグキック（腕の振り上げつき）",
+       "executionInstruction": "歩くテンポで前進し、膝を伸ばした脚を無理のない高さまで交互に上げます。腕も自然に連動させます。",
+       "plannedNote": "登録された既定量がないため、仮提案として10m。大会前日のため、振り上げ幅を抑えた軽い実施とします。",
+       "reason": "股関節と脚の動きを軽く確認し、準備運動につなげるため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "歩行速度のまま、脚を勢いよく振り上げず、上体を安定させる。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+       "displayName": "引きつけウォーク",
+       "executionInstruction": "歩く速さで前進し、片脚の膝を引き上げて足を体の下へ引きつけ、左右交互に接地します。",
+       "plannedNote": "登録された既定量がないため、仮提案として10m。競技前日のため、速さを上げず短い距離に設定しています。",
+       "reason": "引き上げと接地の動きを軽く確認し、スプリント動作への準備をするため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "歩行ペースで、姿勢とリズムを優先し、強く地面を蹴らない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtsfb6nt00ktitxboez8u0xb",
+       "displayName": "引きつけ軌道確認",
+       "executionInstruction": "その場に近い位置で上体を直立させ、片脚の膝を引き上げて足を体の下へ引きつけ、左右交互に行います。",
+       "plannedNote": "登録された既定量がないため、仮提案として左右各4回。セット数も仮提案です。",
+       "reason": "前進や強い反発を伴わず、脚の引きつけ軌道を軽く確認するため。",
+       "plannedSets": 1,
+       "plannedReps": 4,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "ゆっくり制御できる範囲で行い、跳ねたり強く踏み込んだりしない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmts9b73m00d1itxbtcl4hz1v",
+       "displayName": "リバースランジ",
+       "executionInstruction": "片脚を後方へ引いて浅めに腰を落とし、前脚で床を押して立ちます。立ち上がり時の膝上げは小さくし、左右交互に行います。",
+       "plannedNote": "登録された既定量がないため、仮提案として左右各4回。大会前日のため、深さと押し込みを抑えています。",
+       "reason": "姿勢を保った脚の切り替えを軽く確認するため。",
+       "plannedSets": 1,
+       "plannedReps": 4,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": null,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "浅い範囲でゆっくり行い、膝や骨盤が内側へ崩れないようにする。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtskpig200n6itxbr4wjkrnk",
+       "displayName": "ニーアップウォーク",
+       "executionInstruction": "直立姿勢でゆっくり歩き、一歩ごとに膝を無理のない高さまで引き上げます。腕を自然に振り、左右交互に進みます。",
+       "plannedNote": "登録された既定量がないため、仮提案として10m。大会前日のため、歩行速度で短く行います。",
+       "reason": "姿勢と脚の引き上げを軽く確認し、競技動作の準備をするため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "歩行速度を守り、上体を反らさず、膝を高く上げようと無理をしない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     },
+     {
+      "item": {
+       "type": "CATALOG_EXERCISE",
+       "exerciseId": "cmtseheat00k7itxbvf39x3mq",
+       "displayName": "引きつけウォーク",
+       "executionInstruction": "歩く速さで前進し、片脚の膝を引き上げて足を体の下へ引きつけ、左右交互に接地します。",
+       "plannedNote": "登録された既定量がないため、仮提案として10m。競技前日のため、速さを上げず短い距離に設定しています。",
+       "reason": "引き上げと接地の動きを軽く確認し、スプリント動作への準備をするため。",
+       "plannedSets": 1,
+       "plannedReps": null,
+       "plannedDurationSeconds": null,
+       "plannedDistanceMeters": 10,
+       "plannedRestSeconds": 0
+      },
+      "intensity": "歩行ペースで、姿勢とリズムを優先し、強く地面を蹴らない。",
+      "relationship": "COMBINABLE",
+      "alternativeGroup": null
+     }
+    ],
+    "strength": [],
+    "explanation": "主目的は大会前調整です。疲労度が7で競技まで1日のため、強い刺激や走動作への負荷を避け、stageの順に可動性・姿勢・軽い歩行ドリルを候補にしました。候補はすべて実施必須ではなく、疲労や当日の状態に合わせて採用するものを選んでください。",
+    "uncertainty": "数量は既定量がない種目についての控えめな仮提案で、承認済みの処方量ではありません。疲労が強い場合は候補をさらに絞り、動作中に痛み・違和感・疲労の増加があれば中止して指導者に確認してください。"
+   }
+  }
+ ]
+}

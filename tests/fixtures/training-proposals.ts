@@ -59,8 +59,8 @@ export function offlineTrainingComposer(input: TrainingComposerInput): TrainingC
       return { item: proposal, intensity: annotation.intensity, relationship: annotation.relationship, alternativeGroup: annotation.alternativeGroup };
     });
   }
-  return { movement: input.requiredMovement ? choose(input.movement, input.requiredMovement, preferredMovement, input.requiredMovement >= 10) : [],
-    strength: input.requiredStrength ? choose(input.strength, input.requiredStrength, preferredStrength) : [],
+  return { movement: input.requestedMovement ? choose(input.movement, input.requestedMovement, preferredMovement, input.requiredMovement >= 10) : [],
+    strength: input.requestedStrength ? choose(input.strength, input.requestedStrength, preferredStrength) : [],
     explanation: "選択した主目的に向け、可動域から支持・協調、接地へ進める。補強は必要なものを選び、併用の量を調整する。",
     uncertainty: "手書きoffline fixture。数量は登録動作に基づく編集可能な仮提案であり、実Lunaの生成結果ではない。" };
 }

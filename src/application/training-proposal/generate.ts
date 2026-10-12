@@ -4,6 +4,7 @@ import { validateComposition } from "@/domain/menu-composition/contracts";
 import { trainingConditionsSchema, trainingConditionLevel, trainingRunningGoal, TRAINING_GOAL_LABELS, TRAINING_RUNNING_GOALS, type TrainingConditions, type TrainingGoal } from "@/domain/training-proposal/conditions";
 import { TRAINING_SECTION_NAMES, trainingComposerOutputSchema, type TrainingComposerOutput, type TrainingProposalPreview, type TrainingItemAnnotation } from "@/domain/training-proposal/contracts";
 import { assessTrainingComposition, trainingAvailability, trainingStrengthTarget, TRAINING_MOVEMENT_TARGET } from "@/domain/training-proposal/quality";
+import type { ExerciseEligibility } from "@/domain/training-proposal/eligibility";
 import { explainTrainingIssue } from "@/domain/training-proposal/messages";
 import { buildStructuredRunningPreview } from "./running";
 import { assertUsableSigningKey } from "@/infra/security/hmac-token";
@@ -12,9 +13,45 @@ import { issueTrainingProposalToken } from "@/infra/training-proposal/preview-to
 export type TrainingComposerInput = {
   conditions: TrainingConditions;
   movement: ComposerCatalogExercise[]; strength: ComposerCatalogExercise[];
+  /** Distinct families the content gate requires after normalization. */
   requiredMovement: number; requiredStrength: number;
+  /** What the Composer is asked for: a small margin so one duplicate cannot sink the whole proposal. */
+  requestedMovement: number; requestedStrength: number;
   stages: Record<string, number>; families: Record<string, string>;
 };
+type AssessedRow = { row: ComposerCatalogExercise; eligibility: ExerciseEligibility };
+
+/**
+ * Same-name registrations (e.g. one drill imported from two videos) are one movement.
+ * The Composer is offered one of them, preferring coach-reviewed Guidance; people can
+ * still add either registration manually.
+ */
+function onePerName(rows: readonly AssessedRow[]): AssessedRow[] {
+  const reviewed = (entry: AssessedRow) => entry.row.videoGuidance?.videoAnalysisStatus === "COACH_REVIEWED";
+  const chosen = new Map<string, AssessedRow>();
+  for (const entry of rows) {
+    const key = entry.row.name.normalize("NFKC").replace(/\s+/gu, "");
+    const prior = chosen.get(key);
+    if (!prior || (!reviewed(prior) && reviewed(entry))) chosen.set(key, entry);
+  }
+  return [...chosen.values()];
+}
+const familyCount = (rows: readonly AssessedRow[]) => new Set(rows.map(entry => entry.eligibility.family)).size;
+type Proposal = TrainingComposerOutput["movement"][number];
+
+/** Item-local checks only (no counts, order or families). A failing item is removed, never repaired. */
+function itemIssues(proposal: Proposal, blockIndex: 0 | 2, input: TrainingComposerInput, catalog: readonly ComposerCatalogExercise[],
+  ownerId: string, requestText: string): string[] {
+  const id = "candidate";
+  const composition: EditableComposition = { blocks: TRAINING_SECTION_NAMES.map((name, index) => ({ id: `section-${index}`, name,
+    items: index === blockIndex ? [{ ...proposal.item, id }] : [] })) };
+  const annotation: TrainingItemAnnotation = { intensity: proposal.intensity, stage: blockIndex === 0 ? input.stages[proposal.item.exerciseId] ?? 0 : null,
+    family: input.families[proposal.item.exerciseId] ?? "UNKNOWN", relationship: proposal.relationship, alternativeGroup: proposal.alternativeGroup };
+  const issues = assessTrainingComposition(composition, { [id]: annotation }, input.conditions, catalog, { proposal: false });
+  const validated = validateComposition(composition, { catalog, ownerId, requestText, edited: true, runningAvailable: false });
+  if (!validated.ok) issues.push(validated.code);
+  return [...new Set(issues)];
+}
 export type GenerateTrainingProposalResult = { ok: true; preview: TrainingProposalPreview }
   | { ok: false; code: string; message: string; issues?: string[] };
 
@@ -58,9 +95,13 @@ export async function generateTrainingProposal(raw: unknown, deps: {
     // All eligible reviewed movements remain visible to Composer. No legacy 24-item
     // cap or requested-duration retrieval is used on this path.
     const eligible = [...available.movement, ...available.strength];
+    const offeredMovement = onePerName(available.movement);
+    const offeredStrength = onePerName(available.strength);
     const input: TrainingComposerInput = { conditions,
-      movement: available.movement.map(x => x.row), strength: available.strength.map(x => x.row),
+      movement: offeredMovement.map(x => x.row), strength: offeredStrength.map(x => x.row),
       requiredMovement: available.requiredMovement, requiredStrength: available.requiredStrength,
+      requestedMovement: Math.min(available.requiredMovement + 2, familyCount(offeredMovement)),
+      requestedStrength: Math.min(available.requiredStrength + 1, familyCount(offeredStrength)),
       stages: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.stage])),
       families: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.family])) };
     // A condition hold is an explicit empty result, not a fabricated AI success.
@@ -70,6 +111,14 @@ export async function generateTrainingProposal(raw: unknown, deps: {
     if (!output.ok) return { ok: false, code: "COMPOSER_UNAVAILABLE", message: "提案を取得できませんでした。自動再送は行いません。" };
     const model = trainingComposerOutputSchema.safeParse(output.value);
     if (!model.success) return incomplete(["INVALID_PROPOSAL_SCHEMA"]);
+    // Each proposed item must pass on its own. Bad items are dropped (and reported), never
+    // repaired or replaced; the section counts below are then checked on what remains.
+    const dropped: { name: string; issues: string[] }[] = [];
+    const valid = (proposals: readonly Proposal[], blockIndex: 0 | 2) => proposals.filter(proposal => {
+      const found = itemIssues(proposal, blockIndex, input, catalog, deps.ownerId, structured.requestText);
+      if (found.length) dropped.push({ name: proposal.item.displayName, issues: found });
+      return found.length === 0;
+    });
     // App-owned structure is normalized deterministically: the first of exact/family duplicates
     // is kept and movement follows the App's stage order. Counts are still checked afterwards.
     const distinct = <T extends { item: { exerciseId: string } }>(proposals: readonly T[]) => {
@@ -80,9 +129,10 @@ export async function generateTrainingProposal(raw: unknown, deps: {
         ids.add(item.exerciseId); families.add(family); return true;
       });
     };
-    const movementProposals = distinct(model.data.movement)
+    const movementProposals = distinct(valid(model.data.movement, 0))
       .sort((a, b) => (input.stages[a.item.exerciseId] ?? 0) - (input.stages[b.item.exerciseId] ?? 0));
-    const strengthProposals = distinct(model.data.strength);
+    const strengthProposals = distinct(valid(model.data.strength, 2));
+    if (dropped.length) console.warn("[training-proposal] dropped items", { codes: [...new Set(dropped.flatMap(entry => entry.issues))] });
     const annotations: Record<string, TrainingItemAnnotation> = {};
     const composition: EditableComposition = { blocks: TRAINING_SECTION_NAMES.map(name => ({ id: randomUUID(), name, items: [] })) };
     for (const [blockIndex, proposals] of [[0, movementProposals], [2, strengthProposals]] as const) {
@@ -100,10 +150,14 @@ export async function generateTrainingProposal(raw: unknown, deps: {
         edited: true, runningAvailable: runningPrescription !== null });
       if (!validated.ok) issues.push(validated.code);
     }
-    if (issues.length) return incomplete(issues);
+    if (issues.length) return incomplete([...issues, ...dropped.flatMap(entry => entry.issues)]);
     const level = trainingConditionLevel(conditions.condition);
     const reasons = (codes: string[]) => codes.length ? `主な理由：${codes.map(explainTrainingIssue).join(" ")}` : "";
     const messages = [model.data.explanation, model.data.uncertainty];
+    if (dropped.length) {
+      const codes = [...new Set(dropped.flatMap(entry => entry.issues))].slice(0, 3);
+      messages.push(`AIの提案のうち${dropped.length}件（${dropped.map(entry => entry.name).join("、").slice(0, 200)}）は、条件・数え方・実施量の確認を通らなかったため除外しました。${reasons(codes)}`);
+    }
     if (level === "HOLD") messages.push("痛みまたは体調不良が選択されているため、動きづくり・走・補強の提案を保留しています。実施の可否と内容を指導者が確認してください。");
     if (level === "STRONG_FATIGUE") messages.push("疲労または筋肉痛が強いため、走練習と補強は保留し、動きづくりは低強度の可動域・姿勢づくりに限定しています。");
     if (available.requiredMovement < TRAINING_MOVEMENT_TARGET) messages.push(`動きづくりは${available.requiredMovement}種目までです。確認済みの環境・対象・体調に適合する、重複しない既存候補が10種目に達しません。数合わせはしていません。${reasons(available.blockingReasons.MOVEMENT)}`);

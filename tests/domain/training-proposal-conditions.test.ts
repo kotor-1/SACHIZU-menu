@@ -180,6 +180,20 @@ describe("catalog environment eligibility", () => {
     expect(suggestCatalogItem(mobility, confirmed())).toMatchObject({ item: { plannedSets: 2, plannedReps: 6, plannedRestSeconds: 20 },
       annotation: { stage: 0 } });
   });
+  it("treats a sprint prohibition as a cue but still catches a hidden running dose", async () => {
+    const { assessTrainingComposition } = await import("@/domain/training-proposal/quality");
+    const row = catalogFixture({ category: "DRILL", name: "ギャロップ", description: "片脚リードで前へ進む。", metricType: "DISTANCE", difficulty: 2,
+      defaultSets: null, defaultDistanceMeters: null, defaultRestSeconds: null, defaultDurationSeconds: null });
+    const issuesFor = (intensity: string, executionInstruction = "片脚リードで前へ進む。") => assessTrainingComposition({ blocks: [
+      { id: "m", name: "動きづくり", items: [{ id: "x", type: "CATALOG_EXERCISE", exerciseId: row.id, displayName: row.name, executionInstruction,
+        plannedNote: "仮提案", reason: "リズム", plannedSets: 1, plannedReps: null, plannedDurationSeconds: null, plannedDistanceMeters: 20, plannedRestSeconds: 30 }] },
+      { id: "r", name: "走練習", items: [] }, { id: "s", name: "補強トレーニング", items: [] }] },
+    { x: { intensity, stage: 3, family: "MOVEMENT:ギャロップ", relationship: "COMBINABLE", alternativeGroup: null } }, confirmed(), [row], { proposal: false });
+    expect(issuesFor("リズムと短い接地を保てる速さで行い、全力疾走にしない。")).not.toContain("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
+    expect(issuesFor("ダッシュはせず、リズムを優先する。")).not.toContain("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
+    expect(issuesFor("全力疾走で行う。")).toContain("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
+    expect(issuesFor("軽く行う。", "全力疾走しないで、30m走を3本加える。")).toContain("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
+  });
   it("has more than ten actual movement families in the full reviewed catalog with confirmed ordinary track conditions", () => {
     const rows = fullCatalog.catalog.map(row => ({ ...row, videoGuidance: row.videoGuidance ? exerciseVideoGuidanceSchema.parse(row.videoGuidance) : null }));
     const eligible = rows.map(row => ({ row, assessment: assessExerciseEligibility(row, confirmed()) }))

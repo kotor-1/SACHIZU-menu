@@ -21,8 +21,12 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     if (!result.ok) return;
     const available = trainingAvailability(trainingCatalog, conditions);
     expect(result.preview.composition.blocks.map(b => b.name)).toEqual(["動きづくり", "走練習", "補強トレーニング"]);
-    expect(result.preview.composition.blocks[0].items.length).toBe(available.requiredMovement);
-    expect(result.preview.composition.blocks[2].items.length).toBe(available.requiredStrength);
+    const sent = compose.mock.calls[0]?.[0];
+    expect(result.preview.composition.blocks[0].items.length).toBe(sent?.requestedMovement ?? 0);
+    expect(result.preview.composition.blocks[2].items.length).toBe(sent?.requestedStrength ?? 0);
+    const families = new Set(result.preview.composition.blocks[0].items.map(item => result.preview.annotations[item.id].family));
+    expect(families.size).toBeGreaterThanOrEqual(available.requiredMovement);
+    if (sent) expect(sent.requestedMovement).toBe(Math.min(available.requiredMovement + 2, new Set(sent.movement.map(row => sent.families[row.id])).size));
     expect(result.preview.conditions).toEqual(conditions);
     const expectedRunning = buildStructuredRunningPreview(conditions).running;
     expect(result.preview.runningPrescription).toEqual(expectedRunning?.status === "READY" ? expectedRunning.prescription : null);
@@ -49,6 +53,7 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     const compose = vi.fn(async (input: TrainingComposerInput) => {
       const output = offlineTrainingComposer(input);
       output.movement.reverse();
+      output.movement[1] = structuredClone(output.movement[0]);
       output.strength.push(structuredClone(output.strength[0]));
       return { ok: true as const, value: output };
     });
@@ -56,25 +61,47 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     expect(result.ok).toBe(true); if (!result.ok) return;
     const stages = result.preview.composition.blocks[0].items.map(item => result.preview.annotations[item.id].stage ?? 0);
     expect(stages).toEqual([...stages].sort((a, b) => a - b));
+    const movementFamilies = result.preview.composition.blocks[0].items.map(item => result.preview.annotations[item.id].family);
+    expect(new Set(movementFamilies).size).toBe(movementFamilies.length);
+    expect(movementFamilies.length).toBeGreaterThanOrEqual(10);
     const strengthIds = result.preview.composition.blocks[2].items.map(item => item.type === "CATALOG_EXERCISE" ? item.exerciseId : "");
     expect(new Set(strengthIds).size).toBe(strengthIds.length);
     expect(compose).toHaveBeenCalledTimes(1);
   });
-  it.each(["short", "wrong-unit", "unavailable-wall", "running-smuggle", "overload", "duplicate-family"])("rejects %s without retry", async failure => {
-    const compose = vi.fn(async (input: TrainingComposerInput) => {
-      const output = offlineTrainingComposer(input);
-      if (failure === "short") output.movement = output.movement.slice(0, 3);
-      if (failure === "wrong-unit") output.movement[0].item.plannedDistanceMeters = 20;
-      if (failure === "unavailable-wall") {
-        const row = trainingCatalog.find(row => row.name.startsWith("ウォールキック"))!;
-        output.movement[0].item.exerciseId = row.id; output.movement[0].item.displayName = row.name;
-      }
-      if (failure === "running-smuggle") output.movement[0].item.executionInstruction = "60m走を4本追加する";
-      if (failure === "overload") output.strength[0].item.plannedSets = 20;
-      if (failure === "duplicate-family") output.movement[1] = structuredClone(output.movement[0]);
-      return { ok: true as const, value: output };
-    });
-    expect(await generate(trainingCaseA(), compose)).toMatchObject({ ok: false, code: "INCOMPLETE_PROPOSAL" });
+  const corrupt = (failure: string) => vi.fn(async (input: TrainingComposerInput) => {
+    const output = offlineTrainingComposer(input);
+    const wall = trainingCatalog.find(row => row.name.startsWith("ウォールキック"))!;
+    if (failure === "short") output.movement = output.movement.slice(0, 3);
+    if (failure === "wrong-unit") output.movement[0].item.plannedDistanceMeters = 20;
+    if (failure === "unavailable-wall") { output.movement[0].item.exerciseId = wall.id; output.movement[0].item.displayName = wall.name; }
+    if (failure === "running-smuggle") output.movement[0].item.executionInstruction = "60m走を4本追加する";
+    if (failure === "overload") output.strength[0].item.plannedSets = 20;
+    // Three extra copies of one family exceed the margin and leave fewer than ten families.
+    if (failure === "duplicate-family") for (let index = 1; index <= 3; index++) output.movement[index] = structuredClone(output.movement[0]);
+    if (failure === "many-bad") for (let index = 0; index < 3; index++) output.movement[index].item.executionInstruction = "60m走を4本追加する";
+    return { ok: true as const, value: output };
+  });
+  it.each(["wrong-unit", "unavailable-wall", "running-smuggle", "overload"])("drops a %s item, reports it and keeps the valid rest", async failure => {
+    const compose = corrupt(failure);
+    const result = await generate(trainingCaseA(), compose);
+    expect(compose).toHaveBeenCalledTimes(1);
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    const sent = compose.mock.calls[0][0];
+    const [movement, , strength] = result.preview.composition.blocks;
+    if (failure === "overload") expect(strength.items).toHaveLength(sent.requestedStrength - 1);
+    else expect(movement.items).toHaveLength(sent.requestedMovement - 1);
+    expect(new Set(movement.items.map(item => result.preview.annotations[item.id].family)).size).toBeGreaterThanOrEqual(10);
+    expect(result.preview.messages.join(" ")).toMatch(/AIの提案のうち1件（.+）は.*除外しました/);
+    for (const item of [...movement.items, ...strength.items]) {
+      if (item.type !== "CATALOG_EXERCISE") continue;
+      expect(item.executionInstruction).not.toContain("60m走");
+      expect(item.plannedSets).toBeLessThanOrEqual(4);
+      expect(assessExerciseEligibility(trainingCatalog.find(row => row.id === item.exerciseId)!, trainingCaseA()).eligible).toBe(true);
+    }
+  });
+  it.each(["short", "duplicate-family", "many-bad"])("rejects %s without retry when fewer than the required families remain", async failure => {
+    const compose = corrupt(failure);
+    expect(await generate(trainingCaseA(), compose)).toMatchObject({ ok: false, code: "INCOMPLETE_PROPOSAL", issues: expect.arrayContaining(["MOVEMENT_PROPOSALS_MISSING"]) });
     expect(compose).toHaveBeenCalledTimes(1);
   });
   it("a note cannot add unavailable equipment or expand running space", async () => {
@@ -94,7 +121,7 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     expect(result).toMatchObject({ ok: true, preview: { quality: "LIMITED", runningPrescription: null } });
     if (!result.ok) return;
     expect(compose).toHaveBeenCalledTimes(1);
-    expect(compose.mock.calls[0][0]).toMatchObject({ strength: [], requiredStrength: 0 });
+    expect(compose.mock.calls[0][0]).toMatchObject({ strength: [], requiredStrength: 0, requestedStrength: 0 });
     const [movement, runningBlock, strength] = result.preview.composition.blocks;
     expect(runningBlock.items).toHaveLength(0);
     expect(strength.items).toHaveLength(0);
@@ -119,10 +146,11 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
       if (result.ok) expect(result.preview.messages.join(" ")).toContain("指導者が確認");
     }
   });
-  it("G gives a strength-focused session six strength proposals without mixing them into movement", async () => {
+  it("G gives a strength-focused session six-plus strength proposals without mixing them into movement", async () => {
     const result = await generate(trainingCases().G); expect(result.ok).toBe(true); if (!result.ok) return;
     const [movement, , strength] = result.preview.composition.blocks;
-    expect(strength.items.length).toBe(6);
+    expect(strength.items.length).toBe(7);
+    expect(new Set(strength.items.map(item => result.preview.annotations[item.id].family)).size).toBeGreaterThanOrEqual(6);
     for (const item of movement.items) expect(result.preview.annotations[item.id].family.startsWith("MOVEMENT:")).toBe(true);
     for (const item of strength.items) expect(result.preview.annotations[item.id].family.startsWith("STRENGTH:")).toBe(true);
   });
@@ -164,6 +192,16 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
       return { ok: true as const, value: output };
     });
     expect(await generate(trainingCaseA(), compose)).toMatchObject({ ok: false, issues: expect.arrayContaining(["MOVEMENT_STAGE_MISSING"]) });
+  });
+  it("offers same-name duplicate registrations to the Composer once, while both stay addable by hand", async () => {
+    const compose = vi.fn(async (input: TrainingComposerInput) => ({ ok: true as const, value: offlineTrainingComposer(input) }));
+    const result = await generate(trainingCaseA(), compose);
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    const duplicates = trainingCatalog.filter(row => row.name === "引きつけウォーク").map(row => row.id);
+    expect(duplicates).toHaveLength(2);
+    const offered = compose.mock.calls[0][0].movement.map(row => row.id);
+    expect(offered.filter(id => duplicates.includes(id))).toHaveLength(1);
+    expect(verifyTrainingProposalToken(result.preview.previewToken, TRAINING_TEST_KEY)?.allowedExerciseIds).toEqual(expect.arrayContaining(duplicates));
   });
   it("H changes available equipment before Composer and never invents a hill exercise", async () => {
     const capture: TrainingComposerInput[] = [];

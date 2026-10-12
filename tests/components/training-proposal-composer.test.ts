@@ -172,6 +172,15 @@ describe("training proposal UI (offline rendering, no Luna call)", () => {
     expect(card).toContain("実測最高速度Vmaxの90–95%ではない");
   });
 
+  it("shows zero rest as continuous work instead of a 0-second rest", () => {
+    const data = preview();
+    const first = data.composition.blocks[0].items[0];
+    if (first.type === "CATALOG_EXERCISE") first.plannedRestSeconds = 0;
+    const text = stripTags(renderMarkup(TrainingProposalComposer, { catalog, initialPreview: data }));
+    expect(text).toContain("休息なし（続けて行う）");
+    expect(text).not.toContain("休息 0秒");
+  });
+
   it("includes only selected items in the adopted volume summary", () => {
     const data = preview(); data.selectedItemIds = ["strength-item"];
     const text = stripTags(renderMarkup(TrainingProposalComposer, { catalog, initialPreview: data })).replace(/\s+/g, " ");

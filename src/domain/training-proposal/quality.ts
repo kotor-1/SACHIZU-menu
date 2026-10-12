@@ -77,7 +77,9 @@ export function assessTrainingComposition(composition: EditableComposition, anno
       for (const match of text.matchAll(/(?:\b|[^\d])(\d+)\s*セット/gu)) if (Number(match[1]) !== item.plannedSets) issues.push("DOSE_TEXT_CONFLICT");
       for (const match of text.matchAll(/(?:休息|休憩|レスト)(?:は|を|:|：)?\s*(\d+)\s*秒/gu)) if (Number(match[1]) !== item.plannedRestSeconds) issues.push("REST_TEXT_CONFLICT");
       const allProposedText = `${text} ${item.reason} ${annotation?.intensity ?? ""}`;
-      if (/全力疾走|ダッシュ|(?:\d+)\s*m(?:走|スプリント)/u.test(allProposedText)) issues.push("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
+      // A clause that forbids sprinting ("全力疾走にしない") is a cue, not a hidden running dose.
+      if (allProposedText.split(/[。！!？?；;、,\n]/u).some(clause => /全力疾走|ダッシュ|(?:\d+)\s*m(?:走|スプリント)/u.test(clause)
+        && !/しない|せず|避け|禁止|行わない|ではない|ではなく|にしない/u.test(clause))) issues.push("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
       // Conservative proposal/edit bounds, not new physiological prescription rules.
       if ((item.plannedSets ?? 0) > (reduced ? 2 : 4) || (item.plannedReps ?? 0) > (reduced ? 12 : 30)
         || (item.plannedDurationSeconds ?? 0) > (reduced ? 30 : 60) || (item.plannedRestSeconds ?? 0) > 300) issues.push("DOSE_REQUIRES_COACH_REVIEW");

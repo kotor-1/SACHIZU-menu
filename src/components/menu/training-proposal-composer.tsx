@@ -47,7 +47,8 @@ function doseSummary(item: ExercisePlanItem, exercise?: ComposerCatalogExercise)
   const amount = item.plannedReps !== null ? `${exerciseUsesPerSideCount(item, exercise) ? "片側" : exerciseUsesTotalCount(exercise) ? "合計" : ""}${item.plannedReps}回`
     : item.plannedDistanceMeters !== null ? `${item.plannedDistanceMeters}m`
       : item.plannedDurationSeconds !== null ? `${item.plannedDurationSeconds}秒` : "量未設定";
-  return `${amount}${item.plannedSets !== null ? ` × ${item.plannedSets}セット` : "・セット未設定"}${item.plannedRestSeconds !== null ? ` / 休息 ${item.plannedRestSeconds}秒` : ""}`;
+  const rest = item.plannedRestSeconds === null ? "" : item.plannedRestSeconds === 0 ? " / 休息なし（続けて行う）" : ` / 休息 ${item.plannedRestSeconds}秒`;
+  return `${amount}${item.plannedSets !== null ? ` × ${item.plannedSets}セット` : "・セット未設定"}${rest}`;
 }
 function ExerciseDoseEditor({ item, exercise, update }: { item: ExerciseItem; exercise?: ComposerCatalogExercise; update: (patch: Partial<ExerciseItem>) => void }) {
   const [freeUnit, setUnit] = useState<"plannedReps" | "plannedDistanceMeters" | "plannedDurationSeconds">(item.plannedDistanceMeters !== null ? "plannedDistanceMeters" : item.plannedDurationSeconds !== null ? "plannedDurationSeconds" : "plannedReps");
