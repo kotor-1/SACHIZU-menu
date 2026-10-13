@@ -6,7 +6,7 @@ import { suggestCatalogItem } from "@/domain/training-proposal/dose";
 import { catalogFixture } from "../fixtures/menu-composition";
 import { trainingCaseA } from "../fixtures/training-proposals";
 
-type Candidate = { row: ComposerCatalogExercise; stage: number; family?: string };
+type Candidate = { row: ComposerCatalogExercise; stage: number; family?: string; progression?: number };
 const drill = (id: string, stage: number, patch: Partial<ComposerCatalogExercise> = {}, family?: string): Candidate => ({ stage, family,
   row: catalogFixture({ id, name: id, category: "DRILL", metricType: "REPS", defaultSets: null, defaultDurationSeconds: null,
     defaultRestSeconds: null, purposes: [], ...patch }) });
@@ -14,13 +14,20 @@ function input(movement: Candidate[], requiredMovement: number, strength: Candid
   const all = [...movement, ...strength];
   return { conditions: trainingCaseA(), movement: movement.map(x => x.row), strength: strength.map(x => x.row),
     requiredMovement, requiredStrength, requestedMovement: requiredMovement + 2, requestedStrength: requiredStrength + 1,
-    stages: Object.fromEntries(all.map(x => [x.row.id, x.stage])), families: Object.fromEntries(all.map(x => [x.row.id, x.family ?? `F:${x.row.id}`])) };
+    stages: Object.fromEntries(all.map(x => [x.row.id, x.stage])), families: Object.fromEntries(all.map(x => [x.row.id, x.family ?? `F:${x.row.id}`])),
+    progressions: Object.fromEntries(all.map(x => [x.row.id, x.progression ?? 0])) };
 }
 
 describe("rule-based training selection (no AI)", () => {
   it("takes movement in turn from each stage and returns it in stage order", () => {
     const rows = [drill("m0a", 0), drill("m0b", 0), drill("m0c", 0), drill("m1a", 1), drill("m2a", 2), drill("m2b", 2)];
     expect(ruleBasedTrainingSelection(input(rows, 5)).movement.map(x => x.exerciseId)).toEqual(["m0a", "m0b", "m1a", "m2a", "m2b"]);
+  });
+  it("returns each stage from the ground up: floor, standing, travelling, then bouncing on both feet before one leg", () => {
+    const at = (id: string, stage: number, progression: number): Candidate => ({ ...drill(id, stage), progression });
+    const rows = [at("bounce0", 0, 3), at("walk0", 0, 2), at("floor0", 0, 0), at("hop3", 3, 5), at("pogo3", 3, 3), at("stand1", 1, 1)];
+    expect(ruleBasedTrainingSelection(input(rows, 6)).movement.map(x => x.exerciseId))
+      .toEqual(["floor0", "walk0", "bounce0", "stand1", "pogo3", "hop3"]);
   });
   it("within a stage prefers the primary goal's purposes, then registered values, then easier movements", () => {
     const rows = [drill("easy", 0, { difficulty: 1 }), drill("registered", 0, { defaultReps: 6, difficulty: 2 }),

@@ -139,7 +139,33 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     expect(new Set(strengthIds).size).toBe(strengthIds.length);
     expect(compose).toHaveBeenCalledTimes(1);
   });
-  const corrupt = (failure: string) => vi.fn(async (input: TrainingComposerInput) => {
+  it("never opens with bouncing: a model that lists bouncing arm circles first gets floor, standing and walking work first", async () => {
+    // The coach's report: the warm-up started with this bouncing dynamic stretch.
+    const arms = trainingCatalog.find(row => row.name === "軽く弾みながらの腕回し（前回し・左右交互）")!;
+    expect(assessExerciseEligibility(arms, trainingCaseA())).toMatchObject({ eligible: true, stage: 3 });
+    const compose = vi.fn(async (input: TrainingComposerInput) => {
+      const output = offlineTrainingComposer(input);
+      output.movement = output.movement.filter(selection => input.families[selection.exerciseId] !== input.families[arms.id]).reverse();
+      output.movement.unshift({ exerciseId: arms.id, reason: "肩まわりを温めるため。", intensity: "軽く弾むリズムで、腕を大きく回す。",
+        relationship: "COMBINABLE", alternativeGroup: null });
+      return { ok: true as const, value: output };
+    });
+    const result = await generate(trainingCaseA(), compose);
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    expect(result.preview.messages.join(" ")).not.toContain("AIを使わない基本提案");
+    const placed = result.preview.composition.blocks[0].items.map(item => {
+      const row = trainingCatalog.find(entry => item.type === "CATALOG_EXERCISE" && entry.id === item.exerciseId)!;
+      const { stage, progression } = assessExerciseEligibility(row, trainingCaseA());
+      return { name: row.name, stage, progression };
+    });
+    const keys = placed.map(x => [x.stage, x.progression]);
+    expect(keys).toEqual([...keys].sort((a, b) => a[0] - b[0] || a[1] - b[1]));
+    expect(placed[0]).toMatchObject({ stage: 0, progression: 0 });
+    const armsAt = placed.findIndex(x => x.name === arms.name);
+    expect(placed.slice(0, armsAt).filter(x => x.stage <= 2).length).toBeGreaterThan(0);
+    expect(placed.slice(armsAt).every(x => x.stage >= 3)).toBe(true);
+  });
+  const corrupt =(failure: string) => vi.fn(async (input: TrainingComposerInput) => {
     const output = offlineTrainingComposer(input);
     const wall = trainingCatalog.find(row => row.name.startsWith("ウォールキック"))!;
     if (failure === "short") output.movement = output.movement.slice(0, 3);

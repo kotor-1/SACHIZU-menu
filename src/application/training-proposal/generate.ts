@@ -5,7 +5,7 @@ import { trainingConditionsSchema, trainingConditionLevel, trainingRunningGoal, 
 import { TRAINING_SECTION_NAMES, trainingComposerOutputSchema, type TrainingComposerOutput, type TrainingComposerSelection, type TrainingProposalPreview, type TrainingItemAnnotation } from "@/domain/training-proposal/contracts";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
 import { assessTrainingComposition, trainingAvailability, trainingStrengthTarget, TRAINING_MOVEMENT_TARGET } from "@/domain/training-proposal/quality";
-import type { ExerciseEligibility } from "@/domain/training-proposal/eligibility";
+import { compareMovementOrder, type ExerciseEligibility } from "@/domain/training-proposal/eligibility";
 import { explainTrainingIssue } from "@/domain/training-proposal/messages";
 import { buildStructuredRunningPreview } from "./running";
 import { ruleBasedTrainingSelection } from "./rule-based";
@@ -20,6 +20,8 @@ export type TrainingComposerInput = {
   /** What the Composer is asked for: a small margin so one duplicate cannot sink the whole proposal. */
   requestedMovement: number; requestedStrength: number;
   stages: Record<string, number>; families: Record<string, string>;
+  /** Place inside the stage: on the ground, standing, travelling, then bouncing on both feet, alternating, one leg. */
+  progressions: Record<string, number>;
 };
 type AssessedRow = { row: ComposerCatalogExercise; eligibility: ExerciseEligibility };
 
@@ -83,7 +85,8 @@ function assemble(output: TrainingComposerOutput, input: TrainingComposerInput, 
     return found.length ? [] : [proposal];
   });
   // App-owned structure is normalized deterministically: the first of exact/family duplicates
-  // is kept and movement follows the App's stage order. Counts are still checked afterwards.
+  // is kept and movement follows the App's order (the stage, then the ground up inside it), so
+  // the model's order never opens a warm-up with bouncing. Counts are still checked afterwards.
   const distinct = (proposals: readonly Proposal[]) => {
     const ids = new Set<string>(); const families = new Set<string>();
     return proposals.filter(({ item }) => {
@@ -93,7 +96,7 @@ function assemble(output: TrainingComposerOutput, input: TrainingComposerInput, 
     });
   };
   const movement = distinct(build(output.movement, 0))
-    .sort((a, b) => (input.stages[a.item.exerciseId] ?? 0) - (input.stages[b.item.exerciseId] ?? 0));
+    .sort((a, b) => compareMovementOrder(input, a.item.exerciseId, b.item.exerciseId));
   const strength = distinct(build(output.strength, 2));
   const annotations: Record<string, TrainingItemAnnotation> = {};
   const composition: EditableComposition = { blocks: TRAINING_SECTION_NAMES.map(name => ({ id: randomUUID(), name, items: [] })) };
@@ -168,7 +171,8 @@ export async function generateTrainingProposal(raw: unknown, deps: {
       requestedMovement: Math.min(available.requiredMovement + 2, familyCount(offeredMovement)),
       requestedStrength: Math.min(available.requiredStrength + 1, familyCount(offeredStrength)),
       stages: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.stage])),
-      families: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.family])) };
+      families: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.family])),
+      progressions: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.progression])) };
     // A condition hold is an explicit empty result, not a fabricated AI success.
     let output: Awaited<ReturnType<typeof deps.compose>> = { ok: true, value: {
       movement: [], strength: [], explanation: "確認済みの環境・コンディションに適合する既存種目がありません。条件を確認してください。",

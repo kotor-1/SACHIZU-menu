@@ -3,7 +3,10 @@ import { trainingConditionLevel, type TrainingConditions } from "./conditions";
 import { isRunningExerciseForV2 } from "@/presentation/running/legacy-routing";
 
 export type ExerciseEligibility = {
-  eligible: boolean; reasons: string[]; section: "MOVEMENT" | "STRENGTH" | null; stage: number; family: string;
+  eligible: boolean; reasons: string[]; section: "MOVEMENT" | "STRENGTH" | null; stage: number;
+  /** Place inside the stage (see warmupProgression). Like the stage, an ordering cue only. */
+  progression: number;
+  family: string;
 };
 type CatalogRow = ComposerCatalogExercise & { equipmentTags?: readonly string[] };
 
@@ -18,6 +21,36 @@ export function trainingUsableMeters(stage: number, straightMeters: number | nul
 }
 /** The shortest travel that still holds a few movement cycles. */
 const minimumTravelMeters = (stage: number) => stage >= 3 ? 10 : 5;
+
+/** A name that says the movement itself bounces or hops. */
+const BOUNCING_NAME = /スキップ|弾み|弾む|跳ん|跳び|ジャンプ|ホップ|ケンケン|ケンパ|ギャロップ|バウンド/u;
+const BOUNCING = /スキップ|弾み|弾む|弾ん|跳ん|跳び|跳ね|跳ぶ|はね|ジャンプ|ホップ|ケンケン|ケンパ|ギャロップ|バウンド/u;
+// Mentions that rule a movement out rather than in: 「高く跳び上がらずに」「バウンドしないよう」「膝をつかない」.
+const NEGATED = /(?:跳び上が|跳ね|跳|弾|はね)(?:ら|ま|ば|ませ)?(?:ず|ない)|弾みをつけ(?:ず|ない)|(?:ジャンプ|ホップ|バウンド)(?:せず|しない)|(?:膝|手)を(?:(?:地面|床)に)?つ[かけ](?:ず|ない)|座ら(?:ず|ない)/gu;
+// 「膝をつま先へ」 is a knee cue, not kneeling, so only 膝をつい・つけ・つき count.
+const ON_GROUND = /四つ這い|四つん這い|うつ伏せ|うつぶせ|仰向け|あお向け|寝て|寝た|寝転|長座|座って|座り|膝をつ[いけき]|膝を(?:地面|床)につ|手を(?:地面|床)につ|手をつ[いけき]|手を接地|手と両(?:足|膝)を(?:地面|床)/u;
+
+/**
+ * Place inside a stage, so a warm-up builds up instead of opening with bouncing:
+ * 0 on the ground (lying, sitting, on all fours), 1 standing still, 2 travelling,
+ * 3 bouncing on both feet, 4 alternating skips and gallops, 5 on one leg.
+ * Read from the name and the registered description, without negated mentions.
+ */
+export function warmupProgression(name: string, description: string, moving: boolean): number {
+  const said = `${name} ${description}`.normalize("NFKC").replace(/(?:跳|は)ね(?:上|あ)げ|跳び箱/gu, "").replace(NEGATED, "");
+  if (BOUNCING.test(said)) {
+    const oneLeg = /ケンケン|ケンパ/u.test(name) || /片(?:脚|足)/u.test(name) && /ジャンプ|ホップ|踏み切|弾/u.test(name)
+      || /片(?:脚|足)(?:だけ)?で[^。、]{0,6}?(?:弾|ホップ|跳|踏み切)/u.test(said);
+    return oneLeg ? 5 : /スキップ|ギャロップ/u.test(name) ? 4 : 3;
+  }
+  if (ON_GROUND.test(said)) return 0;
+  return moving ? 2 : 1;
+}
+
+/** Movement order: the stage, then the place inside it. Ties keep the given order (the sort is stable). */
+export function compareMovementOrder(order: { stages: Record<string, number>; progressions: Record<string, number> }, a: string, b: string): number {
+  return (order.stages[a] ?? 0) - (order.stages[b] ?? 0) || (order.progressions[a] ?? 0) - (order.progressions[b] ?? 0);
+}
 
 /** Conservative retrieval boundary, not an exercise prescription or a suitability guarantee. */
 export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingConditions): ExerciseEligibility {
@@ -39,11 +72,15 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
   const section = running ? null : coreOrStrength || highImpact || externalLoad || category === "THROW" ? "STRENGTH"
     : ["DRILL", "MOBILITY", "WARM_UP", "COOL_DOWN", "HURDLE"].includes(category) ? "MOVEMENT" : null;
   const moving = /前進|後進|歩行|歩き|歩く|進む|進み/u.test(text) || row.metricType === "DISTANCE";
-  // Stage numbers provide a logical ordering cue only, never a mandatory count.
+  // Stage numbers provide a logical ordering cue only, never a mandatory count. A name that says the
+  // movement bounces (「軽く弾みながらの腕回し」) is rhythm work even when registered as mobility:
+  // a warm-up must not open with bouncing.
   const stage = /疾走姿勢|走動作へつな|スプリントへつな/u.test(description) || /叩きつけ|スイングダウン|挟み込み|シザース/u.test(name) ? 4
-    : category === "MOBILITY" || /回旋|回し|可動域|伸ば/u.test(name) ? 0
-      : /スキップ|弾み|跳ん|跳び|入れ替え|挟み込み|叩きつけ/u.test(text) || /ジャンプ|ホップ|ケンケン|ケンパ|ギャロップ|バウンド/u.test(name) ? 3
-        : moving ? 2 : 1;
+    : BOUNCING_NAME.test(name) ? 3
+      : category === "MOBILITY" || /回旋|回し|可動域|伸ば/u.test(name) ? 0
+        : /スキップ|弾み|跳ん|跳び|入れ替え|挟み込み|叩きつけ/u.test(text) ? 3
+          : moving ? 2 : 1;
+  const progression = warmupProgression(name, row.description ?? "", moving);
   if (row.status !== "REVIEWED") reasons.push("UNREVIEWED_EXERCISE");
   if (!row.description?.trim()) reasons.push("MOVEMENT_DESCRIPTION_MISSING");
   if (running) reasons.push("RUNNING_ENGINE_ONLY");
@@ -111,5 +148,5 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
   // hip/arm drills must not become one family merely because they use the same joint.
   const movementName = name.split(/[（(]/u)[0].replace(/[\s・\-]/gu, "").toLowerCase();
   const family = `${section ?? "UNSUPPORTED"}:${movementName}`;
-  return { eligible: reasons.length === 0, reasons: [...new Set(reasons)], section, stage, family };
+  return { eligible: reasons.length === 0, reasons: [...new Set(reasons)], section, stage, progression, family };
 }

@@ -170,6 +170,30 @@ describe("catalog environment eligibility", () => {
     expect(assessExerciseEligibility(gallop, c).stage).toBe(3);
     expect(assessExerciseEligibility(movement, c).stage).toBe(2);
   });
+  it("never opens a warm-up with bouncing: a bouncing mobility drill is rhythm work, and each stage builds up from the ground", () => {
+    const c = confirmed();
+    // A real catalog entry, registered as mobility but done while bouncing forward.
+    const arms = catalogFixture({ category: "MOBILITY", name: "軽く弾みながらの腕回し（前回し・左右交互）", metricType: "DISTANCE", difficulty: 1,
+      description: "軽く弾むリズムで前進しながら、両腕を肘を伸ばしたまま前方向へ大きく回す。左右の腕は交互に回す。" });
+    expect(assessExerciseEligibility(arms, c)).toMatchObject({ eligible: true, stage: 3, progression: 3 });
+    const shoulders = catalogFixture({ category: "MOBILITY", name: "肩回し", description: "立位で肩を回す。", metricType: "REPS", difficulty: 1 });
+    expect(assessExerciseEligibility(shoulders, c)).toMatchObject({ stage: 0, progression: 1 });
+    const place = (name: string, description: string, metricType: "REPS" | "DISTANCE" = "REPS") =>
+      assessExerciseEligibility(catalogFixture({ category: "DRILL", name, description, metricType, difficulty: 1 }), c).progression;
+    expect(place("キャット&ドッグ", "両手と両膝を地面につけた四つ這いの姿勢から、背中を丸めて反らす。")).toBe(0);
+    expect(place("横向き胸椎回旋", "横向きに寝て両脚を重ねた姿勢から、上体をゆっくり回旋させる。")).toBe(0);
+    expect(place("インチワーム（手足歩き）", "前屈して手を地面につき、手を交互に前へ歩かせて前進する。", "DISTANCE")).toBe(0);
+    expect(place("ジャックナイフ", "しゃがんで両手で足首を持ち、膝を伸ばして腰を持ち上げる。")).toBe(1);
+    // Negated mentions and look-alike cues do not count: 「膝をつかない」「膝をつま先の向きに」「跳び上がらずに」.
+    expect(place("リバースランジ", "片脚を後ろへ引いて腰を落とし、膝をつかないように、膝をつま先の向きに保って立ち上がる。")).toBe(1);
+    expect(place("脚の切り替え", "高く跳び上がらずに、その場で脚を前後に切り替える。")).toBe(1);
+    expect(place("股関節回し", "前向きに進みながら、片脚の膝を外から内へ回す。", "DISTANCE")).toBe(2);
+    expect(place("両足ジャンプ（腕振り）", "両足をそろえたまま連続してジャンプしながら前へ進む。", "DISTANCE")).toBe(3);
+    expect(place("スキップ", "リズムよくスキップで前へ進む。", "DISTANCE")).toBe(4);
+    expect(place("ギャロップ（片脚リード走）", "片脚を前上方へ高く引き出して前へ進む。", "DISTANCE")).toBe(4);
+    expect(place("ケンケン", "片脚だけで連続して弾みながら前方へ進む。", "DISTANCE")).toBe(5);
+    expect(place("引きつけジャンプ走", "片脚で小さくホップしながら、反対の膝を引き上げて前進する。", "DISTANCE")).toBe(5);
+  });
   it("prefers registered Exercise defaults and only scales total volume on a reduced day", () => {
     const plank = catalogFixture();
     expect(suggestCatalogItem(plank, confirmed()).item).toMatchObject({ plannedSets: 3, plannedDurationSeconds: 40, plannedRestSeconds: 60 });

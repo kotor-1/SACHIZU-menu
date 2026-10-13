@@ -4,6 +4,7 @@ import type { TrainingGoal } from "@/domain/training-proposal/conditions";
 import { SIMPLE_GOAL_LABELS } from "@/domain/training-proposal/simple-conditions";
 import type { TrainingComposerOutput, TrainingComposerSelection } from "@/domain/training-proposal/contracts";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
+import { compareMovementOrder } from "@/domain/training-proposal/eligibility";
 import type { TrainingComposerInput } from "./generate";
 
 /**
@@ -51,7 +52,7 @@ export function ruleBasedTrainingSelection(input: TrainingComposerInput): Traini
   while (movement.length < input.requiredMovement && queues.some(queue => queue.length)) {
     for (const queue of queues) if (queue.length && movement.length < input.requiredMovement) movement.push(queue.shift()!);
   }
-  movement.sort((a, b) => (input.stages[a.id] ?? 0) - (input.stages[b.id] ?? 0));
+  movement.sort((a, b) => compareMovementOrder(input, a.id, b.id));
   const select = (row: ComposerCatalogExercise): TrainingComposerSelection => {
     const { item, annotation } = suggestCatalogItem(row, input.conditions, "rule-based");
     return { exerciseId: row.id, reason: item.reason, intensity: annotation.intensity, relationship: "COMBINABLE", alternativeGroup: null };
