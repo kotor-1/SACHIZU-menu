@@ -229,7 +229,7 @@ describe("training proposal UI (offline rendering, no Luna call)", () => {
 
   it("keeps the client free of Engine calculation, infrastructure imports and browser storage", async () => {
     const fs = await import("node:fs");
-    const client = ["src/components/menu/training-proposal-composer.tsx", "src/components/menu/simple-conditions-form.tsx"]
+    const client = ["src/components/menu/training-proposal-composer.tsx", "src/components/menu/simple-conditions-form.tsx", "src/components/menu/proposal-wait-status.tsx"]
       .map(file => fs.readFileSync(file, "utf8")).join("\n");
     expect(client).toMatch(/from ["']@\/actions\/training-proposal-actions["']/);
     expect(client).not.toMatch(/import (?!type)[^;]*from ["']@\/(?:infra|application)\//);

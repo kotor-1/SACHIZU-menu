@@ -7,6 +7,7 @@ import { SimpleConditionsForm } from "./simple-conditions-form";
 import { RunningPolicyCoachEditor } from "./running-policy-coach-editor";
 import { safeExerciseVideoUrl } from "./composed-item-content";
 import { VideoPlayer, VideoThumbnail } from "./exercise-video";
+import { ProposalWaitStatus, proposalWaitEstimate, proposalWaitSample } from "./proposal-wait-status";
 import { generateTrainingProposalAction, saveTrainingProposalAction, previewTrainingRunningCoachEditAction } from "@/actions/training-proposal-actions";
 import { TRAINING_GOAL_LABELS, trainingConditionsSchema, trainingRunningGoal, type TrainingConditions } from "@/domain/training-proposal/conditions";
 import {
@@ -128,6 +129,9 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
   // 再生するのは1本だけ（押した種目の動画を、そのカードの中で再生する）。
   const [playingItemId, setPlayingItemId] = useState<string | null>(null);
   const [issues, setIssues] = useState<string[]>([]);
+  // 作成中の残り秒数。目安は、この画面で実際にかかった時間から作る（ブラウザには保存しない）。
+  const [waiting, setWaiting] = useState<{ startedAt: number; estimateSeconds: number } | null>(null);
+  const waitSamples = useRef<number[]>([]);
   const resultsRef = useRef<HTMLDivElement>(null);
   const conditionsRef = useRef<HTMLDivElement>(null);
   const previewTokenRef = useRef(initialPreview?.previewToken);
@@ -174,12 +178,17 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
     setError(null); setIssues([]);
     const validated = trainingConditionsSchema.safeParse(conditions);
     if (!validated.success) { setError("入力した条件を確認してください。"); setIssues([...new Set(validated.error.issues.map(issue => explainTrainingIssue(issue.message)))]); return; }
+    const startedAt = Date.now();
+    setWaiting({ startedAt, estimateSeconds: proposalWaitEstimate(waitSamples.current) });
     startTransition(async () => {
       try {
         const result = await generateTrainingProposalAction(validated.data);
+        const seconds = (Date.now() - startedAt) / 1000;
+        if (result.ok && proposalWaitSample(seconds)) waitSamples.current = [...waitSamples.current, seconds].slice(-5);
         if (result.ok) accept(result.preview);
         else { setError(explainTrainingIssue(result.message)); setIssues([...new Set((result.issues ?? []).map(explainTrainingIssue))]); }
       } catch { setError("提案を取得できませんでした。通信状態を確認してください。"); }
+      finally { setWaiting(null); }
     });
   }
   function toggle(id: string, checked: boolean) { setSelected(current => checked ? [...new Set([...current, id])] : current.filter(value => value !== id)); }
@@ -273,6 +282,7 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
       <div className="flex flex-wrap items-center gap-3"><Button type="submit" size="lg" variant="accent" disabled={busy}>{pending ? "提案を準備しています…" : preview ? "この条件でもう一度提案する" : "安全を確認して提案する"}</Button>
         {preview && <Button type="button" variant="ghost" disabled={busy} onClick={() => { setShowConditions(false); requestAnimationFrame(() => resultsRef.current?.focus()); }}>提案に戻る</Button>}
       </div>
+      {waiting && <ProposalWaitStatus key={waiting.startedAt} startedAt={waiting.startedAt} estimateSeconds={waiting.estimateSeconds} />}
     </form></div>}
     {error && <div role="alert" className="border-l-4 border-rose-600 bg-rose-50 px-4 py-3 text-sm text-rose-900"><p className="font-semibold">{error}</p>{issues.length > 0 && <ul className="mt-2 list-inside list-disc space-y-1">{issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul>}</div>}
     {preview && <div ref={resultsRef} tabIndex={-1} className="space-y-5 outline-none" aria-label="練習の提案">
