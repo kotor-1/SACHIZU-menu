@@ -6,6 +6,7 @@ import { Button, INPUT_CLASS } from "@/components/ui";
 import { SimpleConditionsForm } from "./simple-conditions-form";
 import { RunningPolicyCoachEditor } from "./running-policy-coach-editor";
 import { safeExerciseVideoUrl } from "./composed-item-content";
+import { VideoPlayer, VideoThumbnail } from "./exercise-video";
 import { generateTrainingProposalAction, saveTrainingProposalAction, previewTrainingRunningCoachEditAction } from "@/actions/training-proposal-actions";
 import { TRAINING_GOAL_LABELS, trainingConditionsSchema, trainingRunningGoal, type TrainingConditions } from "@/domain/training-proposal/conditions";
 import {
@@ -64,8 +65,9 @@ function StageMeter({ stage }: { stage: number }) {
 }
 /** 開閉できる行。押せる高さを 44px 以上にし、開いているかを矢印で示す。 */
 const SUMMARY_CLASS = "flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-slate-800 hover:text-slate-950 [&::-webkit-details-marker]:hidden";
-function Chevron() {
-  return <span aria-hidden="true" className="inline-block w-3 text-slate-500 transition-transform group-open:rotate-90">▸</span>;
+function Chevron({ nested = false }: { nested?: boolean }) {
+  // 入れ子の開閉では、外側が開いただけで回らないよう名前付きの group を使う。
+  return <span aria-hidden="true" className={`inline-block w-3 text-slate-500 transition-transform ${nested ? "group-open/text:rotate-90" : "group-open:rotate-90"}`}>▸</span>;
 }
 function ExerciseDoseEditor({ item, exercise, update }: { item: ExerciseItem; exercise?: ComposerCatalogExercise; update: (patch: Partial<ExerciseItem>) => void }) {
   const [freeUnit, setUnit] = useState<"plannedReps" | "plannedDistanceMeters" | "plannedDurationSeconds">(item.plannedDistanceMeters !== null ? "plannedDistanceMeters" : item.plannedDurationSeconds !== null ? "plannedDurationSeconds" : "plannedReps");
@@ -123,6 +125,8 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
   const [savedEditStatus, setSavedEditStatus] = useState<"IDLE" | "CHECKING" | "FAILED">(initialPreview?.coachEdit ? "CHECKING" : "IDLE");
   const [showConditions, setShowConditions] = useState(!initialPreview);
   const [error, setError] = useState<string | null>(null);
+  // 再生するのは1本だけ（押した種目の動画を、そのカードの中で再生する）。
+  const [playingItemId, setPlayingItemId] = useState<string | null>(null);
   const [issues, setIssues] = useState<string[]>([]);
   const resultsRef = useRef<HTMLDivElement>(null);
   const conditionsRef = useRef<HTMLDivElement>(null);
@@ -330,16 +334,21 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
                   <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${selectedItem ? "bg-slate-900" : "bg-transparent"}`} />
                   <div className="flex items-start gap-3"><label className="-m-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md hover:bg-slate-900/5"><input type="checkbox" aria-label={`${title}を採用`} className="h-6 w-6 accent-slate-900" checked={selectedItem} disabled={isUnprescribed} onChange={event => toggle(item.id, event.target.checked)} /></label>
                     <div className="min-w-0 flex-1">
-                      <div className={`flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 ${selectedItem ? "" : "opacity-60"}`}><div className="min-w-0">
-                        <div className="flex items-baseline gap-2"><span className="w-5 shrink-0 text-xs font-bold tabular-nums text-slate-500">{index + 1}</span><h4 className="break-words text-[15px] font-bold text-slate-900">{title}</h4></div>
-                        {(meta.stage !== null && !isRunning || video || meta.relationship === "ALTERNATIVE") && <div className="mt-1 ml-7 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-slate-600">
-                          {meta.stage !== null && !isRunning && <StageMeter stage={meta.stage} />}
-                          {video && <span>▶ お手本動画あり</span>}
-                          {meta.relationship === "ALTERNATIVE" && <span className="font-semibold text-amber-800">選び替える候補</span>}
-                        </div>}
+                      <div className={`flex gap-3 ${selectedItem ? "" : "opacity-60"}`}>
+                        {/* 文章より先に、お手本の動画が目に入るようにする */}
+                        {exercise && <VideoThumbnail url={exercise.videoUrl} title={title} playing={playingItemId === item.id}
+                          onToggle={() => setPlayingItemId(current => current === item.id ? null : item.id)} />}
+                        <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"><div className="min-w-0">
+                          <div className="flex items-baseline gap-2"><span className="w-5 shrink-0 text-xs font-bold tabular-nums text-slate-500">{index + 1}</span><h4 className="break-words text-[15px] font-bold text-slate-900">{title}</h4></div>
+                          {(meta.stage !== null && !isRunning || meta.relationship === "ALTERNATIVE") && <div className="mt-1 ml-7 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-slate-600">
+                            {meta.stage !== null && !isRunning && <StageMeter stage={meta.stage} />}
+                            {meta.relationship === "ALTERNATIVE" && <span className="font-semibold text-amber-800">選び替える候補</span>}
+                          </div>}
+                        </div>
+                          {dose && <p className="ml-7 shrink-0 text-sm font-bold tabular-nums text-slate-900 sm:ml-0 sm:text-right">{dose.main}{dose.rest && <span className="ml-2 text-xs font-medium text-slate-600">{dose.rest}</span>}</p>}
+                        </div>
                       </div>
-                        {dose && <p className="ml-7 shrink-0 text-sm font-bold tabular-nums text-slate-900 sm:ml-0 sm:text-right">{dose.main}{dose.rest && <span className="ml-2 text-xs font-medium text-slate-600">{dose.rest}</span>}</p>}
-                      </div>
+                      {playingItemId === item.id && exercise && <div className="mt-3"><VideoPlayer url={exercise.videoUrl} title={title} /></div>}
                       <div className="ml-7 sm:flex sm:items-end sm:justify-between sm:gap-6">
                         <div className={`min-w-0 ${selectedItem ? "" : "opacity-60"}`}>
                         {isRunning && runningFinal ? <div className="mt-1.5 space-y-1.5 text-xs leading-relaxed text-slate-700" data-running-summary>
@@ -373,11 +382,21 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
                     <div className="space-y-4 pt-1 pb-2">
                       {exerciseItem && <>
                         <ExerciseDoseEditor key={`${item.id}-${exercise?.id ?? "free"}`} item={exerciseItem} exercise={exercise} update={patch => updateItem(block.id, item.id, patch)} />
-                        <label className={labelClass}>強度の目安<input className={INPUT_CLASS} maxLength={240} value={meta.intensity} onChange={event => annotation(item.id, { intensity: event.target.value })} /></label>
-                        <label className={labelClass}>実施指示<textarea className={INPUT_CLASS} rows={3} maxLength={400} value={exerciseItem.executionInstruction} onChange={event => updateItem(block.id, item.id, { executionInstruction: event.target.value })} /></label>
-                        <label className={labelClass}>メモ<textarea className={INPUT_CLASS} rows={2} maxLength={200} value={exerciseItem.plannedNote} onChange={event => updateItem(block.id, item.id, { plannedNote: event.target.value })} /></label>
                         {item.type === "CATALOG_EXERCISE" && <div><Button type="button" size="sm" variant="secondary" onClick={() => resetItem(block.id, item.id)}>提案時の値に戻す</Button></div>}
                         <CatalogPicker rows={eligible} label="別の種目に入れ替える" onPick={id => pick(block.id, id, item.id)} disabled={busy} duplicateNames={duplicateNames} />
+                        {/* 長い文章は、必要なときだけ開く */}
+                        <details className="group/text rounded-md border border-slate-200 bg-white px-3"><summary className={SUMMARY_CLASS}><Chevron nested />説明文とメモ</summary>
+                          <div className="space-y-4 pb-3">
+                            <label className={labelClass}>強度の目安<input className={INPUT_CLASS} maxLength={240} value={meta.intensity} onChange={event => annotation(item.id, { intensity: event.target.value })} /></label>
+                            <label className={labelClass}>実施指示<textarea className={INPUT_CLASS} rows={3} maxLength={400} value={exerciseItem.executionInstruction} onChange={event => updateItem(block.id, item.id, { executionInstruction: event.target.value })} /></label>
+                            <label className={labelClass}>メモ<textarea className={INPUT_CLASS} rows={2} maxLength={200} value={exerciseItem.plannedNote} onChange={event => updateItem(block.id, item.id, { plannedNote: event.target.value })} /></label>
+                            {exercise && <div className="space-y-2 border-l-4 border-slate-300 bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-700"><p className="font-bold text-slate-900">種目の基本説明</p><p className="whitespace-pre-wrap">{exercise.description}</p>
+                              {exercise.coachingPoint && <p className="whitespace-pre-wrap">{exercise.coachingPoint}</p>}
+                              {exercise.videoGuidance?.bilateralCounting && <p className="whitespace-pre-wrap">数え方：{exercise.videoGuidance.bilateralCounting}</p>}
+                              <div className="flex flex-wrap gap-4 pt-1"><a href={`/exercises/${exercise.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">種目ページ</a>{video && <a href={video} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">参考動画を見る ↗</a>}</div>
+                            </div>}
+                          </div>
+                        </details>
                       </>}
                       {isRunning && runningFinal && <div className="space-y-3">
                         {runningFinal.executionInstructionText && <p className="whitespace-pre-wrap text-sm text-slate-700">{runningFinal.executionInstructionText}</p>}
@@ -386,11 +405,6 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
                         {runningFinal.setReps && <p className="text-sm">セット構成：{runningFinal.setReps.join("本 / ")}本・セット間休息 {runningFinal.setRestSeconds ?? "未指定"}秒</p>}
                         <RunningPolicyCoachEditor key={JSON.stringify(runningFinal)} initial={runningFinal} onSubmit={editRunning} proposalSafety />
                         <label className={labelClass}>走練習のメモ<textarea className={INPUT_CLASS} rows={2} maxLength={1000} value={item.plannedNote} onChange={event => updateItem(block.id, item.id, { plannedNote: event.target.value })} /></label>
-                      </div>}
-                      {exercise && <div className="space-y-2 border-l-4 border-slate-300 bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-700"><p className="font-bold text-slate-900">種目の基本説明</p><p className="whitespace-pre-wrap">{exercise.description}</p>
-                        {exercise.coachingPoint && <p className="whitespace-pre-wrap">{exercise.coachingPoint}</p>}
-                        {exercise.videoGuidance?.bilateralCounting && <p className="whitespace-pre-wrap">数え方：{exercise.videoGuidance.bilateralCounting}</p>}
-                        <div className="flex flex-wrap gap-4 pt-1"><a href={`/exercises/${exercise.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">種目ページ</a>{video && <a href={video} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">参考動画を見る ↗</a>}</div>
                       </div>}
                     </div>
                   </details>

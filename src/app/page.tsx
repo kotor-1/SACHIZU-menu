@@ -14,6 +14,8 @@ import {
   type SessionStatus,
 } from "@/domain/session/constants";
 import { formatDate, relativeDays } from "@/lib/format";
+import { appAuthRequired } from "@/infra/auth/app-session";
+import { currentAppSession } from "@/infra/auth/current-app-user";
 
 /** DB を直接読むため、ビルド時に固定せず毎回サーバーで描画する。 */
 export const dynamic = "force-dynamic";
@@ -43,13 +45,17 @@ function Score({
 }
 
 export default async function Home() {
+  // 件数とカテゴリ別の集計は管理者だけに見せる（メンバーには練習の予定と最近のメニューだけ）。
+  // 手元の開発ではログインを使わないので、そのまま表示する。
+  const session = await currentAppSession();
+  const isAdmin = !appAuthRequired() || session?.user.role === "ADMIN";
   const [exerciseCount, menuCount, sessionCount, draftCount, byCategory, upcoming, recentMenus] =
     await Promise.all([
-      prisma.exercise.count({ where: { status: { not: "ARCHIVED" } } }),
-      prisma.menuTemplate.count({ where: { status: { not: "ARCHIVED" } } }),
-      prisma.trainingSession.count(),
-      prisma.exerciseDraft.count({ where: { status: "PENDING_REVIEW" } }),
-      countExercisesByCategory(),
+      isAdmin ? prisma.exercise.count({ where: { status: { not: "ARCHIVED" } } }) : 0,
+      isAdmin ? prisma.menuTemplate.count({ where: { status: { not: "ARCHIVED" } } }) : 0,
+      isAdmin ? prisma.trainingSession.count() : 0,
+      isAdmin ? prisma.exerciseDraft.count({ where: { status: "PENDING_REVIEW" } }) : 0,
+      isAdmin ? countExercisesByCategory() : ({} as Awaited<ReturnType<typeof countExercisesByCategory>>),
       listUpcomingSessions(5),
       prisma.menuTemplate.findMany({
         orderBy: { updatedAt: "desc" },
@@ -81,12 +87,12 @@ export default async function Home() {
       />
 
       {/* 1px の隙間に罫線の色を見せて、区画の間に線を引く */}
-      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-slate-200 bg-slate-200 lg:grid-cols-4">
+      {isAdmin && <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-slate-200 bg-slate-200 lg:grid-cols-4">
         <Score label="登録種目" value={exerciseCount} suffix="件" href="/exercises" />
         <Score label="メニュー" value={menuCount} suffix="件" href="/menus" />
         <Score label="練習記録" value={sessionCount} suffix="件" href="/sessions" />
         <Score label="AI下書き（確認待ち）" value={draftCount} suffix="件" href="/ai" />
-      </div>
+      </div>}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -155,7 +161,7 @@ export default async function Home() {
           </CardBody>
         </Card>
 
-        <Card className="lg:col-span-3">
+        {isAdmin && <Card className="lg:col-span-3">
           <CardHeader>
             <h2 className="text-sm font-bold text-slate-900">カテゴリ別の種目数</h2>
           </CardHeader>
@@ -181,7 +187,7 @@ export default async function Home() {
               </ul>
             )}
           </CardBody>
-        </Card>
+        </Card>}
       </div>
     </>
   );

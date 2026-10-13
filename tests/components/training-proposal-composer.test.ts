@@ -166,6 +166,21 @@ describe("training proposal UI (offline rendering, no Luna call)", () => {
     expect(html).toContain('<option value="movement-a2">足首回し（かかとを上げ下げしながら、足首をゆっ…）</option>');
   });
 
+  it("shows the exercise video first as a light thumbnail, and keeps long text folded", () => {
+    const html = renderMarkup(TrainingProposalComposer, { catalog, initialPreview: preview() });
+    // Both exercise items carry the fixture's YouTube link; nothing heavy loads until a thumbnail is pressed.
+    expect(html.match(/<img src="https:\/\/i\.ytimg\.com\/vi\/abcdefghijk\/mqdefault\.jpg"/g)).toHaveLength(2);
+    expect(html).toMatch(/aria-label="肩回しの動画を再生"/);
+    expect(html).not.toContain("<iframe");
+    expect(html).not.toContain("お手本動画あり");
+    const card = html.split('data-training-item="movement-item"')[1].split("</article>")[0];
+    const folded = card.split("説明文とメモ")[1];
+    for (const label of ["強度の目安", "実施指示", "メモ", "種目の基本説明"]) {
+      expect(card.split("説明文とメモ")[0]).not.toContain(`>${label}<`);
+      expect(folded).toContain(label);
+    }
+  });
+
   it("keeps catalog descriptions intact and suppresses unsafe video links", () => {
     const rows = catalog.map(row => ({ ...row, videoUrl: "javascript:alert(1)" }));
     const html = renderMarkup(TrainingProposalComposer, { catalog: rows, initialPreview: preview() });
