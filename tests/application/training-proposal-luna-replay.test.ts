@@ -130,8 +130,8 @@ describe("recorded Luna outputs under the App-owned-dose contract (replay, no AP
   }
   const complete = (request: V2Request) => request.output !== null;
 
-  it("keeps five responses from gpt-6-luna: four schema-valid on catalog IDs, one truncated", () => {
-    expect(v2.map(entry => `${entry.run}-${entry.seq}${entry.case}`)).toEqual(["4-1F", "4-2F", "4-3F", "5-1A", "5-2B"]);
+  it("keeps eight responses from gpt-6-luna: seven schema-valid on catalog IDs, one truncated", () => {
+    expect(v2.map(entry => `${entry.run}-${entry.seq}${entry.case}`)).toEqual(["4-1F", "4-2F", "4-3F", "5-1A", "5-2B", "6-1F", "6-2F", "6-3F"]);
     for (const request of v2) {
       expect(request.model).toBe("gpt-6-luna");
       if (!complete(request)) continue;
@@ -143,7 +143,8 @@ describe("recorded Luna outputs under the App-owned-dose contract (replay, no AP
     }
   });
 
-  it.each([[4, 1], [4, 2], [5, 1], [5, 2]] as const)("run %i #%i passes on Luna's own choice with the App's numbers", async (run, seq) => {
+  // Run 6 re-checked case F live after the minimum was lowered to the App's floor (2026-10-13).
+  it.each([[4, 1], [4, 2], [5, 1], [5, 2], [6, 1], [6, 2], [6, 3]] as const)("run %i #%i passes on Luna's own choice with the App's numbers", async (run, seq) => {
     const { result, request, compose } = await replayV2(run, seq);
     expect(compose).toHaveBeenCalledTimes(1);
     expect(result.ok).toBe(true); if (!result.ok) return;
@@ -161,6 +162,15 @@ describe("recorded Luna outputs under the App-owned-dose contract (replay, no AP
       const { id: _id, reason: _reason, ...appValues } = suggestCatalogItem(row, trainingCases()[request.case], item.id).item; void _id; void _reason;
       expect(item).toMatchObject(appValues);
       if (request.case === "F") expect(item.plannedSets).toBe(1);
+    }
+  });
+
+  it("run 6: under the App's floor, all three live F answers closed normally with twelve items", () => {
+    for (const request of v2.filter(entry => entry.run === 6)) {
+      expect(request.responseStatus).toBe("completed");
+      expect(request.usage.output_tokens).toBeLessThan(2000);
+      expect(request.output!.movement).toHaveLength(12);
+      expect(request.output!.strength).toHaveLength(0);
     }
   });
 
