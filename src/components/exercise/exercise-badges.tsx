@@ -35,7 +35,7 @@ export function TargetBadge({ target }: { target: string }) {
 
 export function PurposeBadge({ purpose }: { purpose: string }) {
   return (
-    <Badge className="border-teal-200 bg-teal-50 text-teal-700">
+    <Badge className="border-slate-300 bg-white text-slate-700">
       {EXERCISE_PURPOSE_LABEL[purpose as ExercisePurposeValue] ?? purpose}
     </Badge>
   );
@@ -43,7 +43,7 @@ export function PurposeBadge({ purpose }: { purpose: string }) {
 
 export function EventBadge({ event }: { event: string }) {
   return (
-    <Badge className="border-purple-200 bg-purple-50 text-purple-700">
+    <Badge className="border-slate-900 bg-white text-slate-900">
       {TRACK_FIELD_EVENT_LABEL[event as TrackFieldEvent] ?? event}
     </Badge>
   );

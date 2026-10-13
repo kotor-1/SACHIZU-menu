@@ -87,8 +87,8 @@ export function ProvenancePanel({ provenance }: { provenance: ProvenancePresenta
         </Row>
       </dl>
       {provenance.aiProposal !== null && (
-        <section className="space-y-1 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2">
-          <h5 className="text-sm font-semibold text-violet-900">{provenance.aiProposal.heading}</h5>
+        <section className="space-y-1 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
+          <h5 className="text-sm font-semibold text-sky-900">{provenance.aiProposal.heading}</h5>
           <p className="text-sm break-words text-slate-800">{provenance.aiProposal.reason ?? "AIの説明文はありません。"}</p>
           <p className="text-xs text-slate-600">{provenance.aiProposal.engineBasisNote}</p>
         </section>

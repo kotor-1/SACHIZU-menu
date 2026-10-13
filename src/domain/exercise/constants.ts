@@ -32,20 +32,24 @@ export const EXERCISE_CATEGORY_LABEL: Record<ExerciseCategory, string> = {
   OTHER: "その他",
 };
 
-/** 一覧のバッジ色。Tailwind のクラス名を直接持つ。 */
+/**
+ * 一覧のバッジ色。Tailwind のクラス名を直接持つ。
+ * 色は練習の性質でまとめる（準備・回復＝黄土、技術＝墨、スピード・パワー＝赤、
+ * 筋力＝緑、持久＝鋼色）。区分そのものはラベルの文字で見分ける。
+ */
 export const EXERCISE_CATEGORY_COLOR: Record<ExerciseCategory, string> = {
-  WARM_UP: "bg-amber-100 text-amber-800 border-amber-200",
-  MOBILITY: "bg-lime-100 text-lime-800 border-lime-200",
-  DRILL: "bg-sky-100 text-sky-800 border-sky-200",
-  SPRINT: "bg-red-100 text-red-800 border-red-200",
-  JUMP: "bg-violet-100 text-violet-800 border-violet-200",
-  THROW: "bg-orange-100 text-orange-800 border-orange-200",
-  HURDLE: "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
-  ENDURANCE: "bg-teal-100 text-teal-800 border-teal-200",
-  STRENGTH: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  CORE: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  COOL_DOWN: "bg-cyan-100 text-cyan-800 border-cyan-200",
-  OTHER: "bg-slate-100 text-slate-700 border-slate-200",
+  WARM_UP: "bg-amber-50 text-amber-800 border-amber-300",
+  MOBILITY: "bg-amber-50 text-amber-800 border-amber-300",
+  COOL_DOWN: "bg-amber-50 text-amber-800 border-amber-300",
+  DRILL: "bg-slate-100 text-slate-800 border-slate-300",
+  HURDLE: "bg-slate-100 text-slate-800 border-slate-300",
+  SPRINT: "bg-indigo-50 text-indigo-800 border-indigo-300",
+  JUMP: "bg-white text-indigo-800 border-indigo-300",
+  THROW: "bg-white text-indigo-800 border-indigo-300",
+  STRENGTH: "bg-emerald-50 text-emerald-800 border-emerald-300",
+  CORE: "bg-emerald-50 text-emerald-800 border-emerald-300",
+  ENDURANCE: "bg-sky-50 text-sky-800 border-sky-300",
+  OTHER: "bg-white text-slate-700 border-slate-300",
 };
 
 // --- 対象能力（何が鍛えられるか）-------------------------------------------
@@ -162,11 +166,11 @@ export const ENERGY_SYSTEM_LABEL: Record<EnergySystem, string> = {
 
 /** 一覧バッジ用。カテゴリと同じく Tailwind クラスを直接持つ。 */
 export const ENERGY_SYSTEM_COLOR: Record<EnergySystem, string> = {
-  ALACTIC: "bg-rose-100 text-rose-800 border-rose-200",
-  GLYCOLYTIC: "bg-amber-100 text-amber-800 border-amber-200",
-  AEROBIC: "bg-teal-100 text-teal-800 border-teal-200",
-  NEURAL: "bg-sky-100 text-sky-800 border-sky-200",
-  NONE: "bg-slate-100 text-slate-700 border-slate-200",
+  ALACTIC: "bg-indigo-50 text-indigo-800 border-indigo-300",
+  GLYCOLYTIC: "bg-amber-50 text-amber-800 border-amber-300",
+  AEROBIC: "bg-sky-50 text-sky-800 border-sky-300",
+  NEURAL: "bg-slate-100 text-slate-800 border-slate-300",
+  NONE: "bg-white text-slate-700 border-slate-300",
 };
 
 // --- 負荷の測り方（入力 UI の出し分けに使う）-------------------------------

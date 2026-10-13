@@ -16,10 +16,10 @@ export const SESSION_STATUS_LABEL: Record<SessionStatus, string> = {
 };
 
 export const SESSION_STATUS_COLOR: Record<SessionStatus, string> = {
-  PLANNED: "bg-slate-100 text-slate-700 border-slate-200",
-  IN_PROGRESS: "bg-blue-100 text-blue-800 border-blue-200",
-  COMPLETED: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  CANCELLED: "bg-rose-100 text-rose-700 border-rose-200",
+  PLANNED: "bg-white text-slate-700 border-slate-300",
+  IN_PROGRESS: "bg-indigo-600 text-white border-indigo-600",
+  COMPLETED: "bg-emerald-50 text-emerald-800 border-emerald-300",
+  CANCELLED: "bg-white text-rose-700 border-rose-300",
 };
 
 /** よく使う天候の候補（自由入力も許可する）。 */

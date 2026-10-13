@@ -19,7 +19,8 @@ import { formatDate, relativeDays } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 
-function StatCard({
+/** 得点板のように、数字を大きく並べた帯の 1 区画。 */
+function Score({
   label,
   value,
   href,
@@ -31,16 +32,12 @@ function StatCard({
   suffix: string;
 }) {
   return (
-    <Link href={href}>
-      <Card className="h-full transition-shadow hover:shadow-md">
-        <CardBody>
-          <p className="text-xs text-slate-500">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">
-            {value}
-            <span className="ml-1 text-xs font-normal text-slate-400">{suffix}</span>
-          </p>
-        </CardBody>
-      </Card>
+    <Link href={href} className="group block bg-white px-4 py-3 transition-colors hover:bg-slate-50 sm:px-5 sm:py-4">
+      <p className="text-xs font-semibold text-slate-600">{label}</p>
+      <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight text-slate-900 group-hover:text-indigo-700">
+        {value}
+        <span className="ml-1 text-xs font-medium text-slate-500">{suffix}</span>
+      </p>
     </Link>
   );
 }
@@ -83,26 +80,27 @@ export default async function Home() {
         }
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="登録種目" value={exerciseCount} suffix="件" href="/exercises" />
-        <StatCard label="メニュー" value={menuCount} suffix="件" href="/menus" />
-        <StatCard label="練習記録" value={sessionCount} suffix="件" href="/sessions" />
-        <StatCard label="AI下書き（確認待ち）" value={draftCount} suffix="件" href="/ai" />
+      {/* 1px の隙間に罫線の色を見せて、区画の間に線を引く */}
+      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-slate-200 bg-slate-200 lg:grid-cols-4">
+        <Score label="登録種目" value={exerciseCount} suffix="件" href="/exercises" />
+        <Score label="メニュー" value={menuCount} suffix="件" href="/menus" />
+        <Score label="練習記録" value={sessionCount} suffix="件" href="/sessions" />
+        <Score label="AI下書き（確認待ち）" value={draftCount} suffix="件" href="/ai" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-700">予定・実施中の練習</h2>
-            <Link href="/sessions" className="text-xs text-indigo-600 hover:underline">
+            <h2 className="text-sm font-bold text-slate-900">予定・実施中の練習</h2>
+            <Link href="/sessions" className="text-xs font-semibold text-indigo-700 underline-offset-4 hover:underline">
               すべて見る
             </Link>
           </CardHeader>
           <CardBody>
             {upcoming.length === 0 ? (
-              <p className="py-4 text-center text-sm text-slate-400">
+              <p className="py-4 text-sm text-slate-500">
                 予定されている練習はありません。
-                <Link href="/menus" className="ml-1 text-indigo-600 hover:underline">
+                <Link href="/menus" className="ml-1 font-semibold text-indigo-700 underline underline-offset-4">
                   メニューから作成
                 </Link>
               </p>
@@ -112,13 +110,13 @@ export default async function Home() {
                   <li key={s.id}>
                     <Link
                       href={`/sessions/${s.id}`}
-                      className="flex items-center justify-between gap-3 py-2.5 hover:text-indigo-600"
+                      className="flex items-center justify-between gap-3 py-2.5 hover:text-indigo-700"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-slate-900">
                           {s.title}
                         </p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs tabular-nums text-slate-500">
                           {formatDate(s.date)}（{relativeDays(s.date)}）・{s._count.items} 項目
                         </p>
                       </div>
@@ -135,18 +133,18 @@ export default async function Home() {
 
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-semibold text-slate-700">最近のメニュー</h2>
+            <h2 className="text-sm font-bold text-slate-900">最近のメニュー</h2>
           </CardHeader>
           <CardBody>
             {recentMenus.length === 0 ? (
-              <p className="text-sm text-slate-400">まだありません。</p>
+              <p className="text-sm text-slate-500">まだありません。</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {recentMenus.map((m) => (
                   <li key={m.id}>
                     <Link
                       href={`/menus/${m.id}`}
-                      className="block truncate py-2 text-sm text-slate-700 hover:text-indigo-600"
+                      className="block truncate py-2.5 text-sm font-medium text-slate-800 hover:text-indigo-700"
                     >
                       {m.name}
                     </Link>
@@ -159,27 +157,28 @@ export default async function Home() {
 
         <Card className="lg:col-span-3">
           <CardHeader>
-            <h2 className="text-sm font-semibold text-slate-700">カテゴリ別の種目数</h2>
+            <h2 className="text-sm font-bold text-slate-900">カテゴリ別の種目数</h2>
           </CardHeader>
           <CardBody>
             {topCategories.length === 0 ? (
-              <p className="text-sm text-slate-400">種目がまだ登録されていません。</p>
+              <p className="text-sm text-slate-500">種目がまだ登録されていません。</p>
             ) : (
-              <div className="flex flex-wrap gap-2">
+              <ul className="grid grid-cols-1 gap-x-8 sm:grid-cols-2 lg:grid-cols-4">
                 {topCategories.map(({ category, count }) => (
-                  <Link
-                    key={category}
-                    href={`/exercises?category=${category}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50"
-                  >
-                    <CategoryBadge category={category} />
-                    <span className="text-slate-600">{count}</span>
-                    <span className="sr-only">
-                      {EXERCISE_CATEGORY_LABEL[category]} の種目一覧へ
-                    </span>
-                  </Link>
+                  <li key={category} className="border-b border-slate-100">
+                    <Link
+                      href={`/exercises?category=${category}`}
+                      className="flex min-h-11 items-center justify-between gap-3 text-sm hover:text-indigo-700"
+                    >
+                      <CategoryBadge category={category} />
+                      <span className="font-bold tabular-nums text-slate-900">{count}</span>
+                      <span className="sr-only">
+                        {EXERCISE_CATEGORY_LABEL[category]} の種目一覧へ
+                      </span>
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </CardBody>
         </Card>

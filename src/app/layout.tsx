@@ -15,25 +15,19 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="min-h-full">
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur no-print">
-          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:gap-6 sm:py-3">
-            <Link href="/" className="flex shrink-0 items-center gap-2">
-              <span className="grid h-7 w-7 place-items-center rounded-md bg-indigo-600 text-xs font-bold text-white">
-                SZ
-              </span>
-              <span className="text-sm font-bold tracking-tight text-slate-900">
-                SACHIZU メニュー作成
-              </span>
+        <header className="sticky top-0 z-20 bg-slate-900 text-white no-print">
+          <div className="mx-auto flex max-w-6xl flex-col px-4 sm:flex-row sm:items-stretch sm:gap-8">
+            <Link href="/" className="flex shrink-0 items-center gap-2.5 pt-3 pb-1 sm:py-0">
+              {/* レーンの区切り線を模した目印 */}
+              <span aria-hidden="true" className="h-5 w-1.5 bg-indigo-500" />
+              <span className="text-[15px] font-extrabold tracking-[0.14em]">SACHIZU</span>
+              <span className="text-xs text-slate-300">練習メニュー</span>
             </Link>
             <Nav />
           </div>
         </header>
 
-        <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">{children}</main>
-
-        <footer className="mx-auto max-w-6xl px-4 pb-10 text-xs text-slate-400 no-print">
-          Phase 1 — 種目カタログ / メニュー作成 / 練習記録
-        </footer>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-16 sm:py-8">{children}</main>
       </body>
     </html>
   );

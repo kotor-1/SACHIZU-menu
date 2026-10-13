@@ -177,7 +177,14 @@ export function ExerciseFilters({
       </label>
 
       {Object.keys(tagsByKind).length > 0 && (
-        <div className="space-y-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+        // タグは数が多いので、選んでいるときだけ最初から開いておく
+        <details open={selectedTags.size > 0} className="group rounded-md border border-slate-200 bg-white px-3">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-slate-800 [&::-webkit-details-marker]:hidden">
+            <span aria-hidden="true" className="inline-block w-3 text-slate-500 transition-transform group-open:rotate-90">▸</span>
+            部位・器具・タグで絞り込む
+            {selectedTags.size > 0 && <span className="text-xs font-bold text-indigo-700">{selectedTags.size}件を選択中</span>}
+          </summary>
+          <div className="space-y-1.5 pb-3">
           {(Object.keys(tagsByKind) as TagKind[]).map((kind) => (
             <div key={kind} className="flex flex-wrap items-center gap-1.5">
               <span className="w-16 shrink-0 text-xs font-medium text-slate-500">
@@ -191,8 +198,8 @@ export function ExerciseFilters({
                     className={cn(
                       "cursor-pointer rounded-md border px-2 py-0.5 text-xs transition-colors",
                       checked
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100",
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-900",
                     )}
                   >
                     <input
@@ -208,13 +215,14 @@ export function ExerciseFilters({
               })}
             </div>
           ))}
-        </div>
+          </div>
+        </details>
       )}
 
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span>{resultCount} 件が該当</span>
         {hasFilter && (
-          <Link href="/exercises" className="text-indigo-600 hover:underline">
+          <Link href="/exercises" className="font-semibold text-indigo-700 underline underline-offset-4">
             条件をクリア
           </Link>
         )}

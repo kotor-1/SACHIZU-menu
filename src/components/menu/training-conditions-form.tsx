@@ -8,8 +8,10 @@ import { TRAINING_LOCATIONS, TRAINING_LOCATION_LABELS, TRAINING_SURFACES, TRAINI
 
 const DISTANCES = [0, 10, 20, 30, 50, 60, 100, 200];
 const EVENTS = ["100m", "200m", "400m", "ハードル", "走幅跳・三段跳", "走高跳・棒高跳", "中長距離", "投てき", "混成"];
-const labelClass = "block space-y-1.5 text-sm font-medium text-slate-700";
-const hintClass = "block text-xs font-normal leading-relaxed text-slate-500";
+const labelClass = "block space-y-1.5 text-sm font-semibold text-slate-800";
+const hintClass = "block text-xs font-normal leading-relaxed text-slate-600";
+/** 選ぶと黒く反転するマス。押せる範囲は 44px 以上。 */
+const tileClass = (on: boolean) => `flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${on ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-900"}`;
 
 // Representative values for bucketed selects. A saved value is shown in its bucket and
 // is only replaced when the person changes the select.
@@ -22,10 +24,11 @@ const countBucket = (count: number | null) => count === null ? "" : String(Math.
 const daysBucket = (days: number | null) => days === null ? "" : days <= 3 ? String(days) : days <= 6 ? "5" : days <= 13 ? "7" : "14";
 
 function Step({ number, title, description, children }: { number: number; title: string; description?: string; children: ReactNode }) {
-  return <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6" aria-label={`STEP ${number} ${title}`}>
+  return <section className="border-t-2 border-slate-900 bg-white px-4 pt-4 pb-5 sm:px-6" aria-label={`STEP ${number} ${title}`}>
     <div className="mb-4 flex items-start gap-3">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700" aria-hidden="true">{number}</span>
-      <div><h2 className="font-semibold text-slate-900">{title}</h2>{description && <p className="mt-1 text-sm leading-relaxed text-slate-500">{description}</p>}</div>
+      {/* ゼッケンのような四角い番号 */}
+      <span className="grid h-9 w-9 shrink-0 place-items-center bg-slate-900 text-base font-extrabold tabular-nums text-white" aria-hidden="true">{number}</span>
+      <div><h2 className="text-lg font-bold text-slate-900">{title}</h2>{description && <p className="mt-0.5 text-sm leading-relaxed text-slate-600">{description}</p>}</div>
     </div>
     {children}
   </section>;
@@ -100,7 +103,7 @@ export function TrainingConditionsForm({ value, onChange, disabled = false }: {
     // "400m以上" records its lower bound; a longer exact value can be typed.
     environment({ straightMeters: next === "LONG" ? 400 : next === "OTHER" || next === "UNKNOWN" ? null : Number(next) });
   }
-  return <fieldset disabled={disabled} className="min-w-0 space-y-4 disabled:opacity-70">
+  return <fieldset disabled={disabled} className="min-w-0 space-y-3 disabled:opacity-70">
     <legend className="sr-only">練習の条件</legend>
     <Step number={1} title="練習する場所" description="場所と路面を選びます。使える距離・設備は次のステップで確認します。">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -112,7 +115,7 @@ export function TrainingConditionsForm({ value, onChange, disabled = false }: {
           {TRAINING_SURFACES.map(option => <option key={option} value={option}>{TRAINING_SURFACE_LABELS[option]}</option>)}
         </select>{value.environment.surface === "OTHER" && <span className={hintClass}>「その他」の路面では、移動や跳躍を伴う種目と走練習を提案しません。</span>}</label>
       </div>
-      <p className="mt-3 text-xs leading-relaxed text-slate-500">場所を変更すると、路面・距離・安全確認はもう一度選び直します。</p>
+      <p className="mt-3 text-xs leading-relaxed text-slate-600">場所を変更すると、路面・距離・安全確認はもう一度選び直します。</p>
     </Step>
     <Step number={2} title="使える距離・設備" description="実際に使えるものを選んでください。安全が分からない項目は「未確認」のままにできます。">
       <div className="space-y-5">
@@ -124,25 +127,25 @@ export function TrainingConditionsForm({ value, onChange, disabled = false }: {
           </select><span className={hintClass}>折り返しを含まない実際の直線です。走り終えて止まる余裕も含めた長さを選んでください。</span></label>
           {distanceMode !== "PRESET" && <NumberField label={distanceMode === "LONG" ? "400m以上の直線距離（m）" : "その他の直線距離（m）"} value={value.environment.straightMeters} min={distanceMode === "LONG" ? 400 : 0} max={10000} step={0.1} onChange={straightMeters => environment({ straightMeters })} />}
         </div>
-        <p className="text-xs leading-relaxed text-slate-500">{locationHint}</p>
+        <p className="text-xs leading-relaxed text-slate-600">{locationHint}</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <TriState label={indoor ? "床が平坦で滑らず安全に動ける" : "平坦で滑りにくく安全に動ける"} value={value.environment.flatSafe} onChange={flatSafe => environment({ flatSafe })} />
           <TriState label={sharedPublicSpace ? "練習区間に車・自転車の通行がない" : "車や自転車の通行がない"} value={value.environment.trafficFree} onChange={trafficFree => environment({ trafficFree })} />
           <TriState label={indoor ? "天井・柱・他の利用者との接触の心配がない" : sharedPublicSpace ? "歩行者の混雑や遊具との接触の心配がない" : "障害物や接触の心配がない"} value={value.environment.obstacleFree} onChange={obstacleFree => environment({ obstacleFree })} />
         </div>
-        {safetyUnconfirmed && <p role="note" className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">上の3つの安全確認がすべて「はい」になるまで、練習の候補は提案されません。</p>}
-        <fieldset><legend className="mb-2 text-sm font-medium text-slate-700">使用できる設備・環境（複数選択）</legend>
+        {safetyUnconfirmed && <p role="note" className="border-l-4 border-amber-500 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">上の3つの安全確認がすべて「はい」になるまで、練習の候補は提案されません。</p>}
+        <fieldset><legend className="mb-2 text-sm font-semibold text-slate-800">使用できる設備・環境（複数選択）</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{TRAINING_EQUIPMENT.map(option => <label key={option}
-            className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${value.environment.equipment.includes(option) ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 text-slate-600"}`}>
-            <input type="checkbox" className="h-4 w-4 shrink-0 accent-indigo-600" checked={value.environment.equipment.includes(option)} onChange={event => equipment(option, event.target.checked)} />{TRAINING_EQUIPMENT_LABELS[option]}
+            className={tileClass(value.environment.equipment.includes(option))}>
+            <input type="checkbox" className="h-4 w-4 shrink-0 accent-indigo-500" checked={value.environment.equipment.includes(option)} onChange={event => equipment(option, event.target.checked)} />{TRAINING_EQUIPMENT_LABELS[option]}
           </label>)}</div>
         </fieldset>
-        {value.environment.equipment.includes("HILL") && <div className="rounded-xl bg-slate-50 p-4"><h3 className="mb-3 text-sm font-semibold">坂の確認</h3><div className="grid gap-3 sm:grid-cols-3">
+        {value.environment.equipment.includes("HILL") && <div className="rounded-md border border-slate-200 bg-slate-50 p-4"><h3 className="mb-3 text-sm font-bold">坂の確認</h3><div className="grid gap-3 sm:grid-cols-3">
           <NumberField label="坂の距離（m）" value={value.environment.hill?.distanceMeters ?? null} max={10000} step={0.1} onChange={distanceMeters => environment({ hill: { distanceMeters, slopePercent: value.environment.hill?.slopePercent ?? null, safe: value.environment.hill?.safe ?? null } })} />
           <NumberField label="傾斜（%）" value={value.environment.hill?.slopePercent ?? null} max={100} step={0.1} onChange={slopePercent => environment({ hill: { distanceMeters: value.environment.hill?.distanceMeters ?? null, slopePercent, safe: value.environment.hill?.safe ?? null } })} />
           <TriState label="坂を安全に使える" value={value.environment.hill?.safe ?? null} onChange={safe => environment({ hill: { distanceMeters: value.environment.hill?.distanceMeters ?? null, slopePercent: value.environment.hill?.slopePercent ?? null, safe } })} />
         </div></div>}
-        {value.environment.equipment.includes("STEP") && <div className="rounded-xl bg-slate-50 p-4"><h3 className="mb-3 text-sm font-semibold">段差・台の確認</h3><div className="grid gap-3 sm:grid-cols-3">
+        {value.environment.equipment.includes("STEP") && <div className="rounded-md border border-slate-200 bg-slate-50 p-4"><h3 className="mb-3 text-sm font-bold">段差・台の確認</h3><div className="grid gap-3 sm:grid-cols-3">
           <NumberField label="段差の高さ（cm）" value={value.environment.step?.heightCm ?? null} max={200} step={0.1} onChange={heightCm => environment({ step: { heightCm, stable: value.environment.step?.stable ?? null, safe: value.environment.step?.safe ?? null } })} />
           <TriState label="段差が安定している" value={value.environment.step?.stable ?? null} onChange={stable => environment({ step: { heightCm: value.environment.step?.heightCm ?? null, stable, safe: value.environment.step?.safe ?? null } })} />
           <TriState label="段差を安全に使える" value={value.environment.step?.safe ?? null} onChange={safe => environment({ step: { heightCm: value.environment.step?.heightCm ?? null, stable: value.environment.step?.stable ?? null, safe } })} />
@@ -178,8 +181,8 @@ export function TrainingConditionsForm({ value, onChange, disabled = false }: {
     </Step>
     <Step number={4} title="今回の目的" description="取り組みたい目的を選び、いちばん重視する目的を指定します。">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{TRAINING_GOALS.map(option => <label key={option}
-        className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${value.goals.includes(option) ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 text-slate-600"}`}>
-        <input type="checkbox" className="h-4 w-4 shrink-0 accent-indigo-600" checked={value.goals.includes(option)} onChange={event => goal(option, event.target.checked)} />{TRAINING_GOAL_LABELS[option]}
+        className={tileClass(value.goals.includes(option))}>
+        <input type="checkbox" className="h-4 w-4 shrink-0 accent-indigo-500" checked={value.goals.includes(option)} onChange={event => goal(option, event.target.checked)} />{TRAINING_GOAL_LABELS[option]}
       </label>)}</div>
       <label className={`${labelClass} mt-4 sm:max-w-sm`}>主目的<select className={INPUT_CLASS} value={value.primaryGoal} onChange={event => onChange({ ...value, primaryGoal: event.target.value as TrainingConditions["primaryGoal"] })}>
         {value.goals.map(option => <option key={option} value={option}>{TRAINING_GOAL_LABELS[option]}</option>)}
@@ -188,7 +191,7 @@ export function TrainingConditionsForm({ value, onChange, disabled = false }: {
         onChange={event => condition({ speedEnduranceMode: event.target.value === "" ? null : event.target.value as "SPRINT_SPECIFIC" | "CONTROLLED_90_95" })}>
         <option value="">未確認</option><option value="SPRINT_SPECIFIC">スプリント持久力（十分な回復）</option><option value="CONTROLLED_90_95">90〜95%走（既存ルール）</option>
       </select><span className={hintClass}>未確認の場合は走の処方を保留します。</span></label>}
-      {value.goals.includes("SPEED_ENDURANCE") && value.condition.speedEnduranceMode === "CONTROLLED_90_95" && <div className="mt-4 rounded-xl bg-slate-50 p-4">
+      {value.goals.includes("SPEED_ENDURANCE") && value.condition.speedEnduranceMode === "CONTROLLED_90_95" && <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
         <p className="mb-3 text-sm leading-relaxed text-slate-600">90〜95%走には、本人の現在の60m基準タイムが必要です。分からない場合は未確認のままにしてください。走の処方を保留します。</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className={labelClass}>基準タイムの距離<select className={INPUT_CLASS} value={value.condition.referenceDistanceMeters ?? ""}
@@ -201,10 +204,10 @@ export function TrainingConditionsForm({ value, onChange, disabled = false }: {
       </div>}
     </Step>
     <Step number={5} title="今日の状態・大会予定" description="今の状態を選ぶと、状態に合わない負荷を提案しないようにします。">
-      <div className="mb-5 rounded-xl bg-slate-50 p-4">
-        <label htmlFor={`${groupId}-fatigue`} className="flex items-center justify-between gap-3 text-sm font-medium text-slate-700">疲労度<span className="text-xl font-semibold text-indigo-700">{value.condition.fatigue}<span className="text-sm text-slate-400"> / 10</span></span></label>
-        <input id={`${groupId}-fatigue`} className="mt-3 w-full accent-indigo-600" type="range" min={1} max={10} step={1} value={value.condition.fatigue} onChange={event => condition({ fatigue: Number(event.target.value) })} />
-        <div className="flex justify-between text-xs text-slate-500"><span>1 ほとんど疲れていない</span><span>10 とても疲れている</span></div>
+      <div className="mb-5 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <label htmlFor={`${groupId}-fatigue`} className="flex items-center justify-between gap-3 text-sm font-semibold text-slate-800">疲労度<span className="text-3xl font-extrabold tabular-nums text-slate-900">{value.condition.fatigue}<span className="text-sm font-medium text-slate-500"> / 10</span></span></label>
+        <input id={`${groupId}-fatigue`} className="mt-3 h-11 w-full accent-indigo-600" type="range" min={1} max={10} step={1} value={value.condition.fatigue} onChange={event => condition({ fatigue: Number(event.target.value) })} />
+        <div className="flex justify-between text-xs text-slate-600"><span>1 ほとんど疲れていない</span><span>10 とても疲れている</span></div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <label className={labelClass}>筋肉痛<select className={INPUT_CLASS} value={value.condition.soreness} onChange={event => condition({ soreness: event.target.value as TrainingConditions["condition"]["soreness"] })}><option value="NONE">なし</option><option value="MILD">軽い</option><option value="STRONG">強い</option></select></label>
@@ -222,7 +225,7 @@ export function TrainingConditionsForm({ value, onChange, disabled = false }: {
         <label className={labelClass}>今回希望する負荷<select className={INPUT_CLASS} value={value.condition.load} onChange={event => condition({ load: event.target.value as TrainingConditions["condition"]["load"] })}><option value="LIGHT">軽め</option><option value="NORMAL">通常</option><option value="HIGH">高め</option></select>
           <span className={hintClass}>高めを選んでも、今日の状態に合わない負荷は提案しません。</span></label>
       </div>
-      <p className="mt-4 text-xs leading-relaxed text-slate-500">加速・最高速度・スピード持久の走は、高強度練習の間隔と回数が分からない場合は保留します。</p>
+      <p className="mt-4 text-xs leading-relaxed text-slate-600">加速・最高速度・スピード持久の走は、高強度練習の間隔と回数が分からない場合は保留します。</p>
     </Step>
     <Step number={6} title="補足・希望（任意）" description="条件に加えて伝えたいことがあれば入力してください。選択した安全条件や設備は変更されません。">
       <label className={labelClass}>今回の希望<textarea className={INPUT_CLASS} rows={3} maxLength={2000} value={value.notes} placeholder="例：慣れた種目を中心にしたい、腕振りを確認したい" onChange={event => onChange({ ...value, notes: event.target.value })} /></label>

@@ -5,7 +5,7 @@ const TONE_CLASS: Record<FindingTone, { row: string; badge: string }> = {
   info: { row: "border-slate-200 bg-slate-50", badge: "border-slate-200 bg-white text-slate-700" },
   caution: { row: "border-amber-200 bg-amber-50", badge: "border-amber-300 bg-white text-amber-900" },
   review: { row: "border-indigo-200 bg-indigo-50", badge: "border-indigo-300 bg-white text-indigo-800" },
-  restricted: { row: "border-orange-200 bg-orange-50", badge: "border-orange-300 bg-white text-orange-900" },
+  restricted: { row: "border-amber-300 bg-amber-50", badge: "border-amber-400 bg-white text-amber-900" },
   blocked: { row: "border-rose-300 bg-rose-50", badge: "border-rose-300 bg-white text-rose-800" },
 };
 

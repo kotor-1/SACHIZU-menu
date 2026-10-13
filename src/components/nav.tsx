@@ -18,7 +18,7 @@ export function Nav() {
 
   return (
     <nav className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-      <ul className="flex items-center gap-1 whitespace-nowrap">
+      <ul className="flex items-stretch whitespace-nowrap">
         {LINKS.map((link) => {
           const active = link.exact
             ? pathname === link.href
@@ -27,11 +27,14 @@ export function Nav() {
             <li key={link.href}>
               <Link
                 href={link.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-9 items-center rounded-lg px-3 text-sm font-medium transition-colors",
+                  // 今いる画面は、トラックの赤い線を下に引いて示す
+                  "relative inline-flex h-11 items-center px-3 text-sm font-semibold transition-colors sm:h-14",
+                  "after:absolute after:inset-x-3 after:bottom-0 after:h-[3px]",
                   active
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                    ? "text-white after:bg-indigo-500"
+                    : "text-slate-300 after:bg-transparent hover:text-white",
                 )}
               >
                 {link.label}

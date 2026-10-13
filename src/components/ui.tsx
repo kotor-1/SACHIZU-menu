@@ -15,7 +15,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-xl border border-slate-200 bg-white shadow-sm",
+        "rounded-md border border-slate-200 bg-white",
         className,
       )}
       {...rest}
@@ -27,7 +27,7 @@ export function Card({
 
 export function CardHeader({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={cn("border-b border-slate-100 px-4 py-3 sm:px-5", className)}>
+    <div className={cn("border-b border-slate-200 px-4 py-3 sm:px-5", className)}>
       {children}
     </div>
   );
@@ -49,8 +49,8 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
-        className ?? "border-slate-200 bg-slate-100 text-slate-700",
+        "inline-flex items-center rounded-sm border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap",
+        className ?? "border-slate-300 bg-white text-slate-700",
       )}
     >
       {children}
@@ -61,13 +61,15 @@ export function Badge({
 // --- ボタン -----------------------------------------------------------------
 
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500";
+  "inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900";
 
 const BUTTON_VARIANTS = {
-  primary: "bg-indigo-600 text-white hover:bg-indigo-700",
-  secondary: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
-  ghost: "text-slate-600 hover:bg-slate-100",
-  danger: "border border-rose-200 bg-white text-rose-700 hover:bg-rose-50",
+  primary: "bg-slate-900 text-white hover:bg-black",
+  // 保存など、その画面でいちばん大事な確定操作だけに使うトラックの赤
+  accent: "bg-indigo-600 text-white hover:bg-indigo-700",
+  secondary: "border border-slate-300 bg-white text-slate-900 hover:border-slate-900",
+  ghost: "text-slate-700 hover:bg-slate-900/5 hover:text-slate-900",
+  danger: "border border-rose-300 bg-white text-rose-700 hover:border-rose-600 hover:bg-rose-50",
 } as const;
 
 const BUTTON_SIZES = {
@@ -108,7 +110,7 @@ export function LinkButton({
 // --- フォーム部品 -----------------------------------------------------------
 
 export const INPUT_CLASS =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none";
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none disabled:bg-slate-100";
 
 export function Field({
   label,
@@ -127,9 +129,9 @@ export function Field({
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1 flex items-baseline gap-1.5 text-sm font-medium text-slate-700">
+      <span className="mb-1 flex items-baseline gap-1.5 text-sm font-semibold text-slate-800">
         {label}
-        {required && <span className="text-xs text-rose-600">必須</span>}
+        {required && <span className="text-xs font-medium text-indigo-700">必須</span>}
         {hint && <span className="text-xs font-normal text-slate-400">{hint}</span>}
       </span>
       {children}
@@ -154,8 +156,8 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-      <p className="text-sm font-medium text-slate-700">{title}</p>
+    <div className="rounded-md border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+      <p className="text-sm font-semibold text-slate-800">{title}</p>
       {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
@@ -174,13 +176,13 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mb-6 flex flex-col gap-3 border-b-2 border-slate-900 pb-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-[28px]">
           {title}
         </h1>
         {description && (
-          <div className="mt-1 text-sm text-slate-500">{description}</div>
+          <div className="mt-1 text-sm leading-relaxed text-slate-600">{description}</div>
         )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-2 no-print">{actions}</div>}

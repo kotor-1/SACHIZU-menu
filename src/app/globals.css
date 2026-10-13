@@ -1,9 +1,110 @@
 @import "tailwindcss";
 
+/*
+ * 配色は「競技場と記録用紙」。紙色の地に墨の文字、アクセントはトラックの赤だけにする。
+ * 既存のクラス名（slate / indigo / amber / rose / emerald / sky）は、
+ * 全画面を書き換えずに配色を揃えるため、ここで次の色に置き換えている。
+ *   slate   → 紙と墨の灰色     indigo  → トラックの赤
+ *   amber   → 黄土（注意）     rose    → れんが色（エラー・削除）
+ *   emerald → 芝の緑（完了）   sky     → 鋼色（補足）
+ */
 @theme {
   --font-sans:
     "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Meiryo",
     system-ui, -apple-system, sans-serif;
+
+  --color-paper: #f3f1ec;
+  --color-ink: #1d1c19;
+  --color-track: #b04327;
+  --color-rule: #e0dcd2;
+
+  --color-slate-50: #f6f4ef;
+  --color-slate-100: #eeebe4;
+  --color-slate-200: #e0dcd2;
+  --color-slate-300: #cbc6ba;
+  --color-slate-400: #a29d91;
+  --color-slate-500: #77736a;
+  --color-slate-600: #5c5850;
+  --color-slate-700: #44413b;
+  --color-slate-800: #2d2b27;
+  --color-slate-900: #1d1c19;
+  --color-slate-950: #121110;
+
+  --color-indigo-50: #f9f4ef;
+  --color-indigo-100: #f3e4da;
+  --color-indigo-200: #ecb9a7;
+  --color-indigo-300: #df9178;
+  --color-indigo-400: #d16b4d;
+  --color-indigo-500: #c4512f;
+  --color-indigo-600: #b04327;
+  --color-indigo-700: #913621;
+  --color-indigo-800: #732c1c;
+  --color-indigo-900: #5b2418;
+  --color-indigo-950: #33130c;
+
+  --color-amber-50: #fbf5e6;
+  --color-amber-100: #f5e8c6;
+  --color-amber-200: #ebd397;
+  --color-amber-300: #ddb863;
+  --color-amber-400: #cd9d3a;
+  --color-amber-500: #b48322;
+  --color-amber-600: #926816;
+  --color-amber-700: #714f12;
+  --color-amber-800: #583e10;
+  --color-amber-900: #47330f;
+  --color-amber-950: #281c07;
+
+  --color-rose-50: #fcf0f1;
+  --color-rose-100: #f8dde0;
+  --color-rose-200: #f0b9bf;
+  --color-rose-300: #e48e97;
+  --color-rose-400: #d4636f;
+  --color-rose-500: #c0414f;
+  --color-rose-600: #a52f3d;
+  --color-rose-700: #872532;
+  --color-rose-800: #6c1f2a;
+  --color-rose-900: #581b24;
+  --color-rose-950: #320c12;
+
+  --color-emerald-50: #eef5f0;
+  --color-emerald-100: #d8e9dd;
+  --color-emerald-200: #b2d3bd;
+  --color-emerald-300: #85b898;
+  --color-emerald-400: #5a9c74;
+  --color-emerald-500: #3a8059;
+  --color-emerald-600: #2d6848;
+  --color-emerald-700: #24533a;
+  --color-emerald-800: #1d4330;
+  --color-emerald-900: #183728;
+  --color-emerald-950: #0c1f16;
+
+  --color-sky-50: #eef3f6;
+  --color-sky-100: #dae5eb;
+  --color-sky-200: #b7cbd7;
+  --color-sky-300: #8eacbe;
+  --color-sky-400: #678da4;
+  --color-sky-500: #4c728a;
+  --color-sky-600: #3d5c70;
+  --color-sky-700: #324b5c;
+  --color-sky-800: #293e4c;
+  --color-sky-900: #23343f;
+  --color-sky-950: #142029;
+
+  /* 角はほぼ直角、影は使わない（重なりが必要なものだけ薄く残す） */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 6px;
+  --radius-4xl: 8px;
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 10px 24px -14px rgb(29 28 25 / 0.45);
+  --shadow-xl: 0 16px 32px -16px rgb(29 28 25 / 0.5);
 }
 
 :root {
@@ -16,10 +117,21 @@ body {
 }
 
 body {
-  background-color: #f8fafc; /* slate-50 */
-  color: #0f172a; /* slate-900 */
+  background-color: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* 見出しは和文の字間を詰め、数字は桁をそろえる */
+h1,
+h2,
+h3 {
+  font-feature-settings: "palt" 1;
+}
+
+::selection {
+  background-color: var(--color-indigo-100);
 }
 
 /* 数値入力のスピナーは幅を食うので消す（負荷入力欄が多いため） */

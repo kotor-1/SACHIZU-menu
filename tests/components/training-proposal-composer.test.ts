@@ -190,14 +190,22 @@ describe("training proposal UI (offline rendering, no Luna call)", () => {
     expect(adopted).not.toMatch(/計100m|2本/);
   });
 
-  it("offers existing items only in their own replacement picker and excludes unavailable equipment", () => {
+  it("never offers an item already in the menu, resets with its own button, and excludes unavailable equipment", () => {
     const html = renderMarkup(TrainingProposalComposer, { catalog, initialPreview: preview() });
-    expect(html.match(/<option value="exercise-a">/g)).toHaveLength(1);
-    expect(html.match(/<option value="movement-a">/g)).toHaveLength(1);
+    expect(html).not.toContain('<option value="exercise-a">');
+    expect(html).not.toContain('<option value="movement-a">');
     expect(html.match(/<option value="movement-b">/g)).toHaveLength(2);
+    expect(stripTags(html).match(/提案時の値に戻す/g)).toHaveLength(2);
     expect(html).not.toContain('<option value="step-a">');
     expect(stripTags(html)).toContain("登録された秒数で量を指定します");
     expect(stripTags(html)).toContain("登録された回数で量を指定します");
+  });
+
+  it("tells same-name registrations apart in the pickers", () => {
+    const rows = [...catalog, catalogFixture({ id: "movement-a2", name: "足首回し", category: "MOBILITY", description: "かかとを上げ下げしながら、足首をゆっくり大きく回して可動域を確認する。", metricType: "REPS", defaultDurationSeconds: null, defaultReps: 6 })];
+    const html = renderMarkup(TrainingProposalComposer, { catalog: rows, initialPreview: preview() });
+    expect(html).toContain('<option value="movement-b">足首回し（足首を小さく回す。）</option>');
+    expect(html).toContain('<option value="movement-a2">足首回し（かかとを上げ下げしながら、足首をゆっ…）</option>');
   });
 
   it("keeps catalog descriptions intact and suppresses unsafe video links", () => {
