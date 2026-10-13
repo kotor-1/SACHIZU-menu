@@ -5,6 +5,9 @@ import { presentCompetition } from "@/presentation/running/competition";
 
 export const metadata = { title: "大会予定｜SACHIZU" };
 
+/** DB を読むため、ビルド時に固定せず毎回サーバーで描画する（付け忘れると本番で一覧が更新されない）。 */
+export const dynamic = "force-dynamic";
+
 export default async function CompetitionsPage() {
   const competitions = (await listCompetitions()).map(presentCompetition);
   return (
