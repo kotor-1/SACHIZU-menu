@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_TRAINING_CONDITIONS, trainingConditionsSchema, type TrainingConditions } from "@/domain/training-proposal/conditions";
 import { assessExerciseEligibility } from "@/domain/training-proposal/eligibility";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
+import { trainingAvailability } from "@/domain/training-proposal/quality";
+import { exerciseRepetitionCountMatches } from "@/domain/menu-composition/dose-counting";
 import { catalogFixture } from "../fixtures/menu-composition";
 import fullCatalog from "../fixtures/training-proposal-catalog.json";
 import { exerciseVideoGuidanceSchema } from "@/domain/exercise/video-guidance";
@@ -175,24 +177,84 @@ describe("catalog environment eligibility", () => {
     // A real catalog entry, registered as mobility but done while bouncing forward.
     const arms = catalogFixture({ category: "MOBILITY", name: "軽く弾みながらの腕回し（前回し・左右交互）", metricType: "DISTANCE", difficulty: 1,
       description: "軽く弾むリズムで前進しながら、両腕を肘を伸ばしたまま前方向へ大きく回す。左右の腕は交互に回す。" });
-    expect(assessExerciseEligibility(arms, c)).toMatchObject({ eligible: true, stage: 3, progression: 3 });
+    expect(assessExerciseEligibility(arms, c)).toMatchObject({ eligible: true, stage: 3, progression: 4 });
     const shoulders = catalogFixture({ category: "MOBILITY", name: "肩回し", description: "立位で肩を回す。", metricType: "REPS", difficulty: 1 });
     expect(assessExerciseEligibility(shoulders, c)).toMatchObject({ stage: 0, progression: 1 });
     const place = (name: string, description: string, metricType: "REPS" | "DISTANCE" = "REPS") =>
       assessExerciseEligibility(catalogFixture({ category: "DRILL", name, description, metricType, difficulty: 1 }), c).progression;
+    // On the ground: lying, sitting, kneeling, on all fours, in a push-up or plank position.
     expect(place("キャット&ドッグ", "両手と両膝を地面につけた四つ這いの姿勢から、背中を丸めて反らす。")).toBe(0);
     expect(place("横向き胸椎回旋", "横向きに寝て両脚を重ねた姿勢から、上体をゆっくり回旋させる。")).toBe(0);
     expect(place("インチワーム（手足歩き）", "前屈して手を地面につき、手を交互に前へ歩かせて前進する。", "DISTANCE")).toBe(0);
+    expect(place("骨盤の回旋", "低い台に腰かけて足を地面につけ、骨盤を左右へ交互に回す。")).toBe(0);
+    expect(place("膝立ちキック", "膝立ちになり、正面へ脚を振り上げる。")).toBe(0);
     expect(place("ジャックナイフ", "しゃがんで両手で足首を持ち、膝を伸ばして腰を持ち上げる。")).toBe(1);
     // Negated mentions and look-alike cues do not count: 「膝をつかない」「膝をつま先の向きに」「跳び上がらずに」.
     expect(place("リバースランジ", "片脚を後ろへ引いて腰を落とし、膝をつかないように、膝をつま先の向きに保って立ち上がる。")).toBe(1);
     expect(place("脚の切り替え", "高く跳び上がらずに、その場で脚を前後に切り替える。")).toBe(1);
     expect(place("股関節回し", "前向きに進みながら、片脚の膝を外から内へ回す。", "DISTANCE")).toBe(2);
-    expect(place("両足ジャンプ（腕振り）", "両足をそろえたまま連続してジャンプしながら前へ進む。", "DISTANCE")).toBe(3);
-    expect(place("スキップ", "リズムよくスキップで前へ進む。", "DISTANCE")).toBe(4);
-    expect(place("ギャロップ（片脚リード走）", "片脚を前上方へ高く引き出して前へ進む。", "DISTANCE")).toBe(4);
-    expect(place("ケンケン", "片脚だけで連続して弾みながら前方へ進む。", "DISTANCE")).toBe(5);
-    expect(place("引きつけジャンプ走", "片脚で小さくホップしながら、反対の膝を引き上げて前進する。", "DISTANCE")).toBe(5);
+    expect(place("引きつけ走", "一定の歩数リズムを刻みながら、膝を高く引き上げて前進する。", "DISTANCE")).toBe(3);
+    expect(place("スキップ", "リズムよくスキップで前へ進む。", "DISTANCE")).toBe(5);
+    expect(place("ギャロップ（片脚リード走）", "片脚を前上方へ高く引き出して前へ進む。", "DISTANCE")).toBe(5);
+    expect(place("両足ジャンプ（腕振り）", "両足をそろえたまま連続してジャンプしながら前へ進む。", "DISTANCE")).toBe(6);
+    expect(place("ケンケン", "片脚だけで連続して弾みながら前方へ進む。", "DISTANCE")).toBe(7);
+    expect(place("引きつけジャンプ走", "片脚で小さくホップしながら、反対の膝を引き上げて前進する。", "DISTANCE")).toBe(7);
+    expect(place("連続ニーアップ", "片脚の膝を引き上げた姿勢を保ち、支持脚の前足部でリズミカルに弾む片足バネのドリル。")).toBe(7);
+  });
+  it("orders 補強 from jumps to standing work to the floor, and keeps a mobility drill named after a push-up position in 動きづくり", () => {
+    const c = confirmed();
+    const at = (category: string, name: string, description: string) =>
+      assessExerciseEligibility(catalogFixture({ category, name, description, metricType: "REPS", difficulty: 2 }), c);
+    expect(at("JUMP", "垂直跳び（カウンタームーブメントジャンプ）", "直立姿勢から両腕を振り上げて両脚で真上に跳躍する。")).toMatchObject({ section: "STRENGTH", progression: 0 });
+    expect(at("STRENGTH", "自重スクワット", "両手を腰に当てて腰を落とし、足裏全体で地面を押して立ち上がる。")).toMatchObject({ section: "STRENGTH", progression: 1 });
+    expect(at("CORE", "前鋸筋プッシュアップ", "腕を伸ばして手とつま先で体を支えた腕立て伏せの姿勢から、肩甲骨まわりだけを動かす。")).toMatchObject({ section: "STRENGTH", progression: 2 });
+    expect(at("CORE", "肘つきプランク", "肘と前腕をつき、体を一直線に保つ。")).toMatchObject({ section: "STRENGTH", progression: 2 });
+    expect(at("CORE", "後ろ手支持ヒップリフト", "座った姿勢から両手を体の後ろの地面につき、腰を持ち上げる。")).toMatchObject({ section: "STRENGTH", progression: 2 });
+    expect(at("MOBILITY", "腕立て姿勢からの腕の振り上げ（胸椎回旋）", "腕立て伏せの姿勢から、片方の手を空へ伸ばして上体を回旋させる。"))
+      .toMatchObject({ section: "MOVEMENT", stage: 0, progression: 0 });
+  });
+  it("does not read equipment into a way of sitting, a count of hurdles or a transcript note", () => {
+    const c = confirmed();
+    const hurdler = catalogFixture({ category: "HURDLE", name: "ハードラーストレッチ", metricType: "REPS", difficulty: 1, tags: ["ハードル座り"],
+      description: "片脚を前へ伸ばし、もう一方の脚は外側後方へ開いた座り方(ハードル座り)をとり、上体を倒して起こす。" });
+    expect(assessExerciseEligibility(hurdler, c)).toMatchObject({ eligible: true, section: "MOVEMENT", stage: 0, progression: 0 });
+    const notes = catalogFixture({ category: "STRENGTH", name: "ヒップロックのPNF（対角の手足上げ）", metricType: "REPS", difficulty: 2,
+      description: "立位で片手を上げ、反対側の脚を上げる。", coachingPoint: "240秒開始のASRブロック: 右脚から行う。" });
+    expect(assessExerciseEligibility(notes, c).reasons).not.toContain("STEP_DETAILS_UNCONFIRMED");
+    const counted = catalogFixture({ category: "DRILL", name: "ミニハードル走", metricType: "DISTANCE", difficulty: 2,
+      description: "ミニハードルの間を1台につき2歩のリズムで進む。" });
+    expect(assessExerciseEligibility(counted, c).reasons).toEqual(expect.arrayContaining(["MINI_HURDLE_UNAVAILABLE"]));
+    expect(assessExerciseEligibility(counted, c).reasons).not.toContain("STEP_DETAILS_UNCONFIRMED");
+    const step = catalogFixture({ category: "STRENGTH", name: "ステップアップ", metricType: "REPS", difficulty: 2, description: "片足を段差に乗せて踏み込み、立ち上がる。" });
+    expect(assessExerciseEligibility(step, c).reasons).toContain("STEP_DETAILS_UNCONFIRMED");
+  });
+  it("uses the per-side count the reviewed instruction states, without the internal marker, so the App never contradicts its text", () => {
+    const row = fullCatalog.catalog.find(row => row.name === "片足ケンケン引きつけドリル")!;
+    const exercise = { ...row, videoGuidance: exerciseVideoGuidanceSchema.parse(row.videoGuidance) };
+    expect(exercise).toMatchObject({ defaultReps: null, videoGuidance: { videoAnalysisStatus: "COACH_REVIEWED", countingUnit: "PER_SIDE" } });
+    expect(exercise.videoGuidance.executionSummary).toMatch(/^COACH_DEFINED: /u);
+    const c = confirmed(); c.athlete.level = "ADVANCED";
+    const { item } = suggestCatalogItem(exercise, c);
+    expect(item.executionInstruction).toMatch(/^片脚で連続ホップしながら前進し/u);
+    expect(item.executionInstruction).toContain("片足10回を完了してから反対側10回を行う。");
+    expect(item).toMatchObject({ plannedReps: 10, plannedSets: 3 });
+    expect(item.plannedNote).toContain("回数は登録説明の片側10回。");
+    expect(exerciseRepetitionCountMatches(item, exercise)).toBe(true);
+    // A reduced day lowers the sets, never the count the instruction states.
+    const light = confirmed(); light.athlete.level = "ADVANCED"; light.condition.load = "LIGHT";
+    expect(suggestCatalogItem(exercise, light).item).toMatchObject({ plannedReps: 10, plannedSets: 2 });
+  });
+  it("treats a name that contains another registered name as its variant, so one proposal never holds both", () => {
+    const c = confirmed();
+    const rdl = catalogFixture({ id: "rdl", category: "STRENGTH", name: "ルーマニアンデッドリフト", metricType: "REPS", difficulty: 1,
+      description: "立った姿勢から股関節を後ろへ引いて上体を倒し、起き上がる。" });
+    const tripod = { ...rdl, id: "tripod", name: "足裏3点バランスでのルーマニアンデッドリフト" };
+    const squat = { ...rdl, id: "squat", name: "自重スクワット" };
+    const available = trainingAvailability([rdl, tripod, squat], c);
+    const family = (id: string) => available.strength.find(x => x.row.id === id)!.eligibility.family;
+    expect(family("tripod")).toBe(family("rdl"));
+    expect(family("squat")).not.toBe(family("rdl"));
+    expect(available.requiredStrength).toBe(2);
   });
   it("prefers registered Exercise defaults and only scales total volume on a reduced day", () => {
     const plank = catalogFixture();

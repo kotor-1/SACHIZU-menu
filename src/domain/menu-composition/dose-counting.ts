@@ -28,6 +28,12 @@ function sideCounts(item: CountInstruction): number[] {
     .map(match => Number(match[1])));
 }
 
+/** The one per-side count an instruction states (「片足10回…反対側10回」), or null when it states none or several. */
+export function statedSideCount(item: CountInstruction): number | null {
+  const counts = [...new Set(sideCounts(item))];
+  return counts.length === 1 ? counts[0] : null;
+}
+
 export function exerciseUsesPerSideCount(item: CountInstruction, exercise?: CountCatalog): boolean {
   const approved = approvedCountingUnit(exercise);
   // A reviewed round-trip/custom definition must not become PER_SIDE from prose.

@@ -2,7 +2,7 @@ import type { ComposerCatalogExercise, EditableComposition } from "@/domain/menu
 import { exerciseRepetitionCountMatches } from "@/domain/menu-composition/dose-counting";
 import { trainingReducedLoad, type TrainingConditions } from "./conditions";
 import { TRAINING_SECTION_NAMES, type TrainingItemAnnotation } from "./contracts";
-import { assessExerciseEligibility } from "./eligibility";
+import { assessExerciseEligibility, type ExerciseEligibility } from "./eligibility";
 
 /** Movement is the app's core: ten independent families whenever the conditions allow them. */
 export const TRAINING_MOVEMENT_TARGET = 10;
@@ -11,8 +11,29 @@ export function trainingStrengthTarget(conditions: Pick<TrainingConditions, "pri
   return conditions.primaryGoal === "STRENGTH" ? 6 : 3;
 }
 
+/**
+ * A name that contains another registered name of the same section is a variant of it
+ * (「足裏3点バランスでのルーマニアンデッドリフト」 of 「ルーマニアンデッドリフト」). Both share the
+ * shorter one's family, so one proposal never fills two places with the same training.
+ */
+function groupNamedVariants<T extends { eligibility: ExerciseEligibility }>(assessed: T[]): T[] {
+  const base = (family: string) => family.slice(family.indexOf(":") + 1);
+  const families = [...new Set(assessed.map(x => x.eligibility.family))];
+  const parent = new Map<string, string>();
+  for (const family of families) {
+    const section = family.slice(0, family.indexOf(":") + 1);
+    const shortest = families.filter(other => other !== family && other.startsWith(section) && base(other).length >= 4
+      && base(family).includes(base(other))).sort((a, b) => base(a).length - base(b).length)[0];
+    if (shortest) parent.set(family, shortest);
+  }
+  return assessed.map(x => {
+    const family = parent.get(x.eligibility.family);
+    return family ? { ...x, eligibility: { ...x.eligibility, family } } : x;
+  });
+}
+
 export function trainingAvailability(catalog: readonly ComposerCatalogExercise[], conditions: TrainingConditions) {
-  const assessed = catalog.map(row => ({ row, eligibility: assessExerciseEligibility(row, conditions) }));
+  const assessed = groupNamedVariants(catalog.map(row => ({ row, eligibility: assessExerciseEligibility(row, conditions) })));
   const rows = assessed.filter(x => x.eligibility.eligible);
   const movement = rows.filter(x => x.eligibility.section === "MOVEMENT");
   const strength = rows.filter(x => x.eligibility.section === "STRENGTH");

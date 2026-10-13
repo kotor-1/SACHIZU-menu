@@ -5,7 +5,7 @@ import { trainingConditionsSchema, trainingConditionLevel, trainingRunningGoal, 
 import { TRAINING_SECTION_NAMES, trainingComposerOutputSchema, type TrainingComposerOutput, type TrainingComposerSelection, type TrainingProposalPreview, type TrainingItemAnnotation } from "@/domain/training-proposal/contracts";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
 import { assessTrainingComposition, trainingAvailability, trainingStrengthTarget, TRAINING_MOVEMENT_TARGET } from "@/domain/training-proposal/quality";
-import { compareMovementOrder, type ExerciseEligibility } from "@/domain/training-proposal/eligibility";
+import { compareMovementOrder, compareStrengthOrder, type ExerciseEligibility } from "@/domain/training-proposal/eligibility";
 import { explainTrainingIssue } from "@/domain/training-proposal/messages";
 import { buildStructuredRunningPreview } from "./running";
 import { ruleBasedTrainingSelection } from "./rule-based";
@@ -20,7 +20,7 @@ export type TrainingComposerInput = {
   /** What the Composer is asked for: a small margin so one duplicate cannot sink the whole proposal. */
   requestedMovement: number; requestedStrength: number;
   stages: Record<string, number>; families: Record<string, string>;
-  /** Place inside the stage: on the ground, standing, travelling, then bouncing on both feet, alternating, one leg. */
+  /** Place inside the section: 動きづくり from the ground up to one-leg hops, 補強 from jumps to the floor. */
   progressions: Record<string, number>;
 };
 type AssessedRow = { row: ComposerCatalogExercise; eligibility: ExerciseEligibility };
@@ -85,8 +85,9 @@ function assemble(output: TrainingComposerOutput, input: TrainingComposerInput, 
     return found.length ? [] : [proposal];
   });
   // App-owned structure is normalized deterministically: the first of exact/family duplicates
-  // is kept and movement follows the App's order (the stage, then the ground up inside it), so
-  // the model's order never opens a warm-up with bouncing. Counts are still checked afterwards.
+  // is kept, movement follows the App's order (the stage, then the ground up inside it) and
+  // 補強 runs from jumps to the floor, so the model's order never decides either. Counts are
+  // still checked afterwards.
   const distinct = (proposals: readonly Proposal[]) => {
     const ids = new Set<string>(); const families = new Set<string>();
     return proposals.filter(({ item }) => {
@@ -97,7 +98,7 @@ function assemble(output: TrainingComposerOutput, input: TrainingComposerInput, 
   };
   const movement = distinct(build(output.movement, 0))
     .sort((a, b) => compareMovementOrder(input, a.item.exerciseId, b.item.exerciseId));
-  const strength = distinct(build(output.strength, 2));
+  const strength = distinct(build(output.strength, 2)).sort((a, b) => compareStrengthOrder(input, a.item.exerciseId, b.item.exerciseId));
   const annotations: Record<string, TrainingItemAnnotation> = {};
   const composition: EditableComposition = { blocks: TRAINING_SECTION_NAMES.map(name => ({ id: randomUUID(), name, items: [] })) };
   for (const [blockIndex, proposals] of [[0, movement], [2, strength]] as const) {

@@ -4,7 +4,7 @@ import type { TrainingGoal } from "@/domain/training-proposal/conditions";
 import { SIMPLE_GOAL_LABELS } from "@/domain/training-proposal/simple-conditions";
 import type { TrainingComposerOutput, TrainingComposerSelection } from "@/domain/training-proposal/contracts";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
-import { compareMovementOrder } from "@/domain/training-proposal/eligibility";
+import { compareMovementOrder, compareStrengthOrder } from "@/domain/training-proposal/eligibility";
 import type { TrainingComposerInput } from "./generate";
 
 /**
@@ -57,7 +57,8 @@ export function ruleBasedTrainingSelection(input: TrainingComposerInput): Traini
     const { item, annotation } = suggestCatalogItem(row, input.conditions, "rule-based");
     return { exerciseId: row.id, reason: item.reason, intensity: annotation.intensity, relationship: "COMBINABLE", alternativeGroup: null };
   };
-  return { movement: movement.map(select), strength: onePerFamily(input.strength).slice(0, input.requiredStrength).map(select),
+  const strength = onePerFamily(input.strength).slice(0, input.requiredStrength).sort((a, b) => compareStrengthOrder(input, a.id, b.id));
+  return { movement: movement.map(select), strength: strength.map(select),
     explanation: `AIを使わない基本提案です。条件に合う登録種目から、似た動作が重ならないように、段階（可動域から疾走への接続まで）ごとに順に選びました。目的「${SIMPLE_GOAL_LABELS[input.conditions.primaryGoal]}」に関係する種目を優先しています。`,
     uncertainty: "理由と強度の文は定型です。種目の組み合わせと数量は、指導者が確認して必要に応じて編集してください。" };
 }

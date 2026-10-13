@@ -148,6 +148,7 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
       output.movement = output.movement.filter(selection => input.families[selection.exerciseId] !== input.families[arms.id]).reverse();
       output.movement.unshift({ exerciseId: arms.id, reason: "肩まわりを温めるため。", intensity: "軽く弾むリズムで、腕を大きく回す。",
         relationship: "COMBINABLE", alternativeGroup: null });
+      output.strength.reverse();
       return { ok: true as const, value: output };
     });
     const result = await generate(trainingCaseA(), compose);
@@ -164,6 +165,13 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     const armsAt = placed.findIndex(x => x.name === arms.name);
     expect(placed.slice(0, armsAt).filter(x => x.stage <= 2).length).toBeGreaterThan(0);
     expect(placed.slice(armsAt).every(x => x.stage >= 3)).toBe(true);
+    // 補強 runs from jumps to standing work to the floor, whatever order the model used.
+    const strength = result.preview.composition.blocks[2].items.map(item => {
+      const row = trainingCatalog.find(entry => item.type === "CATALOG_EXERCISE" && entry.id === item.exerciseId)!;
+      return assessExerciseEligibility(row, trainingCaseA()).progression;
+    });
+    expect(strength.length).toBeGreaterThanOrEqual(2);
+    expect(strength).toEqual([...strength].sort((a, b) => a - b));
   });
   const corrupt =(failure: string) => vi.fn(async (input: TrainingComposerInput) => {
     const output = offlineTrainingComposer(input);

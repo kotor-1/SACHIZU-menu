@@ -2,6 +2,7 @@ import type { ComposerCatalogExercise, EditableItem } from "@/domain/menu-compos
 import { trainingReducedLoad, type TrainingConditions } from "./conditions";
 import type { TrainingItemAnnotation } from "./contracts";
 import { assessExerciseEligibility, trainingStopMarginMeters, trainingUsableMeters, type ExerciseEligibility } from "./eligibility";
+import { statedSideCount } from "@/domain/menu-composition/dose-counting";
 
 const STAGE_REASONS = [
   "可動域と身体操作を整える準備として選択。",
@@ -70,15 +71,22 @@ export function suggestCatalogItem(row: ComposerCatalogExercise, conditions: Tra
   // registered count or time only up to the ordinary starting volume; a registered distance stays.
   const registeredSets = row.defaultSets !== null && row.defaultSets > 0 ? row.defaultSets : null;
   const registeredQuantity = row.metricType === "TIME" ? row.defaultDurationSeconds : row.metricType === "DISTANCE" ? row.defaultDistanceMeters : row.defaultReps;
+  // Coach-reviewed Guidance may start with the internal 「COACH_DEFINED: 」 marker; people see the text without it.
+  const reviewed = row.videoGuidance?.videoAnalysisStatus === "COACH_REVIEWED" ? row.videoGuidance.executionSummary.replace(/^\s*COACH_DEFINED:\s*/u, "") : "";
+  const instruction = (reviewed || description).slice(0, 400);
+  // A count the shown instruction itself states (「片足10回…反対側10回」) is the coach's number. With no registered count it
+  // is used as one and kept on a reduced day (the sets go down instead), so the App never contradicts the text beside it.
+  const stated = row.metricType === "REPS" && row.defaultReps === null ? statedSideCount({ executionInstruction: instruction, plannedNote: "" }) : null;
+  const statedReps = stated === null ? null : perSide ? stated : total ? stated * 2 : null;
   const sets = registeredSets === null ? start.sets : Math.min(light ? Math.max(1, Math.ceil(registeredSets / 2)) : registeredSets, light ? 2 : 4);
   const straight = conditions.environment.straightMeters;
   const usable = trainingUsableMeters(eligibility.stage, straight);
   const wantedMeters = registeredQuantity ?? start.meters;
   const quantity = row.metricType === "TIME" ? Math.min(registeredQuantity ?? start.seconds, light ? 20 : 60)
     : row.metricType === "DISTANCE" ? Math.min(wantedMeters, usable)
-      : Math.min(registeredQuantity ?? reps(start), light ? Math.min(reps(plan.normal), 12) : 30);
+      : statedReps ?? Math.min(registeredQuantity ?? reps(start), light ? Math.min(reps(plan.normal), 12) : 30);
   // Every number needs a visible basis: the coach's registered value, or the App's starting range.
-  const registeredCount = [registeredSets !== null, registeredQuantity !== null].filter(Boolean).length;
+  const registeredCount = [registeredSets !== null, registeredQuantity !== null || statedReps !== null].filter(Boolean).length;
   const reduced = (registeredSets !== null && sets !== registeredSets) || (registeredQuantity !== null && row.metricType !== "DISTANCE" && quantity !== registeredQuantity);
   const source = registeredCount === 0 ? `既定量が未登録のため、${plan.label}の一般的な範囲からアプリが決めた初期値（編集可能な仮提案）。`
     : `${registeredCount === 2 ? "登録された既定量" : "登録された既定量（未登録の項目はアプリの初期値）"}をもとにした編集可能な提案。${reduced ? "今日の条件に合わせて控えめに調整。" : ""}`;
@@ -90,7 +98,8 @@ export function suggestCatalogItem(row: ComposerCatalogExercise, conditions: Tra
       : perSide ? "回数欄は片側の回数。左右の順序は登録説明に従う。"
         : alternating ? "回数欄は左右合計。交互に行う登録動作を数える。"
         : "登録説明の動作を1回として数える。";
-  const plannedNote = `${source}${space}${row.metricType === "REPS" ? counting : "登録説明どおりの動作を行う。"}疲労や動作の崩れが出たら中止。`;
+  const statedNote = statedReps === null ? "" : `回数は登録説明の${perSide ? "片側" : "左右合計"}${statedReps}回。`;
+  const plannedNote = `${source}${space}${statedNote}${row.metricType === "REPS" ? counting : "登録説明どおりの動作を行う。"}疲労や動作の崩れが出たら中止。`;
   const strength = eligibility.section === "STRENGTH";
   const jump = row.category.toUpperCase() === "JUMP";
   const intensity = strength
@@ -101,7 +110,7 @@ export function suggestCatalogItem(row: ComposerCatalogExercise, conditions: Tra
     : STAGE_REASONS[Math.min(Math.max(eligibility.stage, 0), 4)];
   return {
     item: { id, type: "CATALOG_EXERCISE", exerciseId: row.id, displayName: row.name,
-      executionInstruction: (row.videoGuidance?.videoAnalysisStatus === "COACH_REVIEWED" ? row.videoGuidance.executionSummary : description).slice(0, 400), plannedNote,
+      executionInstruction: instruction, plannedNote,
       reason, plannedSets: sets, plannedReps: row.metricType === "REPS" ? quantity : null,
       plannedDurationSeconds: row.metricType === "TIME" ? quantity : null,
       plannedDistanceMeters: row.metricType === "DISTANCE" && quantity > 0 ? quantity : null,

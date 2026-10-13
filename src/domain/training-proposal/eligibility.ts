@@ -4,7 +4,7 @@ import { isRunningExerciseForV2 } from "@/presentation/running/legacy-routing";
 
 export type ExerciseEligibility = {
   eligible: boolean; reasons: string[]; section: "MOVEMENT" | "STRENGTH" | null; stage: number;
-  /** Place inside the stage (see warmupProgression). Like the stage, an ordering cue only. */
+  /** Place inside the section's order (warmupProgression or strengthProgression). Like the stage, an ordering cue only. */
   progression: number;
   family: string;
 };
@@ -27,29 +27,46 @@ const BOUNCING_NAME = /スキップ|弾み|弾む|跳ん|跳び|ジャンプ|ホ
 const BOUNCING = /スキップ|弾み|弾む|弾ん|跳ん|跳び|跳ね|跳ぶ|はね|ジャンプ|ホップ|ケンケン|ケンパ|ギャロップ|バウンド/u;
 // Mentions that rule a movement out rather than in: 「高く跳び上がらずに」「バウンドしないよう」「膝をつかない」.
 const NEGATED = /(?:跳び上が|跳ね|跳|弾|はね)(?:ら|ま|ば|ませ)?(?:ず|ない)|弾みをつけ(?:ず|ない)|(?:ジャンプ|ホップ|バウンド)(?:せず|しない)|(?:膝|手)を(?:(?:地面|床)に)?つ[かけ](?:ず|ない)|座ら(?:ず|ない)/gu;
-// 「膝をつま先へ」 is a knee cue, not kneeling, so only 膝をつい・つけ・つき count.
-const ON_GROUND = /四つ這い|四つん這い|うつ伏せ|うつぶせ|仰向け|あお向け|寝て|寝た|寝転|長座|座って|座り|膝をつ[いけき]|膝を(?:地面|床)につ|手を(?:地面|床)につ|手をつ[いけき]|手を接地|手と両(?:足|膝)を(?:地面|床)/u;
+// Lying, sitting, kneeling, on all fours or in a push-up or plank position. 「膝をつま先へ」 is a
+// knee cue, not kneeling, so only 膝をつい・つけ・つき count.
+const ON_GROUND = /四つ這い|四つん這い|うつ伏せ|うつぶせ|仰向け|あお向け|寝て|寝た|寝転|長座|座っ|座り|座る|腰かけ|腰掛け|膝立ち|膝をつ[いけき]|膝を(?:地面|床)につ|手を(?:地面|床)につ|手をつ[いけき]|手を接地|手と両(?:足|膝)を(?:地面|床)|手とつま先で|肘をつ[いけき]|前腕をつ|腕立て(?:伏せ)?(?:の)?姿勢|プランク(?:の)?姿勢|ハイプランク|上背部を/u;
 
-/**
- * Place inside a stage, so a warm-up builds up instead of opening with bouncing:
- * 0 on the ground (lying, sitting, on all fours), 1 standing still, 2 travelling,
- * 3 bouncing on both feet, 4 alternating skips and gallops, 5 on one leg.
- * Read from the name and the registered description, without negated mentions.
- */
-export function warmupProgression(name: string, description: string, moving: boolean): number {
+/** How a movement is done, read from its name and registered description without negated mentions. */
+function movementShape(name: string, description: string) {
   const said = `${name} ${description}`.normalize("NFKC").replace(/(?:跳|は)ね(?:上|あ)げ|跳び箱/gu, "").replace(NEGATED, "");
-  if (BOUNCING.test(said)) {
-    const oneLeg = /ケンケン|ケンパ/u.test(name) || /片(?:脚|足)/u.test(name) && /ジャンプ|ホップ|踏み切|弾/u.test(name)
-      || /片(?:脚|足)(?:だけ)?で[^。、]{0,6}?(?:弾|ホップ|跳|踏み切)/u.test(said);
-    return oneLeg ? 5 : /スキップ|ギャロップ/u.test(name) ? 4 : 3;
-  }
-  if (ON_GROUND.test(said)) return 0;
-  return moving ? 2 : 1;
+  const bouncing = BOUNCING.test(said);
+  const oneLeg = bouncing && (/ケンケン|ケンパ/u.test(name) || /片(?:脚|足)/u.test(name) && /ジャンプ|ホップ|踏み切|弾/u.test(name)
+    || /片(?:脚|足)(?:だけ)?で[^。、]{0,6}?(?:弾|ホップ|跳|踏み切)|片(?:脚|足)バネ/u.test(said));
+  return { said, bouncing, oneLeg, onGround: ON_GROUND.test(said) };
 }
 
-/** Movement order: the stage, then the place inside it. Ties keep the given order (the sort is stable). */
+/**
+ * Place inside a 動きづくり stage, so a warm-up builds up instead of opening with bouncing:
+ * 0 on the ground (lying, sitting, on all fours), 1 standing still, 2 walking, 3 at running pace,
+ * 4 bouncing lightly, 5 skips and gallops, 6 jumps, 7 on one leg (ケンケン and other hops).
+ */
+export function warmupProgression(name: string, description: string, moving: boolean): number {
+  const shape = movementShape(name, description);
+  if (shape.bouncing) {
+    return shape.oneLeg ? 7 : /スキップ|ギャロップ/u.test(name) ? 5 : /(?:軽く|小さく)(?:弾|跳|はね)|ポゴ|アンクルホップ/u.test(shape.said) ? 4 : 6;
+  }
+  if (shape.onGround) return 0;
+  if (!moving) return 1;
+  return /走(?!路)/u.test(name) || /走るリズム|走りながら|ジョグ/u.test(shape.said) ? 3 : 2;
+}
+
+/** Place inside 補強: jumps first while the legs are fresh, then standing work, and the floor (core) last. */
+export function strengthProgression(name: string, description: string, jump: boolean): number {
+  return jump ? 0 : movementShape(name, description).onGround ? 2 : 1;
+}
+
+/** 動きづくり order: the stage, then the place inside it. Ties keep the given order (the sort is stable). */
 export function compareMovementOrder(order: { stages: Record<string, number>; progressions: Record<string, number> }, a: string, b: string): number {
   return (order.stages[a] ?? 0) - (order.stages[b] ?? 0) || (order.progressions[a] ?? 0) - (order.progressions[b] ?? 0);
+}
+/** 補強 order: jumps, standing, then the floor. Ties keep the given order. */
+export function compareStrengthOrder(order: { progressions: Record<string, number> }, a: string, b: string): number {
+  return (order.progressions[a] ?? 0) - (order.progressions[b] ?? 0);
 }
 
 /** Conservative retrieval boundary, not an exercise prescription or a suitability guarantee. */
@@ -66,8 +83,9 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
   const intenseImpact = highImpact && ((row.difficulty ?? 3) >= 3
     || /バウンディング|デプス|ドロップ|リバウンド|連続ホップ|連続跳躍|大ジャンプ|タック|爆発的/u.test(text));
   const externalLoad = /ダンベル|バーベル|ウェイト|ウエイト|メディシンボール|重り|加重/u.test(text);
+  // A mobility drill named after its start position (「腕立て姿勢からの腕の振り上げ（胸椎回旋）」) stays mobility.
   const coreOrStrength = ["CORE", "STRENGTH"].includes(category)
-    || /プランク|腹筋|腕立て|スクワット|ヒップスラスト|クランチ|ハンドプレス/u.test(name);
+    || category !== "MOBILITY" && /プランク|腹筋|腕立て|スクワット|ヒップスラスト|クランチ|ハンドプレス/u.test(name);
   const running = isRunningExerciseForV2(row) || /疾走(?:する|へ|に|し|を行|区間)|走り抜|加速へ移行|スプリント(?:へ|に)移行/u.test(description);
   const section = running ? null : coreOrStrength || highImpact || externalLoad || category === "THROW" ? "STRENGTH"
     : ["DRILL", "MOBILITY", "WARM_UP", "COOL_DOWN", "HURDLE"].includes(category) ? "MOVEMENT" : null;
@@ -77,10 +95,11 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
   // a warm-up must not open with bouncing.
   const stage = /疾走姿勢|走動作へつな|スプリントへつな/u.test(description) || /叩きつけ|スイングダウン|挟み込み|シザース/u.test(name) ? 4
     : BOUNCING_NAME.test(name) ? 3
-      : category === "MOBILITY" || /回旋|回し|可動域|伸ば/u.test(name) ? 0
+      : category === "MOBILITY" || /回旋|回し|可動域|伸ば|ストレッチ/u.test(name) ? 0
         : /スキップ|弾み|跳ん|跳び|入れ替え|挟み込み|叩きつけ/u.test(text) ? 3
           : moving ? 2 : 1;
-  const progression = warmupProgression(name, row.description ?? "", moving);
+  const progression = section === "STRENGTH" ? strengthProgression(name, row.description ?? "", category === "JUMP" || highImpact)
+    : warmupProgression(name, row.description ?? "", moving);
   if (row.status !== "REVIEWED") reasons.push("UNREVIEWED_EXERCISE");
   if (!row.description?.trim()) reasons.push("MOVEMENT_DESCRIPTION_MISSING");
   if (running) reasons.push("RUNNING_ENGINE_ONLY");
@@ -100,12 +119,14 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
       || /走|ジャンプ|跳|ホップ|ケンケン|ケンパ|バウンド|スキップ|ギャロップ|ダッシュ|弾/u.test(name)) reasons.push("STRONG_FATIGUE_LOW_INTENSITY_ONLY");
   }
 
-  const needsStep = /段差|階段|縁石|低い台|台の上|台に|台や|ブロック|ステップアップ/u.test(text)
+  // Words that only look like equipment: 「ASRブロック」 is a transcript segment in the analysis notes,
+  // 「1台につき2歩」 counts hurdles, and 「ハードル座り」 is a way of sitting.
+  const needsStep = /段差|階段|縁石|低い台|台の上|台に|台や|ブロック|ステップアップ/u.test(text.replace(/ASRブロック|[0-9]+台につき/gu, ""))
     || (row.equipmentTags ?? []).some(tag => /^(台|台・段差|段差マット)$/u.test(tag));
   const needsWall = /壁/u.test(text);
   const needsHill = /坂|傾斜地|登り坂/u.test(text);
   const miniHurdle = /ミニハードル/u.test(text);
-  const fullHurdle = /ハードル/u.test(text.replace(/ミニハードル/gu, ""));
+  const fullHurdle = /ハードル/u.test(text.replace(/ミニハードル|ハードル座り/gu, ""));
   if (needsStep && (!env.equipment.includes("STEP") || !env.step || env.step.heightCm === null || env.step.heightCm <= 0
     || env.step.stable !== true || env.step.safe !== true)) reasons.push("STEP_DETAILS_UNCONFIRMED");
   if (needsWall && (!env.equipment.includes("WALL") || env.wallStable !== true)) reasons.push("WALL_STABILITY_UNCONFIRMED");

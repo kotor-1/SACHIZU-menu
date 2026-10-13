@@ -29,6 +29,11 @@ describe("rule-based training selection (no AI)", () => {
     expect(ruleBasedTrainingSelection(input(rows, 6)).movement.map(x => x.exerciseId))
       .toEqual(["floor0", "walk0", "bounce0", "stand1", "pogo3", "hop3"]);
   });
+  it("returns 補強 from jumps to standing work to the floor", () => {
+    const at = (id: string, progression: number): Candidate => ({ ...drill(id, 0, { category: "STRENGTH" }), progression });
+    expect(ruleBasedTrainingSelection(input([], 0, [at("floor", 2), at("stand", 1), at("jump", 0)], 3)).strength.map(x => x.exerciseId))
+      .toEqual(["jump", "stand", "floor"]);
+  });
   it("within a stage prefers the primary goal's purposes, then registered values, then easier movements", () => {
     const rows = [drill("easy", 0, { difficulty: 1 }), drill("registered", 0, { defaultReps: 6, difficulty: 2 }),
       drill("posture", 0, { purposes: ["POSTURE"], difficulty: 3 }), drill("accel", 0, { purposes: ["ACCELERATION", "POWER"], difficulty: 3 })];
