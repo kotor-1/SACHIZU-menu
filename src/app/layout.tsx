@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Nav } from "@/components/nav";
+import { appAuthRequired } from "@/infra/auth/app-session";
+import { currentAppSession } from "@/infra/auth/current-app-user";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,9 +11,11 @@ export const metadata: Metadata = {
     "陸上競技コーチのための、ドリル・種目の管理と練習メニュー作成アプリ",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // 公開URLでは、ログインするまでメニューを出さない（ログイン画面だけを見せる）。
+  const showNav = !appAuthRequired() || (await currentAppSession()) !== null;
   return (
     <html lang="ja">
       <body className="min-h-full">
@@ -23,7 +27,7 @@ export default function RootLayout({
               <span className="text-[15px] font-extrabold tracking-[0.14em]">SACHIZU</span>
               <span className="text-xs text-slate-300">練習メニュー</span>
             </Link>
-            <Nav />
+            {showNav && <Nav />}
           </div>
         </header>
 

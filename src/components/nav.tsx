@@ -11,6 +11,7 @@ const LINKS: Array<{ href: string; label: string; exact?: boolean }> = [
   { href: "/sessions", label: "練習記録" },
   { href: "/competitions", label: "大会" },
   { href: "/ai", label: "動画解析" },
+  { href: "/settings", label: "設定" },
 ];
 
 export function Nav() {

@@ -1,24 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { basicAuthDecision } from "@/infra/security/basic-auth";
-
-const TEXT_HEADERS = { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" };
+import { APP_SESSION_COOKIE, appAuthRequired, appSessionIdFromToken } from "@/infra/auth/app-session";
+import { appAuthGate } from "@/infra/auth/app-auth-gate";
+import { findValidAppSession } from "@/infra/repositories/app-user-repository";
 
 /**
- * 公開URL全体をパスワードで守る（画面・保存・AI提案・静的ファイルのすべて）。
- * Fly.io のヘルスチェック（/healthz）だけは認証なしで通す。データは読まない。
+ * 公開URL（本番）では、画面・保存・AI提案のすべてにログインを求める。
+ * ログイン状態は毎回 DB と照合するので、削除した利用者やパスワード変更前の端末はすぐ入れなくなる。
  */
-export function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === "/healthz") return NextResponse.next();
-  const decision = basicAuthDecision(request.headers.get("authorization"), {
-    user: process.env.APP_BASIC_AUTH_USER,
-    password: process.env.APP_BASIC_AUTH_PASSWORD,
-    production: process.env.NODE_ENV === "production",
+export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  const sessionId = appSessionIdFromToken(request.cookies.get(APP_SESSION_COOKIE)?.value);
+  const decision = await appAuthGate({
+    required: appAuthRequired(), pathname, search, method: request.method,
+    signedIn: async () => sessionId !== null && await findValidAppSession(sessionId, new Date()) !== null,
   });
-  if (decision === "ALLOW") return NextResponse.next();
-  if (decision === "NOT_CONFIGURED") {
-    return new NextResponse("パスワードが設定されていないため、公開を止めています。", { status: 503, headers: TEXT_HEADERS });
+  if (decision.kind === "ALLOW") return NextResponse.next();
+  if (decision.kind === "REDIRECT") {
+    // Fly.io は https を受けてから http でアプリへ渡すので、元が https なら案内先も https にする。
+    const location = new URL(decision.location, request.url);
+    if (request.headers.get("x-forwarded-proto") === "https") location.protocol = "https:";
+    return NextResponse.redirect(location, 307);
   }
-  return new NextResponse("ユーザー名とパスワードを入力してください。", {
-    status: 401, headers: { ...TEXT_HEADERS, "www-authenticate": 'Basic realm="SACHIZU", charset="UTF-8"' },
-  });
+  return new NextResponse("ログインが必要です。", { status: 401, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
 }

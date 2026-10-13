@@ -828,3 +828,34 @@ model VideoObservationResult {
   createdAt DateTime
   @@unique([ownerId, contentKey])
 }
+
+// ----------------------------------------------------------------------------
+// App sign-in for the public URL (Fly.io). Separate from the video-guidance
+// Better Auth tables above, which stay disabled. Local development does not
+// require sign-in, and the original development database is not migrated.
+// ----------------------------------------------------------------------------
+
+/// ログインIDは小文字で保存する。role は ADMIN（利用者を追加できる）か MEMBER。
+model AppUser {
+  id               String       @id @default(cuid())
+  loginId          String       @unique
+  passwordHash     String
+  role             String       @default("MEMBER")
+  failedLoginCount Int          @default(0)
+  lockedUntil      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  sessions         AppSession[]
+}
+
+/// ログイン状態。id は cookie の値ではなく、その SHA-256（DB が読まれても使えない）。
+model AppSession {
+  id        String   @id
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
