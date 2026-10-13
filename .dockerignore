@@ -17,3 +17,10 @@ scratch
 /video_*.*
 *.tsbuildinfo
 .DS_Store
+# 本番で動かすのに要らないもの（テスト・文書・開発用スクリプト）。遅い回線でもアップロードが半分で済む。
+# ビルドは全 .ts を型検査するので、tests を読む vitest.config.ts と開発用スクリプトも一緒に外す。
+tests
+docs
+vitest.config.ts
+scripts/*
+!scripts/fly-start.sh
