@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hashAppPassword, verifyAppPassword } from "@/infra/auth/app-password";
 import { appSessionIdFromToken, newAppSessionToken, safeNextPath, setupCodeMatches } from "@/infra/auth/app-session";
-import { appAuthGate, isPublicAppPath } from "@/infra/auth/app-auth-gate";
+import { appAuthGate, isAdminOnlyAppPath, isPublicAppPath } from "@/infra/auth/app-auth-gate";
 
 // Offline test values only. They are not credentials for any deployment.
 describe("app password hashing", () => {
@@ -45,11 +45,11 @@ describe("app session values", () => {
 });
 
 describe("app sign-in gate", () => {
-  const gate = (pathname: string, method = "GET", signedIn = false, required = true, search = "") =>
-    appAuthGate({ required, pathname, search, method, signedIn: async () => signedIn });
+  const gate = (pathname: string, method = "GET", viewer: "ADMIN" | "MEMBER" | null = null, required = true, search = "") =>
+    appAuthGate({ required, pathname, search, method, session: async () => viewer ? { role: viewer } : null });
 
   it("leaves local development open and lets the sign-in page, health check and assets through", async () => {
-    expect(await gate("/menus", "GET", false, false)).toEqual({ kind: "ALLOW" });
+    expect(await gate("/menus", "GET", null, false)).toEqual({ kind: "ALLOW" });
     for (const path of ["/login", "/healthz", "/favicon.ico", "/_next/static/chunks/app.js", "/_next/image"]) {
       expect(isPublicAppPath(path)).toBe(true);
       expect(await gate(path, "POST")).toEqual({ kind: "ALLOW" });
@@ -59,9 +59,21 @@ describe("app sign-in gate", () => {
   });
 
   it("sends pages to the sign-in screen with a safe return path, and refuses other requests", async () => {
-    expect(await gate("/menus/new", "GET", false, true, "?a=1")).toEqual({ kind: "REDIRECT", location: "/login?next=%2Fmenus%2Fnew%3Fa%3D1" });
+    expect(await gate("/menus/new", "GET", null, true, "?a=1")).toEqual({ kind: "REDIRECT", location: "/login?next=%2Fmenus%2Fnew%3Fa%3D1" });
     expect(await gate("/", "GET")).toEqual({ kind: "REDIRECT", location: "/login" });
     expect(await gate("/menus/new", "POST")).toEqual({ kind: "UNAUTHORIZED" });
-    expect(await gate("/menus/new", "POST", true)).toEqual({ kind: "ALLOW" });
+    expect(await gate("/menus/new", "POST", "MEMBER")).toEqual({ kind: "ALLOW" });
+  });
+
+  it("keeps administrator-only places for administrators, and sends members home", async () => {
+    for (const [path, method] of [["/ai", "GET"], ["/ai/drafts/1", "GET"], ["/exercises/new", "GET"], ["/exercises/abc/edit", "GET"], ["/exercises/abc", "POST"], ["/exercises", "POST"]] as const) {
+      expect(isAdminOnlyAppPath(path, method)).toBe(true);
+      expect(await gate(path, method, "ADMIN")).toEqual({ kind: "ALLOW" });
+      expect(await gate(path, method, "MEMBER")).toEqual(method === "GET" ? { kind: "REDIRECT", location: "/" } : { kind: "FORBIDDEN" });
+    }
+    for (const [path, method] of [["/exercises", "GET"], ["/exercises/abc", "GET"], ["/menus/new", "POST"], ["/sessions/abc", "POST"], ["/settings", "POST"], ["/aim", "GET"]] as const) {
+      expect(isAdminOnlyAppPath(path, method)).toBe(false);
+      expect(await gate(path, method, "MEMBER")).toEqual({ kind: "ALLOW" });
+    }
   });
 });

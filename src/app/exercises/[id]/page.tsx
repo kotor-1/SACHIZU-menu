@@ -9,6 +9,7 @@ import {
   PageHeader,
 } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { currentAppViewer } from "@/infra/auth/current-app-user";
 import { SubmitButton } from "@/components/submit-button";
 import {
   CategoryBadge,
@@ -37,6 +38,8 @@ export default async function ExerciseDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // 種目の編集・複製・アーカイブ・削除とお気に入りは、管理者だけに出す（メンバーは見るだけ）。
+  const viewer = await currentAppViewer();
   const exercise = await findExercise(id);
   if (!exercise) notFound();
 
@@ -68,11 +71,11 @@ export default async function ExerciseDetailPage({
       <PageHeader
         title={
           <span className="flex flex-wrap items-center gap-2">
-            <FavoriteToggleButton
+            {viewer.isAdmin && <FavoriteToggleButton
               exerciseId={exercise.id}
               isFavorite={exercise.isFavorite}
               className="-ml-1"
-            />
+            />}
             {exercise.name}
             <StatusBadge status={exercise.status} />
           </span>
@@ -87,7 +90,7 @@ export default async function ExerciseDetailPage({
             )}
           </span>
         }
-        actions={
+        actions={viewer.isAdmin && (
           <>
             <LinkButton href={`/exercises/${exercise.id}/edit`} variant="secondary">
               編集
@@ -121,7 +124,7 @@ export default async function ExerciseDetailPage({
               </ConfirmSubmitButton>
             </form>
           </>
-        }
+        )}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

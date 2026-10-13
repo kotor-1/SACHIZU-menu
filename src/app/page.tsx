@@ -14,8 +14,7 @@ import {
   type SessionStatus,
 } from "@/domain/session/constants";
 import { formatDate, relativeDays } from "@/lib/format";
-import { appAuthRequired } from "@/infra/auth/app-session";
-import { currentAppSession } from "@/infra/auth/current-app-user";
+import { currentAppViewer } from "@/infra/auth/current-app-user";
 
 /** DB を直接読むため、ビルド時に固定せず毎回サーバーで描画する。 */
 export const dynamic = "force-dynamic";
@@ -47,8 +46,7 @@ function Score({
 export default async function Home() {
   // 件数とカテゴリ別の集計は管理者だけに見せる（メンバーには練習の予定と最近のメニューだけ）。
   // 手元の開発ではログインを使わないので、そのまま表示する。
-  const session = await currentAppSession();
-  const isAdmin = !appAuthRequired() || session?.user.role === "ADMIN";
+  const { isAdmin } = await currentAppViewer();
   const [exerciseCount, menuCount, sessionCount, draftCount, byCategory, upcoming, recentMenus] =
     await Promise.all([
       isAdmin ? prisma.exercise.count({ where: { status: { not: "ARCHIVED" } } }) : 0,
@@ -79,9 +77,9 @@ export default async function Home() {
         actions={
           <>
             <LinkButton href="/menus/new">＋ メニューを作成</LinkButton>
-            <LinkButton href="/exercises/new" variant="secondary">
+            {isAdmin && <LinkButton href="/exercises/new" variant="secondary">
               ＋ 種目を登録
-            </LinkButton>
+            </LinkButton>}
           </>
         }
       />

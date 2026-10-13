@@ -4,23 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "./ui";
 
-const LINKS: Array<{ href: string; label: string; exact?: boolean }> = [
+const LINKS: Array<{ href: string; label: string; exact?: boolean; adminOnly?: boolean }> = [
   { href: "/", label: "ホーム", exact: true },
   { href: "/exercises", label: "種目" },
   { href: "/menus", label: "メニュー" },
   { href: "/sessions", label: "練習記録" },
   { href: "/competitions", label: "大会" },
-  { href: "/ai", label: "動画解析" },
+  { href: "/ai", label: "動画解析", adminOnly: true },
   { href: "/settings", label: "設定" },
 ];
 
-export function Nav() {
+/** 管理者だけの画面（動画解析）は、メンバーには出さない。 */
+export function Nav({ isAdmin = true }: { isAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
     <nav className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <ul className="flex items-stretch whitespace-nowrap">
-        {LINKS.map((link) => {
+        {LINKS.filter((link) => isAdmin || !link.adminOnly).map((link) => {
           const active = link.exact
             ? pathname === link.href
             : pathname.startsWith(link.href);

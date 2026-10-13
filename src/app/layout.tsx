@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Nav } from "@/components/nav";
-import { appAuthRequired } from "@/infra/auth/app-session";
-import { currentAppSession } from "@/infra/auth/current-app-user";
+import { currentAppViewer } from "@/infra/auth/current-app-user";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +14,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   // 公開URLでは、ログインするまでメニューを出さない（ログイン画面だけを見せる）。
-  const showNav = !appAuthRequired() || (await currentAppSession()) !== null;
+  const viewer = await currentAppViewer();
   return (
     <html lang="ja">
       <body className="min-h-full">
@@ -27,7 +26,7 @@ export default async function RootLayout({
               <span className="text-[15px] font-extrabold tracking-[0.14em]">SACHIZU</span>
               <span className="text-xs text-slate-300">練習メニュー</span>
             </Link>
-            {showNav && <Nav />}
+            {viewer.signedIn && <Nav isAdmin={viewer.isAdmin} />}
           </div>
         </header>
 

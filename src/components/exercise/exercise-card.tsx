@@ -5,7 +5,8 @@ import type { ExerciseWithRelations } from "@/infra/repositories/exercise-reposi
 import { CategoryBadge, DifficultyBadge, StatusBadge, TargetBadge } from "./exercise-badges";
 import { FavoriteToggleButton } from "./favorite-toggle-button";
 
-export function ExerciseCard({ exercise }: { exercise: ExerciseWithRelations }) {
+/** お気に入りは全員で共有するため、印を付けられるのは管理者だけ。 */
+export function ExerciseCard({ exercise, canFavorite = true }: { exercise: ExerciseWithRelations; canFavorite?: boolean }) {
   const prescription = formatPrescription({
     sets: exercise.defaultSets,
     reps: exercise.defaultReps,
@@ -17,11 +18,11 @@ export function ExerciseCard({ exercise }: { exercise: ExerciseWithRelations }) 
   return (
     <Card className="relative flex h-full flex-col transition-shadow hover:shadow-md">
       {/* Link の中に button を入れないよう、兄弟要素として右上に重ねる */}
-      <FavoriteToggleButton
+      {canFavorite && <FavoriteToggleButton
         exerciseId={exercise.id}
         isFavorite={exercise.isFavorite}
         className="absolute top-2 right-2 z-10"
-      />
+      />}
 
       <Link href={`/exercises/${exercise.id}`} className="flex flex-1 flex-col p-4">
         <div className="mb-2 flex flex-wrap items-center gap-1.5 pr-10">
