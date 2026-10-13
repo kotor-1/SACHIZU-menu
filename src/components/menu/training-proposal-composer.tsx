@@ -227,7 +227,7 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
       <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3"><div>
           <p className="text-xs font-semibold tracking-wide text-indigo-600">今回の練習候補</p>
-          <h2 className="mt-1 text-lg font-semibold text-slate-900">組み合わせを選んで、メニューに</h2>
+          <h2 className="mt-1 text-lg font-semibold text-slate-900">組み合わせを選んで、メニューにする</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">すべて実施する必要はありません。採用した種目だけが練習記録へ引き継がれます。量や順序も調整できます。</p>
         </div><Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => { setShowConditions(true); requestAnimationFrame(() => conditionsRef.current?.scrollIntoView({ block: "start" })); }}>条件を見直す</Button></div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-indigo-800"><span className="rounded-full bg-white px-3 py-1">{TRAINING_LOCATION_LABELS[preview.conditions.location]}</span><span className="rounded-full bg-white px-3 py-1">{preview.conditions.athlete.event}</span><span className="rounded-full bg-white px-3 py-1">{TRAINING_GOAL_LABELS[preview.conditions.primaryGoal]}</span><span className="rounded-full bg-white px-3 py-1">疲労度 {preview.conditions.condition.fatigue} / 10</span></div>

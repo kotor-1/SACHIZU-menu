@@ -133,7 +133,7 @@ describe("training proposal UI (offline rendering, no Luna call)", () => {
   it("renders three optional sections and selection, editing, ordering and save controls", () => {
     const text = stripTags(renderMarkup(TrainingProposalComposer, { catalog, initialPreview: preview() }));
     for (const name of TRAINING_SECTION_NAMES) expect(text).toContain(name);
-    for (const label of ["すべて実施する必要はありません", "すべて選択", "すべて解除", "全選択", "削除", "上へ", "下へ", "登録種目を追加", "別の種目に入れ替える", "詳しい内容・編集", "強度の目安", "セット間休息（秒）", "選択した内容を保存"]) expect(text).toContain(label);
+    for (const label of ["組み合わせを選んで、メニューにする", "すべて実施する必要はありません", "すべて選択", "すべて解除", "全選択", "削除", "上へ", "下へ", "登録種目を追加", "別の種目に入れ替える", "詳しい内容・編集", "強度の目安", "セット間休息（秒）", "選択した内容を保存"]) expect(text).toContain(label);
     expect(text).not.toMatch(/希望時間|計画時間|全体時間|90分/);
   });
 
