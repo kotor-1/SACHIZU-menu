@@ -137,7 +137,8 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
   if ((miniHurdle || fullHurdle) && (athlete.experience !== "EXPERIENCED" || athlete.supervised !== true)) reasons.push("HURDLE_USE_REQUIRES_CONFIRMED_EXPERIENCE_AND_SUPERVISION");
   if (/マーカー|コーン/u.test(text) && !env.equipment.includes("CONES")) reasons.push("CONES_UNAVAILABLE");
   const explicitOtherEquipment = env.equipment.includes("OTHER") ? env.otherEquipment.normalize("NFKC") : "";
-  for (const equipment of ["マット", "ベンチ", "椅子", "なわとび", "フラットリング"] as const) {
+  // A mat is not required: the coach's call is that floor work can be done without one.
+  for (const equipment of ["ベンチ", "椅子", "なわとび", "フラットリング"] as const) {
     if (text.includes(equipment) && !explicitOtherEquipment.includes(equipment)) reasons.push(`OTHER_EQUIPMENT_UNCONFIRMED:${equipment}`);
   }
   const recognizedTags = /^(?:なし|無器具|自体重|自重|なわとび|ハードル|フラットリング|ブロック|ベンチ|マット|マーカー|ミニハードル|メディシンボール|台|台・段差|壁|椅子|段差|段差マット|段差・縁石|階段|坂|芝生|コーン)$/u;
@@ -167,7 +168,8 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
   }
   // Group only the same named movement and its parenthesized variants; unrelated
   // hip/arm drills must not become one family merely because they use the same joint.
-  const movementName = name.split(/[（(]/u)[0].replace(/[\s・\-]/gu, "").toLowerCase();
+  // 「ニー・トゥ・エルボー」 and 「ニー to エルボー」 are one name in two spellings.
+  const movementName = name.split(/[（(]/u)[0].replace(/[\s・\-]/gu, "").toLowerCase().replace(/トゥ/gu, "to");
   const family = `${section ?? "UNSUPPORTED"}:${movementName}`;
   return { eligible: reasons.length === 0, reasons: [...new Set(reasons)], section, stage, progression, family };
 }

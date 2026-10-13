@@ -83,8 +83,13 @@ describe("catalog environment eligibility", () => {
     expect(assessExerciseEligibility(hill, c).reasons).toContain("HILL_DETAILS_UNCONFIRMED");
     c.environment.equipment = ["HILL"]; c.environment.hill = { distanceMeters: 20, slopePercent: 5, safe: true };
     expect(assessExerciseEligibility(hill, c).eligible).toBe(true);
+    // The coach (2026-10-13): floor work can be done without a mat, so a mat is never required.
     const mat = catalogFixture({ description: "マットに仰向けで姿勢を保つ。" });
-    expect(assessExerciseEligibility(mat, c).reasons).toContain("OTHER_EQUIPMENT_UNCONFIRMED:マット");
+    expect(assessExerciseEligibility(mat, c).reasons).not.toContain("OTHER_EQUIPMENT_UNCONFIRMED:マット");
+    expect(assessExerciseEligibility(mat, c).eligible).toBe(true);
+    c.notes = "安全な坂とベンチがあります";
+    const bench = catalogFixture({ description: "ベンチに両手を置いて体を支える。" });
+    expect(assessExerciseEligibility(bench, c).reasons).toContain("OTHER_EQUIPMENT_UNCONFIRMED:ベンチ");
   });
   it("excludes hidden load and unknown equipment and does not turn low-amplitude descriptions into authorization", () => {
     const c = confirmed(); c.environment.equipment = ["OTHER"]; c.environment.otherEquipment = "メディシンボール、トランポリン";
@@ -255,6 +260,9 @@ describe("catalog environment eligibility", () => {
     expect(family("tripod")).toBe(family("rdl"));
     expect(family("squat")).not.toBe(family("rdl"));
     expect(available.requiredStrength).toBe(2);
+    // One name in two spellings is one family too.
+    const knee = catalogFixture({ category: "CORE", name: "ニー to エルボー", metricType: "REPS", difficulty: 2, description: "仰向けで上体をひねり、対角の肘と膝を近づける。" });
+    expect(assessExerciseEligibility({ ...knee, name: "ニー・トゥ・エルボー（対角膝肘引きつけ）" }, c).family).toBe(assessExerciseEligibility(knee, c).family);
   });
   it("prefers registered Exercise defaults and only scales total volume on a reduced day", () => {
     const plank = catalogFixture();
