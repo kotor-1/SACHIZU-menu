@@ -1,0 +1,38 @@
+# スマホ版（Fly.io）。手順と注意は docs/DEPLOY_FLY.md。
+app = "sachizu-menu"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  DATABASE_URL = "file:/data/sachizu.db"
+  AI_MENU_PLANNER_ENABLED = "true"
+  RUNNING_V2_UI_ENABLED = "true"
+  MENU_PLANNER_OPENAI_MODEL = "gpt-6-luna"
+
+# SQLite は1台のマシンと1つのボリュームで使う（台数を増やさない）
+[[mounts]]
+  source = "sachizu_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # 使っていない間は止め、開いたときに起動する（費用を抑える）
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/healthz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

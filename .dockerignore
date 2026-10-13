@@ -1,0 +1,19 @@
+# 秘密情報・手元のデータ・大容量ファイルはイメージに入れない
+.git
+.github
+.env*
+.data
+.next
+node_modules
+coverage
+reports
+prisma/*.db
+prisma/*.db-*
+prisma/*.bak
+public/uploads
+videos
+tmp
+scratch
+/video_*.*
+*.tsbuildinfo
+.DS_Store

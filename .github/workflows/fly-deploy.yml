@@ -1,0 +1,22 @@
+# main に送るたびに、スマホ版（Fly.io）を更新する。鍵は GitHub の Secrets（FLY_API_TOKEN）にだけ置く。
+name: Deploy to Fly.io
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # SQLite を1台・1ボリュームで使うため、台数は増やさない
+      - run: flyctl deploy --remote-only --ha=false
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
