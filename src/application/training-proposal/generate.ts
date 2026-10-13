@@ -154,7 +154,7 @@ export async function generateTrainingProposal(raw: unknown, deps: {
     const structured = buildStructuredRunningPreview(conditions);
     const runningPrescription = structured.running?.status === "READY" ? structured.running.prescription : null;
     const runningStatusReason = structured.running && structured.running.status !== "READY" ? structured.running.message
-      : !structured.running ? "選択した目的に走の目的（加速力向上・最高速度向上・基礎走能力向上など）が含まれていないため、走練習は提案していません。走を行う場合は目的に追加してください。" : null;
+      : !structured.running ? "選んだ目的には走練習を入れていません。走練習も行うときは、目的を「加速」「最高速度」「スピード持久」「基礎の走力」のどれかにしてください。" : null;
     const catalog = (await deps.catalog()).filter(row => row.ownerId === deps.ownerId && row.status === "REVIEWED");
     const available = trainingAvailability(catalog, conditions);
     // All eligible reviewed movements remain visible to Composer. No legacy 24-item

@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, INPUT_CLASS } from "@/components/ui";
-import { TrainingConditionsForm } from "./training-conditions-form";
+import { SimpleConditionsForm } from "./simple-conditions-form";
 import { RunningPolicyCoachEditor } from "./running-policy-coach-editor";
 import { safeExerciseVideoUrl } from "./composed-item-content";
 import { generateTrainingProposalAction, saveTrainingProposalAction, previewTrainingRunningCoachEditAction } from "@/actions/training-proposal-actions";
-import { DEFAULT_TRAINING_CONDITIONS, TRAINING_LOCATION_LABELS, TRAINING_GOAL_LABELS, trainingConditionsSchema, trainingRunningGoal, type TrainingConditions } from "@/domain/training-proposal/conditions";
+import { TRAINING_GOAL_LABELS, trainingConditionsSchema, trainingRunningGoal, type TrainingConditions } from "@/domain/training-proposal/conditions";
+import {
+  conditionsFromSimple, DEFAULT_SIMPLE_CONDITIONS, SIMPLE_ATHLETE_LABELS, SIMPLE_GOAL_LABELS, SIMPLE_LOCATION_LABELS, SIMPLE_STATE_LABELS,
+  simpleDistanceLabel, simpleFromConditions, type SimpleConditions,
+} from "@/domain/training-proposal/simple-conditions";
 import { explainTrainingIssue } from "@/domain/training-proposal/messages";
 import { TRAINING_SECTION_NAMES, type TrainingProposalPreview, type TrainingItemAnnotation } from "@/domain/training-proposal/contracts";
 import { assessExerciseEligibility } from "@/domain/training-proposal/eligibility";
@@ -105,7 +109,9 @@ function CatalogPicker({ rows, label, onPick, disabled, duplicateNames }: { rows
 export function TrainingProposalComposer({ catalog, initialPreview }: { catalog: ComposerCatalogExercise[]; initialPreview?: TrainingProposalPreview }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [conditions, setConditions] = useState<TrainingConditions>(() => structuredClone(initialPreview?.conditions ?? DEFAULT_TRAINING_CONDITIONS));
+  // 画面で選ぶのは5つだけ。提案に渡す条件一式は、そこから作る。
+  const [simple, setSimple] = useState<SimpleConditions>(() => initialPreview ? simpleFromConditions(initialPreview.conditions) : DEFAULT_SIMPLE_CONDITIONS);
+  const conditions = useMemo(() => conditionsFromSimple(simple), [simple]);
   const [preview, setPreview] = useState<TrainingProposalPreview | null>(initialPreview ?? null);
   const [composition, setComposition] = useState<EditableComposition>(() => structuredClone(initialPreview?.composition ?? { blocks: [] }));
   const [annotations, setAnnotations] = useState<Record<string, TrainingItemAnnotation>>(() => structuredClone(initialPreview?.annotations ?? {}));
@@ -124,7 +130,8 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
   const busy = pending || coachPending || savedEditStatus === "CHECKING";
   const items = composition.blocks.flatMap(block => block.items);
   const selectedItems = items.filter(item => selected.includes(item.id));
-  const conditionsChanged = preview !== null && JSON.stringify(conditions) !== JSON.stringify(preview.conditions);
+  // 保存済みのメニューは以前の詳しい条件のこともあるので、5つの選択どうしで比べる。
+  const conditionsChanged = preview !== null && JSON.stringify(simple) !== JSON.stringify(simpleFromConditions(preview.conditions));
   const activeConditions = preview?.conditions ?? conditions;
   const selectedRunning = selectedItems.some(item => item.type === "RUNNING_POLICY") ? runningFinal : null;
   const selectedExerciseCount = selectedItems.filter(item => item.type !== "RUNNING_POLICY" && item.type !== "UNPRESCRIBED_RUNNING").length;
@@ -254,11 +261,12 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
       } catch { setError("保存できませんでした。通信状態を確認してください。"); }
     });
   }
-  const straight = preview?.conditions.environment.straightMeters ?? null;
+  const shown = preview ? simpleFromConditions(preview.conditions) : null;
   return <div className="space-y-6">
     {showConditions && <div ref={conditionsRef}><form onSubmit={event => { event.preventDefault(); generate(); }} className="space-y-4">
-      <TrainingConditionsForm value={conditions} onChange={setConditions} disabled={busy} />
-      <div className="flex flex-wrap items-center gap-3"><Button type="submit" size="lg" disabled={busy}>{pending ? "提案を準備しています…" : preview ? "この条件でもう一度提案する" : "この条件で練習を提案する"}</Button>
+      <SimpleConditionsForm value={simple} onChange={setSimple} disabled={busy} />
+      <p className="text-xs leading-relaxed text-slate-600">平坦で滑りにくく、車や自転車が来ず、障害物のない場所で、コーチが見守る前提で提案します。器具を使う種目は入れていません。</p>
+      <div className="flex flex-wrap items-center gap-3"><Button type="submit" size="lg" variant="accent" disabled={busy}>{pending ? "提案を準備しています…" : preview ? "この条件でもう一度提案する" : "安全を確認して提案する"}</Button>
         {preview && <Button type="button" variant="ghost" disabled={busy} onClick={() => { setShowConditions(false); requestAnimationFrame(() => resultsRef.current?.focus()); }}>提案に戻る</Button>}
       </div>
     </form></div>}
@@ -271,10 +279,10 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
           <p className="mt-1.5 text-sm leading-relaxed text-slate-600">すべて実施する必要はありません。採用した種目だけが練習記録へ引き継がれます。量や順序も調整できます。</p>
         </div><Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => { setShowConditions(true); requestAnimationFrame(() => conditionsRef.current?.scrollIntoView({ block: "start" })); }}>条件を見直す</Button></div>
         <p className="mt-3 border-t border-slate-200 pt-3 text-sm font-semibold text-slate-800">
-          {TRAINING_LOCATION_LABELS[preview.conditions.location]}{straight === null ? "" : straight === 0 ? "（直線なし）" : `（直線${straight}m）`}
-          <span className="mx-2 text-slate-300" aria-hidden="true">／</span>競技種目 {preview.conditions.athlete.event}
-          <span className="mx-2 text-slate-300" aria-hidden="true">／</span>{TRAINING_GOAL_LABELS[preview.conditions.primaryGoal]}
-          <span className="mx-2 text-slate-300" aria-hidden="true">／</span>疲労度 {preview.conditions.condition.fatigue} / 10
+          {shown && <>{SIMPLE_LOCATION_LABELS[shown.location]}（直線 {simpleDistanceLabel(shown.straightMeters)}）
+            <span className="mx-2 text-slate-300" aria-hidden="true">／</span>{SIMPLE_ATHLETE_LABELS[shown.athlete]}
+            <span className="mx-2 text-slate-300" aria-hidden="true">／</span>{SIMPLE_GOAL_LABELS[shown.goal]}
+            <span className="mx-2 text-slate-300" aria-hidden="true">／</span>{SIMPLE_STATE_LABELS[shown.state]}</>}
         </p>
       </div>
       {conditionsChanged && <p role="status" className="border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-900">条件が変更されています。新しい条件で再提案するか、元の条件に戻してから保存してください。</p>}
@@ -283,7 +291,11 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
       {preview.messages.length > 0 && <div className={`border-l-4 px-4 py-3 text-sm leading-relaxed ${preview.quality === "LIMITED" ? "border-amber-500 bg-amber-50 text-amber-900" : "border-slate-400 bg-white text-slate-700"}`}>
         <ul className="space-y-1.5">{preview.messages.map((message, index) => <li key={index}>{explainTrainingIssue(message)}</li>)}</ul>
       </div>}
-      <fieldset disabled={busy} className="min-w-0 space-y-6"><legend className="sr-only">練習候補の選択と編集</legend>
+      {items.length === 0 ? <div className="border-t-2 border-slate-900 bg-white px-4 py-5 sm:px-6">
+        <h3 className="text-lg font-extrabold text-slate-900">提案できる練習がありませんでした</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">上の理由を確認して、条件を選び直してください。</p>
+        <Button type="button" className="mt-4" onClick={() => { setShowConditions(true); requestAnimationFrame(() => conditionsRef.current?.scrollIntoView({ block: "start" })); }}>条件を見直す</Button>
+      </div> : <fieldset disabled={busy} className="min-w-0 space-y-6"><legend className="sr-only">練習候補の選択と編集</legend>
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-300 pb-2"><p className="mr-auto text-sm text-slate-700"><strong className="mr-0.5 text-2xl font-extrabold tabular-nums text-slate-900">{selectedItems.length}</strong> / {items.length}項目を採用</p>
           <Button type="button" variant="secondary" size="sm" onClick={() => setSelected(items.filter(item => item.type !== "UNPRESCRIBED_RUNNING").map(item => item.id))}>すべて選択</Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => setSelected([])}>すべて解除</Button>
@@ -400,7 +412,7 @@ export function TrainingProposalComposer({ catalog, initialPreview }: { catalog:
             <Button type="button" size="lg" variant="accent" disabled={busy || conditionsChanged || !selectedItems.length || !name.trim() || savedEditStatus !== "IDLE"} onClick={save}>{pending ? "処理しています…" : "選択した内容を保存"}</Button></div>
           {!selectedItems.length && <p className="mt-2 text-xs text-amber-200">採用する項目を1つ以上選んでください。</p>}
         </div>
-      </fieldset>
+      </fieldset>}
     </div>}
   </div>;
 }

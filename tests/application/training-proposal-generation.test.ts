@@ -96,7 +96,7 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     expect(compose).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({ ok: true, preview: { quality: "LIMITED" } }); if (!result.ok) return;
     expect(result.preview.messages[0]).toBe("AIの提案を取得できなかったため、AIを使わない基本提案を表示しています。");
-    expect(result.preview.messages[1]).toContain("主目的「加速力向上」に関係する種目を優先");
+    expect(result.preview.messages[1]).toContain("目的「加速」に関係する種目を優先");
     expect(result.preview.runningPrescription).not.toBeNull();
     expect(verifyTrainingProposalToken(result.preview.previewToken, TRAINING_TEST_KEY)?.messages).toEqual(result.preview.messages);
   });

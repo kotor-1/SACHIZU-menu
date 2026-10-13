@@ -84,10 +84,17 @@ export function buildStructuredRunningPreview(rawConditions: TrainingConditions)
   const running = createRunningMenuPreview(intent, context, requestText);
   if (running && running.status !== "READY") {
     // Clarify Engine holds in this screen's terms without changing the Engine decision.
-    if (running.reason === "STRONG_FATIGUE_OR_UNWELL" && reportedFatigue) return { intent, context, requestText, running: { ...running,
-      message: "疲労・筋肉痛・体調の申告があるため、高強度の走（加速・最高速度・スピード持久）は処方していません。低強度の技術走を行う場合は、主目的に「基礎走能力向上」を選んで再提案してください。" } };
-    if (running.reason === "EVENT_POLICY_NOT_SUPPORTED") return { intent, context, requestText, running: { ...running,
-      message: "最高速度・スピード持久力の走処方は、現在100m・200mの選手だけに対応しています。" } };
+    // The screen asks only five things, so each hold says which of those choices would allow running.
+    const explain = (message: string) => ({ intent, context, requestText, running: { ...running, message } });
+    const newOrChild = a.experience === "BEGINNER" || a.ageGroup === "ELEMENTARY";
+    if (running.reason === "STRONG_FATIGUE_OR_UNWELL" && reportedFatigue) return explain("疲れがあるため、高強度の走（加速・最高速度・スピード持久）は出していません。軽い走練習を行うときは、目的を「基礎の走力」にしてください。");
+    if (running.reason === "EVENT_POLICY_NOT_SUPPORTED") return explain("最高速度・スピード持久力の走処方は、現在100m・200mの選手だけに対応しています。");
+    if ((running.reason === "SCIENCE_FAMILIARITY_REQUIRED" || running.reason === "SCIENCE_POPULATION_NOT_SUPPORTED") && newOrChild) {
+      return explain("小学生と始めたばかりの選手には、走練習は「基礎の走力」だけを出しています。目的を「基礎の走力」にすると、走練習も提案します。");
+    }
+    if (running.reason === "SCIENCE_MATURITY_REQUIRED" && a.ageGroup === "JUNIOR_HIGH") return explain("中学生には、最高速度・スピード持久の走練習は出していません。目的を「加速」か「基礎の走力」にすると提案します。");
+    if (running.reason === "RECOVERY_REST_PREFERRED") return explain("疲労回復の日は、休養を優先して走練習を出していません。");
+    if (running.reason === "SCIENCE_TAPER_WINDOW_REVIEW") return explain("大会前日の走練習は、小学生や疲れのある選手には自動で出していません。内容はコーチが決めてください。");
     return { intent, context, requestText, running };
   }
   if (running?.status !== "READY") return { intent, context, requestText, running };

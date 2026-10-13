@@ -10,7 +10,6 @@ vi.mock("@/actions/training-proposal-actions", () => ({ generateTrainingProposal
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 
 import { TrainingProposalComposer } from "@/components/menu/training-proposal-composer";
-import { TrainingConditionsForm } from "@/components/menu/training-conditions-form";
 import { RunningPolicyCoachEditor } from "@/components/menu/running-policy-coach-editor";
 import { useState } from "react";
 import { DEFAULT_TRAINING_CONDITIONS, TRAINING_GOAL_LABELS, type TrainingConditions } from "@/domain/training-proposal/conditions";
@@ -63,72 +62,31 @@ function visibleRunningCard(html: string) {
 }
 
 describe("training proposal UI (offline rendering, no Luna call)", () => {
-  it("shows every conditions step, explicit safety questions and optional notes before generation", () => {
+  it("asks only five questions before generation, and says what it assumes", () => {
     const html = renderMarkup(TrainingProposalComposer, { catalog });
-    const text = stripTags(html);
-    expect(html.match(/aria-label="STEP \d /g)).toHaveLength(6);
-    for (const label of ["練習する場所", "使える距離・設備", "対象となる選手", "今回の目的", "今日の状態・大会予定", "補足・希望（任意）", "その他の距離", "主目的", "競技経験", "競技レベル", "前回の高強度練習", "次の高強度練習", "直近7日間の高強度練習", "次の大会まで"]) expect(text).toContain(label);
-    expect(html.match(/value="unknown" selected=""/g)).toHaveLength(5);
-    expect(html).not.toContain('value="yes" selected=""');
-    expect(text).not.toMatch(/希望時間|計画時間|90分|メニュー案を作る/);
+    const text = stripTags(html).replace(/\s+/g, " ");
+    for (const title of ["場所", "走れる直線", "選手", "目的", "今日の状態"]) expect(text).toContain(title);
+    expect(html.match(/<fieldset class="min-w-0 border-t-2/g)).toHaveLength(5);
+    expect(html.match(/type="radio"/g)).toHaveLength(5 + 8 + 6 + 9 + 4);
+    expect(html.match(/type="radio"[^>]*checked=""/g)).toHaveLength(5);
+    for (const label of ["陸上競技場", "トラック1周", "高校生（経験あり）", "加速", "元気"]) expect(text).toContain(label);
+    expect(text).toContain("車や自転車が来ず、障害物のない場所で、コーチが見守る前提で提案します");
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*>安全を確認して提案する<\/button>/);
+    expect(text).not.toMatch(/競技経験|成長段階|前回の高強度練習|補足・希望|未確認|希望時間|計画時間|90分/);
   });
 
-  it("asks separate hill, step, wall and endurance details without treating them as confirmed", () => {
-    const conditions = structuredClone(DEFAULT_TRAINING_CONDITIONS);
-    conditions.environment.equipment = ["HILL", "STEP", "WALL", "OTHER"];
-    conditions.environment.straightMeters = 75;
-    conditions.goals = ["SPEED_ENDURANCE"]; conditions.primaryGoal = "SPEED_ENDURANCE";
-    const html = renderMarkup(TrainingConditionsForm, { value: conditions, onChange: vi.fn() });
-    const text = stripTags(html);
-    for (const label of ["その他の直線距離（m）", "坂の距離（m）", "傾斜（%）", "段差の高さ（cm）", "段差が安定している", "壁に体重をかけても安定している", "その他の設備・用具", "スプリント持久力（十分な回復）", "90〜95%走（既存ルール）"]) expect(text).toContain(label);
-    expect(html).not.toContain('value="yes" selected=""');
-    expect(html).toMatch(/<option value="" selected="">未確認<\/option>/);
+  it("shows the reasons and a way back when nothing can be proposed", () => {
+    const data = preview(); data.composition = { blocks: data.composition.blocks.map(block => ({ ...block, items: [] })) };
+    data.selectedItemIds = []; data.messages = ["痛みまたは体調不良が選択されているため、動きづくり・走・補強の提案を保留しています。"];
+    const text = stripTags(renderMarkup(TrainingProposalComposer, { catalog, initialPreview: data })).replace(/\s+/g, " ");
+    expect(text).toContain("提案できる練習がありませんでした");
+    expect(text).toContain("痛みまたは体調不良が選択されているため");
+    expect(text).not.toContain("採用する内容");
   });
 
-  it("shows location-specific safety prompts and honest zero/long distances", () => {
-    const conditions = structuredClone(DEFAULT_TRAINING_CONDITIONS);
-    conditions.location = "INDOOR"; conditions.environment.straightMeters = 500;
-    const indoor = renderMarkup(TrainingConditionsForm, { value: conditions, onChange: vi.fn() });
-    expect(stripTags(indoor)).toContain("床が平坦で滑らず安全に動ける");
-    expect(stripTags(indoor)).toContain("天井・柱・他の利用者との接触の心配がない");
-    expect(stripTags(indoor)).toContain("400m以上の直線距離（m）");
-    expect(indoor).not.toContain('value="yes" selected=""');
-    conditions.location = "PARK"; conditions.environment.straightMeters = 0;
-    const park = renderMarkup(TrainingConditionsForm, { value: conditions, onChange: vi.fn() });
-    expect(stripTags(park)).toContain("歩行者の混雑や遊具との接触の心配がない");
-    expect(park).toContain('<option value="0" selected="">走れる直線なし</option>');
-    expect(stripTags(park)).toContain("やや不調");
-  });
 
-  it("requires an explicit surface, offers event and recovery choices as selects, and warns before unconfirmed safety", () => {
-    const html = renderMarkup(TrainingConditionsForm, { value: structuredClone(DEFAULT_TRAINING_CONDITIONS), onChange: vi.fn() });
-    const text = stripTags(html);
-    expect(html).toMatch(/<option value="" selected="">選択してください<\/option>/);
-    expect(html).toContain('<option value="100m" selected="">100m</option>');
-    for (const label of ["3日以上前・最近していない", "明日（大会前日）", "3回以上", "上級者（高度な動作に慣れている）",
-      "安全に走れる平地の直線距離", "折り返しを含まない", "提案されません", "公園・広場", "自宅周辺・道路", "屋内・自宅", "手をつける安全な壁", "低強度・回復目的"]) expect(text).toContain(label);
-    const saved = structuredClone(DEFAULT_TRAINING_CONDITIONS);
-    saved.condition.hoursSinceHighIntensity = 50; saved.condition.competitionDays = 10; saved.athlete.event = "60m";
-    saved.environment = { ...saved.environment, surface: "GRASS", flatSafe: true, trafficFree: true, obstacleFree: true };
-    const reloaded = renderMarkup(TrainingConditionsForm, { value: saved, onChange: vi.fn() });
-    expect(reloaded).toContain('<option value="48" selected="">2日前</option>');
-    expect(reloaded).toContain('<option value="7" selected="">1〜2週間後</option>');
-    expect(reloaded).toContain('<option value="OTHER" selected="">その他</option>');
-    expect(reloaded).toContain('value="60m"');
-    expect(reloaded).toContain('<option value="GRASS" selected="">芝生</option>');
-    expect(stripTags(reloaded)).not.toContain("提案されません");
-  });
 
-  it("requires an explicit athlete 60m reference for controlled endurance", () => {
-    const conditions = structuredClone(DEFAULT_TRAINING_CONDITIONS);
-    conditions.goals = ["SPEED_ENDURANCE"]; conditions.primaryGoal = "SPEED_ENDURANCE";
-    conditions.condition.speedEnduranceMode = "CONTROLLED_90_95";
-    const html = renderMarkup(TrainingConditionsForm, { value: conditions, onChange: vi.fn() });
-    expect(stripTags(html)).toContain("本人の現在の60m基準タイム（秒）");
-    expect(stripTags(html)).toContain("走の処方を保留します");
-    expect(html).toContain('<option value="60">60m</option>');
-    expect(html).not.toContain('<option value="60" selected="">');
-  });
+
 
   it("renders three optional sections and selection, editing, ordering and save controls", () => {
     const text = stripTags(renderMarkup(TrainingProposalComposer, { catalog, initialPreview: preview() }));
@@ -256,7 +214,7 @@ describe("training proposal UI (offline rendering, no Luna call)", () => {
 
   it("keeps the client free of Engine calculation, infrastructure imports and browser storage", async () => {
     const fs = await import("node:fs");
-    const client = ["src/components/menu/training-proposal-composer.tsx", "src/components/menu/training-conditions-form.tsx"]
+    const client = ["src/components/menu/training-proposal-composer.tsx", "src/components/menu/simple-conditions-form.tsx"]
       .map(file => fs.readFileSync(file, "utf8")).join("\n");
     expect(client).toMatch(/from ["']@\/actions\/training-proposal-actions["']/);
     expect(client).not.toMatch(/import (?!type)[^;]*from ["']@\/(?:infra|application)\//);

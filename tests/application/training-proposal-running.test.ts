@@ -131,7 +131,8 @@ describe("structured conditions to unchanged Running Engine", () => {
     const c = confirmed(); c.condition.fatigue = 4;
     const held = buildStructuredRunningPreview(c).running;
     expect(held).toMatchObject({ status: "COACH_REVIEW_REQUIRED", reason: "STRONG_FATIGUE_OR_UNWELL" });
-    expect(held?.status === "READY" ? "" : held?.message).toContain("基礎走能力向上");
+    // The screen names goals with its five-choice labels.
+    expect(held?.status === "READY" ? "" : held?.message).toContain("目的を「基礎の走力」にしてください");
     const basic = confirmed("BASIC"); basic.condition.fatigue = 4;
     expect(buildStructuredRunningPreview(basic).running).toMatchObject({ status: "READY", prescription: { distanceMeters: 30 } });
   });

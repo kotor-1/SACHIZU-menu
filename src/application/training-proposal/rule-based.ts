@@ -1,6 +1,7 @@
 import type { ComposerCatalogExercise } from "@/domain/menu-composition/contracts";
 import type { ExercisePurposeValue } from "@/domain/exercise/constants";
-import { TRAINING_GOAL_LABELS, type TrainingGoal } from "@/domain/training-proposal/conditions";
+import type { TrainingGoal } from "@/domain/training-proposal/conditions";
+import { SIMPLE_GOAL_LABELS } from "@/domain/training-proposal/simple-conditions";
 import type { TrainingComposerOutput, TrainingComposerSelection } from "@/domain/training-proposal/contracts";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
 import type { TrainingComposerInput } from "./generate";
@@ -56,6 +57,6 @@ export function ruleBasedTrainingSelection(input: TrainingComposerInput): Traini
     return { exerciseId: row.id, reason: item.reason, intensity: annotation.intensity, relationship: "COMBINABLE", alternativeGroup: null };
   };
   return { movement: movement.map(select), strength: onePerFamily(input.strength).slice(0, input.requiredStrength).map(select),
-    explanation: `AIを使わない基本提案です。条件に合う登録種目から、似た動作が重ならないように、段階（可動域から疾走への接続まで）ごとに順に選びました。主目的「${TRAINING_GOAL_LABELS[input.conditions.primaryGoal]}」に関係する種目を優先しています。`,
+    explanation: `AIを使わない基本提案です。条件に合う登録種目から、似た動作が重ならないように、段階（可動域から疾走への接続まで）ごとに順に選びました。目的「${SIMPLE_GOAL_LABELS[input.conditions.primaryGoal]}」に関係する種目を優先しています。`,
     uncertainty: "理由と強度の文は定型です。種目の組み合わせと数量は、指導者が確認して必要に応じて編集してください。" };
 }
