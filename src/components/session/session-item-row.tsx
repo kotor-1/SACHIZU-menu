@@ -12,6 +12,7 @@ import {
   updateSessionItemAction,
 } from "@/actions/session-actions";
 import { formatPrescription } from "@/domain/shared/prescription";
+import { exerciseUsesPerSideCount } from "@/domain/menu-composition/dose-counting";
 import type { RunningSessionExecutionDto } from "@/presentation/running/session-execution";
 import type { SessionItemRowDto } from "@/presentation/running/session-item";
 
@@ -43,6 +44,10 @@ export function SessionItemRow({
     null,
   );
 
+  // 片側ごとの回数かどうかは、記録に写したメモ（スナップショット）だけで判断する。
+  // 種目の現在の登録を参照すると、過去の記録の表示があとから変わってしまうため。
+  const perSideReps = item.plannedReps !== null
+    && exerciseUsesPerSideCount({ executionInstruction: "", plannedNote: item.plannedNote ?? "" });
   const planned = item.runningSnapshot ? null : formatPrescription({
     sets: item.plannedSets,
     reps: item.plannedReps,
@@ -51,7 +56,7 @@ export function SessionItemRow({
     restSeconds: item.plannedRestSeconds,
     intensityPercent: item.plannedIntensityPercent,
     loadKg: item.plannedLoadKg,
-  });
+  }, { perSideReps });
 
   const actual = formatPrescription({
     sets: item.actualSets,
@@ -67,8 +72,8 @@ export function SessionItemRow({
   return (
     <li
       className={cn(
-        "rounded-lg border px-3 py-2.5 transition-colors",
-        item.done ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-white",
+        "rounded-md border px-3 py-2.5 transition-colors",
+        item.done ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white",
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -79,12 +84,12 @@ export function SessionItemRow({
             type="submit"
             title={item.done ? "未実施に戻す" : "実施済みにする"}
             className={cn(
-              // 練習中もっとも繰り返しタップされる操作のため、他の補助ボタンより
+              // 練習中もっとも繰り返しタップされる操作のため、他の補助ボタン（h-8）より
               // 一回り大きくしてある（元は h-5 w-5 = 20px で、指では狙いにくかった）。
-              "grid h-7 w-7 place-items-center rounded border text-sm transition-colors",
+              "grid h-10 w-10 place-items-center rounded-md border-2 text-base font-bold transition-colors",
               item.done
-                ? "border-emerald-500 bg-emerald-500 text-white"
-                : "border-slate-300 bg-white text-transparent hover:border-emerald-400",
+                ? "border-emerald-600 bg-emerald-600 text-white"
+                : "border-slate-400 bg-white text-transparent hover:border-emerald-600",
             )}
           >
             ✓
@@ -93,12 +98,12 @@ export function SessionItemRow({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-slate-400">{index + 1}.</span>
+            <span className="text-xs font-bold tabular-nums text-slate-500">{index + 1}</span>
             {item.exercise ? (
               <Link
                 href={`/exercises/${item.exercise.id}`}
                 className={cn(
-                  "text-sm font-medium hover:underline",
+                  "text-sm font-bold hover:underline",
                   item.done ? "text-emerald-900" : "text-slate-900",
                 )}
               >
@@ -121,7 +126,7 @@ export function SessionItemRow({
           {item.unprescribedRunning && <p className="mt-1 text-xs text-amber-900">{item.unprescribedRunning.reasonMessage}</p>}
           {item.unprescribedRunning && [item.plannedSets, item.plannedReps, item.plannedDistanceMeters, item.plannedDurationSeconds, item.plannedRestSeconds, item.plannedIntensityPercent].some((value) => value !== null) && <p className="mt-1 text-xs font-medium text-amber-900">手入力（Engine未処方）</p>}
           {planned && (
-            <p className="mt-0.5 font-mono text-xs text-slate-500">計画 {planned}</p>
+            <p className="mt-0.5 text-xs font-semibold tabular-nums text-slate-700">計画 {planned}</p>
           )}
           {!item.runningSnapshot && item.plannedReps == null && item.plannedDistanceMeters == null && item.plannedDurationSeconds == null && <p className="mt-0.5 text-xs text-slate-500">計画 量未設定</p>}
           {item.runningSnapshot?.status === "OK" && (

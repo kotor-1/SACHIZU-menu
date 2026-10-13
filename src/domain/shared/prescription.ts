@@ -42,13 +42,14 @@ function formatDistance(meters: number): string {
 /**
  * 処方を人が読む 1 行に整形する。
  * 例: "3set × 30m @90% / レスト 2分"
+ * perSideReps のときは回数が片側ごとの値であることを「片側15回」と明示する。
  */
-export function formatPrescription(p: Prescription | null | undefined): string {
+export function formatPrescription(p: Prescription | null | undefined, options: { perSideReps?: boolean } = {}): string {
   if (!hasPrescription(p) || !p) return "";
 
   // 「何を」の部分（回数 / 距離 / 時間）
   const unit: string[] = [];
-  if (p.reps != null) unit.push(`${p.reps}回`);
+  if (p.reps != null) unit.push(`${options.perSideReps ? "片側" : ""}${p.reps}回`);
   if (p.distanceMeters != null) unit.push(formatDistance(p.distanceMeters));
   if (p.durationSeconds != null) unit.push(formatDuration(p.durationSeconds));
 

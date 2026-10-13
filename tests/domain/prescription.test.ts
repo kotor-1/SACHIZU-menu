@@ -29,6 +29,11 @@ describe("formatPrescription", () => {
     expect(formatPrescription({ sets: 3, reps: 10 })).toBe("3set × 10回");
   });
 
+  it("labels reps as per side only when asked", () => {
+    expect(formatPrescription({ sets: 3, reps: 15, restSeconds: 60 }, { perSideReps: true })).toBe("3set × 片側15回 / レスト 1分");
+    expect(formatPrescription({ sets: 3, distanceMeters: 30 }, { perSideReps: true })).toBe("3set × 30m");
+  });
+
   it("formats distance in meters and kilometers", () => {
     expect(formatPrescription({ distanceMeters: 60 })).toBe("60m");
     expect(formatPrescription({ distanceMeters: 3000 })).toBe("3km");
