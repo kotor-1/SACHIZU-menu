@@ -127,14 +127,17 @@ describe("structured conditions to unchanged Running Engine", () => {
       .toContain("15m以上");
     expect(runningSpaceRequirement({ distanceMeters: 100, science: undefined })).toEqual({ requiredMeters: 120, stoppingMarginMeters: 20 });
   });
-  it("explains reported fatigue holds as a high-intensity hold and points to the low-intensity goal", () => {
-    const c = confirmed(); c.condition.fatigue = 4;
-    const held = buildStructuredRunningPreview(c).running;
-    expect(held).toMatchObject({ status: "COACH_REVIEW_REQUIRED", reason: "STRONG_FATIGUE_OR_UNWELL" });
-    // The screen names goals with its five-choice labels.
-    expect(held?.status === "READY" ? "" : held?.message).toContain("目的を「基礎の走力」にしてください");
-    const basic = confirmed("BASIC"); basic.condition.fatigue = 4;
-    expect(buildStructuredRunningPreview(basic).running).toMatchObject({ status: "READY", prescription: { distanceMeters: 30 } });
+  it.each(["ACCEL", "MAX_SPEED", "SPEED_ENDURANCE", "BASIC"] as const)("keeps the chosen %s run for a fatigue report, at the same dose with a check before each rep", goal => {
+    const chosen = () => { const c = confirmed(goal); if (goal === "SPEED_ENDURANCE") c.condition.speedEnduranceMode = "SPRINT_SPECIFIC"; return c; };
+    const usual = buildStructuredRunningPreview(chosen()).running;
+    const c = chosen(); c.condition.fatigue = 4;
+    const tired = buildStructuredRunningPreview(c);
+    expect(tired.intent.fatigueState?.value).toBe("REPORTED");
+    expect(usual?.status).toBe("READY"); expect(tired.running?.status).toBe("READY");
+    if (usual?.status !== "READY" || tired.running?.status !== "READY") return;
+    expect(tired.running.prescription).toMatchObject({ distanceMeters: usual.prescription.distanceMeters,
+      totalReps: usual.prescription.totalReps, repRestSeconds: usual.prescription.repRestSeconds });
+    expect(tired.running.prescription.science?.stopInstruction).toContain("1本ごとに動きと速さを確かめ");
   });
   it("explains unsupported max-speed events without changing the Engine decision", () => {
     const c = confirmed("MAX_SPEED"); c.athlete.event = "400m";

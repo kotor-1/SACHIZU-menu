@@ -91,8 +91,20 @@ describe("scientifically informed purpose branch", () => {
   });
   it("keeps serious fatigue or illness ahead of every scientific default", () => {
     expect(plan("BASIC", { fatigueState: "STRONG_OR_UNWELL" })).toMatchObject({ reason: "STRONG_FATIGUE_OR_UNWELL" });
-    expect(plan("ACCEL", { fatigueState: "REPORTED" })).toMatchObject({ reason: "STRONG_FATIGUE_OR_UNWELL" });
+    expect(plan("MAX_SPEED", { fatigueState: "STRONG_OR_UNWELL" })).toMatchObject({ reason: "STRONG_FATIGUE_OR_UNWELL" });
   });
+  it.each([["ACCEL", {}], ["MAX_SPEED", {}], ["SPEED_ENDURANCE", {}], ["BASIC", {}], ["PRECOMP", { competitionDays: 1 }]] as const)(
+    "keeps %s at its usual dose when fatigue is only reported, and checks every rep", (purpose, patch) => {
+      const usual = ready(purpose, patch);
+      const tired = ready(purpose, { ...patch, fatigueState: "REPORTED" });
+      // Same run, reps, rest and intensity: the low starting dose is not cut further or made up.
+      expect(tired).toMatchObject({ distanceMeters: usual.distanceMeters, totalReps: usual.totalReps, repRestSeconds: usual.repRestSeconds,
+        executionInstructionText: usual.executionInstructionText, repsReductionApplied: false,
+        science: { ruleId: usual.science!.ruleId, intensityReference: usual.science!.intensityReference } });
+      expect(tired.decisionReasons).toContain("FATIGUE_REPORT_PRESERVED");
+      expect(usual.decisionReasons).not.toContain("FATIGUE_REPORT_PRESERVED");
+      expect(tired.science!.stopInstruction).toBe(`疲れの申告あり。1本ごとに動きと速さを確かめ、いつもより重い・遅いと感じたら残りは行わない。${usual.science!.stopInstruction}`);
+    });
   it.each(["hoursSinceHighIntensity", "hoursUntilNextHighIntensity", "highIntensitySessionsLast7Days"])("requires stated frequency/recovery context %s", field => {
     expect(plan("ACCEL", { science: { ...context, [field]: undefined } })).toMatchObject({ reason: "SCIENCE_RECOVERY_INTERVAL_REQUIRED" });
   });

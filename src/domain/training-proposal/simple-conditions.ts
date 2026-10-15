@@ -45,8 +45,9 @@ export const SIMPLE_GOAL_LABELS: Record<TrainingGoal, string> = {
 type ConditionProfile = Pick<TrainingConditions["condition"], "fatigue" | "soreness" | "health" | "hoursSinceHighIntensity" | "hoursUntilNextHighIntensity" | "highIntensitySessionsLast7Days" | "load">;
 const STATES = {
   GOOD: { label: "元気", profile: { fatigue: 2, soreness: "NONE", health: "GOOD", hoursSinceHighIntensity: 72, hoursUntilNextHighIntensity: 72, highIntensitySessionsLast7Days: 1, load: "NORMAL" } },
-  // 筋肉痛までは言っていないので、疲労だけを申告したものとして扱う（高強度の走は止まる）。
-  TIRED: { label: "少し疲れている", profile: { fatigue: 5, soreness: "NONE", health: "GOOD", hoursSinceHighIntensity: 48, hoursUntilNextHighIntensity: 48, highIntensitySessionsLast7Days: 2, load: "NORMAL" } },
+  // 筋肉痛までは言っていないので、疲労だけを申告したものとして扱う。選んだ走はいつもの本数のまま残し、
+  // 1本ごとの確認を足す（動きづくり・補強の量は減る）。今週の高強度の回数は聞いていないので、元気と同じ想定にする。
+  TIRED: { label: "少し疲れている", profile: { fatigue: 5, soreness: "NONE", health: "GOOD", hoursSinceHighIntensity: 48, hoursUntilNextHighIntensity: 48, highIntensitySessionsLast7Days: 1, load: "NORMAL" } },
   VERY_TIRED: { label: "かなり疲れている", profile: { fatigue: 8, soreness: "STRONG", health: "FAIR", hoursSinceHighIntensity: 24, hoursUntilNextHighIntensity: 48, highIntensitySessionsLast7Days: 3, load: "LIGHT" } },
   // 痛みの部位は聞かないため、体調不良として扱う（どちらも提案を止め、指導者の確認を求める）。
   UNWELL: { label: "痛み・体調不良がある", profile: { fatigue: 5, soreness: "NONE", health: "POOR", hoursSinceHighIntensity: 72, hoursUntilNextHighIntensity: 72, highIntensitySessionsLast7Days: 1, load: "LIGHT" } },

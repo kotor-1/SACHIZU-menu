@@ -25,6 +25,9 @@ export function planScienceRunning(request: ParsedRunningPolicyInput): RunningPo
   const purpose = request.competitionDays === 1 ? "PRECOMP" : request.purpose;
   if (request.competitionDays === 0) return stop("SCIENCE_TAPER_WINDOW_REVIEW", "COACH_REVIEW_REQUIRED");
   const low = request.intensityPreference === "LOW";
+  // A fatigue report alone keeps the chosen run at its usual starting dose (already the low initial
+  // value) and adds a check before every rep. Strong fatigue or illness is held by the Engine first.
+  const fatigueReported = request.fatigueState === "REPORTED";
   // Rest is an appropriate outcome. Tempo is never assumed to provide recovery.
   if (purpose === "RECOVERY" || (low && request.fatigueState !== "NONE")) return stop("RECOVERY_REST_PREFERRED", "COACH_REVIEW_REQUIRED");
   if (request.standardPolicyConflict || request.humanExplicitNumbers?.totalReps !== undefined
@@ -38,7 +41,7 @@ export function planScienceRunning(request: ParsedRunningPolicyInput): RunningPo
   let rationale: string;
   if (purpose === "PRECOMP") {
     if (request.competitionDays !== 1) return stop("SCIENCE_COMPETITION_CONTEXT_REQUIRED");
-    if (child || request.fatigueState !== "NONE") return stop("SCIENCE_TAPER_WINDOW_REVIEW", "COACH_REVIEW_REQUIRED");
+    if (child) return stop("SCIENCE_TAPER_WINDOW_REVIEW", "COACH_REVIEW_REQUIRED");
     if (c.familiarWithSprint !== true || c.experience !== "EXPERIENCED") return stop("SCIENCE_FAMILIARITY_REQUIRED");
     id = "SCI_PRECOMP_FAMILIAR";
     instruction = "大会前日の慣れた軽い流し。速度を競わず楽に動く。速い刺激や新しい動きは加えず、疲労感があれば中止する。";
@@ -78,7 +81,7 @@ export function planScienceRunning(request: ParsedRunningPolicyInput): RunningPo
     } else return stop("SCIENCE_ENDURANCE_MODE_REQUIRED");
   } else return stop("SCIENCE_POPULATION_NOT_SUPPORTED", "NEEDS_POLICY");
   if (highIntensity) {
-    if (request.fatigueState !== "NONE") return stop("STRONG_FATIGUE_OR_UNWELL", "COACH_REVIEW_REQUIRED");
+    if (request.fatigueState === "STRONG_OR_UNWELL") return stop("STRONG_FATIGUE_OR_UNWELL", "COACH_REVIEW_REQUIRED");
     if (c.hoursSinceHighIntensity === undefined || c.hoursUntilNextHighIntensity === undefined
       || c.highIntensitySessionsLast7Days === undefined) return stop("SCIENCE_RECOVERY_INTERVAL_REQUIRED");
     if (c.hoursSinceHighIntensity < 48 || c.hoursUntilNextHighIntensity < 48
@@ -100,7 +103,7 @@ export function planScienceRunning(request: ParsedRunningPolicyInput): RunningPo
     decelerationMeters: id === "SCI_MV_INITIAL" ? 20 : 0,
     minHighIntensitySeparationHours: highIntensity ? 48 : 0,
     maxHighIntensitySessionsPer7Days: highIntensity ? 2 : null,
-    rationale, stopInstruction: "痛み・不調・動作の乱れ・回復不足で中止。高強度の間隔と頻度は他競技も含めて確認し、量を埋めるために続行しない。",
+    rationale, stopInstruction: `${fatigueReported ? "疲れの申告あり。1本ごとに動きと速さを確かめ、いつもより重い・遅いと感じたら残りは行わない。" : ""}痛み・不調・動作の乱れ・回復不足で中止。高強度の間隔と頻度は他競技も含めて確認し、量を埋めるために続行しない。`,
   };
   const totalReps = request.loadReductionRequested ? Math.max(1, Math.ceil(rule.totalReps / 2)) : rule.totalReps;
   const p: RunningPrescription = {
@@ -116,6 +119,7 @@ export function planScienceRunning(request: ParsedRunningPolicyInput): RunningPo
     fullSessionTimeGuaranteed: false, decisionReasons: ["SCIENCE_DEFAULT_SELECTED",
       ...(purpose === "PRECOMP" ? ["COMPETITION_CONTEXT_APPLIED" as const] : []),
       ...(low ? ["LOW_INTENSITY_CONTEXT_APPLIED" as const] : []),
+      ...(fatigueReported ? ["FATIGUE_REPORT_PRESERVED" as const] : []),
       ...(totalReps < rule.totalReps ? ["LOAD_REDUCTION_APPLIED" as const] : [])],
   };
   if (request.availableTimeSeconds !== undefined && request.availableTimeSeconds <= p.minimumKnownRestSeconds) {
