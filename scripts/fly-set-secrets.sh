@@ -6,11 +6,24 @@
 #   - GitHub の FLY_API_TOKEN … main に送ったときの自動更新用（1年有効）
 # 使い方: zsh scripts/fly-set-secrets.sh（Claude Code のチャットからは先頭に ! を付けて実行できる）
 # 実行し直すと鍵と初回登録コードが新しくなる。登録済みの利用者とデータはそのまま残る。
+#
+# Claude の鍵だけを足すとき: zsh scripts/fly-set-secrets.sh claude
+#   - ANTHROPIC_API_KEY … .env.local から読む。登録するとAI提案が Opus 5.5 になる（ほかの鍵は変えない）
+#   - Luna に戻すとき: ~/.fly/bin/flyctl secrets unset ANTHROPIC_API_KEY -a sachizu-menu
 set -euo pipefail
 APP=sachizu-menu
 REPO=kotor-1/SACHIZU-menu
 FLY=${FLY:-$HOME/.fly/bin/flyctl}
 ENV_FILE="${0:A:h:h}/.env.local"
+
+if [[ "${1:-}" == "claude" ]]; then
+  CLAUDE_KEY=$(sed -nE 's/^[[:space:]]*(export[[:space:]]+)?ANTHROPIC_API_KEY[[:space:]]*=[[:space:]]*//p' "$ENV_FILE" | head -n 1 | sed -E "s/^[\"']//; s/[\"'][[:space:]]*\$//")
+  [[ -n "$CLAUDE_KEY" ]] || { print -r -- ".env.local に ANTHROPIC_API_KEY が見つかりません。"; exit 1; }
+  printf 'ANTHROPIC_API_KEY=%s\n' "$CLAUDE_KEY" | "$FLY" secrets import -a "$APP" > /dev/null
+  unset CLAUDE_KEY
+  print -r -- "✓ Fly.io に Claude の鍵を登録しました（値は表示していません）。AI提案は Opus 5.5 になります"
+  exit 0
+fi
 
 OPENAI_KEY=$(sed -nE 's/^[[:space:]]*(export[[:space:]]+)?OPENAI_API_KEY[[:space:]]*=[[:space:]]*//p' "$ENV_FILE" | head -n 1 | sed -E "s/^[\"']//; s/[\"'][[:space:]]*\$//")
 [[ -n "$OPENAI_KEY" ]] || { print -r -- ".env.local に OPENAI_API_KEY が見つかりません。"; exit 1; }

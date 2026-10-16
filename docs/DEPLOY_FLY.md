@@ -23,6 +23,12 @@ GitHub Pages では動かない（データの保存とAI提案にサーバー�
 - ACCOUNT_SETUP_CODE … 最初の1人の登録用
 - GitHub の FLY_API_TOKEN … 自動更新用（1年有効）
 
+Claude の鍵は別に足す：`.env.local` に `ANTHROPIC_API_KEY=...` を書いてから `zsh scripts/fly-set-secrets.sh claude`（ほかの鍵は変わらない）。
+- この鍵があると、AI提案は Claude（既定は Opus 5.5。`TRAINING_PROPOSAL_CLAUDE_MODEL=claude-sonnet-5-5` で Sonnet 5.5）。ないときは今まで通り Luna。
+- 1回の提案で送るのは1回だけ。失敗・時間切れ（50秒）のときは、送り直さずにアプリの基本提案を出す。
+- サーバーのログ `[training-proposal] ai { model, ms, status, error, inputTokens, outputTokens }` で、どのモデルが何秒で答えたかが分かる。
+- Luna に戻すとき：`fly secrets unset ANTHROPIC_API_KEY -a sachizu-menu`
+
 ## データ
 - DB は Fly.io のボリューム `/data/sachizu.db`（SQLite）、動画解説は `/data/app-data/exercise-video-guidance`。
 - アプリを更新してもデータは残る。イメージには手元のデータを入れていない（`.dockerignore`）。
@@ -42,4 +48,4 @@ fly machine restart -a sachizu-menu   # 起動時に取り込む
 
 ## 費用の目安
 shared-cpu-1x・メモリ1GB・ボリューム1GB。使っていない間は自動で止まる（`auto_stop_machines`）。
-最初のアクセスは起動のため数秒かかる。AI提案は1回ごとに OpenAI の利用料がかかる。
+最初のアクセスは起動のため数秒かかる。AI提案は1回ごとに、使っているモデル（Claude または OpenAI）の利用料がかかる。

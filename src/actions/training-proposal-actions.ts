@@ -5,23 +5,22 @@ import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
 import { generateTrainingProposal } from "@/application/training-proposal/generate";
 import { listComposerCatalog } from "@/infra/menu-composition/catalog-repository";
 import { runningMenuSigningKey } from "@/infra/running-menu/preview-token";
-import { composeTrainingWithLuna } from "@/infra/training-proposal/composer";
-import type { RunningResponseDiagnostic } from "@/infra/running-menu/structured-response";
+import { composeTraining, type ComposerAttempt } from "@/infra/training-proposal/composer";
 import { verifyTrainingProposalToken } from "@/infra/training-proposal/preview-token";
 import { prisma } from "@/infra/db/prisma";
 import { evaluateTrainingRunningEdit, saveTrainingProposal } from "./_training-proposal-save-service";
 import { runningCoachEditRequestSchema } from "@/application/running-menu/coach-edit";
 
-/** Metadata only (no text, conditions or key): the server log shows that Luna answered, and how long it took. */
-function logComposerAttempt(diagnostic: RunningResponseDiagnostic) {
-  console.info("[training-proposal] luna", { ms: diagnostic.elapsedMs, status: diagnostic.httpStatus, error: diagnostic.errorClass,
-    outputTokens: diagnostic.usage?.outputTokens ?? null });
+/** Metadata only (no text, conditions or key): the server log shows which model answered, and how long it took. */
+function logComposerAttempt(attempt: ComposerAttempt) {
+  console.info("[training-proposal] ai", { model: attempt.model, ms: attempt.elapsedMs, status: attempt.httpStatus, error: attempt.errorClass,
+    inputTokens: attempt.inputTokens, outputTokens: attempt.outputTokens });
 }
 
 export async function generateTrainingProposalAction(input: unknown) {
   if (process.env.AI_MENU_PLANNER_ENABLED !== "true") return { ok: false as const, code: "DISABLED", message: "AIによる提案は現在利用できません。" };
   return generateTrainingProposal(input, { ownerId: DEFAULT_OWNER_ID, signingKey: runningMenuSigningKey(),
-    catalog: () => listComposerCatalog(DEFAULT_OWNER_ID), compose: request => composeTrainingWithLuna(request, { onAttempt: logComposerAttempt }) });
+    catalog: () => listComposerCatalog(DEFAULT_OWNER_ID), compose: request => composeTraining(request, { onAttempt: logComposerAttempt }) });
 }
 export async function saveTrainingProposalAction(input: unknown) {
   const result = await saveTrainingProposal(input, { db: prisma, ownerId: DEFAULT_OWNER_ID, signingKey: runningMenuSigningKey(),
