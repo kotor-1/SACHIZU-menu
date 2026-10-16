@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_TRAINING_CONDITIONS, trainingConditionsSchema, type TrainingConditions } from "@/domain/training-proposal/conditions";
-import { assessExerciseEligibility } from "@/domain/training-proposal/eligibility";
+import { assessExerciseEligibility, movementDirectionSet } from "@/domain/training-proposal/eligibility";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
 import { trainingAvailability } from "@/domain/training-proposal/quality";
 import { exerciseRepetitionCountMatches } from "@/domain/menu-composition/dose-counting";
@@ -199,12 +199,25 @@ describe("catalog environment eligibility", () => {
     expect(place("脚の切り替え", "高く跳び上がらずに、その場で脚を前後に切り替える。")).toBe(1);
     expect(place("股関節回し", "前向きに進みながら、片脚の膝を外から内へ回す。", "DISTANCE")).toBe(2);
     expect(place("引きつけ走", "一定の歩数リズムを刻みながら、膝を高く引き上げて前進する。", "DISTANCE")).toBe(3);
-    expect(place("スキップ", "リズムよくスキップで前へ進む。", "DISTANCE")).toBe(5);
-    expect(place("ギャロップ（片脚リード走）", "片脚を前上方へ高く引き出して前へ進む。", "DISTANCE")).toBe(5);
-    expect(place("両足ジャンプ（腕振り）", "両足をそろえたまま連続してジャンプしながら前へ進む。", "DISTANCE")).toBe(6);
-    expect(place("ケンケン", "片脚だけで連続して弾みながら前方へ進む。", "DISTANCE")).toBe(7);
-    expect(place("引きつけジャンプ走", "片脚で小さくホップしながら、反対の膝を引き上げて前進する。", "DISTANCE")).toBe(7);
-    expect(place("連続ニーアップ", "片脚の膝を引き上げた姿勢を保ち、支持脚の前足部でリズミカルに弾む片足バネのドリル。")).toBe(7);
+    // The coach's order (2026-10-16): 両足ジャンプ and ケンケン are the basics, and skips and gallops come after them.
+    expect(place("両足ジャンプ（腕振り）", "両足をそろえたまま連続してジャンプしながら前へ進む。", "DISTANCE")).toBe(5);
+    expect(place("ケンケン", "片脚だけで連続して弾みながら前方へ進む。", "DISTANCE")).toBe(6);
+    expect(place("引きつけジャンプ走", "片脚で小さくホップしながら、反対の膝を引き上げて前進する。", "DISTANCE")).toBe(6);
+    expect(place("連続ニーアップ", "片脚の膝を引き上げた姿勢を保ち、支持脚の前足部でリズミカルに弾む片足バネのドリル。")).toBe(6);
+    expect(place("スキップ", "リズムよくスキップで前へ進む。", "DISTANCE")).toBe(7);
+    expect(place("ギャロップ（片脚リード走）", "片脚を前上方へ高く引き出して前へ進む。", "DISTANCE")).toBe(7);
+  });
+  it("keeps the two directions of one drill as a set with their own families, so neither is dropped as a duplicate", () => {
+    const c = confirmed();
+    const family = (name: string, category = "MOBILITY") => assessExerciseEligibility(catalogFixture({ category, name, metricType: "DISTANCE", difficulty: 1,
+      description: "軽く弾むリズムで前進しながら、両腕を大きく回す。" }), c).family;
+    expect(movementDirectionSet("前向きに進みながらの股関節回し（外から内）")).toEqual({ key: "進みながらの股関節回し", order: 0 });
+    expect(movementDirectionSet("後ろ向きに進みながらの股関節回し（内から外）")).toEqual({ key: "進みながらの股関節回し", order: 1 });
+    expect(movementDirectionSet("軽く弾みながらの腕回し（前回し・左右交互）")?.key).toBe(movementDirectionSet("軽く弾みながらの腕回し（後ろ回し・左右交互）")?.key);
+    expect(family("軽く弾みながらの腕回し（前回し・左右交互）")).not.toBe(family("軽く弾みながらの腕回し（後ろ回し・左右交互）"));
+    // 前進 says where the drill goes, not which way round it is done.
+    expect(movementDirectionSet("片足連続ホップ（前進）")).toBeNull();
+    expect(movementDirectionSet("引きつけウォーク")).toBeNull();
   });
   it("orders 補強 from jumps to standing work to the floor, and keeps a mobility drill named after a push-up position in 動きづくり", () => {
     const c = confirmed();
@@ -350,6 +363,24 @@ describe("catalog environment eligibility", () => {
     expect(issuesFor("ダッシュはせず、リズムを優先する。")).not.toContain("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
     expect(issuesFor("全力疾走で行う。")).toContain("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
     expect(issuesFor("軽く行う。", "全力疾走しないで、30m走を3本加える。")).toContain("RUNNING_INSTRUCTION_OUTSIDE_ENGINE");
+  });
+  it("on a lighter day, reads a cue that rules full effort out as a cue, and still catches a demand for it", async () => {
+    const { assessTrainingComposition } = await import("@/domain/training-proposal/quality");
+    const row = catalogFixture({ category: "DRILL", name: "ギャロップ", description: "片脚リードで前へ進む。", metricType: "DISTANCE", difficulty: 2,
+      defaultSets: null, defaultDistanceMeters: null, defaultRestSeconds: null, defaultDurationSeconds: null });
+    const tired = confirmed(); tired.condition.fatigue = 5;
+    const issuesFor = (intensity: string) => assessTrainingComposition({ blocks: [
+      { id: "m", name: "動きづくり", items: [{ id: "x", type: "CATALOG_EXERCISE", exerciseId: row.id, displayName: row.name, executionInstruction: "片脚リードで前へ進む。",
+        plannedNote: "仮提案", reason: "リズム", plannedSets: 1, plannedReps: null, plannedDurationSeconds: null, plannedDistanceMeters: 20, plannedRestSeconds: 30 }] },
+      { id: "r", name: "走練習", items: [] }, { id: "s", name: "補強トレーニング", items: [] }] },
+    { x: { intensity, stage: 3, family: "MOVEMENT:ギャロップ", relationship: "COMBINABLE", alternativeGroup: null } }, tired, [row], { proposal: false });
+    // Wording from real Claude answers (2026-10-16) that the check used to read as a demand for full effort.
+    for (const cue of ["全力は求めず、高い姿勢で鋭く下ろせる速さで行う。", "姿勢が崩れない範囲で力強く、全力は求めない", "高強度にしない。", "全力ではなく、動きを確かめる速さで。", "限界まで追い込まない。"]) {
+      expect(issuesFor(cue)).not.toContain("LOAD_CONDITION_CONFLICT");
+    }
+    for (const demand of ["全力で行う。", "全力に近い速さで行う。", "全力で行い、無理のない範囲で続ける。", "限界まで追い込む。"]) {
+      expect(issuesFor(demand)).toContain("LOAD_CONDITION_CONFLICT");
+    }
   });
   it("has more than ten actual movement families in the full reviewed catalog with confirmed ordinary track conditions", () => {
     const rows = fullCatalog.catalog.map(row => ({ ...row, videoGuidance: row.videoGuidance ? exerciseVideoGuidanceSchema.parse(row.videoGuidance) : null }));

@@ -5,7 +5,7 @@ import { trainingAvailability } from "@/domain/training-proposal/quality";
 import { buildStructuredRunningPreview } from "@/application/training-proposal/running";
 import { verifyTrainingProposalToken } from "@/infra/training-proposal/preview-token";
 import { trainingComposerOutputSchema } from "@/domain/training-proposal/contracts";
-import { offlineTrainingComposer, trainingCatalog, trainingCases, trainingCaseA, TRAINING_TEST_KEY } from "../fixtures/training-proposals";
+import { appAddedDrills, offlineTrainingComposer, trainingCatalog, trainingCases, trainingCaseA, TRAINING_TEST_KEY } from "../fixtures/training-proposals";
 import realFailed from "../fixtures/menu-session-quality-real-luna.json";
 import { assessExerciseEligibility } from "@/domain/training-proposal/eligibility";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
@@ -23,7 +23,7 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     const available = trainingAvailability(trainingCatalog, conditions);
     expect(result.preview.composition.blocks.map(b => b.name)).toEqual(["動きづくり", "走練習", "補強トレーニング"]);
     const sent = compose.mock.calls[0]?.[0];
-    expect(result.preview.composition.blocks[0].items.length).toBe(sent?.requestedMovement ?? 0);
+    expect(result.preview.composition.blocks[0].items.length).toBe((sent?.requestedMovement ?? 0) + appAddedDrills(result.preview.messages).length);
     expect(result.preview.composition.blocks[2].items.length).toBe(sent?.requestedStrength ?? 0);
     const families = new Set(result.preview.composition.blocks[0].items.map(item => result.preview.annotations[item.id].family));
     expect(families.size).toBeGreaterThanOrEqual(available.requiredMovement);
@@ -108,7 +108,7 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     const [movement, , strength] = result.preview.composition.blocks;
     const families = new Set(movement.items.map(item => result.preview.annotations[item.id].family));
     expect(families.size).toBe(movement.items.length);
-    expect(movement.items.length).toBe(available.requiredMovement);
+    expect(movement.items.length).toBe(available.requiredMovement + appAddedDrills(result.preview.messages).length);
     expect(new Set(strength.items.map(item => result.preview.annotations[item.id].family)).size).toBe(available.requiredStrength);
     const stages = movement.items.map(item => result.preview.annotations[item.id].stage ?? 0);
     expect(stages).toEqual([...stages].sort((a, b) => a - b));
@@ -195,7 +195,7 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     const sent = compose.mock.calls[0][0];
     const [movement, , strength] = result.preview.composition.blocks;
     if (failure === "set-count-text") expect(strength.items).toHaveLength(sent.requestedStrength - 1);
-    else expect(movement.items).toHaveLength(sent.requestedMovement - 1);
+    else expect(movement.items).toHaveLength(sent.requestedMovement - 1 + appAddedDrills(result.preview.messages).length);
     expect(new Set(movement.items.map(item => result.preview.annotations[item.id].family)).size).toBeGreaterThanOrEqual(10);
     expect(result.preview.messages.join(" ")).toMatch(/AIの提案のうち1件（.+）は.*除外しました/);
     expect(result.preview.messages.join(" ")).not.toContain("AIを使わない基本提案");
@@ -213,12 +213,96 @@ describe("structured selection -> candidate filter -> Composer -> quality gate (
     expect(result.preview.messages[0]).toMatch(/^AIの提案が条件・構成の確認を通らなかったため、AIを使わない基本提案を表示しています。主な理由：/);
     expect(result.preview.messages[0]).toContain("条件に合う動きづくりの提案が不足しています。");
     const [movement, , strength] = result.preview.composition.blocks;
-    expect(new Set(movement.items.map(item => result.preview.annotations[item.id].family)).size).toBe(10);
+    expect(new Set(movement.items.map(item => result.preview.annotations[item.id].family)).size).toBe(10 + appAddedDrills(result.preview.messages).length);
     for (const item of [...movement.items, ...strength.items]) {
       if (item.type !== "CATALOG_EXERCISE") throw new Error("catalog only");
       const row = trainingCatalog.find(entry => entry.id === item.exerciseId)!;
       expect(item.reason).toBe(suggestCatalogItem(row, trainingCaseA(), "x").item.reason);
     }
+  });
+  // The coach (2026-10-16): 「股関節回しは前をやったら後もセットで」「ギャロップとか入れるなら先に両足ジャンプやケンケンなど基礎が先」.
+  it("completes a forward-only drill with its backward side and puts 両足ジャンプ and ケンケン before a gallop, in the App's own words", async () => {
+    const named = (name: string) => trainingCatalog.find(row => row.name === name)!;
+    const forward = named("前向きに進みながらの股関節回し（外から内）"), backward = named("後ろ向きに進みながらの股関節回し（内から外）");
+    const gallop = named("ギャロップ（片脚リード走）");
+    // Ten other drills, none of them a basic, a skip or gallop, or one side of a set, so only the rules can add those.
+    const special = /両足ジャンプ|ケンケン|ケンパ|片脚踏み切り|引きつけジャンプ|スキップ|ギャロップ|股関節回し|腕回し/u;
+    const compose = vi.fn(async (input: TrainingComposerInput) => {
+      const output = offlineTrainingComposer(input);
+      const families = new Set<string>();
+      const others = input.movement.filter(row => !special.test(row.name) && !families.has(input.families[row.id]) && families.add(input.families[row.id]));
+      const pick = (row: { id: string }) => ({ exerciseId: row.id, reason: "主目的につなげる準備。", intensity: "姿勢を保てる速さで行う。",
+        relationship: "COMBINABLE" as const, alternativeGroup: null });
+      output.movement = [...others.slice(0, 10).map(pick), pick(forward), pick(gallop)];
+      return { ok: true as const, value: output };
+    });
+    const result = await generate(trainingCaseA(), compose);
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    expect(result.preview.messages.join(" ")).not.toContain("AIを使わない基本提案");
+    const items = result.preview.composition.blocks[0].items.flatMap(item => item.type === "CATALOG_EXERCISE" ? [item] : []);
+    const at = (id: string) => items.findIndex(item => item.exerciseId === id);
+    expect(at(backward.id)).toBe(at(forward.id) + 1);
+    const both = items.findIndex(item => /両足ジャンプ/u.test(item.displayName)), one = items.findIndex(item => /^ケンケン/u.test(item.displayName));
+    expect(both).toBeGreaterThanOrEqual(0); expect(one).toBeGreaterThan(both); expect(at(gallop.id)).toBeGreaterThan(one);
+    // The easiest plain basics are the ones added, with the App's own texts, and the coach is told which.
+    expect(items[both].displayName).toBe("両足ジャンプ（腕振り）");
+    expect(items[one].displayName).toBe("ケンケン");
+    const added = appAddedDrills(result.preview.messages);
+    expect(added).toEqual([backward.name, items[both].displayName, items[one].displayName]);
+    for (const name of added) {
+      const item = items.find(entry => entry.displayName === name)!;
+      expect(item.reason).toBe(suggestCatalogItem(named(name), trainingCaseA(), "x").item.reason);
+    }
+    expect(result.preview.messages.join(" ")).toContain("前向きと後ろ向きはセットで行い、スキップ・ギャロップの前には基礎の両足ジャンプとケンケンを行うためです。");
+    expect(items).toHaveLength(15);
+  });
+  it("counts only ケンケン itself as the one-leg basic, and puts it before a harder one-leg drill", async () => {
+    const named = (name: string) => trainingCatalog.find(row => row.name === name)!;
+    const takeoff = named("数歩からの片脚踏み切りジャンプ（膝引き上げ＋腕振り上げ）"), gallop = named("ギャロップ（片脚リード走）");
+    const both = named("両足ジャンプ（腕振り）");
+    const special = /両足ジャンプ|ケンケン|ケンパ|片脚踏み切り|引きつけジャンプ|スキップ|ギャロップ|股関節回し|腕回し/u;
+    const compose = vi.fn(async (input: TrainingComposerInput) => {
+      const output = offlineTrainingComposer(input);
+      const families = new Set<string>();
+      const others = input.movement.filter(row => !special.test(row.name) && !families.has(input.families[row.id]) && families.add(input.families[row.id]));
+      const pick = (row: { id: string }) => ({ exerciseId: row.id, reason: "主目的につなげる準備。", intensity: "姿勢を保てる速さで行う。",
+        relationship: "COMBINABLE" as const, alternativeGroup: null });
+      output.movement = [...others.slice(0, 9).map(pick), pick(takeoff), pick(both), pick(gallop)];
+      return { ok: true as const, value: output };
+    });
+    const result = await generate(trainingCaseA(), compose);
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    const names = result.preview.composition.blocks[0].items.flatMap(item => item.type === "CATALOG_EXERCISE" ? [item.displayName] : []);
+    expect(appAddedDrills(result.preview.messages)).toEqual(["ケンケン"]);
+    expect(names.slice(names.indexOf(both.name), names.indexOf(gallop.name) + 1)).toEqual([both.name, "ケンケン", takeoff.name, gallop.name]);
+  });
+  it("keeps 前回し and 後ろ回し of the arm circles together, forward first, in the App's own proposal too", async () => {
+    const result = await generate(trainingCaseA(), vi.fn(async () => ({ ok: false as const, reason: "OFFLINE" })));
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    const names = result.preview.composition.blocks[0].items.flatMap(item => item.type === "CATALOG_EXERCISE" ? [item.displayName] : []);
+    for (const [first, second] of [["軽く弾みながらの腕回し（前回し・左右交互）", "軽く弾みながらの腕回し（後ろ回し・左右交互）"],
+      ["前向きに進みながらの股関節回し（外から内）", "後ろ向きに進みながらの股関節回し（内から外）"]]) {
+      if (!names.includes(first) && !names.includes(second)) continue;
+      expect(names.indexOf(second)).toBe(names.indexOf(first) + 1);
+    }
+    // No skip or gallop before its basics, in any of the fixture cases.
+    for (const conditions of Object.values(trainingCases())) {
+      const each = await generate(conditions, vi.fn(async () => ({ ok: false as const, reason: "OFFLINE" })));
+      if (!each.ok) continue;
+      const order = each.preview.composition.blocks[0].items.flatMap(item => item.type === "CATALOG_EXERCISE" ? [item.displayName] : []);
+      const first = order.findIndex(name => /スキップ|ギャロップ/u.test(name));
+      if (first < 0) continue;
+      expect(order.slice(0, first).some(name => /^両足ジャンプ/u.test(name))).toBe(true);
+      expect(order.slice(0, first).some(name => /^ケンケン/u.test(name))).toBe(true);
+    }
+  });
+  it("leaves a skip or gallop out when its basics cannot be offered", async () => {
+    const withoutBasics = trainingCatalog.filter(row => !/両足ジャンプ|ケンケン|ケンパ|片脚踏み切り|引きつけジャンプ/u.test(row.name));
+    const result = await generateTrainingProposal(trainingCaseA(), { ownerId: DEFAULT_OWNER_ID, signingKey: TRAINING_TEST_KEY,
+      catalog: async () => withoutBasics, compose: async input => ({ ok: true as const, value: offlineTrainingComposer(input) }) });
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    const names = result.preview.composition.blocks[0].items.flatMap(item => item.type === "CATALOG_EXERCISE" ? [item.displayName] : []);
+    expect(names.some(name => /スキップ|ギャロップ/u.test(name))).toBe(false);
   });
   it("a note cannot add unavailable equipment or expand running space", async () => {
     const conditions = trainingCases().B;

@@ -34,6 +34,12 @@ const preferredMovement = ["キャット&ドッグ", "下向き胸椎回旋", "�
   "片手付きランジから股関節&胸椎回旋", "引きつけ軌道確認", "ニーアップウォーク", "その場で挟み込み1回入れ替え（腕振りあり）", "高速タッピング"];
 const preferredStrength = ["仰向けハンドプレス（腹圧・腰椎圧迫キープ）", "自重スクワット（手腰スクワット・基礎下肢強化）", "サイドアブダクション"];
 
+/** The drills the App added to complete a set (前向き・後ろ向き, or the basics before a skip or gallop), as its message names them. */
+export function appAddedDrills(messages: readonly string[]): string[] {
+  const note = messages.find(message => message.startsWith("アプリが") && message.includes("を加えました。"));
+  return note ? [...note.slice(0, note.indexOf("を加えました。")).matchAll(/「([^」]+)」/gu)].map(match => match[1]) : [];
+}
+
 /** Handwritten offline response. This is not evidence that Luna selected these items. */
 export function offlineTrainingComposer(input: TrainingComposerInput): TrainingComposerOutput {
   function choose(rows: ComposerCatalogExercise[], target: number, preferred: string[], coverStages = false) {

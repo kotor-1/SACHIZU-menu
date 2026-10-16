@@ -1,6 +1,6 @@
 import type { ComposerCatalogExercise } from "@/domain/menu-composition/contracts";
 import type { ExercisePurposeValue } from "@/domain/exercise/constants";
-import type { TrainingGoal } from "@/domain/training-proposal/conditions";
+import type { TrainingConditions, TrainingGoal } from "@/domain/training-proposal/conditions";
 import { SIMPLE_GOAL_LABELS } from "@/domain/training-proposal/simple-conditions";
 import type { TrainingComposerOutput, TrainingComposerSelection } from "@/domain/training-proposal/contracts";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
@@ -22,6 +22,12 @@ const GOAL_PURPOSES: Record<TrainingGoal, readonly ExercisePurposeValue[]> = {
   PRECOMP: ["MOBILITY", "POSTURE", "RHYTHM"],
   RECOVERY: ["RECOVERY", "MOBILITY", "BALANCE"],
 };
+
+/** The App's own plain texts for one catalog item: used by the no-AI proposal and for the items the App adds to complete a set. */
+export function appTrainingSelection(row: ComposerCatalogExercise, conditions: TrainingConditions): TrainingComposerSelection {
+  const { item, annotation } = suggestCatalogItem(row, conditions, "rule-based");
+  return { exerciseId: row.id, reason: item.reason, intensity: annotation.intensity, relationship: "COMBINABLE", alternativeGroup: null };
+}
 
 /**
  * The App's own proposal, used when the Composer is unavailable or its answer does not pass
@@ -53,10 +59,7 @@ export function ruleBasedTrainingSelection(input: TrainingComposerInput): Traini
     for (const queue of queues) if (queue.length && movement.length < input.requiredMovement) movement.push(queue.shift()!);
   }
   movement.sort((a, b) => compareMovementOrder(input, a.id, b.id));
-  const select = (row: ComposerCatalogExercise): TrainingComposerSelection => {
-    const { item, annotation } = suggestCatalogItem(row, input.conditions, "rule-based");
-    return { exerciseId: row.id, reason: item.reason, intensity: annotation.intensity, relationship: "COMBINABLE", alternativeGroup: null };
-  };
+  const select = (row: ComposerCatalogExercise) => appTrainingSelection(row, input.conditions);
   const strength = onePerFamily(input.strength).slice(0, input.requiredStrength).sort((a, b) => compareStrengthOrder(input, a.id, b.id));
   return { movement: movement.map(select), strength: strength.map(select),
     explanation: `AIを使わない基本提案です。条件に合う登録種目から、似た動作が重ならないように、段階（可動域から疾走への接続まで）ごとに順に選びました。目的「${SIMPLE_GOAL_LABELS[input.conditions.primaryGoal]}」に関係する種目を優先しています。`,

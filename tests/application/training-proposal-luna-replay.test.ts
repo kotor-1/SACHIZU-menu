@@ -5,7 +5,7 @@ import { trainingComposerOutputSchema, type TrainingComposerOutput } from "@/dom
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
 import { trainingComposerJsonSchema } from "@/infra/training-proposal/composer";
 import { DEFAULT_OWNER_ID } from "@/domain/shared/constants";
-import { trainingCatalog, trainingCases, TRAINING_TEST_KEY } from "../fixtures/training-proposals";
+import { appAddedDrills, trainingCatalog, trainingCases, TRAINING_TEST_KEY } from "../fixtures/training-proposals";
 import recorded from "../fixtures/training-proposal-luna-20261012.json";
 import recordedV2 from "../fixtures/training-proposal-luna-v2-20261012.json";
 
@@ -150,7 +150,7 @@ describe("recorded Luna outputs under the App-owned-dose contract (replay, no AP
     expect(result.ok).toBe(true); if (!result.ok) return;
     expect(result.preview.messages.join(" ")).not.toMatch(/AIを使わない基本提案|除外しました/);
     const [movement, running, strength] = result.preview.composition.blocks;
-    expect(movement.items).toHaveLength(12);
+    expect(movement.items).toHaveLength(12 + appAddedDrills(result.preview.messages).length);
     const stages = movement.items.map(item => result.preview.annotations[item.id].stage ?? 0);
     expect(stages).toEqual([...stages].sort((a, b) => a - b));
     expect(new Set(stages)).toEqual(new Set(request.case === "F" ? [0, 1, 2] : [0, 1, 2, 3, 4]));

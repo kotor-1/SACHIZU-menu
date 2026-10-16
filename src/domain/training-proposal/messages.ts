@@ -23,6 +23,7 @@ export const TRAINING_ISSUE_MESSAGES: Record<string, string> = {
   DOSE_REQUIRES_COACH_REVIEW: "実施量をコーチと確認する必要があります。",
   LOAD_CONDITION_CONFLICT: "強度が今日の状態・希望する負荷と一致していません。",
   MOVEMENT_PROPOSALS_MISSING: "条件に合う動きづくりの提案が不足しています。",
+  MOVEMENT_BASICS_UNAVAILABLE: "スキップ・ギャロップの前に行う基礎（両足ジャンプ・ケンケン）が今日の条件では出せないため、スキップ・ギャロップも外しました。",
   STRENGTH_PROPOSALS_MISSING: "条件に合う補強の提案が不足しています。",
   INVALID_PROPOSAL_SCHEMA: "提案の形式を確認できませんでした。",
   COMPOSER_UNAVAILABLE: "AIの提案を取得できませんでした。",

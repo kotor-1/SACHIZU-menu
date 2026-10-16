@@ -5,10 +5,11 @@ import { trainingConditionsSchema, trainingConditionLevel, trainingRunningGoal, 
 import { TRAINING_SECTION_NAMES, trainingComposerOutputSchema, type TrainingComposerOutput, type TrainingComposerSelection, type TrainingProposalPreview, type TrainingItemAnnotation } from "@/domain/training-proposal/contracts";
 import { suggestCatalogItem } from "@/domain/training-proposal/dose";
 import { assessTrainingComposition, trainingAvailability, trainingStrengthTarget, TRAINING_MOVEMENT_TARGET } from "@/domain/training-proposal/quality";
-import { compareMovementOrder, compareStrengthOrder, type ExerciseEligibility } from "@/domain/training-proposal/eligibility";
+import { BASIC_BOTH_FEET, BASIC_ONE_LEG, compareMovementOrder, compareStrengthOrder, movementDirectionSet, warmupWithinPlace, WARMUP_SKIP_GALLOP,
+  type ExerciseEligibility } from "@/domain/training-proposal/eligibility";
 import { explainTrainingIssue } from "@/domain/training-proposal/messages";
 import { buildStructuredRunningPreview } from "./running";
-import { ruleBasedTrainingSelection } from "./rule-based";
+import { appTrainingSelection, ruleBasedTrainingSelection } from "./rule-based";
 import { assertUsableSigningKey } from "@/infra/security/hmac-token";
 import { issueTrainingProposalToken } from "@/infra/training-proposal/preview-token";
 
@@ -20,8 +21,10 @@ export type TrainingComposerInput = {
   /** What the Composer is asked for: a small margin so one duplicate cannot sink the whole proposal. */
   requestedMovement: number; requestedStrength: number;
   stages: Record<string, number>; families: Record<string, string>;
-  /** Place inside the section: 動きづくり from the ground up to one-leg hops, 補強 from jumps to the floor. */
+  /** Place inside the section: 動きづくり from the ground up to skips and gallops, 補強 from jumps to the floor. */
   progressions: Record<string, number>;
+  /** Order inside one place (warmupWithinPlace): the plain basics first, then the easier drill. */
+  withinPlace?: Record<string, number>;
 };
 type AssessedRow = { row: ComposerCatalogExercise; eligibility: ExerciseEligibility };
 
@@ -96,8 +99,60 @@ function assemble(output: TrainingComposerOutput, input: TrainingComposerInput, 
       ids.add(item.exerciseId); families.add(family); return true;
     });
   };
-  const movement = distinct(build(output.movement, 0))
-    .sort((a, b) => compareMovementOrder(input, a.item.exerciseId, b.item.exerciseId));
+  const added: string[] = [];
+  const nameOf = (id: string) => context.catalog.find(row => row.id === id)?.name ?? "";
+  const place = (id: string) => input.progressions[id];
+  /**
+   * The coach's set rules, for every proposal (the Composer's or the App's own): a drill done both ways comes with
+   * its other direction, and a skip or gallop comes after its basics, 両足ジャンプ and ケンケン. A missing piece is
+   * taken from the offered candidates with the App's own texts; a skip or gallop whose basics cannot be offered is left out.
+   */
+  const complete = (proposals: Proposal[]): Proposal[] => {
+    const result = [...proposals];
+    const has = (id: string) => result.some(({ item }) => item.exerciseId === id);
+    const add = (row: ComposerCatalogExercise) => {
+      const proposal = toProposal(appTrainingSelection(row, input.conditions), row, input.conditions);
+      if (itemIssues(proposal, 0, input, context.catalog, context.ownerId, context.requestText).length) return false;
+      result.push(proposal); added.push(row.name); return true;
+    };
+    for (const { item } of proposals) {
+      const set = movementDirectionSet(nameOf(item.exerciseId));
+      const partner = set && input.movement.find(row => row.id !== item.exerciseId && input.stages[row.id] === input.stages[item.exerciseId]
+        && movementDirectionSet(row.name)?.key === set.key && movementDirectionSet(row.name)?.order !== set.order);
+      if (partner && !has(partner.id)) add(partner);
+    }
+    if (!result.some(({ item }) => place(item.exerciseId) === WARMUP_SKIP_GALLOP)) return result;
+    // The easiest offered basic of each missing kind; for ケンケン, the plain one before its variants.
+    const plain = (name: string) => name.normalize("NFKC").split(/[（(]/u)[0] === name.normalize("NFKC") ? 0 : 1;
+    const missing = [BASIC_BOTH_FEET, BASIC_ONE_LEG]
+      .filter(basic => !result.some(({ item }) => (input.stages[item.exerciseId] ?? 0) <= 3 && basic.test(nameOf(item.exerciseId).normalize("NFKC"))))
+      .map(basic => input.movement.filter(row => (input.stages[row.id] ?? 0) <= 3 && basic.test(row.name.normalize("NFKC")))
+        .sort((a, b) => (a.difficulty ?? 3) - (b.difficulty ?? 3) || plain(a.name) - plain(b.name))[0]);
+    const basics = missing.map(row => row && toProposal(appTrainingSelection(row, input.conditions), row, input.conditions));
+    if (basics.every(proposal => proposal && !itemIssues(proposal, 0, input, context.catalog, context.ownerId, context.requestText).length)) {
+      for (const proposal of basics) { result.push(proposal!); added.push(nameOf(proposal!.item.exerciseId)); }
+      return result;
+    }
+    for (const { item } of result) if (place(item.exerciseId) === WARMUP_SKIP_GALLOP) dropped.push({ name: item.displayName, issues: ["MOVEMENT_BASICS_UNAVAILABLE"] });
+    return result.filter(({ item }) => place(item.exerciseId) !== WARMUP_SKIP_GALLOP);
+  };
+  /** The two directions of one drill stay next to each other, forward first. */
+  const together = (proposals: Proposal[]): Proposal[] => {
+    const ordered: Proposal[] = [];
+    for (const proposal of proposals) {
+      if (ordered.includes(proposal)) continue;
+      const id = proposal.item.exerciseId; const set = movementDirectionSet(nameOf(id));
+      const members = !set ? [proposal] : proposals.filter(other => movementDirectionSet(nameOf(other.item.exerciseId))?.key === set.key
+        && input.stages[other.item.exerciseId] === input.stages[id] && place(other.item.exerciseId) === place(id))
+        .sort((a, b) => (movementDirectionSet(nameOf(a.item.exerciseId))?.order ?? 0) - (movementDirectionSet(nameOf(b.item.exerciseId))?.order ?? 0));
+      for (const member of members) if (!ordered.includes(member)) ordered.push(member);
+    }
+    return ordered;
+  };
+  // The floor counts the proposal's own drills: what the App adds to complete a set never makes up for a short answer.
+  const own = distinct(build(output.movement, 0));
+  const ownFamilies = new Set(own.map(({ item }) => input.families[item.exerciseId] ?? item.exerciseId)).size;
+  const movement = together(complete(own).sort((a, b) => compareMovementOrder(input, a.item.exerciseId, b.item.exerciseId)));
   const strength = distinct(build(output.strength, 2)).sort((a, b) => compareStrengthOrder(input, a.item.exerciseId, b.item.exerciseId));
   const annotations: Record<string, TrainingItemAnnotation> = {};
   const composition: EditableComposition = { blocks: TRAINING_SECTION_NAMES.map(name => ({ id: randomUUID(), name, items: [] })) };
@@ -111,12 +166,13 @@ function assemble(output: TrainingComposerOutput, input: TrainingComposerInput, 
   }
   if (context.runningAvailable) composition.blocks[1].items.push({ id: randomUUID(), type: "RUNNING_POLICY", plannedNote: "" });
   const issues = assessTrainingComposition(composition, annotations, input.conditions, context.catalog, { proposal: true });
+  if (ownFamilies < input.requiredMovement) issues.push("MOVEMENT_PROPOSALS_MISSING");
   if (composition.blocks.some(block => block.items.length)) {
     const validated = validateComposition(composition, { catalog: context.catalog, ownerId: context.ownerId, requestText: context.requestText,
       edited: true, runningAvailable: context.runningAvailable });
     if (!validated.ok) issues.push(validated.code);
   }
-  return { output, composition, annotations, dropped, issues: [...new Set(issues)] };
+  return { output, composition, annotations, dropped, added, issues: [...new Set(issues)] };
 }
 export type GenerateTrainingProposalResult = { ok: true; preview: TrainingProposalPreview }
   | { ok: false; code: string; message: string; issues?: string[] };
@@ -173,7 +229,8 @@ export async function generateTrainingProposal(raw: unknown, deps: {
       requestedStrength: Math.min(available.requiredStrength + 1, familyCount(offeredStrength)),
       stages: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.stage])),
       families: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.family])),
-      progressions: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.progression])) };
+      progressions: Object.fromEntries(eligible.map(x => [x.row.id, x.eligibility.progression])),
+      withinPlace: Object.fromEntries(eligible.map(x => [x.row.id, warmupWithinPlace(x.row.name, x.row.difficulty)])) };
     // A condition hold is an explicit empty result, not a fabricated AI success.
     let output: Awaited<ReturnType<typeof deps.compose>> = { ok: true, value: {
       movement: [], strength: [], explanation: "確認済みの環境・コンディションに適合する既存種目がありません。条件を確認してください。",
@@ -205,6 +262,9 @@ export async function generateTrainingProposal(raw: unknown, deps: {
     } else if (dropped.length) {
       const codes = [...new Set(dropped.flatMap(entry => entry.issues))].slice(0, 3);
       messages.push(`AIの提案のうち${dropped.length}件（${dropped.map(entry => entry.name).join("、").slice(0, 200)}）は、条件・数え方・実施量の確認を通らなかったため除外しました。${reasons(codes)}`);
+    }
+    if (chosen.added.length) {
+      messages.push(`アプリが${chosen.added.map(name => `「${name}」`).join("")}を加えました。前向きと後ろ向きはセットで行い、スキップ・ギャロップの前には基礎の両足ジャンプとケンケンを行うためです。`);
     }
     if (level === "HOLD") messages.push("痛みまたは体調不良が選択されているため、動きづくり・走・補強の提案を保留しています。実施の可否と内容を指導者が確認してください。");
     if (level === "STRONG_FATIGUE") messages.push("疲労または筋肉痛が強いため、走練習と補強は保留し、動きづくりは低強度の可動域・姿勢づくりに限定しています。");

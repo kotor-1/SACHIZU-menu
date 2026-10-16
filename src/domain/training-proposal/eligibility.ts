@@ -43,12 +43,13 @@ function movementShape(name: string, description: string) {
 /**
  * Place inside a 動きづくり stage, so a warm-up builds up instead of opening with bouncing:
  * 0 on the ground (lying, sitting, on all fours), 1 standing still, 2 walking, 3 at running pace,
- * 4 bouncing lightly, 5 skips and gallops, 6 jumps, 7 on one leg (ケンケン and other hops).
+ * 4 bouncing lightly, 5 jumps on both feet, 6 on one leg (ケンケン and other hops), 7 skips and gallops.
+ * The coach's order: 両足ジャンプ and ケンケン are the basics, so skips and gallops come after them.
  */
 export function warmupProgression(name: string, description: string, moving: boolean): number {
   const shape = movementShape(name, description);
   if (shape.bouncing) {
-    return shape.oneLeg ? 7 : /スキップ|ギャロップ/u.test(name) ? 5 : /(?:軽く|小さく)(?:弾|跳|はね)|ポゴ|アンクルホップ/u.test(shape.said) ? 4 : 6;
+    return /スキップ|ギャロップ/u.test(name) ? 7 : shape.oneLeg ? 6 : /(?:軽く|小さく)(?:弾|跳|はね)|ポゴ|アンクルホップ/u.test(shape.said) ? 4 : 5;
   }
   if (shape.onGround) return 0;
   if (!moving) return 1;
@@ -60,9 +61,34 @@ export function strengthProgression(name: string, description: string, jump: boo
   return jump ? 0 : movementShape(name, description).onGround ? 2 : 1;
 }
 
-/** 動きづくり order: the stage, then the place inside it. Ties keep the given order (the sort is stable). */
-export function compareMovementOrder(order: { stages: Record<string, number>; progressions: Record<string, number> }, a: string, b: string): number {
-  return (order.stages[a] ?? 0) - (order.stages[b] ?? 0) || (order.progressions[a] ?? 0) - (order.progressions[b] ?? 0);
+/** Places 5–7: jumps on both feet, drills on one leg, and the skips and gallops that build on both. */
+export const WARMUP_BOTH_FEET = 5, WARMUP_ONE_LEG = 6, WARMUP_SKIP_GALLOP = 7;
+/** The plain basics a skip or gallop needs first: a 両足ジャンプ, and ケンケン itself (not a harder one-leg drill). */
+export const BASIC_BOTH_FEET = /^両足ジャンプ/u;
+export const BASIC_ONE_LEG = /^ケンケン/u;
+export const warmupBasic = (name: string) => BASIC_BOTH_FEET.test(name.normalize("NFKC")) || BASIC_ONE_LEG.test(name.normalize("NFKC"));
+
+const FORWARD = /前向き|前回し/u;
+const BACKWARD = /後ろ向き|後向き|後ろ回し/u;
+/**
+ * A drill done both ways (前向き・後ろ向き, 前回し・後ろ回し) is one set, forward first: the coach's rule is
+ * 「前をやったら後もセットで」. Both sides keep their own family, so neither is dropped as the other's duplicate.
+ */
+export function movementDirectionSet(name: string): { key: string; order: 0 | 1 } | null {
+  const said = name.normalize("NFKC");
+  const order = FORWARD.test(said) ? 0 : BACKWARD.test(said) ? 1 : null;
+  if (order === null) return null;
+  return { key: said.replace(/前向きに?|後ろ向きに?|後向きに?|前回し|後ろ回し|外から内|内から外/gu, "").replace(/[\s（）()・、,\-]/gu, ""), order };
+}
+
+/** Order inside one place: the plain basics first, then the easier drill (Exercise.difficulty). */
+export const warmupWithinPlace = (name: string, difficulty: number | null) => (warmupBasic(name) ? 0 : 10) + (difficulty ?? 3);
+
+/** 動きづくり order: the stage, the place inside it, then warmupWithinPlace. Ties keep the given order (the sort is stable). */
+export function compareMovementOrder(order: { stages: Record<string, number>; progressions: Record<string, number>; withinPlace?: Record<string, number> },
+  a: string, b: string): number {
+  return (order.stages[a] ?? 0) - (order.stages[b] ?? 0) || (order.progressions[a] ?? 0) - (order.progressions[b] ?? 0)
+    || (order.withinPlace?.[a] ?? 13) - (order.withinPlace?.[b] ?? 13);
 }
 /** 補強 order: jumps, standing, then the floor. Ties keep the given order. */
 export function compareStrengthOrder(order: { progressions: Record<string, number> }, a: string, b: string): number {
@@ -170,6 +196,7 @@ export function assessExerciseEligibility(row: CatalogRow, conditions: TrainingC
   // hip/arm drills must not become one family merely because they use the same joint.
   // 「ニー・トゥ・エルボー」 and 「ニー to エルボー」 are one name in two spellings.
   const movementName = name.split(/[（(]/u)[0].replace(/[\s・\-]/gu, "").toLowerCase().replace(/トゥ/gu, "to");
-  const family = `${section ?? "UNSUPPORTED"}:${movementName}`;
+  const direction = movementDirectionSet(name);
+  const family = `${section ?? "UNSUPPORTED"}:${movementName}${direction ? (direction.order === 0 ? ":前" : ":後ろ") : ""}`;
   return { eligible: reasons.length === 0, reasons: [...new Set(reasons)], section, stage, progression, family };
 }

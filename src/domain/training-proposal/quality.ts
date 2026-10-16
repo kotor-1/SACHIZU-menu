@@ -2,7 +2,7 @@ import type { ComposerCatalogExercise, EditableComposition } from "@/domain/menu
 import { exerciseRepetitionCountMatches } from "@/domain/menu-composition/dose-counting";
 import { trainingReducedLoad, type TrainingConditions } from "./conditions";
 import { TRAINING_SECTION_NAMES, type TrainingItemAnnotation } from "./contracts";
-import { assessExerciseEligibility, type ExerciseEligibility } from "./eligibility";
+import { assessExerciseEligibility, BASIC_BOTH_FEET, BASIC_ONE_LEG, WARMUP_SKIP_GALLOP, type ExerciseEligibility } from "./eligibility";
 
 /** Movement is the app's core: ten independent families whenever the conditions allow them. */
 export const TRAINING_MOVEMENT_TARGET = 10;
@@ -35,7 +35,10 @@ function groupNamedVariants<T extends { eligibility: ExerciseEligibility }>(asse
 export function trainingAvailability(catalog: readonly ComposerCatalogExercise[], conditions: TrainingConditions) {
   const assessed = groupNamedVariants(catalog.map(row => ({ row, eligibility: assessExerciseEligibility(row, conditions) })));
   const rows = assessed.filter(x => x.eligibility.eligible);
-  const movement = rows.filter(x => x.eligibility.section === "MOVEMENT");
+  const eligibleMovement = rows.filter(x => x.eligibility.section === "MOVEMENT");
+  // A skip or gallop builds on 両足ジャンプ and ケンケン (the coach's rule), so it is offered only when both basics are.
+  const basicsOffered = [BASIC_BOTH_FEET, BASIC_ONE_LEG].every(basic => eligibleMovement.some(x => x.eligibility.stage <= 3 && basic.test(x.row.name.normalize("NFKC"))));
+  const movement = basicsOffered ? eligibleMovement : eligibleMovement.filter(x => x.eligibility.progression !== WARMUP_SKIP_GALLOP);
   const strength = rows.filter(x => x.eligibility.section === "STRENGTH");
   return { movement, strength, movementStages: [...new Set(movement.map(x => x.eligibility.stage))],
     requiredMovement: Math.min(TRAINING_MOVEMENT_TARGET, new Set(movement.map(x => x.eligibility.family)).size),
@@ -104,8 +107,10 @@ export function assessTrainingComposition(composition: EditableComposition, anno
       // Conservative proposal/edit bounds, not new physiological prescription rules.
       if ((item.plannedSets ?? 0) > (reduced ? 2 : 4) || (item.plannedReps ?? 0) > (reduced ? 12 : 30)
         || (item.plannedDurationSeconds ?? 0) > (reduced ? 30 : 60) || (item.plannedRestSeconds ?? 0) > 300) issues.push("DOSE_REQUIRES_COACH_REVIEW");
+      // A cue that rules full effort out ("全力は求めない", "高強度にしない") is not a demand for it.
       if (reduced && (annotation?.intensity ?? "").split(/[。！!？?；;\n]/u).some(clause => /全力|限界|最大努力|高強度/u.test(clause)
-        && !/避け|行わない|禁止|せず/u.test(clause))) issues.push("LOAD_CONDITION_CONFLICT");
+        && !/避け|行わない|禁止|せず/u.test(clause)
+        && !/(?:全力|限界|最大努力|高強度)[^。、,；;]{0,8}?(?:ず|ない|ではな|控え|抑え|手前)/u.test(clause))) issues.push("LOAD_CONDITION_CONFLICT");
     }
     if (options.proposal && blockIndex === 0 && families.size < availability.requiredMovement) issues.push("MOVEMENT_PROPOSALS_MISSING");
     if (options.proposal && blockIndex === 0 && availability.requiredMovement >= TRAINING_MOVEMENT_TARGET
